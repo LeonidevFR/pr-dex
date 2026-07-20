@@ -110,7 +110,7 @@ un choix unique ou multiple.
 Dans le repo privé qui contiendra `data/` :
 
 1. Copier depuis ce repo :
-   - `.github/workflows/catch.yml`
+   - `data-repo-template/catch.yml` → à placer en `.github/workflows/catch.yml`
    - `scripts/catch.mjs`
    - `shared/` (le module de tirage partagé entre le front et l'Action)
 2. Dans **Settings → Secrets and variables → Actions** du repo de données, créer :

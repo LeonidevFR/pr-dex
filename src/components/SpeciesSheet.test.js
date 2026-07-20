@@ -157,6 +157,11 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
     expect(w.find('.candy').exists()).toBe(false)
   })
 
+  // 151 espèces × 2 cardinalités = 302 montages, démontés au fur et à mesure pour ne pas
+  // les accumuler dans jsdom. C'est légitimement long : le délai est donc déclaré
+  // explicitement plutôt que laissé au défaut de 5 s, que ce test frôle même à froid.
+  // Sans cela il échoue selon la charge de la machine ou la lenteur du runner — or la CI
+  // le joue avant chaque déploiement.
   it('chaque espèce capturée retombe dans exactement une des trois sections, ou aucune', () => {
     for (const species of Object.values(DEX)) {
       const isDeadEnd = !hasEvoInFamily(species.id)
@@ -182,9 +187,11 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
 
         const renderedCount = [evolving, finalForm, reserve].filter(Boolean).length
         expect(renderedCount).toBeLessThanOrEqual(1)
+
+        w.unmount()
       }
     }
-  })
+  }, 60000)
 
   it('non capturée : aucune des trois sections ne s’affiche', () => {
     const w = mountSheet({ id: 6, entries: null, isDeadEnd: false })
