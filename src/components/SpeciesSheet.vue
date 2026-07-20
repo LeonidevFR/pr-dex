@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
@@ -15,6 +15,8 @@ defineEmits(['close', 'evolve'])
 const species = computed(() => DEX[props.id])
 const caught = computed(() => (props.entries?.length ?? 0) > 0)
 const shiny = computed(() => props.entries?.some((e) => e.shiny) ?? false)
+// Rien à voir en grand sur une silhouette non capturée.
+const zoomed = ref(false)
 const targets = computed(() => {
   const to = species.value.to
   return to === null ? [] : Array.isArray(to) ? to : [to]
@@ -27,7 +29,12 @@ const pad = (n) => String(n).padStart(3, '0')
     <div class="panel" :style="{ '--tier': TIER_VAR[species.tier] }">
       <div class="panel-top">
         <button class="x" @click="$emit('close')">✕</button>
-        <div class="panel-art" :class="{ ghost: !caught }">
+        <div
+          class="panel-art" :class="{ ghost: !caught, zoomable: caught }"
+          :tabindex="caught ? 0 : -1" :role="caught ? 'button' : null"
+          :aria-label="caught ? 'Voir le sprite en plus grand' : null"
+          @click="caught && (zoomed = true)" @keyup.enter="caught && (zoomed = true)"
+        >
           <img :src="spriteUrl(id, shiny)" :alt="species.name" @error="$event.target.dataset.broken = '1'">
         </div>
         <div>
@@ -125,6 +132,12 @@ const pad = (n) => String(n).padStart(3, '0')
             <div class="press"><span v-for="n in Math.min(entries.length, 12)" :key="n">{{ pad(id) }}</span></div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div v-if="zoomed" class="zoom-scrim" @click="zoomed = false">
+      <div class="zoom-art" :style="{ '--tier': TIER_VAR[species.tier] }">
+        <img :src="spriteUrl(id, shiny)" :alt="species.name">
       </div>
     </div>
   </div>

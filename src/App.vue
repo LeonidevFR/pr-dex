@@ -132,6 +132,7 @@ function finishEvo() {
         v-if="ritualEntry" :key="ritualEntry.sha" :entry="ritualEntry"
         :remaining="ritualRemaining"
         @claim="collection.claim" @next="nextRitual" @skip-all="skipAll"
+        @close="ritualEntry = null"
       />
     </transition>
 

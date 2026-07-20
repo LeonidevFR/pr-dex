@@ -32,6 +32,34 @@ describe('espèce non capturée', () => {
   })
 })
 
+describe('zoom du sprite', () => {
+  it('n’a rien à zoomer sur une silhouette non capturée', () => {
+    const w = mountSheet({ id: 4 })
+    expect(w.find('.panel-art').classes()).not.toContain('zoomable')
+  })
+
+  it('ouvre le sprite en grand au clic, sur une espèce capturée', async () => {
+    const w = mountSheet({ id: 25, entries: [pr('a', 25)] })
+    expect(w.find('.zoom-scrim').exists()).toBe(false)
+    await w.find('.panel-art').trigger('click')
+    expect(w.find('.zoom-scrim').exists()).toBe(true)
+    expect(w.find('.zoom-art img').attributes('src')).toContain('/25.png')
+  })
+
+  it('se referme au clic sur le fond', async () => {
+    const w = mountSheet({ id: 25, entries: [pr('a', 25)] })
+    await w.find('.panel-art').trigger('click')
+    await w.find('.zoom-scrim').trigger('click')
+    expect(w.find('.zoom-scrim').exists()).toBe(false)
+  })
+
+  it('respecte le clavier (entrée) autant que le clic', async () => {
+    const w = mountSheet({ id: 25, entries: [pr('a', 25)] })
+    await w.find('.panel-art').trigger('keyup.enter')
+    expect(w.find('.zoom-scrim').exists()).toBe(true)
+  })
+})
+
 describe('journal des captures', () => {
   it('lie chaque capture de PR à GitHub', () => {
     const w = mountSheet({ id: 25, entries: [pr('a3f8c21e9b', 25)] })

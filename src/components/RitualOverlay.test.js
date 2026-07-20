@@ -182,6 +182,30 @@ describe('suite de la file', () => {
   })
 })
 
+describe('fermeture anticipée', () => {
+  it('permet de revenir à la planche depuis le pli scellé, plis restants ou non', () => {
+    const w = mountRitual({ remaining: 3 })
+    expect(w.find('.ritual-close').exists()).toBe(true)
+  })
+
+  it('permet de revenir à la planche pendant la révélation, sans avoir tout ouvert', async () => {
+    const w = mountRitual({ remaining: 3 })
+    await w.find('.packet').trigger('click')
+    vi.advanceTimersByTime(2200)
+    await w.vm.$nextTick()
+    await w.find('.ritual-close').trigger('click')
+    expect(w.emitted('close')).toBeTruthy()
+  })
+
+  it('n’émet pas skip-all ni next en fermant', async () => {
+    const w = mountRitual({ remaining: 3 })
+    await w.find('.ritual-close').trigger('click')
+    expect(w.emitted('close')).toBeTruthy()
+    expect(w.emitted('skip-all')).toBeFalsy()
+    expect(w.emitted('next')).toBeFalsy()
+  })
+})
+
 describe('intégration — file réelle (App.vue ne doit pas décompter sous le composant)', () => {
   it('annonce le bon nombre de plis restants une fois le sceau brisé', async () => {
     const col = useCollection()

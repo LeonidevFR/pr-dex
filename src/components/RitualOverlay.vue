@@ -8,7 +8,7 @@ const props = defineProps({
   entry: { type: Object, required: true },
   remaining: { type: Number, required: true },
 })
-const emit = defineEmits(['claim', 'next', 'skip-all'])
+const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
 
 /**
  * Quatre crans, durée quasi constante : le rituel se rejoue ~300 fois par an. L'écart
@@ -63,6 +63,11 @@ onUnmounted(() => clearTimeout(timer))
 
 <template>
   <div class="ritual" :class="{ opened: stage !== 'sealed', leg: stage !== 'sealed' && tier === 'l' }" :style="style">
+    <button
+      class="x ritual-close" aria-label="Revenir à la planche, garder les plis restants pour plus tard"
+      @click="$emit('close')"
+    >✕</button>
+
     <template v-if="stage === 'sealed'">
       <div class="stack">
         <div v-if="remaining > 2" class="ghost-pkt g1"></div>
