@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR-DEX — deux directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --f-display:"IBM Plex Serif", Georgia, serif;
+    --f-label:"IBM Plex Sans Condensed", "Helvetica Neue", sans-serif;
+    --f-data:"IBM Plex Mono", ui-monospace, monospace;
+  }
+  html,body{font-family:var(--f-label);-webkit-font-smoothing:antialiased}
+  img{image-rendering:pixelated}
+  a{color:inherit}
+
+  /* ===== chrome de comparaison ===== */
+  .switchbar{
+    position:sticky;top:0;z-index:50;
+    background:#0a0d10;border-bottom:1px solid #21272e;
+    display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+    padding:12px 22px;color:#c7cdd4;
+  }
+  .switchbar .brand{font-family:var(--f-data);font-size:12px;letter-spacing:.14em;color:#6b737c;text-transform:uppercase}
+  .seg{display:flex;border:1px solid #2b323b;border-radius:2px;overflow:hidden}
+  .seg-label{font-family:var(--f-label);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#5c646d;margin-right:9px;align-self:center}
+  .seg button{
+    background:transparent;border:0;color:#8b939c;cursor:pointer;
+    font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    padding:7px 15px;transition:background .15s,color .15s;
+  }
+  .seg button+button{border-left:1px solid #2b323b}
+  .seg button.on{background:#e9e3d5;color:#0a0d10}
+  .grp{display:flex;align-items:center}
+  .hint{margin-left:auto;font-family:var(--f-data);font-size:11px;color:#4d555e}
+
+  /* ===== scène ===== */
+  .stage{min-height:calc(100vh - 49px)}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 22px 90px}
+
+  .rail{display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap;margin-bottom:22px}
+  .wordmark{font-family:var(--f-display);font-weight:700;font-size:23px;letter-spacing:-.02em;line-height:1}
+  .rail-sub{font-family:var(--f-label);font-weight:600;font-size:10px;letter-spacing:.22em;text-transform:uppercase;margin-top:6px}
+  .progress{flex:1;min-width:240px}
+  .progress-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .eyebrow{font-family:var(--f-label);font-weight:600;font-size:10px;letter-spacing:.22em;text-transform:uppercase}
+  .progress-count{font-family:var(--f-data);font-size:13px;font-variant-numeric:tabular-nums}
+  .progress-count b{font-weight:600}
+  .bar{height:3px;position:relative;overflow:hidden}
+  .bar-fill{position:absolute;inset:0 auto 0 0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+  .claim{border-width:1px;border-style:solid;background:transparent;cursor:pointer;
+    font-family:var(--f-label);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:11px 18px}
+  .claim .pip{display:inline-block;min-width:17px;padding:0 5px;margin-left:8px;font-family:var(--f-data);font-size:11px;font-weight:600;border-radius:9px}
+
+  .tray{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:1px}
+  .cell{position:relative;aspect-ratio:1;border:0;padding:0;display:flex;align-items:center;justify-content:center;cursor:default;transition:background .16s}
+  .cell.has{cursor:pointer}
+  .cell img{width:76%;height:76%;object-fit:contain;transition:transform .18s}
+  .cell.has:hover img{transform:scale(1.09) translateY(-2px)}
+  .cell-no{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;letter-spacing:.02em;transition:opacity .16s}
+  .cell-sha{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;opacity:0;transition:opacity .16s}
+  .cell.has:hover .cell-no{opacity:0}
+  .cell.has:hover .cell-sha{opacity:1}
+  .cell-dupes{position:absolute;right:6px;top:5px;font-family:var(--f-data);font-size:9px}
+
+  .caption{margin-top:34px;max-width:760px}
+  .caption h3{font-family:var(--f-display);font-size:16px;font-weight:600;margin-bottom:8px;letter-spacing:-.01em}
+  .caption p{font-size:13px;line-height:1.65}
+  .caption .tag{font-family:var(--f-data);font-size:11px;letter-spacing:.04em;padding:2px 7px;border-width:1px;border-style:solid;margin-right:7px}
+  .caption .tags{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+
+  /* ============ DIRECTION A — Cabinet indexé ============ */
+  .dir-a{background:#0e1216;color:#e9e3d5;background-image:radial-gradient(ellipse 90% 55% at 50% -8%, #1a222c 0%, transparent 60%)}
+  .dir-a .wordmark span{color:#4f9d86}
+  .dir-a .rail-sub,.dir-a .eyebrow{color:#8b9099}
+  .dir-a .progress-count b{color:#e9e3d5}.dir-a .progress-count i{font-style:normal;color:#8b9099}
+  .dir-a .bar{background:#2a323c}.dir-a .bar-fill{background:#4f9d86}
+  .dir-a .claim{border-color:#d8b04a;color:#d8b04a}
+  .dir-a .claim .pip{background:#d8b04a;color:#0e1216}
+  .dir-a .tray{background:#2a323c;border:1px solid #2a323c}
+  .dir-a .cell{background:#161b21}
+  .dir-a .cell.has:hover{background:#1d232b}
+  .dir-a .cell-no{color:#8b9099;opacity:.55}
+  .dir-a .cell.has .cell-no{opacity:.75}
+  .dir-a .cell-sha{color:#4f9d86}
+  .dir-a .cell-dupes{color:#8b9099}
+  .dir-a .cell.has .tier{position:absolute;right:0;bottom:0;width:0;height:0;border-style:solid;border-width:0 0 9px 9px;border-color:transparent transparent var(--tc) transparent}
+  /* silhouette repensée : emplacement de spécimen gravé */
+  .dir-a .cell.ghost::after{content:"";position:absolute;inset:13px;border-radius:3px;
+    background:radial-gradient(ellipse at 50% 42%, rgba(255,255,255,.018), transparent 72%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.028), inset 0 -2px 3px rgba(0,0,0,.55)}
+  .dir-a .cell.ghost img{filter:brightness(0);opacity:.1}
+  .dir-a .cell.ghost .cell-no{opacity:.35}
+  .dir-a .cell.shiny::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg,transparent 38%,rgba(233,227,213,.16) 50%,transparent 62%);background-size:250% 100%;animation:sheen 3.4s linear infinite}
+  .dir-a .caption{color:#8b9099}
+  .dir-a .caption h3{color:#e9e3d5}
+  .dir-a .caption .tag{border-color:#2a323c;color:#8b9099}
+
+  /* ============ DIRECTION B — Planche d'herbier ============ */
+  .dir-b{color:#2c2620;
+    background-color:#e7ddc7;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(120,96,64,.035) 0 1px, transparent 1px 4px),
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,251,240,.7), transparent 70%);}
+  .dir-b .wordmark{color:#2c2620}
+  .dir-b .wordmark span{color:#9e3b2e}
+  .dir-b .rail-sub,.dir-b .eyebrow{color:#8a7c63}
+  .dir-b .progress-count b{color:#2c2620}.dir-b .progress-count i{font-style:normal;color:#8a7c63}
+  .dir-b .bar{background:#cdbf9e}.dir-b .bar-fill{background:#5c7a52}
+  .dir-b .claim{border-color:#9e3b2e;color:#9e3b2e}
+  .dir-b .claim .pip{background:#9e3b2e;color:#f3ecd9}
+  .dir-b .tray{background:#c3b48f;border:1px solid #b3a179;box-shadow:0 2px 0 rgba(120,96,64,.15)}
+  .dir-b .cell{background:#f2ecda}
+  .dir-b .cell.has:hover{background:#fbf6e8}
+  .dir-b .cell-no{color:#9a8a6d;opacity:.85}
+  .dir-b .cell-sha{color:#9e3b2e}
+  .dir-b .cell-dupes{color:#9a8a6d}
+  .dir-b .cell.has .tier{position:absolute;right:6px;bottom:6px;width:7px;height:7px;border-radius:50%;background:var(--tcb);box-shadow:0 0 0 1.5px #f2ecda,0 0 0 2.5px rgba(120,96,64,.25)}
+  /* silhouette : dessin préparatoire au trait */
+  .dir-b .cell.ghost::after{content:"";position:absolute;inset:11px;border:1px dashed rgba(140,110,72,.35)}
+  .dir-b .cell.ghost img{filter:sepia(1) saturate(.5) brightness(.55);opacity:.16}
+  .dir-b .cell.ghost .cell-no{opacity:.5}
+  .dir-b .cell.shiny::before{content:"✦";position:absolute;right:6px;top:5px;font-size:10px;color:#b8862b}
+  .dir-b .caption{color:#6f6350}
+  .dir-b .caption h3{color:#2c2620}
+  .dir-b .caption .tag{border-color:#b3a179;color:#8a7c63}
+
+  @keyframes sheen{0%{background-position:180% 0}100%{background-position:-80% 0}}
+  @media (max-width:640px){.tray{grid-template-columns:repeat(auto-fill,minmax(58px,1fr))}}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const { createApp, ref, computed } = Vue;
+
+const SPECIES = [
+[1,"Bulbizarre","r"],[2,"Herbizarre","u"],[3,"Florizarre","r"],
+[4,"Salamèche","r"],[5,"Reptincel","u"],[6,"Dracaufeu","r"],
+[7,"Carapuce","r"],[8,"Carabaffe","u"],[9,"Tortank","r"],
+[10,"Chenipan","c"],[11,"Chrysacier","u"],[12,"Papilusion","r"],
+[13,"Aspicot","c"],[14,"Coconfort","u"],[15,"Dardargnan","r"],
+[16,"Roucool","c"],[17,"Roucoups","u"],[18,"Roucarnage","r"],
+[19,"Rattata","c"],[20,"Rattatac","u"],[21,"Piafabec","c"],[22,"Rapasdepic","u"],
+[23,"Abo","u"],[24,"Arbok","u"],[25,"Pikachu","c"],[26,"Raichu","u"],
+[27,"Sabelette","u"],[28,"Sablaireau","u"],[29,"Nidoran ♀","c"],[30,"Nidorina","u"],[31,"Nidoqueen","r"],
+[32,"Nidoran ♂","c"],[33,"Nidorino","u"],[34,"Nidoking","r"],[35,"Mélofée","u"],[36,"Mélodelfe","u"],
+[37,"Goupix","u"],[38,"Feunard","u"],[39,"Rondoudou","u"],[40,"Grodoudou","u"],
+[41,"Nosferapti","c"],[42,"Nosferalto","u"],[43,"Mystherbe","c"],[44,"Ortide","u"],[45,"Rafflesia","r"],
+[46,"Paras","c"],[47,"Parasect","u"],[48,"Mimitoss","u"],[49,"Aéromite","u"],
+[50,"Taupiqueur","c"],[51,"Triopikeur","u"],[52,"Miaouss","c"],[53,"Persian","u"],
+[54,"Psykokwak","c"],[55,"Akwakwak","u"],[56,"Férosinge","u"],[57,"Colossinge","u"],
+[58,"Caninos","u"],[59,"Arcanin","u"],[60,"Ptitard","c"],[61,"Têtarte","u"],[62,"Tartard","r"],
+[63,"Abra","u"],[64,"Kadabra","u"],[65,"Alakazam","r"],[66,"Machoc","u"],[67,"Machopeur","u"],[68,"Mackogneur","r"],
+[69,"Chétiflor","u"],[70,"Boustiflor","u"],[71,"Empiflor","r"],[72,"Tentacool","c"],[73,"Tentacruel","u"],
+[74,"Racaillou","c"],[75,"Gravalanch","u"],[76,"Grolem","r"],[77,"Ponyta","u"],[78,"Galopa","u"],
+[79,"Ramoloss","c"],[80,"Flagadoss","u"],[81,"Magnéti","u"],[82,"Magnéton","u"],[83,"Canarticho","r"],
+[84,"Doduo","c"],[85,"Dodrio","u"],[86,"Otaria","u"],[87,"Lamantine","u"],[88,"Tadmorv","u"],[89,"Grotadmorv","u"],
+[90,"Kokiyas","u"],[91,"Crustabri","u"],[92,"Fantominus","u"],[93,"Spectrum","u"],[94,"Ectoplasma","r"],
+[95,"Onix","u"],[96,"Soporifik","u"],[97,"Hypnomade","u"],[98,"Krabby","c"],[99,"Krabboss","u"],
+[100,"Voltorbe","u"],[101,"Électrode","u"],[102,"Nœunœuf","u"],[103,"Noadkoko","u"],[104,"Osselait","u"],[105,"Ossatueur","u"],
+[106,"Kicklee","r"],[107,"Tygnon","r"],[108,"Excelangue","r"],[109,"Smogo","u"],[110,"Smogogo","u"],
+[111,"Rhinocorne","u"],[112,"Rhinoféros","u"],[113,"Leveinard","r"],[114,"Saquedeneu","r"],[115,"Kangourex","r"],
+[116,"Hypotrempe","u"],[117,"Hypocéan","u"],[118,"Poissirène","c"],[119,"Poissoroy","u"],[120,"Stari","u"],[121,"Staross","u"],
+[122,"M. Mime","r"],[123,"Insécateur","r"],[124,"Lippoutou","r"],[125,"Élektek","r"],[126,"Magmar","r"],[127,"Scarabrute","r"],[128,"Tauros","r"],
+[129,"Magicarpe","c"],[130,"Léviator","r"],[131,"Lokhlass","r"],[132,"Métamorph","r"],
+[133,"Évoli","r"],[134,"Aquali","r"],[135,"Voltali","r"],[136,"Pyroli","r"],[137,"Porygon","r"],
+[138,"Amonita","r"],[139,"Amonistar","u"],[140,"Kabuto","r"],[141,"Kabutops","u"],[142,"Ptéra","r"],[143,"Ronflex","r"],
+[144,"Artikodin","l"],[145,"Électhor","l"],[146,"Sulfura","l"],
+[147,"Minidraco","r"],[148,"Draco","u"],[149,"Dracolosse","r"],[150,"Mewtwo","l"],[151,"Mew","l"],
+];
+const DEX={}; SPECIES.forEach(([id,name,tier])=>DEX[id]={id,name,tier});
+const ids=SPECIES.map(s=>s[0]);
+const TIER_A={c:"#7d8590",u:"#4f9d86",r:"#5182c4",l:"#d8b04a"};
+const TIER_B={c:"#8a8175",u:"#5c7a52",r:"#9e3b2e",l:"#b8862b"};
+
+function fnv1a(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193);}return h>>>0;}
+const shortSha=id=>("0000000"+fnv1a("sha"+id).toString(16)).slice(-7);
+const sprite=(id,shiny)=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shiny?"shiny/":""}${id}.png`;
+
+// jeux de données pour la démo de comparaison
+const SPARSE={16:{count:1},19:{count:3},25:{count:1,shiny:true},13:{count:2},10:{count:1},129:{count:4}};
+const FULL={};
+const LEGEND=new Set([144,145,146,150,151]);
+ids.forEach(id=>{
+  if(LEGEND.has(id)) return;           // la fin de dex, ce sont les légendaires
+  if(fnv1a("full"+id)%100<9) return;   // ~91% capturés
+  FULL[id]={count:1+(fnv1a("c"+id)%4===0?1+(fnv1a("cc"+id)%2):0), shiny:fnv1a("sh"+id)%42===0};
+});
+FULL[25]={count:2,shiny:true};
+
+createApp({
+  setup(){
+    const dir=ref("a"), fill=ref("plein");
+    const set=computed(()=>fill.value==="plein"?FULL:SPARSE);
+    const caughtCount=computed(()=>Object.keys(set.value).length);
+    const pending=computed(()=>fill.value==="plein"?2:3);
+    return {ids,DEX,dir,fill,set,caughtCount,pending,sprite,shortSha,
+      tierColor:id=>(dir.value==="a"?TIER_A:TIER_B)[DEX[id].tier]};
+  },
+  template:`
+  <div class="switchbar">
+    <span class="brand">PR·DEX — portail de décision</span>
+    <div class="grp"><span class="seg-label">Direction</span>
+      <div class="seg">
+        <button :class="{on:dir==='a'}" @click="dir='a'">A · Cabinet</button>
+        <button :class="{on:dir==='b'}" @click="dir='b'">B · Herbier</button>
+      </div></div>
+    <div class="grp"><span class="seg-label">Tiroir</span>
+      <div class="seg">
+        <button :class="{on:fill==='vide'}" @click="fill='vide'">Vide · 1ᵉʳ mois</button>
+        <button :class="{on:fill==='plein'}" @click="fill='plein'">Plein · 2 ans</button>
+      </div></div>
+    <span class="hint">{{ dir==='a'?'encre froide · cuivre · lapis':'papier crème · sépia · tampon rouge' }}</span>
+  </div>
+
+  <div class="stage" :class="'dir-'+dir">
+    <div class="wrap">
+      <header class="rail">
+        <div>
+          <div class="wordmark">PR<span>·</span>DEX</div>
+          <div class="rail-sub">Une PR mergée, un Pokémon</div>
+        </div>
+        <div class="progress">
+          <div class="progress-head">
+            <span class="eyebrow">Collection</span>
+            <span class="progress-count"><b>{{ String(caughtCount).padStart(3,'0') }}</b><i> / 151</i></span>
+          </div>
+          <div class="bar"><div class="bar-fill" :style="{width:(caughtCount/151*100)+'%'}"></div></div>
+        </div>
+        <button class="claim">Ouvrir <span class="pip">{{ pending }}</span></button>
+      </header>
+
+      <div class="tray">
+        <button v-for="id in ids" :key="id" class="cell"
+          :class="{ has:set[id], ghost:!set[id], shiny:set[id]&&set[id].shiny }"
+          :style="{ '--tc':tierColor(id), '--tcb':tierColor(id) }">
+          <span class="cell-no">{{ String(id).padStart(3,'0') }}</span>
+          <span v-if="set[id]" class="cell-sha">{{ shortSha(id) }}</span>
+          <span v-if="set[id]&&set[id].count>1" class="cell-dupes">×{{ set[id].count }}</span>
+          <img :src="sprite(id,set[id]&&set[id].shiny)" :alt="DEX[id].name" loading="lazy">
+          <span v-if="set[id]" class="tier"></span>
+        </button>
+      </div>
+
+      <div class="caption">
+        <h3 v-if="dir==='a'">Direction A — Cabinet indexé</h3>
+        <h3 v-else>Direction B — Planche d'herbier</h3>
+        <p v-if="dir==='a'">La V1 poussée d'un cran : tiroir de spécimens sur encre froide, tranche cuivre/lapis/or, IBM Plex sur trois rôles. Le survol change le nº de catalogue en short SHA. <b>Nouveau traitement « pas encore »</b> : chaque case vide devient un emplacement de spécimen gravé dans le métal — un léger enfoncement avec la silhouette en creux, plutôt qu'un blob gris. Le tiroir vide se lit comme un meuble qui attend, pas comme un manque.</p>
+        <p v-else>Renversement tonal complet : papier crème letterpress, encre sépia, un seul accent tampon rouge, pastille de palier en cire. Même collision catalogue naturaliste × outil de dev, même système typographique — c'est le <b>ton</b> qui change. <b>Traitement « pas encore »</b> : dessin préparatoire au trait dans un cadre pointillé, comme une planche dont le spécimen n'est pas encore peint. Le survol tamponne le short SHA en rouge.</p>
+        <div class="tags">
+          <span class="tag">survol nº → SHA</span>
+          <span class="tag">pixel art = le sujet</span>
+          <span class="tag">palier en coin</span>
+          <span class="tag">{{ dir==='a'?'silhouette gravée':'silhouette au trait' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  `
+}).mount("#app");
+</script>
+</body>
+</html>

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR-DEX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<style>
+  :root{
+    --ink:#0e1216;
+    --drawer:#161b21;
+    --drawer-2:#1d232b;
+    --rule:#2a323c;
+    --bone:#e9e3d5;
+    --bone-dim:#8b9099;
+    --verdigris:#4f9d86;
+    --lapis:#5182c4;
+    --gold:#d8b04a;
+    --grey:#7d8590;
+
+    --t-c:var(--grey);
+    --t-u:var(--verdigris);
+    --t-r:var(--lapis);
+    --t-l:var(--gold);
+
+    --f-display:"IBM Plex Serif", Georgia, serif;
+    --f-label:"IBM Plex Sans Condensed", "Helvetica Neue", sans-serif;
+    --f-data:"IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--ink);color:var(--bone);font-family:var(--f-label)}
+  body{
+    min-height:100vh;
+    background-image:radial-gradient(ellipse 90% 60% at 50% -10%, #1a222c 0%, transparent 60%);
+  }
+  #app{max-width:1180px;margin:0 auto;padding:0 20px 80px}
+
+  .eyebrow{
+    font-family:var(--f-label);font-weight:600;font-size:10px;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--bone-dim);
+  }
+  .mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+
+  /* ---------- rail ---------- */
+  .rail{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg, var(--ink) 60%, rgba(14,18,22,.86));
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--rule);
+    padding:18px 0 14px;margin-bottom:26px;
+    display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap;
+  }
+  .wordmark{
+    font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:-.02em;
+    line-height:1;
+  }
+  .wordmark span{color:var(--verdigris)}
+  .rail-sub{margin-top:5px}
+
+  .progress{flex:1;min-width:220px}
+  .progress-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .progress-count{font-family:var(--f-data);font-size:13px;font-variant-numeric:tabular-nums;color:var(--bone)}
+  .progress-count b{font-weight:600}
+  .progress-count i{font-style:normal;color:var(--bone-dim)}
+  .bar{height:3px;background:var(--rule);position:relative;overflow:hidden}
+  .bar-fill{position:absolute;inset:0 auto 0 0;background:var(--verdigris);transition:width .8s cubic-bezier(.2,.8,.2,1)}
+
+  .claim-btn{
+    position:relative;border:1px solid var(--gold);background:transparent;color:var(--gold);
+    font-family:var(--f-label);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    padding:11px 18px;cursor:pointer;transition:background .18s, color .18s;
+  }
+  .claim-btn:hover{background:var(--gold);color:var(--ink)}
+  .claim-btn:disabled{border-color:var(--rule);color:var(--bone-dim);cursor:default;background:transparent}
+  .claim-btn .pip{
+    display:inline-block;min-width:17px;padding:0 4px;margin-left:8px;
+    background:var(--gold);color:var(--ink);font-family:var(--f-data);font-size:11px;font-weight:600;
+    border-radius:9px;
+  }
+  .claim-btn:hover .pip{background:var(--ink);color:var(--gold)}
+  .claim-btn.pulsing{animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(216,176,74,0)}50%{box-shadow:0 0 0 4px rgba(216,176,74,.12)}}
+
+  /* ---------- tray ---------- */
+  .tray{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:1px;
+    background:var(--rule);border:1px solid var(--rule);
+  }
+  .cell{
+    position:relative;aspect-ratio:1;background:var(--drawer);
+    border:0;padding:0;cursor:default;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .16s;
+  }
+  .cell.has{cursor:pointer}
+  .cell.has:hover, .cell.has:focus-visible{background:var(--drawer-2);outline:none}
+  .cell.has:focus-visible{box-shadow:inset 0 0 0 1px var(--verdigris)}
+  .cell img{
+    width:76%;height:76%;object-fit:contain;image-rendering:pixelated;
+    transition:transform .16s;
+  }
+  .cell.has:hover img{transform:scale(1.09) translateY(-2px)}
+  .cell.ghost img{filter:brightness(0) saturate(0);opacity:.16}
+  .cell-no{
+    position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;
+    color:var(--bone-dim);opacity:.5;letter-spacing:.02em;
+  }
+  .cell.has .cell-no{opacity:.75}
+  .cell.has:hover .cell-no{opacity:0}
+  .cell-sha{
+    position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;
+    color:var(--verdigris);opacity:0;transition:opacity .16s;
+  }
+  .cell.has:hover .cell-sha{opacity:1}
+  .cell-tier{position:absolute;right:0;bottom:0;width:0;height:0;border-style:solid;border-width:0 0 9px 9px;border-color:transparent transparent var(--tier) transparent}
+  .cell-dupes{
+    position:absolute;right:5px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--bone-dim);
+  }
+  .cell.shiny::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg,transparent 38%,rgba(233,227,213,.16) 50%,transparent 62%);
+    background-size:250% 100%;animation:sheen 3.4s linear infinite;
+  }
+  @keyframes sheen{0%{background-position:180% 0}100%{background-position:-80% 0}}
+
+  /* ---------- panel ---------- */
+  .scrim{
+    position:fixed;inset:0;z-index:40;background:rgba(8,10,13,.82);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .panel{
+    width:min(560px,100%);max-height:86vh;overflow:auto;
+    background:var(--drawer);border:1px solid var(--rule);
+  }
+  .panel-top{display:flex;gap:20px;padding:24px;border-bottom:1px solid var(--rule);align-items:center}
+  .panel-art{
+    width:120px;height:120px;flex-shrink:0;display:grid;place-items:center;
+    background:var(--drawer-2);border:1px solid var(--rule);position:relative;
+  }
+  .panel-art img{width:82%;height:82%;object-fit:contain;image-rendering:pixelated}
+  .panel-art.ghost img{filter:brightness(0) saturate(0);opacity:.16}
+  .panel-name{font-family:var(--f-display);font-size:27px;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin:6px 0 9px}
+  .chip{
+    display:inline-block;font-family:var(--f-label);font-size:9px;font-weight:600;
+    letter-spacing:.16em;text-transform:uppercase;padding:3px 8px;
+    border:1px solid var(--tier);color:var(--tier);
+  }
+  .chip.shiny-chip{border-color:var(--bone);color:var(--bone)}
+
+  .sect{padding:20px 24px;border-bottom:1px solid var(--rule)}
+  .sect:last-child{border-bottom:0}
+  .sect-h{margin-bottom:13px}
+
+  .log{display:flex;flex-direction:column;gap:0}
+  .log-row{
+    display:flex;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid rgba(42,50,60,.5);
+    text-decoration:none;color:inherit;
+  }
+  .log-row:last-child{border-bottom:0}
+  a.log-row:hover .log-title{color:var(--verdigris)}
+  .log-sha{font-family:var(--f-data);font-size:11px;color:var(--verdigris);flex-shrink:0}
+  .log-title{font-size:13px;line-height:1.4;flex:1;transition:color .15s}
+  .log-date{font-family:var(--f-data);font-size:10px;color:var(--bone-dim);flex-shrink:0}
+  .log-evo{font-family:var(--f-data);font-size:11px;color:var(--gold);flex-shrink:0}
+
+  .candy{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .candy-meter{flex:1;min-width:150px}
+  .candy-nums{font-family:var(--f-data);font-size:12px;margin-bottom:6px}
+  .candy-nums b{font-weight:600;color:var(--gold)}
+  .candy-nums i{font-style:normal;color:var(--bone-dim)}
+  .cbar{height:3px;background:var(--rule);position:relative;overflow:hidden}
+  .cbar-fill{position:absolute;inset:0 auto 0 0;background:var(--gold);transition:width .5s}
+  .evo-btn{
+    border:1px solid var(--gold);background:transparent;color:var(--gold);
+    font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    padding:9px 15px;cursor:pointer;transition:background .18s,color .18s;
+  }
+  .evo-btn:hover{background:var(--gold);color:var(--ink)}
+  .evo-btn:disabled{border-color:var(--rule);color:var(--bone-dim);cursor:default;background:transparent}
+  .evo-choices{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .evo-choice{
+    background:var(--drawer-2);border:1px solid var(--rule);padding:8px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:4px;width:78px;
+    font-family:var(--f-label);font-size:10px;color:var(--bone-dim);transition:border-color .15s,color .15s;
+  }
+  .evo-choice:hover:not(:disabled){border-color:var(--gold);color:var(--bone)}
+  .evo-choice:disabled{opacity:.4;cursor:default}
+  .evo-choice img{width:44px;height:44px;image-rendering:pixelated}
+  .muted{color:var(--bone-dim);font-size:12px;line-height:1.5}
+
+  .x{
+    position:absolute;right:14px;top:12px;background:none;border:0;color:var(--bone-dim);
+    font-family:var(--f-data);font-size:16px;cursor:pointer;padding:6px;line-height:1;
+  }
+  .x:hover{color:var(--bone)}
+
+  /* ---------- ritual ---------- */
+  .ritual{
+    position:fixed;inset:0;z-index:60;background:#080a0d;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+    overflow:hidden;
+  }
+  .packet{
+    width:236px;height:330px;position:relative;cursor:pointer;border:0;padding:0;
+    background:linear-gradient(150deg,#20272f 0%,#2c343e 40%,#1a2027 100%);
+    box-shadow:0 22px 60px rgba(0,0,0,.7), inset 0 0 0 1px rgba(216,176,74,.28);
+    display:grid;place-items:center;
+    transition:transform .2s cubic-bezier(.2,.8,.2,1);
+  }
+  .packet:hover{transform:translateY(-5px) scale(1.02)}
+  .packet::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(112deg,transparent 40%,rgba(216,176,74,.24) 50%,transparent 60%);
+    background-size:260% 100%;animation:sheen 2.8s linear infinite;
+  }
+  .packet-inner{text-align:center;padding:24px}
+  .packet-seal{
+    width:52px;height:52px;margin:0 auto 18px;border:1px solid var(--gold);border-radius:50%;
+    display:grid;place-items:center;color:var(--gold);font-family:var(--f-data);font-size:16px;
+  }
+  .packet-title{font-family:var(--f-display);font-size:17px;font-weight:600;color:var(--bone);margin-bottom:8px}
+  .packet-pr{font-family:var(--f-data);font-size:11px;color:var(--bone-dim);line-height:1.6}
+  .packet-hint{
+    position:absolute;left:0;right:0;bottom:18px;font-size:9px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--bone-dim);
+  }
+  .packet.tearing{animation:tear .5s cubic-bezier(.5,0,.75,0) forwards}
+  @keyframes tear{
+    0%{transform:scale(1) rotate(0)}
+    35%{transform:scale(1.09) rotate(-1.5deg)}
+    100%{transform:scale(1.5) rotate(3deg);opacity:0;filter:blur(9px)}
+  }
+
+  .reveal{position:relative;display:grid;place-items:center;width:340px;height:340px}
+  .rays{
+    position:absolute;width:900px;height:900px;pointer-events:none;
+    background:conic-gradient(from 0deg, var(--tier) 0deg 3deg, transparent 3deg 18deg);
+    opacity:0;mask-image:radial-gradient(circle, black 0%, transparent 62%);
+    -webkit-mask-image:radial-gradient(circle, black 0%, transparent 62%);
+    animation:rays 5s linear infinite, raysIn .7s ease-out forwards;
+  }
+  @keyframes rays{to{transform:rotate(360deg)}}
+  @keyframes raysIn{from{opacity:0}to{opacity:.17}}
+  .flash{
+    position:absolute;width:180px;height:180px;border-radius:50%;background:var(--bone);
+    animation:flash .55s ease-out forwards;
+  }
+  @keyframes flash{0%{transform:scale(.2);opacity:.9}100%{transform:scale(5);opacity:0}}
+  .reveal img{
+    width:210px;height:210px;object-fit:contain;image-rendering:pixelated;position:relative;
+    filter:drop-shadow(0 0 26px var(--tier));
+    animation:land .6s cubic-bezier(.18,1.5,.4,1) .12s both;
+  }
+  @keyframes land{0%{transform:scale(.3) translateY(-30px);opacity:0}60%{transform:scale(1.12) translateY(0)}100%{transform:scale(1) translateY(0)}}
+  .reveal-meta{text-align:center;animation:fadeUp .5s ease-out .5s both}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .reveal-name{font-family:var(--f-display);font-size:38px;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .reveal-tags{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  .reveal-note{font-family:var(--f-data);font-size:11px;color:var(--bone-dim);margin-top:16px}
+  .reveal-note b{color:var(--gold);font-weight:500}
+  .next-btn{
+    border:1px solid var(--rule);background:transparent;color:var(--bone);
+    font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    padding:11px 22px;cursor:pointer;animation:fadeUp .5s ease-out .8s both;
+  }
+  .next-btn:hover{border-color:var(--bone)}
+  .shiny-burst{position:absolute;inset:0;pointer-events:none}
+  .spark{
+    position:absolute;width:3px;height:3px;background:var(--bone);border-radius:50%;
+    animation:spark 1.5s ease-out infinite;
+  }
+  @keyframes spark{0%{transform:scale(0);opacity:0}30%{transform:scale(2.4);opacity:1}100%{transform:scale(0);opacity:0}}
+
+  .fade-enter-active,.fade-leave-active{transition:opacity .25s}
+  .fade-enter-from,.fade-leave-to{opacity:0}
+
+  @media (max-width:640px){
+    .tray{grid-template-columns:repeat(auto-fill,minmax(60px,1fr))}
+    .rail{gap:14px}
+    .panel-top{flex-direction:column;align-items:flex-start}
+    .reveal img{width:150px;height:150px}
+    .reveal-name{font-size:29px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const { createApp, ref, computed, reactive } = Vue;
+
+/* ============================================================
+   1. DONNÉES ESPÈCES — [id, nom, tier, evolueVers, coût]
+   tier: c=commun u=peu commun r=rare l=légendaire
+   Les 151 sont draftables, formes évoluées comprises. Les bonbons sont
+   un raccourci vers une évolution, pas le seul chemin.
+   ============================================================ */
+const SPECIES = [
+[1,"Bulbizarre","r",2,8],[2,"Herbizarre","u",3,16],[3,"Florizarre","r"],
+[4,"Salamèche","r",5,8],[5,"Reptincel","u",6,16],[6,"Dracaufeu","r"],
+[7,"Carapuce","r",8,8],[8,"Carabaffe","u",9,16],[9,"Tortank","r"],
+[10,"Chenipan","c",11,4],[11,"Chrysacier","u",12,8],[12,"Papilusion","r"],
+[13,"Aspicot","c",14,4],[14,"Coconfort","u",15,8],[15,"Dardargnan","r"],
+[16,"Roucool","c",17,4],[17,"Roucoups","u",18,8],[18,"Roucarnage","r"],
+[19,"Rattata","c",20,8],[20,"Rattatac","u"],
+[21,"Piafabec","c",22,8],[22,"Rapasdepic","u"],
+[23,"Abo","u",24,8],[24,"Arbok","u"],
+[25,"Pikachu","c",26,8],[26,"Raichu","u"],
+[27,"Sabelette","u",28,8],[28,"Sablaireau","u"],
+[29,"Nidoran ♀","c",30,8],[30,"Nidorina","u",31,16],[31,"Nidoqueen","r"],
+[32,"Nidoran ♂","c",33,8],[33,"Nidorino","u",34,16],[34,"Nidoking","r"],
+[35,"Mélofée","u",36,8],[36,"Mélodelfe","u"],
+[37,"Goupix","u",38,8],[38,"Feunard","u"],
+[39,"Rondoudou","u",40,8],[40,"Grodoudou","u"],
+[41,"Nosferapti","c",42,8],[42,"Nosferalto","u"],
+[43,"Mystherbe","c",44,8],[44,"Ortide","u",45,16],[45,"Rafflesia","r"],
+[46,"Paras","c",47,8],[47,"Parasect","u"],
+[48,"Mimitoss","u",49,8],[49,"Aéromite","u"],
+[50,"Taupiqueur","c",51,8],[51,"Triopikeur","u"],
+[52,"Miaouss","c",53,8],[53,"Persian","u"],
+[54,"Psykokwak","c",55,8],[55,"Akwakwak","u"],
+[56,"Férosinge","u",57,8],[57,"Colossinge","u"],
+[58,"Caninos","u",59,8],[59,"Arcanin","u"],
+[60,"Ptitard","c",61,8],[61,"Têtarte","u",62,16],[62,"Tartard","r"],
+[63,"Abra","u",64,8],[64,"Kadabra","u",65,16],[65,"Alakazam","r"],
+[66,"Machoc","u",67,8],[67,"Machopeur","u",68,16],[68,"Mackogneur","r"],
+[69,"Chétiflor","u",70,8],[70,"Boustiflor","u",71,16],[71,"Empiflor","r"],
+[72,"Tentacool","c",73,8],[73,"Tentacruel","u"],
+[74,"Racaillou","c",75,8],[75,"Gravalanch","u",76,16],[76,"Grolem","r"],
+[77,"Ponyta","u",78,8],[78,"Galopa","u"],
+[79,"Ramoloss","c",80,8],[80,"Flagadoss","u"],
+[81,"Magnéti","u",82,8],[82,"Magnéton","u"],
+[83,"Canarticho","r"],
+[84,"Doduo","c",85,8],[85,"Dodrio","u"],
+[86,"Otaria","u",87,8],[87,"Lamantine","u"],
+[88,"Tadmorv","u",89,8],[89,"Grotadmorv","u"],
+[90,"Kokiyas","u",91,8],[91,"Crustabri","u"],
+[92,"Fantominus","u",93,8],[93,"Spectrum","u",94,16],[94,"Ectoplasma","r"],
+[95,"Onix","u"],
+[96,"Soporifik","u",97,8],[97,"Hypnomade","u"],
+[98,"Krabby","c",99,8],[99,"Krabboss","u"],
+[100,"Voltorbe","u",101,8],[101,"Électrode","u"],
+[102,"Nœunœuf","u",103,8],[103,"Noadkoko","u"],
+[104,"Osselait","u",105,8],[105,"Ossatueur","u"],
+[106,"Kicklee","r"],[107,"Tygnon","r"],[108,"Excelangue","r"],
+[109,"Smogo","u",110,8],[110,"Smogogo","u"],
+[111,"Rhinocorne","u",112,8],[112,"Rhinoféros","u"],
+[113,"Leveinard","r"],[114,"Saquedeneu","r"],[115,"Kangourex","r"],
+[116,"Hypotrempe","u",117,8],[117,"Hypocéan","u"],
+[118,"Poissirène","c",119,8],[119,"Poissoroy","u"],
+[120,"Stari","u",121,8],[121,"Staross","u"],
+[122,"M. Mime","r"],[123,"Insécateur","r"],[124,"Lippoutou","r"],
+[125,"Élektek","r"],[126,"Magmar","r"],[127,"Scarabrute","r"],[128,"Tauros","r"],
+[129,"Magicarpe","c",130,40],[130,"Léviator","r"],
+[131,"Lokhlass","r"],[132,"Métamorph","r"],
+[133,"Évoli","r",[134,135,136],8],[134,"Aquali","r"],[135,"Voltali","r"],[136,"Pyroli","r"],
+[137,"Porygon","r"],
+[138,"Amonita","r",139,16],[139,"Amonistar","u"],
+[140,"Kabuto","r",141,16],[141,"Kabutops","u"],
+[142,"Ptéra","r"],[143,"Ronflex","r"],
+[144,"Artikodin","l"],[145,"Électhor","l"],[146,"Sulfura","l"],
+[147,"Minidraco","r",148,8],[148,"Draco","u",149,16],[149,"Dracolosse","r"],
+[150,"Mewtwo","l"],[151,"Mew","l"],
+];
+
+const DEX = {};
+SPECIES.forEach(([id,name,tier,to,cost]) => { DEX[id] = {id,name,tier,to:to??null,cost:cost??null}; });
+
+// famille = espèce de base, remontée via les liens d'évolution
+const PARENT = {};
+Object.values(DEX).forEach(s => {
+  if (!s.to) return;
+  (Array.isArray(s.to) ? s.to : [s.to]).forEach(t => { PARENT[t] = s.id; });
+});
+const familyOf = id => { let c = id; while (PARENT[c]) c = PARENT[c]; return c; };
+
+// pool de tirage : les 151. Une évoluée peut sortir d'une PR.
+const POOL = { c:[], u:[], r:[], l:[] };
+Object.values(DEX).forEach(s => POOL[s.tier].push(s.id));
+
+// poids par palier. Calibrés pour que la proba PAR ESPÈCE reste étagée
+// (~2,05% / 0,54% / 0,27% / 0,10%) malgré des paliers de tailles très inégales.
+const WEIGHTS = [["c",0.45],["u",0.42],["r",0.125],["l",0.005]];
+
+const TIER_LABEL = { c:"Commun", u:"Peu commun", r:"Rare", l:"Légendaire" };
+const TIER_VAR   = { c:"var(--t-c)", u:"var(--t-u)", r:"var(--t-r)", l:"var(--t-l)" };
+
+const CANDY_PER_CATCH = 3;   // ← le bouton de réglage principal
+const SHINY_ODDS      = 128;
+
+/* ============================================================
+   2. TIRAGE DÉTERMINISTE — à porter tel quel dans la GitHub Action
+   Aucune métadonnée de PR n'entre ici : que le SHA.
+   ============================================================ */
+function fnv1a(str){
+  let h = 0x811c9dc5;
+  for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+function drawFromSha(sha){
+  const r = fnv1a(sha + ":tier") / 2**32;
+  let acc = 0, tier = "l";
+  for (const [t, w] of WEIGHTS) { acc += w; if (r < acc) { tier = t; break; } }
+  const pool = POOL[tier];
+  const species = pool[fnv1a(sha + ":pick") % pool.length];
+  const shiny = fnv1a(sha + ":shiny") % SHINY_ODDS === 0;
+  return { species, shiny };
+}
+
+const sprite = (id, shiny) =>
+  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shiny?"shiny/":""}${id}.png`;
+
+/* ============================================================
+   3. DONNÉES DE DÉMO — remplacer par fetch('./pokedex.json')
+   ============================================================ */
+const FAKE_PRS = [
+  ["fix: race condition à l'upload de fichiers","moi/atlas",142,"2026-02-03"],
+  ["feat: pagination curseur sur /events","moi/atlas",145,"2026-02-11"],
+  ["chore: bump vite 5 → 6","moi/atlas",147,"2026-02-14"],
+  ["refactor: extraire le client HTTP","moi/atlas",151,"2026-02-20"],
+  ["fix: fuseau horaire dans les exports CSV","moi/atlas",153,"2026-02-24"],
+  ["feat: mode sombre","moi/pergola",12,"2026-03-01"],
+  ["test: couvrir le parser de dates","moi/atlas",158,"2026-03-05"],
+  ["fix: memory leak sur le worker","moi/atlas",161,"2026-03-09"],
+  ["docs: README de contribution","moi/pergola",14,"2026-03-12"],
+  ["feat: recherche floue dans la sidebar","moi/pergola",17,"2026-03-18"],
+  ["perf: index sur user_id","moi/atlas",166,"2026-03-22"],
+  ["fix: crash au resize sur Safari","moi/pergola",21,"2026-03-27"],
+  ["feat: webhooks sortants","moi/atlas",170,"2026-04-02"],
+  ["chore: migrer CI vers Actions","moi/atlas",172,"2026-04-06"],
+  ["fix: double soumission du formulaire","moi/pergola",25,"2026-04-10"],
+  ["feat: raccourcis clavier","moi/pergola",28,"2026-04-15"],
+  ["refactor: virer le state global","moi/atlas",178,"2026-04-19"],
+  ["fix: encodage des accents en PDF","moi/atlas",181,"2026-04-23"],
+  ["feat: import CSV en masse","moi/atlas",184,"2026-04-28"],
+  ["style: harmoniser les espacements","moi/pergola",31,"2026-05-02"],
+  ["fix: retry exponentiel sur 429","moi/atlas",188,"2026-05-07"],
+  ["feat: aperçu avant publication","moi/pergola",34,"2026-05-11"],
+  ["chore: nettoyer les deps mortes","moi/atlas",191,"2026-05-15"],
+  ["fix: focus trap dans la modale","moi/pergola",37,"2026-05-19"],
+  ["feat: export vers Notion","moi/atlas",195,"2026-05-24"],
+  ["perf: lazy-load des sprites","moi/pergola",40,"2026-05-28"],
+  ["fix: régression sur le tri par date","moi/atlas",199,"2026-06-02"],
+  ["feat: filtres combinés","moi/atlas",203,"2026-06-06"],
+  ["refactor: passer les hooks en composables","moi/pergola",44,"2026-06-11"],
+  ["fix: 404 sur les routes profondes","moi/pergola",47,"2026-06-15"],
+  ["feat: undo/redo","moi/pergola",51,"2026-06-20"],
+  ["chore: passer en pnpm","moi/atlas",208,"2026-06-24"],
+  ["fix: overflow sur mobile","moi/pergola",54,"2026-06-28"],
+  ["feat: notifications par e-mail","moi/atlas",212,"2026-07-02"],
+  ["test: e2e du parcours d'inscription","moi/atlas",215,"2026-07-06"],
+  ["fix: cache invalidé trop tôt","moi/pergola",58,"2026-07-09"],
+  ["feat: thèmes personnalisés","moi/pergola",61,"2026-07-13"],
+  ["fix: null check sur avatar_url","moi/atlas",219,"2026-07-15"],
+  ["feat: recherche par tag","moi/atlas",221,"2026-07-16"],
+  ["chore: mettre à jour les types","moi/pergola",63,"2026-07-17"],
+];
+function fakeSha(i){
+  return Array.from({length:40}, (_,k) =>
+    "0123456789abcdef"[fnv1a("seed"+i+"_"+k) % 16]).join("");
+}
+function loadDemo(){
+  return FAKE_PRS.map(([title,repo,pr,date],i) => {
+    const sha = fakeSha(i);
+    const { species, shiny } = drawFromSha(sha);
+    return {
+      via:"pr", sha, pr, title, repo, date, species, shiny,
+      claimed: i < FAKE_PRS.length - 3,   // les 3 dernières attendent d'être ouvertes
+    };
+  });
+}
+
+/* ============================================================
+   4. APP
+   ============================================================ */
+createApp({
+  setup(){
+    const entries = ref(loadDemo());
+    const spent   = reactive({});           // bonbons dépensés par famille
+    const selected = ref(null);             // id d'espèce ouvert dans le panneau
+    const ritual   = ref(null);             // { entry, opened }
+
+    // ── état du dex ─────────────────────────────────────────
+    const claimed = computed(() => entries.value.filter(e => e.claimed));
+    const pending = computed(() => entries.value.filter(e => !e.claimed));
+
+    const bySpecies = computed(() => {
+      const m = {};
+      claimed.value.forEach(e => { (m[e.species] ??= []).push(e); });
+      return m;
+    });
+    const caughtCount = computed(() => Object.keys(bySpecies.value).length);
+
+    const candies = id => {
+      const fam = familyOf(id);
+      const earned = claimed.value.filter(e => e.via === "pr" && familyOf(e.species) === fam).length * CANDY_PER_CATCH;
+      return earned - (spent[fam] ?? 0);
+    };
+
+    // ── actions ─────────────────────────────────────────────
+    function openRitual(){
+      if (!pending.value.length) return;
+      ritual.value = { entry: pending.value[0], opened:false };
+    }
+    function tear(){
+      ritual.value.opened = true;
+      ritual.value.entry.claimed = true;
+    }
+    function closeRitual(){
+      ritual.value = null;
+      if (pending.value.length) openRitual();
+    }
+    function evolve(fromId, toId){
+      const s = DEX[fromId];
+      const fam = familyOf(fromId);
+      if (candies(fromId) < s.cost) return;
+      spent[fam] = (spent[fam] ?? 0) + s.cost;
+      const source = bySpecies.value[fromId][0];
+      entries.value.push({
+        via:"evo", species: toId, from: fromId, shiny: source.shiny,
+        date: new Date().toISOString().slice(0,10), claimed:true,
+      });
+      selected.value = toId;
+    }
+
+    return {
+      DEX, SPECIES, TIER_LABEL, TIER_VAR, CANDY_PER_CATCH, sprite, familyOf, PARENT,
+      entries, selected, ritual,
+      claimed, pending, bySpecies, caughtCount, candies,
+      openRitual, tear, closeRitual, evolve,
+      ids: Object.keys(DEX).map(Number),
+      sparks: Array.from({length:14},(_,i)=>({
+        left: (fnv1a("sx"+i)%100)+"%", top:(fnv1a("sy"+i)%100)+"%",
+        animationDelay: ((fnv1a("sd"+i)%150)/100)+"s",
+      })),
+    };
+  },
+
+  template: `
+  <header class="rail">
+    <div>
+      <div class="wordmark">PR<span>·</span>DEX</div>
+      <div class="eyebrow rail-sub">Une PR mergée, un Pokémon</div>
+    </div>
+
+    <div class="progress">
+      <div class="progress-head">
+        <span class="eyebrow">Collection</span>
+        <span class="progress-count"><b>{{ String(caughtCount).padStart(3,'0') }}</b><i> / 151</i></span>
+      </div>
+      <div class="bar"><div class="bar-fill" :style="{width:(caughtCount/151*100)+'%'}"></div></div>
+    </div>
+
+    <button class="claim-btn" :class="{pulsing:pending.length}" :disabled="!pending.length" @click="openRitual">
+      {{ pending.length ? 'Ouvrir' : 'Rien à ouvrir' }}
+      <span v-if="pending.length" class="pip">{{ pending.length }}</span>
+    </button>
+  </header>
+
+  <!-- ── le tiroir ─────────────────────────────────── -->
+  <div class="tray">
+    <button v-for="id in ids" :key="id"
+      class="cell"
+      :class="{ has: bySpecies[id], ghost: !bySpecies[id], shiny: bySpecies[id]?.some(e=>e.shiny) }"
+      :style="{ '--tier': TIER_VAR[DEX[id].tier] }"
+      :disabled="!bySpecies[id]"
+      @click="selected = id">
+      <span class="cell-no mono">{{ String(id).padStart(3,'0') }}</span>
+      <span v-if="bySpecies[id]" class="cell-sha mono">
+        {{ bySpecies[id][0].via === 'pr' ? bySpecies[id][0].sha.slice(0,7) : 'évolué' }}
+      </span>
+      <span v-if="bySpecies[id]?.length > 1" class="cell-dupes mono">×{{ bySpecies[id].length }}</span>
+      <img :src="sprite(id, bySpecies[id]?.some(e=>e.shiny))" :alt="DEX[id].name" loading="lazy">
+      <span v-if="bySpecies[id]" class="cell-tier"></span>
+    </button>
+  </div>
+
+  <!-- ── fiche ─────────────────────────────────────── -->
+  <transition name="fade">
+  <div v-if="selected" class="scrim" @click.self="selected = null">
+    <div class="panel" :style="{ '--tier': TIER_VAR[DEX[selected].tier] }">
+      <div style="position:relative">
+        <button class="x" @click="selected = null">✕</button>
+        <div class="panel-top">
+          <div class="panel-art" :class="{ghost: !bySpecies[selected]}">
+            <img :src="sprite(selected, bySpecies[selected]?.some(e=>e.shiny))" :alt="DEX[selected].name">
+          </div>
+          <div>
+            <span class="eyebrow mono">Nº {{ String(selected).padStart(3,'0') }}</span>
+            <h2 class="panel-name">{{ bySpecies[selected] ? DEX[selected].name : '—————' }}</h2>
+            <span class="chip">{{ TIER_LABEL[DEX[selected].tier] }}</span>
+            <span v-if="bySpecies[selected]?.some(e=>e.shiny)" class="chip shiny-chip" style="margin-left:6px">✦ Chromatique</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="!bySpecies[selected]" class="sect">
+        <p class="muted">
+          Pas encore au pokédex. Il sortira d'une PR<template v-if="PARENT[selected]">, ou d'une évolution de
+          <b style="color:var(--bone)">{{ DEX[PARENT[selected]].name }}</b></template>.
+        </p>
+      </div>
+
+      <!-- journal des captures -->
+      <div v-if="bySpecies[selected]" class="sect">
+        <div class="eyebrow sect-h">
+          Capturé {{ bySpecies[selected].length }} fois
+        </div>
+        <div class="log">
+          <component v-for="e in bySpecies[selected]" :key="e.sha || e.date"
+            :is="e.via === 'pr' ? 'a' : 'div'" class="log-row"
+            :href="e.via === 'pr' ? 'https://github.com/'+e.repo+'/pull/'+e.pr : null"
+            target="_blank" rel="noopener">
+            <span v-if="e.via === 'pr'" class="log-sha">{{ e.sha.slice(0,7) }}</span>
+            <span v-else class="log-evo">↑ évo</span>
+            <span class="log-title">
+              {{ e.via === 'pr' ? e.title : 'Évolué depuis ' + DEX[e.from].name }}
+              <span v-if="e.via === 'pr'" class="mono" style="color:var(--bone-dim);font-size:11px"> · {{ e.repo }}#{{ e.pr }}</span>
+            </span>
+            <span class="log-date">{{ e.date }}</span>
+          </component>
+        </div>
+      </div>
+
+      <!-- bonbons / évolution -->
+      <div v-if="bySpecies[selected] && DEX[selected].to" class="sect">
+        <div class="eyebrow sect-h">Bonbons {{ DEX[familyOf(selected)].name }}</div>
+        <div class="candy">
+          <div class="candy-meter">
+            <div class="candy-nums"><b>{{ candies(selected) }}</b><i> / {{ DEX[selected].cost }}</i></div>
+            <div class="cbar"><div class="cbar-fill" :style="{width: Math.min(100, candies(selected)/DEX[selected].cost*100)+'%'}"></div></div>
+          </div>
+          <button v-if="!Array.isArray(DEX[selected].to)" class="evo-btn"
+            :disabled="candies(selected) < DEX[selected].cost"
+            @click="evolve(selected, DEX[selected].to)">
+            Faire évoluer en {{ DEX[DEX[selected].to].name }}
+          </button>
+        </div>
+        <div v-if="Array.isArray(DEX[selected].to)" class="evo-choices">
+          <button v-for="t in DEX[selected].to" :key="t" class="evo-choice"
+            :disabled="candies(selected) < DEX[selected].cost"
+            @click="evolve(selected, t)">
+            <img :src="sprite(t)" :alt="DEX[t].name">
+            {{ DEX[t].name }}
+          </button>
+        </div>
+        <p class="muted" style="margin-top:12px">
+          {{ CANDY_PER_CATCH }} bonbons par capture dans la famille. Les doublons servent à ça.
+        </p>
+      </div>
+    </div>
+  </div>
+  </transition>
+
+  <!-- ── le rituel ─────────────────────────────────── -->
+  <transition name="fade">
+  <div v-if="ritual" class="ritual" :style="{ '--tier': TIER_VAR[DEX[ritual.entry.species].tier] }">
+
+    <button v-if="!ritual.opened" class="packet" @click="tear">
+      <div class="packet-inner">
+        <div class="packet-seal">⌥</div>
+        <div class="packet-title">{{ ritual.entry.title }}</div>
+        <div class="packet-pr mono">
+          {{ ritual.entry.repo }}#{{ ritual.entry.pr }}<br>
+          {{ ritual.entry.sha.slice(0,7) }} · {{ ritual.entry.date }}
+        </div>
+      </div>
+      <div class="packet-hint">Toucher pour ouvrir</div>
+    </button>
+
+    <template v-else>
+      <div class="reveal">
+        <div class="rays"></div>
+        <div class="flash"></div>
+        <img :src="sprite(ritual.entry.species, ritual.entry.shiny)" :alt="DEX[ritual.entry.species].name">
+        <div v-if="ritual.entry.shiny" class="shiny-burst">
+          <span v-for="(s,i) in sparks" :key="i" class="spark" :style="s"></span>
+        </div>
+      </div>
+      <div class="reveal-meta">
+        <div class="reveal-name">{{ DEX[ritual.entry.species].name }}</div>
+        <div class="reveal-tags">
+          <span class="chip">{{ TIER_LABEL[DEX[ritual.entry.species].tier] }}</span>
+          <span v-if="ritual.entry.shiny" class="chip shiny-chip">✦ Chromatique</span>
+        </div>
+        <div class="reveal-note mono">
+          +{{ CANDY_PER_CATCH }} bonbons <b>{{ DEX[familyOf(ritual.entry.species)].name }}</b>
+        </div>
+      </div>
+      <button class="next-btn" @click="closeRitual">
+        {{ pending.length ? 'Suivant (' + pending.length + ')' : 'Retour au pokédex' }}
+      </button>
+    </template>
+  </div>
+  </transition>
+  `
+}).mount("#app");
+</script>
+</body>
+</html>
