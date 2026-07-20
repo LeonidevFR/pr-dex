@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import SpeciesSheet from './SpeciesSheet.vue'
+import { DEX, hasEvoInFamily } from '../../shared/species.js'
 
 const pr = (sha, species, extra = {}) => ({
   sha, species, shiny: false, via: 'pr', repo: 'moi/atlas', pr: 142,
@@ -125,6 +126,70 @@ describe('la réserve', () => {
     const w = mountSheet({ id: 143, entries, isDeadEnd: true })
     expect(w.findAll('.press span')).toHaveLength(12)
     expect(w.find('.reserve-count').text()).toBe('20')
+  })
+})
+
+describe('bonbons de famille — forme finale sans évolution propre', () => {
+  it('Dracaufeu montre la jauge familiale sans bouton d’évolution ni réserve', () => {
+    const w = mountSheet({ id: 6, entries: [pr('a', 6)], candies: 5, isDeadEnd: false })
+    expect(w.find('.candy').exists()).toBe(true)
+    expect(w.text()).toContain('Salamèche')
+    expect(w.find('.candy-nums').text()).toBe('5')
+    expect(w.find('.evo-btn').exists()).toBe(false)
+    expect(w.find('.evo-choices').exists()).toBe(false)
+    expect(w.find('.reserve').exists()).toBe(false)
+  })
+
+  it('Dracaufeu sans doublon montre quand même la jauge (compteur familial, pas seulement les doublons)', () => {
+    const w = mountSheet({ id: 6, entries: [pr('a', 6)], candies: 0, isDeadEnd: false })
+    expect(w.find('.candy').exists()).toBe(true)
+  })
+
+  it('Bulbizarre garde son bouton d’évolution (non-régression)', () => {
+    const w = mountSheet({ id: 1, entries: [pr('a', 1)], candies: 9, canEvolve: true, isDeadEnd: false })
+    expect(w.find('.evo-btn').exists()).toBe(true)
+    expect(w.find('.reserve').exists()).toBe(false)
+  })
+
+  it('Ronflex garde sa réserve, sans jauge de bonbons', () => {
+    const w = mountSheet({ id: 143, entries: [pr('a', 143), pr('b', 143)], isDeadEnd: true })
+    expect(w.find('.reserve').exists()).toBe(true)
+    expect(w.find('.candy').exists()).toBe(false)
+  })
+
+  it('chaque espèce capturée retombe dans exactement une des trois sections, ou aucune', () => {
+    for (const species of Object.values(DEX)) {
+      const isDeadEnd = !hasEvoInFamily(species.id)
+      const targets = species.to === null ? [] : Array.isArray(species.to) ? species.to : [species.to]
+
+      for (const entryCount of [1, 2]) {
+        const entries = Array.from({ length: entryCount }, (_, i) => pr('s' + i, species.id))
+        const w = mountSheet({
+          id: species.id,
+          entries,
+          candies: 0,
+          canEvolve: false,
+          isDeadEnd,
+        })
+
+        const evolving = targets.length > 0
+        const finalForm = !evolving && !isDeadEnd
+        const reserve = !evolving && isDeadEnd && entryCount > 1
+
+        expect(w.find('.candy').exists()).toBe(evolving || finalForm)
+        expect(w.find('.evo-btn').exists() || w.find('.evo-choices').exists()).toBe(evolving)
+        expect(w.find('.reserve').exists()).toBe(reserve)
+
+        const renderedCount = [evolving, finalForm, reserve].filter(Boolean).length
+        expect(renderedCount).toBeLessThanOrEqual(1)
+      }
+    }
+  })
+
+  it('non capturée : aucune des trois sections ne s’affiche', () => {
+    const w = mountSheet({ id: 6, entries: null, isDeadEnd: false })
+    expect(w.find('.candy').exists()).toBe(false)
+    expect(w.find('.reserve').exists()).toBe(false)
   })
 })
 

@@ -99,6 +99,19 @@ const pad = (n) => String(n).padStart(3, '0')
         </p>
       </div>
 
+      <div v-else-if="caught && !isDeadEnd" class="sect">
+        <div class="eyebrow sect-h"><span>Bonbons {{ DEX[familyOf(id)].name }}</span></div>
+        <div class="candy">
+          <div class="candy-meter">
+            <div class="candy-nums"><b>{{ candies }}</b></div>
+          </div>
+        </div>
+        <p class="muted" style="margin-top:12px">
+          {{ species.name }} n'évolue pas, mais ses doublons créditent la famille
+          <b>{{ DEX[familyOf(id)].name }}</b> — {{ CANDY_PER_CATCH }} bonbons par capture.
+        </p>
+      </div>
+
       <div v-else-if="caught && entries.length > 1 && isDeadEnd" class="sect">
         <div class="eyebrow sect-h"><span>La réserve</span></div>
         <div class="reserve">
