@@ -10,6 +10,10 @@ import { loadDemoClient } from './fixtures/demo.js'
 const collection = useCollection()
 const selected = ref(null)
 const ritualEntry = ref(null)
+// Figé à l'ouverture du pli : `claim` retire aussitôt l'entrée de `pending`, donc une
+// liaison directe sur `pending.length` décrémenterait sous le composant pendant qu'il
+// est affiché. Le composant attend un `remaining` qui inclut le pli courant.
+const ritualRemaining = ref(0)
 
 // Provisoire : branché sur les données de démo tant que l'écran de connexion n'existe pas.
 collection.load(loadDemoClient())
@@ -19,8 +23,14 @@ function onEvolve({ from, to }) {
   collection.evolve(from, to, new Date().toISOString().slice(0, 10))
 }
 
-const openRitual = () => { ritualEntry.value = collection.dex.pending.value[0] ?? null }
-const nextRitual = () => { ritualEntry.value = collection.dex.pending.value[0] ?? null }
+function showNextPacket() {
+  const queue = collection.dex.pending.value
+  ritualEntry.value = queue[0] ?? null
+  ritualRemaining.value = queue.length
+}
+
+const openRitual = showNextPacket
+const nextRitual = showNextPacket
 
 async function skipAll() {
   const rest = [...collection.dex.pending.value]
@@ -54,7 +64,7 @@ async function skipAll() {
       v-if="ritualEntry"
       :key="ritualEntry.sha"
       :entry="ritualEntry"
-      :remaining="collection.dex.pending.value.length"
+      :remaining="ritualRemaining"
       @claim="collection.claim"
       @next="nextRitual"
       @skip-all="skipAll"

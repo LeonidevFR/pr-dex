@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import RitualOverlay from './RitualOverlay.vue'
+import { useCollection } from '../composables/useCollection.js'
+import { loadDemoClient } from '../fixtures/demo.js'
 
 const entryOf = (over = {}) => ({
   sha: 'a3f8c21e9b4d', repo: 'moi/atlas', pr: 142, title: 'fix: race condition',
@@ -176,6 +179,28 @@ describe('suite de la file', () => {
     expect(w.emitted('next')).toBeTruthy()
     await w.find('button.queue-note').trigger('click')
     expect(w.emitted('skip-all')).toBeTruthy()
+  })
+})
+
+describe('intégration — file réelle (App.vue ne doit pas décompter sous le composant)', () => {
+  it('annonce le bon nombre de plis restants une fois le sceau brisé', async () => {
+    const col = useCollection()
+    await col.load(loadDemoClient())
+    const entry = col.dex.pending.value[0]
+    const remaining = ref(col.dex.pending.value.length) // figé comme dans App.vue
+
+    const w = mount({
+      components: { RitualOverlay },
+      setup: () => ({ col, entry, remaining }),
+      template: `<RitualOverlay :entry="entry" :remaining="remaining" @claim="col.claim" />`,
+    })
+    await w.find('.packet').trigger('click')
+    vi.advanceTimersByTime(2200)
+    await w.vm.$nextTick()
+
+    // 3 en attente au départ : celui-ci + 2 → le libellé doit annoncer 2
+    expect(w.find('.next-btn').text()).toContain('2 restants')
+    expect(col.dex.pending.value).toHaveLength(2)
   })
 })
 

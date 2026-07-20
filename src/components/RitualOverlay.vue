@@ -48,6 +48,10 @@ const sparks = Array.from({ length: 16 }, (_, i) => ({
 
 function tear() {
   stage.value = 'silhouette'
+  // Émis avant que l'écriture ne soit confirmée : la révélation est une animation, pas une
+  // preuve d'écriture. Si `claim` échoue, `state.claimed` n'est jamais mis à jour et le pli
+  // reste dans `pending` — il réapparaît à la prochaine ouverture. C'est le comportement
+  // voulu : ne pas avaler l'échec en gardant la révélation silencieuse sur son sort réel.
   emit('claim', props.entry.sha)
   const reduced = window.matchMedia('(prefers-reduced-motion:reduce)').matches
   const hold = reduced ? 150 : (tier.value === 'l' ? 2800 : 2200)
