@@ -126,8 +126,12 @@ Dans le repo privé qui contiendra `data/` :
        All repositories* sur l'organisation surveillée : c'est alors le périmètre du
        jeton, et lui seul, qui borne ce qui est capturé.
      - `BOOTSTRAP_SINCE` : la date (`AAAA-MM-JJ`) à partir de laquelle chercher des PR
-       lors du tout premier run. **Optionnelle** — si elle n'est pas définie,
-       `2026-01-01` est utilisé par défaut.
+       lors du tout premier run. **Optionnelle** — si elle n'est pas définie, **le jour
+       du run** est utilisé par défaut : aucune capture rétroactive ne se produit sans
+       réglage explicite. Volontaire — sans ça, quelqu'un activant l'outil des mois ou
+       des années après sa mise en service récupérerait d'un coup tout son historique de
+       PR mergées. Ne définir cette variable que pour rattraper volontairement une
+       fenêtre passée (ex. les deux dernières semaines).
 
    `CATCH_TOKEN` (le secret) est également requis : même échec explicite si absent.
 3. Le workflow tourne toutes les 30 minutes (`workflow_dispatch` disponible pour un

@@ -95,7 +95,10 @@ export async function main() {
   // Vide (variable absente) : aucun filtre de repo, voir le commentaire dans collectNewCatches.
   const repos = (process.env.WATCH_REPOS ?? '').split(',').map((r) => r.trim()).filter(Boolean)
   const token = process.env.CATCH_TOKEN
-  const bootstrap = process.env.BOOTSTRAP_SINCE || '2026-01-01'
+  // Par défaut, aucun rattrapage rétroactif : le point de départ est le jour du run. Un
+  // BOOTSTRAP_SINCE fixe dans le passé capturerait d'un coup tout l'historique de quelqu'un
+  // qui active l'outil des années après sa mise en service.
+  const bootstrap = process.env.BOOTSTRAP_SINCE || new Date().toISOString().slice(0, 10)
 
   if (!user || !token) {
     throw new Error('WATCH_USER et CATCH_TOKEN sont requis.')

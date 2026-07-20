@@ -32,6 +32,11 @@ cérémonie » qui apparaît à partir du deuxième paquet.
   à une évolution se lirait comme un bug.
 - **Les coûts d'évolution suivent le brief (8/16, Magicarpe 40), pas la maquette**, qui
   utilisait 4/8 sur les deux lignes insectes.
+- **Aucun rattrapage rétroactif par défaut.** `BOOTSTRAP_SINCE` vaut le jour du run,
+  jamais une date fixe dans le passé. Un défaut fixe aurait rattrapé d'un coup tout
+  l'historique de quiconque active l'outil longtemps après sa mise en service — des
+  années de PR mergées pour quelqu'un de longue date, contre quelques PR pour un
+  nouvel arrivant. La collection démarre au moment de l'activation, pas avant.
 - **Une jauge de bonbons de famille en lecture seule sur les formes finales.** 56 des
   151 espèces ne évoluent pas et n'appartiennent pas à une famille non-évolutive
   autrement — elles n'affichaient aucune section. Simulé au rythme d'environ 300

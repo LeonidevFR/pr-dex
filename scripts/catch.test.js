@@ -241,10 +241,12 @@ describe('main', () => {
     await expect(main()).resolves.not.toThrow()
   })
 
-  it('traite un BOOTSTRAP_SINCE vide (variable de dépôt non définie) comme la date par défaut', async () => {
-    // GitHub Actions passe '' pour une variable non définie, jamais `undefined` : `??` ne
-    // l'aurait pas rattrapée et la requête serait partie avec `merged:>=` sans date.
+  it('traite un BOOTSTRAP_SINCE vide (variable de dépôt non définie) comme le jour du run, pas une date passée', async () => {
+    // GitHub Actions passe '' pour une variable non définie, jamais `undefined` : `||` est
+    // volontaire ici. Le défaut est le jour du run — jamais une date fixe dans le passé,
+    // sinon un premier run des années après la mise en service rattraperait tout l'historique.
     process.env.BOOTSTRAP_SINCE = ''
+    const today = new Date().toISOString().slice(0, 10)
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(searchPage([item('moi/atlas', 1, 'a')]))
       .mockResolvedValueOnce(prDetail('sha-a', '2026-01-02T10:00:00Z'))
@@ -253,7 +255,7 @@ describe('main', () => {
     await main()
 
     const url = fetchMock.mock.calls[0][0]
-    expect(url).toContain('merged%3A%3E%3D2026-01-01')
+    expect(url).toContain(`merged%3A%3E%3D${today}`)
     expect(url).not.toContain('merged%3A%3E%3D&')
     expect(url).not.toMatch(/merged%3A%3E%3D$/)
   })
