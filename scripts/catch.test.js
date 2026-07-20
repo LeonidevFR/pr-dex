@@ -61,6 +61,15 @@ describe('collectNewCatches', () => {
     expect(await collectNewCatches([], opts, fetchMock)).toEqual([])
   })
 
+  it('surveille tous les repos accessibles au token quand repos est vide', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(searchPage([item('moi/nimporte-quoi', 1, 'x')]))
+      .mockResolvedValueOnce(prDetail('shax', '2026-02-03T10:00:00Z'))
+    const out = await collectNewCatches([], { ...opts, repos: [] }, fetchMock)
+    expect(out).toHaveLength(1)
+    expect(out[0].repo).toBe('moi/nimporte-quoi')
+  })
+
   it('ne refetch jamais une PR déjà capturée', async () => {
     const existing = [{ sha: 'a3f8c21e9b', repo: 'moi/atlas', pr: 142, date: '2026-02-03', species: 25, shiny: false }]
     const fetchMock = vi.fn().mockResolvedValueOnce(searchPage([item('moi/atlas', 142, 'fix: bug')]))
@@ -221,6 +230,15 @@ describe('main', () => {
   it('échoue avec un message clair si des variables d’environnement sont manquantes', async () => {
     delete process.env.WATCH_USER
     await expect(main()).rejects.toThrow(/WATCH_USER/)
+  })
+
+  it('ne réclame plus WATCH_REPOS : son absence surveille tous les repos accessibles', async () => {
+    delete process.env.WATCH_REPOS
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(searchPage([item('moi/nimporte-quoi', 1, 'a')]))
+      .mockResolvedValueOnce(prDetail('sha-a', '2026-01-02T10:00:00Z'))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(main()).resolves.not.toThrow()
   })
 
   it('traite un BOOTSTRAP_SINCE vide (variable de dépôt non définie) comme la date par défaut', async () => {

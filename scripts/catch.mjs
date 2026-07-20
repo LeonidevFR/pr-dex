@@ -35,7 +35,9 @@ const headers = (token) => ({
 export async function collectNewCatches(existing, { user, repos, token, since }, fetchFn = fetch) {
   const knownSha = new Set(existing.map((c) => c.sha))
   const knownPr = new Set(existing.map((c) => `${c.repo}#${c.pr}`))
-  const watched = new Set(repos)
+  // Liste vide ou absente : pas de filtre côté script, on fait confiance au périmètre du
+  // PAT (CATCH_TOKEN doit alors être créé en "All repositories" sur l'organisation).
+  const watched = repos.length ? new Set(repos) : null
   const out = []
   const seen = new Set()
 
@@ -50,7 +52,7 @@ export async function collectNewCatches(existing, { user, repos, token, since },
 
     for (const it of body.items ?? []) {
       const repo = it.repository_url.replace(`${API}/repos/`, '')
-      if (!watched.has(repo)) continue
+      if (watched && !watched.has(repo)) continue
       if (knownPr.has(`${repo}#${it.number}`)) continue
 
       // L'API search ne renvoie pas merge_commit_sha : un appel de détail par PR inconnue.
@@ -90,12 +92,13 @@ export async function main() {
   // comme une chaîne vide, jamais `undefined`. `||` est donc volontairement utilisé ici.
   const path = process.env.CATCHES_PATH || 'data/catches.json'
   const user = process.env.WATCH_USER
+  // Vide (variable absente) : aucun filtre de repo, voir le commentaire dans collectNewCatches.
   const repos = (process.env.WATCH_REPOS ?? '').split(',').map((r) => r.trim()).filter(Boolean)
   const token = process.env.CATCH_TOKEN
   const bootstrap = process.env.BOOTSTRAP_SINCE || '2026-01-01'
 
-  if (!user || !token || !repos.length) {
-    throw new Error('WATCH_USER, WATCH_REPOS et CATCH_TOKEN sont requis.')
+  if (!user || !token) {
+    throw new Error('WATCH_USER et CATCH_TOKEN sont requis.')
   }
 
   const existing = readJson(path, [])

@@ -64,8 +64,9 @@ volontairement séparées :
   Portée : le repo de données uniquement, permission `Contents: Read and write`, sans
   expiration.
 - **Le PAT de l'Action, secret `CATCH_TOKEN`.** Portée : les repos **surveillés**
-  uniquement, permission `Pull requests: Read`. Rien d'autre — et surtout **aucun droit
-  d'écriture nulle part**.
+  uniquement (ou *All repositories* sur l'organisation si `WATCH_REPOS` est laissée
+  vide — voir plus bas), permission `Pull requests: Read`. Rien d'autre — et surtout
+  **aucun droit d'écriture nulle part**.
 
   Il sert exclusivement à deux requêtes de lecture (`search/issues` pour trouver les PR
   mergées, `repos/{repo}/pulls/{n}` pour récupérer le `merge_commit_sha`). Le script
@@ -119,7 +120,11 @@ Dans le repo privé qui contiendra `data/` :
      - `WATCH_USER` : le compte GitHub dont on veut capturer les PR mergées. **Requis**
        — le run échoue immédiatement avec un message explicite si elle est absente.
      - `WATCH_REPOS` : la liste des repos surveillés, séparés par des virgules
-       (ex. `moi/atlas,moi/pergola`). **Requis**, même échec explicite si absente.
+       (ex. `moi/atlas,moi/pergola`). **Optionnelle** — absente ou vide, aucun filtre
+       n'est appliqué côté script : tous les repos accessibles au `CATCH_TOKEN` sont
+       surveillés. Dans ce cas, `CATCH_TOKEN` doit être créé avec *Repository access →
+       All repositories* sur l'organisation surveillée : c'est alors le périmètre du
+       jeton, et lui seul, qui borne ce qui est capturé.
      - `BOOTSTRAP_SINCE` : la date (`AAAA-MM-JJ`) à partir de laquelle chercher des PR
        lors du tout premier run. **Optionnelle** — si elle n'est pas définie,
        `2026-01-01` est utilisé par défaut.
