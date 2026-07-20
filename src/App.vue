@@ -4,6 +4,7 @@ import TheRail from './components/TheRail.vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
 import RitualOverlay from './components/RitualOverlay.vue'
+import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import { useCollection } from './composables/useCollection.js'
 import { loadDemoClient } from './fixtures/demo.js'
 
@@ -14,13 +15,23 @@ const ritualEntry = ref(null)
 // liaison directe sur `pending.length` décrémenterait sous le composant pendant qu'il
 // est affiché. Le composant attend un `remaining` qui inclut le pli courant.
 const ritualRemaining = ref(0)
+const evoAnim = ref(null)
 
 // Provisoire : branché sur les données de démo tant que l'écran de connexion n'existe pas.
 collection.load(loadDemoClient())
 
-function onEvolve({ from, to }) {
+async function onEvolve({ from, to }) {
+  const shiny = collection.dex.bySpecies.value[from]?.some((e) => e.shiny) ?? false
   selected.value = null
-  collection.evolve(from, to, new Date().toISOString().slice(0, 10))
+  await collection.evolve(from, to, new Date().toISOString().slice(0, 10))
+  // L'écriture a échoué : pas de cérémonie pour une évolution qui n'a pas eu lieu.
+  if (collection.error.value) return
+  evoAnim.value = { from, to, shiny }
+}
+
+function finishEvo() {
+  selected.value = evoAnim.value.to
+  evoAnim.value = null
 }
 
 function showNextPacket() {
@@ -68,6 +79,15 @@ async function skipAll() {
       @claim="collection.claim"
       @next="nextRitual"
       @skip-all="skipAll"
+    />
+  </transition>
+  <transition name="fade">
+    <EvolutionOverlay
+      v-if="evoAnim"
+      :from="evoAnim.from"
+      :to="evoAnim.to"
+      :shiny="evoAnim.shiny"
+      @done="finishEvo"
     />
   </transition>
 </template>
