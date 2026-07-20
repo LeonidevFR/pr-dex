@@ -145,3 +145,20 @@ describe('classification des erreurs', () => {
     await expect(client().readState()).rejects.toBeInstanceOf(GithubError)
   })
 })
+
+describe('construction des URL', () => {
+  it('n’ajoute pas de slash final sur la racine du repo — GitHub y répond 404 même si le repo existe', async () => {
+    // Vérifié en direct sur l'API : /repos/octocat/Hello-World (repo public existant) -> 200,
+    // /repos/octocat/Hello-World/ (même repo, slash final) -> 404. Un mock qui répond toujours
+    // "ok" ne peut pas détecter cette régression : cette assertion fixe la forme exacte de l'URL.
+    fetchMock.mockResolvedValue(ok({}))
+    await client().checkAccess()
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.github.com/repos/moi/pr-dex-data')
+  })
+
+  it('compose les chemins de fichier sans double slash', async () => {
+    fetchMock.mockResolvedValue(ok({ content: b64([]), sha: 'blob1' }))
+    await client().readCatches()
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.github.com/repos/moi/pr-dex-data/contents/data/catches.json')
+  })
+})
