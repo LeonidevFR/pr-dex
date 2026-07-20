@@ -91,44 +91,43 @@ Consignés comme dette, pas comme oubli :
   30 minutes), mais un long bootstrap pourrait échouer en cours de route ; le script
   échoue bruyamment, sans retry ni backoff.
 
-## Supabase envisagé, reporté sciemment (juillet 2026)
+## Supabase envisagé en juillet 2026, basculé le même mois
 
 Remplacer le repo-base-de-données par une base Supabase a été évalué en fin de
-construction. L'analyse tient en un point : **le coût de la bascule ne grandit pas avec
-le temps**, donc rien n'obligeait à trancher avant la mise en service.
+construction, puis reporté sur un principe : **le coût de la bascule ne grandit pas avec
+le temps**, donc rien n'obligeait à trancher avant la mise en service. Décision initiale :
+mettre en service la version GitHub, et basculer si et quand le besoin collectif devient
+concret plutôt qu'hypothétique.
 
-Surface réelle à réécrire, mesurée et non estimée :
+Le besoin est devenu concret dans la même itération, en discutant l'onboarding d'un
+premier collègue : chaque dev aurait dû créer son propre repo privé, deux PAT fine-grained
+et installer un workflow — sans compter le PAT front à renouveler par machine. La bascule
+a été faite immédiatement plutôt que remise à plus tard.
 
-| | |
-|---|---|
-| `src/lib/github.js` | 91 lignes — seul module du front qui touche au réseau |
-| `src/App.vue` | un import |
-| `scripts/catch.mjs` | le chemin d'écriture de l'Action |
+**Ce qui a effectivement changé.** Trois tables Supabase (`profiles`, `catches`, `state`,
+schéma dans `supabase/schema.sql`), RLS partout, OAuth GitHub à la place de l'écran de
+saisie de jeton. Surface réécrite, plus large que l'estimation d'origine (`src/lib/github.js`
+a été supprimé, pas juste modifié ; l'auth ajoute `useAuth.js` et remplace `ConnectScreen.vue`
+en profondeur) — mais toujours localisée : `useDex`, les composants de jeu et
+`shared/species.js`/`shared/draw.js` n'ont pas bougé d'une ligne, ils ignoraient déjà d'où
+venaient les données.
 
-Rien d'autre. `useDex` est de la dérivation pure, les sept composants ne connaissent que
-des props, `shared/species.js` et `shared/draw.js` ignorent d'où viennent les données.
-C'est la contrainte « un seul module parle au réseau » qui rend la couche de stockage
-interchangeable — elle a été posée pour la testabilité, elle sert ici à autre chose.
+**Ce qui n'a PAS changé, contrairement à ce qui était anticipé** : la logique de rejeu sur
+conflit dans `useCollection.js` (celle où vivait le bug de double dépense de bonbons) est
+restée telle quelle — seul le jeton de concurrence optimiste change de nature (`version`
+entier Postgres au lieu du SHA de blob git). L'idée de la remplacer par une contrainte SQL
+(une fonction RPC atomique pour l'évolution) n'a pas été faite ; ça reste un axe
+d'amélioration future, pas un acquis de cette bascule.
 
-**Ce que Supabase apporterait**, le jour où un collègue veut entrer : le multi-utilisateur
-par une colonne `user_id` et du RLS au lieu d'un repo privé, deux PAT et un workflow à
-installer par personne ; la disparition de l'écran de saisie de jeton au profit d'un OAuth
-GitHub ; et la disparition de toute la logique de rejeu sur conflit — celle où vivait le
-bug de double dépense de bonbons — remplacée par une contrainte SQL.
+**Nouveau point d'attention introduit par la bascule** : l'Action n'écrit plus dans son
+propre repo (elle écrit dans Supabase), donc elle ne s'auto-entretient plus. GitHub
+désactive un planning après 60 jours d'inactivité du *repo* — sans autre commit sur
+`pr-dex-data` entre-temps, il faudra relancer manuellement le workflow pour le réveiller.
+Accepté : ce dépôt n'a de toute façon plus d'autre activité que ce workflow.
 
-**Ce que ça coûterait** : une dépendance externe là où il n'y en a aucune, l'historique git
-de la collection, et la contrainte centrale de la spec technique (« Pas de backend. Le repo
-est la base de données. »).
-
-**Point vérifié qui aurait pu disqualifier l'option** : les projets Supabase gratuits sont
-mis en pause après une semaine d'inactivité, et l'usage prévu est d'une à trois ouvertures
-par semaine — soit juste à la limite. Mais l'Action interroge la base toutes les 30 minutes
-pour connaître les SHA déjà capturés : le projet ne serait jamais inactif. Les autres
-limites du plan gratuit sont hors sujet (500 Mo contre ~63 Ko de captures par an et par
-personne).
-
-**Décision** : mettre en service la version GitHub, s'en servir réellement, et basculer
-si et quand le besoin collectif devient concret plutôt qu'hypothétique.
+**Le point du plan gratuit Supabase** (pause après une semaine d'inactivité) évoqué lors de
+l'évaluation initiale reste vrai mais sans conséquence : l'Action tourne plusieurs fois par
+jour même sur le cron restreint (8h-19h, une fois par heure), largement au-dessus du seuil.
 
 ## Hors périmètre, non touché
 

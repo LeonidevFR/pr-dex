@@ -4,14 +4,17 @@ on:
   schedule:
     # Toutes les heures, 8h-19h heure de Paris (6h-17h UTC, calé sur l'été CEST — glisse
     # d'1h en hiver CET faute de fuseau horaire dans la syntaxe cron de GitHub Actions).
-    # GitHub endort les workflows planifiés après 60 jours d'inactivité du repo — celui-ci
-    # commite dans son propre repo dès qu'il capture, il s'auto-entretient tant qu'il y a
-    # des PR à trouver.
+    #
+    # Ce workflow n'écrit plus dans ce repo (les captures vont dans Supabase) : il ne
+    # s'auto-entretient donc plus comme au temps du stockage git. GitHub désactive un
+    # planning après 60 jours d'inactivité du REPO (pas du workflow) — sans autre commit
+    # ici entre-temps, il faudra le relancer manuellement (workflow_dispatch) pour le
+    # réveiller. Accepté : ce dépôt n'a de toute façon plus d'autre activité.
     - cron: '0 6-17 * * *'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: catch
@@ -27,27 +30,14 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Chercher les PR mergées
+      - name: Chercher les PR mergées de chaque profil et les insérer dans Supabase
         env:
-          # PAT fine-grained : lecture sur les repos surveillés, écriture sur ce repo.
-          # GITHUB_TOKEN ne suffit pas — il n'a accès qu'à ce repo.
+          # PAT fine-grained : lecture seule sur les repos surveillés. Commun à tous les
+          # profils — chacun n'est filtré que par son propre github_login en base.
           CATCH_TOKEN: ${{ secrets.CATCH_TOKEN }}
-          WATCH_USER: ${{ vars.WATCH_USER }}
-          WATCH_REPOS: ${{ vars.WATCH_REPOS }}
+          # service_role : contourne RLS, seul moyen d'écrire dans `catches` pour tous les
+          # user_id. Ne vit que dans ce secret, jamais côté front ni dans le repo public.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           BOOTSTRAP_SINCE: ${{ vars.BOOTSTRAP_SINCE }}
         run: node scripts/catch.mjs
-
-      - name: Commiter les nouvelles captures
-        run: |
-          git add data/catches.json
-          # `git diff` seul ignore un fichier non suivi : au tout premier run, `data/catches.json`
-          # vient d'être créé et ne serait pas vu comme une modification. On indexe d'abord, puis
-          # on compare l'index à HEAD.
-          if git diff --staged --quiet -- data/catches.json; then
-            echo "Rien de nouveau, pas de commit."
-            exit 0
-          fi
-          git config user.name  "pr-dex[bot]"
-          git config user.email "pr-dex@users.noreply.github.com"
-          git commit -m "chore: nouvelles captures"
-          git push

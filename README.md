@@ -4,8 +4,8 @@ Un pokédex personnel qui se remplit tout seul depuis les pull requests mergées
 GitHub. Chaque PR mergée tire, de façon déterministe, un Pokémon à partir du SHA de
 son commit de merge — l'ouverture se joue comme un booster, dans l'application.
 
-Aucun backend : le jeu s'appuie uniquement sur l'API GitHub et deux fichiers JSON qui
-servent de base de données.
+Aucun serveur applicatif : le jeu s'appuie sur l'API GitHub et sur Supabase (Postgres +
+Auth), en base de données et fournisseur de connexion — voir « Architecture » plus bas.
 
 ## Lancer en local
 
@@ -14,8 +14,17 @@ npm install
 npm run dev
 ```
 
-L'application a besoin d'un jeton et d'un repo de données pour fonctionner (voir plus
-bas). Pour l'essayer sans backend et sans jeton, ouvrir l'URL avec `?demo` :
+Il faut un fichier `.env.local` (jamais commité, `*.local` est dans `.gitignore`) avec :
+
+```
+VITE_SUPABASE_URL=https://<ton-projet>.supabase.co
+VITE_SUPABASE_ANON_KEY=<clé anon public>
+```
+
+Ces deux valeurs sont publiques par construction (Vite les inline dans le build) — ce
+qui protège les données de chaque dev, c'est RLS côté base, pas le secret de ces valeurs.
+
+Pour l'essayer sans backend et sans connexion, ouvrir l'URL avec `?demo` :
 
 ```
 http://localhost:5173/?demo
@@ -31,122 +40,68 @@ connexion réseau.
 npm test
 ```
 
-## Les deux repos
+## Architecture
 
-L'application est répartie sur deux repos GitHub, volontairement :
+Deux repos, volontairement :
 
-- un repo **public** — celui-ci — qui contient la coquille de l'application, servie
-  par GitHub Pages. Un repo public est gratuit sur Pages ; un repo privé demande une
-  offre payante. Le build ne contient strictement aucune donnée de jeu : aucun nom de
-  repo réel, aucune capture, aucun état ne sont compilés dedans, donc le rendre public
-  ne fuite rien.
-- un repo **privé** qui contient `data/` : c'est la base de données du jeu.
+- un repo **public** — celui-ci — servi par GitHub Pages, qui contient la coquille de
+  l'application. Un repo public est gratuit sur Pages ; un repo privé demande une offre
+  payante. Le build ne contient aucune donnée de jeu et n'a besoin d'aucun secret — la
+  clé `anon` Supabase est publique par nature, RLS fait le reste.
+- un repo **privé**, `pr-dex-data` — c'est aujourd'hui un repo d'*ingestion*, pas de
+  données : il ne contient plus de JSON, seulement le workflow planifié et les deux
+  secrets privilégiés (voir plus bas). Rester privé reste utile : ces secrets n'ont
+  aucune raison d'être visibles.
 
-Deux fichiers, chacun avec un seul écrivain :
+Trois tables Supabase (schéma complet dans `supabase/schema.sql`), RLS activé partout :
 
-| Fichier              | Écrit par                                          | Contenu                          |
-|-----------------------|----------------------------------------------------|-----------------------------------|
-| `data/catches.json`   | uniquement l'Action `catch.yml`, en append-only     | l'historique des captures         |
-| `data/state.json`     | uniquement le navigateur, via l'API REST contents (concurrence optimiste sur le SHA du blob) | ce que le joueur a réclamé, dépensé, fait évoluer |
+| Table | Écrite par | Contenu |
+|---|---|---|
+| `profiles` | auto-créée par un trigger à la première connexion OAuth | login GitHub, repos surveillés |
+| `catches` | uniquement l'Action `catch.yml`, via `service_role` | l'historique des captures, par `user_id` |
+| `state` | uniquement le navigateur du joueur concerné (RLS : `auth.uid() = user_id`) | ce qu'il a réclamé, dépensé, fait évoluer |
+
+Chaque dev ne lit/écrit que ses propres lignes (RLS), sans repo ni jeton à gérer : se
+connecter une fois avec GitHub suffit, le profil se crée tout seul.
 
 `species` et `shiny` sont dérivés du SHA du commit au moment de la capture, mais
-**stockés** dans `catches.json` plutôt que recalculés à la volée. Ainsi, un futur
-changement de l'algorithme de tirage (`shared/draw.js`) ne réécrit jamais l'historique
-des captures déjà faites — seules les nouvelles entrées suivent la nouvelle règle.
+**stockés** dans `catches` plutôt que recalculés à la volée. Ainsi, un futur changement
+de l'algorithme de tirage (`shared/draw.js`) ne réécrit jamais l'historique des captures
+déjà faites — seules les nouvelles entrées suivent la nouvelle règle.
 
-## Les deux jetons
+`state.version` remplace le SHA de blob git de l'ancienne version comme jeton de
+concurrence optimiste (un appareil qui écrit sur une version périmée reçoit un conflit,
+rejoué une fois sur l'état frais — même logique qu'avant, autre mécanisme de stockage).
 
-Deux Personal Access Tokens (PAT) fine-grained, avec des portées différentes et
-volontairement séparées :
+## Les deux secrets privilégiés
 
-- **Le PAT front-end.** Saisi une fois dans l'application, conservé en
-  `localStorage` (clés `prdex.token` et `prdex.repo` uniquement — jamais l'état de jeu).
-  Portée : le repo de données uniquement, permission `Contents: Read and write`, sans
-  expiration.
-- **Le PAT de l'Action, secret `CATCH_TOKEN`.** Portée : les repos **surveillés**
-  uniquement (ou *All repositories* sur l'organisation si `WATCH_REPOS` est laissée
-  vide — voir plus bas), permission `Pull requests: Read`. Rien d'autre — et surtout
-  **aucun droit d'écriture nulle part**.
+Vivent uniquement dans le repo privé `pr-dex-data`, jamais dans le front :
 
-  Il sert exclusivement à deux requêtes de lecture (`search/issues` pour trouver les PR
-  mergées, `repos/{repo}/pulls/{n}` pour récupérer le `merge_commit_sha`). Le script
-  n'écrit jamais via l'API : il écrit sur le disque du runner, et c'est le `git push` du
-  workflow qui persiste le résultat.
+- **`CATCH_TOKEN`** (secret GitHub Actions). PAT fine-grained, lecture seule
+  (`Pull requests: Read`) sur les repos à surveiller — ou *All repositories* sur
+  l'organisation si on ne restreint à aucune liste (voir `WATCH_REPOS` par profil dans
+  `pr-dex-data/README.md`). Aucun droit d'écriture nulle part.
+- **`SUPABASE_SERVICE_ROLE_KEY`** (secret GitHub Actions). Contourne RLS — c'est le seul
+  moyen d'écrire dans `catches` pour n'importe quel `user_id`, puisque les utilisateurs
+  n'ont eux-mêmes aucune permission d'écriture sur cette table. Ne doit **jamais**
+  transiter par un chat, un log, ou le front.
 
-  Ce push utilise le **`GITHUB_TOKEN`** installé automatiquement par `actions/checkout`,
-  adossé au `permissions: contents: write` déclaré dans `catch.yml`. Rien à créer, rien à
-  configurer.
-
-  Conséquence pratique : chaque jeton ne vise qu'un seul propriétaire de ressources, ce
-  qui reste compatible avec la contrainte des PAT fine-grained même quand les repos
-  surveillés appartiennent à une organisation distincte de celle du repo de données.
-
-### Cas d'un repo d'organisation surveillé
-
-Le montage courant est : le repo de données et l'Action vivent sur un compte ou une
-organisation personnelle, tandis que les repos **surveillés** appartiennent à
-l'organisation de l'employeur. Trois points à connaître.
-
-**Les organisations autorisent les PAT fine-grained par défaut** (« By default, both
-Personal access tokens (classic) and fine-grained personal access tokens are enabled »).
-Une organisation peut avoir restreint cela ; c'est alors un réglage à faire lever par un
-propriétaire, pas un obstacle à prévoir systématiquement.
-
-**L'expiration « aucune » n'est pas tenable pour `CATCH_TOKEN`.** Les organisations
-imposent une durée de vie maximale aux PAT fine-grained, et la valeur par défaut est de
-**366 jours**. Un jeton visant des repos d'organisation expirera donc au plus tard dans
-l'année et devra être refait — l'Action s'arrêtera de capturer en silence ce jour-là.
-Seul le PAT du front, qui ne vise que le repo de données personnel, peut réellement être
-créé sans expiration. Prévoir un rappel.
-
-**Non vérifié :** un PAT fine-grained semble rattaché à un seul *resource owner*, choisi
-à la création. Si c'est le cas, un jeton unique ne peut pas à la fois lire les repos de
-l'organisation et écrire dans le repo de données personnel : il en faut **deux**, et
-`catch.yml` doit alors recevoir un secret par portée. Vérification directe : ouvrir la
-page de création d'un fine-grained token et regarder si le champ « Resource owner » est
-un choix unique ou multiple.
-
-## Installer `catch.yml` dans le repo de données
-
-Dans le repo privé qui contiendra `data/` :
-
-1. Copier depuis ce repo :
-   - `data-repo-template/catch.yml` → à placer en `.github/workflows/catch.yml`
-   - `scripts/catch.mjs`
-   - `shared/` (le module de tirage partagé entre le front et l'Action)
-2. Dans **Settings → Secrets and variables → Actions** du repo de données, créer :
-   - le secret `CATCH_TOKEN` : le PAT de l'Action décrit ci-dessus.
-   - les variables (onglet *Variables*, pas *Secrets*) :
-     - `WATCH_USER` : le compte GitHub dont on veut capturer les PR mergées. **Requis**
-       — le run échoue immédiatement avec un message explicite si elle est absente.
-     - `WATCH_REPOS` : la liste des repos surveillés, séparés par des virgules
-       (ex. `moi/atlas,moi/pergola`). **Optionnelle** — absente ou vide, aucun filtre
-       n'est appliqué côté script : tous les repos accessibles au `CATCH_TOKEN` sont
-       surveillés. Dans ce cas, `CATCH_TOKEN` doit être créé avec *Repository access →
-       All repositories* sur l'organisation surveillée : c'est alors le périmètre du
-       jeton, et lui seul, qui borne ce qui est capturé.
-     - `BOOTSTRAP_SINCE` : la date (`AAAA-MM-JJ`) à partir de laquelle chercher des PR
-       lors du tout premier run. **Optionnelle** — si elle n'est pas définie, **le jour
-       du run** est utilisé par défaut : aucune capture rétroactive ne se produit sans
-       réglage explicite. Volontaire — sans ça, quelqu'un activant l'outil des mois ou
-       des années après sa mise en service récupérerait d'un coup tout son historique de
-       PR mergées. Ne définir cette variable que pour rattraper volontairement une
-       fenêtre passée (ex. les deux dernières semaines).
-
-   `CATCH_TOKEN` (le secret) est également requis : même échec explicite si absent.
-3. Le workflow tourne toutes les heures entre 8h et 19h, heure de Paris (`workflow_dispatch` disponible pour un
-   run manuel) et commite les nouvelles captures dans `data/catches.json`.
+Le workflow tourne toutes les heures entre 8h et 19h heure de Paris (calé sur l'été
+CEST, glisse d'1h en hiver CET faute de fuseau horaire dans la syntaxe cron de GitHub
+Actions), boucle sur chaque profil enregistré et insère ses nouvelles captures. Détails
+d'installation dans `pr-dex-data/README.md`.
 
 ## Structure du dépôt
 
 ```
-shared/species.js        table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
+supabase/schema.sql       tables profiles/catches/state, policies RLS, trigger d'auto-création
+shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
 shared/draw.js            fnv1a + drawFromSha, partagé front ↔ Action
-scripts/catch.mjs         collecte des nouvelles captures depuis l'API GitHub
-src/lib/                  github.js (seul module réseau), sprites.js, credentials.js
-src/composables/          useDex.js (dérivation pure), useCollection.js (effets)
+scripts/catch.mjs         Action : boucle sur les profils, insère via service_role
+src/lib/                  supabaseClient.js, supabaseData.js (seul module réseau du jeu), sprites.js
+src/composables/          useAuth.js (session OAuth), useDex.js (dérivation pure), useCollection.js (effets)
 src/components/           TheRail, TheTray, SpeciesSheet, RitualOverlay, EvolutionOverlay,
-                           SettingsPanel, ConnectScreen
+                          SettingsPanel, ConnectScreen
 src/fixtures/demo.js      40 fausses PR, chargées dynamiquement derrière ?demo
 docs/                     brief de design, spec technique, maquette
 ```

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import TheRail from './components/TheRail.vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
@@ -8,14 +8,15 @@ import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
-import { createGithubClient } from './lib/github.js'
-import { loadCredentials, saveCredentials, clearCredentials } from './lib/credentials.js'
+import { useAuth } from './composables/useAuth.js'
+import { createSupabaseClient } from './lib/supabaseData.js'
 
 const collection = useCollection()
+const { session, ready, signInWithGithub, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
 const connecting = ref(false)
-const repo = ref('')
+const githubLogin = ref('')
 
 const selected = ref(null)
 const ritualEntry = ref(null)
@@ -23,12 +24,11 @@ const ritualRemaining = ref(0)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
 
-async function connect({ token, repo: repoName }) {
-  if (!token) { connectError.value = 'invalid'; return }
-  if (!repoName.includes('/')) { connectError.value = 'notfound'; return }
+async function connectSession(s) {
   connecting.value = true
   connectError.value = null
-  const client = createGithubClient({ repo: repoName, token })
+  githubLogin.value = s.user.user_metadata?.user_name ?? ''
+  const client = createSupabaseClient(s.user.id)
   try {
     await client.checkAccess()
   } catch (e) {
@@ -36,8 +36,6 @@ async function connect({ token, repo: repoName }) {
     connecting.value = false
     return
   }
-  saveCredentials({ token, repo: repoName })
-  repo.value = repoName
   await collection.load(client)
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
@@ -45,7 +43,7 @@ async function connect({ token, repo: repoName }) {
 }
 
 function disconnect() {
-  clearCredentials()
+  signOut()
   settingsOpen.value = false
   connected.value = false
   connectError.value = null
@@ -54,15 +52,22 @@ function disconnect() {
 onMounted(async () => {
   if (new URLSearchParams(location.search).has('demo')) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
-    repo.value = 'moi/pr-dex-data (démo)'
+    githubLogin.value = 'démo'
     await collection.load(loadDemoClient())
     connected.value = true
-    return
   }
-  const saved = loadCredentials()
-  repo.value = saved.repo
-  if (saved.token && saved.repo) connect(saved)
 })
+
+// OAuth GitHub redirige la page entière puis revient : pas d'appel ponctuel possible au montage,
+// il faut réagir à l'arrivée tardive de la session (retour de redirection ou session déjà active).
+watch(
+  () => [ready.value, session.value],
+  ([isReady, s]) => {
+    if (!isReady || connected.value) return
+    if (s) connectSession(s)
+  },
+  { immediate: true },
+)
 
 // Figé à l'ouverture du pli : `claim` retire aussitôt l'entrée de `pending`, donc une
 // liaison directe sur `pending.length` décrémenterait sous le composant pendant qu'il
@@ -99,8 +104,8 @@ function finishEvo() {
 <template>
   <ConnectScreen
     v-if="!connected"
-    :initial-repo="repo" :error="connectError" :busy="connecting"
-    @connect="connect"
+    :error="connectError" :busy="connecting"
+    @connect="signInWithGithub"
   />
 
   <template v-else>
@@ -138,7 +143,7 @@ function finishEvo() {
 
     <transition name="fade">
       <SettingsPanel
-        v-if="settingsOpen" :repo="repo" @close="settingsOpen = false" @disconnect="disconnect"
+        v-if="settingsOpen" :github-login="githubLogin" @close="settingsOpen = false" @disconnect="disconnect"
       />
     </transition>
   </template>
