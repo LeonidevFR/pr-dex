@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useDex } from './useDex.js'
-import { DEX, familyOf } from '../../shared/species.js'
+import { DEX, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 
 const clone = (o) => JSON.parse(JSON.stringify(o))
 
@@ -76,6 +76,7 @@ export function useCollection() {
 
   /** Marque une capture comme ouverte. Idempotent : rejouer un claim ne duplique rien. */
   async function claim(sha) {
+    error.value = null
     if (state.value.claimed.includes(sha)) return
     await persist(
       (s) => (s.claimed.includes(sha) ? null : { ...s, claimed: [...s.claimed, sha] }),
@@ -84,6 +85,7 @@ export function useCollection() {
   }
 
   async function evolve(fromId, toId, date) {
+    error.value = null
     const source = DEX[fromId]
     if (!source?.to) return
     const targets = Array.isArray(source.to) ? source.to : [source.to]
@@ -99,11 +101,22 @@ export function useCollection() {
 
     const fam = familyOf(fromId)
     await persist(
-      (s) => ({
-        ...s,
-        spent: { ...s.spent, [fam]: (s.spent[fam] ?? 0) + source.cost },
-        evolutions: [...s.evolutions, { species: toId, from: fromId, fromSha: picked?.sha ?? null, date }],
-      }),
+      (s) => {
+        // Revalidation sur l'état reçu, et non sur l'état d'avant l'appel : `persist` rejoue
+        // ce mutateur sur l'état frais après un conflit. Sans ce recalcul, deux appareils
+        // dépensent les mêmes bonbons et le solde passe sous zéro.
+        const claimedSha = new Set(s.claimed)
+        const earned = catches.value.filter(
+          (c) => claimedSha.has(c.sha) && familyOf(c.species) === fam,
+        ).length * CANDY_PER_CATCH
+        if (earned - (s.spent[fam] ?? 0) < source.cost) return null
+
+        return {
+          ...s,
+          spent: { ...s.spent, [fam]: (s.spent[fam] ?? 0) + source.cost },
+          evolutions: [...s.evolutions, { species: toId, from: fromId, fromSha: picked?.sha ?? null, date }],
+        }
+      },
       `evolve ${source.name} → ${DEX[toId].name}`,
     )
   }

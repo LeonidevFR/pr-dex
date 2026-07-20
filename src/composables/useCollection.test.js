@@ -190,6 +190,50 @@ describe('évolution', () => {
     expect(c.error.value).toBe('offline')
   })
 
+  it('abandonne le rejeu si l’autre appareil a déjà dépensé les mêmes bonbons', async () => {
+    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
+    client.writeState.mockRejectedValueOnce(new GithubError('conflict', 'stale', 409))
+    client.readState
+      .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob1' })
+      .mockResolvedValueOnce({
+        state: {
+          claimed: ['s0', 's1', 's2'],
+          spent: { 1: 8 },
+          evolutions: [{ species: 2, from: 1, fromSha: 's1', date: '2026-07-19' }],
+        },
+        blobSha: 'blob8',
+      })
+
+    const c = useCollection()
+    await c.load(client)
+    await c.evolve(1, 2, '2026-07-20')
+
+    expect(c.state.value.spent[1]).toBe(8)
+    expect(c.state.value.evolutions).toHaveLength(1)
+    expect(c.dex.candies(1)).toBeGreaterThanOrEqual(0)
+    expect(c.error.value).toBeNull()
+    expect(client.writeState).toHaveBeenCalledOnce()
+  })
+
+  it('rejoue et écrit quand l’état frais permet toujours l’évolution', async () => {
+    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
+    client.writeState
+      .mockRejectedValueOnce(new GithubError('conflict', 'stale', 409))
+      .mockResolvedValueOnce({ blobSha: 'blob9' })
+    client.readState
+      .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob1' })
+      .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob8' })
+
+    const c = useCollection()
+    await c.load(client)
+    await c.evolve(1, 2, '2026-07-20')
+
+    expect(c.state.value.spent[1]).toBe(8)
+    expect(c.state.value.evolutions).toHaveLength(1)
+    expect(c.error.value).toBeNull()
+    expect(client.writeState).toHaveBeenCalledTimes(2)
+  })
+
   it('facture 40 bonbons à Magicarpe', async () => {
     const catches = Array.from({ length: 14 }, (_, i) => catchOf('m' + i, 129))
     const client = fakeClient({
@@ -200,5 +244,21 @@ describe('évolution', () => {
     await c.load(client)
     await c.evolve(129, 130, '2026-07-20')
     expect(c.state.value.spent[129]).toBe(40)
+  })
+})
+
+describe('erreur périmée', () => {
+  it('une action qui n’écrit rien efface l’erreur d’une action précédente', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: ['a'], spent: {}, evolutions: [] } })
+    client.writeState.mockRejectedValue(new GithubError('offline', 'pas de réseau'))
+    const c = useCollection()
+    await c.load(client)
+    await c.claim('z')
+    expect(c.error.value).toBe('offline')
+
+    // Cette évolution est un no-op silencieux (bonbons insuffisants) : elle ne doit pas
+    // laisser l'erreur du claim précédent traîner sous les yeux de l'utilisateur.
+    await c.evolve(1, 2, '2026-07-20')
+    expect(c.error.value).toBeNull()
   })
 })
