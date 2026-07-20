@@ -62,4 +62,10 @@ describe('drawFromSha', () => {
       expect(drawFromSha(sha)).toEqual({ species, shiny })
     }
   })
+
+  it('couvre les quatre paliers et le cas chromatique — sans quoi le golden ne garde rien', () => {
+    const tiers = new Set(golden.map((g) => DEX[g.species].tier))
+    expect([...tiers].sort()).toEqual(['c', 'l', 'r', 'u'])
+    expect(golden.some((g) => g.shiny)).toBe(true)
+  })
 })
