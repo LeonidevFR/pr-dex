@@ -1,0 +1,47 @@
+name: catch
+
+on:
+  schedule:
+    # Toutes les 30 minutes. GitHub endort les workflows planifiés après 60 jours
+    # d'inactivité du repo — celui-ci commite dans son propre repo, il s'auto-entretient.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: catch
+  cancel-in-progress: false
+
+jobs:
+  catch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Chercher les PR mergées
+        env:
+          # PAT fine-grained : lecture sur les repos surveillés, écriture sur ce repo.
+          # GITHUB_TOKEN ne suffit pas — il n'a accès qu'à ce repo.
+          CATCH_TOKEN: ${{ secrets.CATCH_TOKEN }}
+          WATCH_USER: ${{ vars.WATCH_USER }}
+          WATCH_REPOS: ${{ vars.WATCH_REPOS }}
+          BOOTSTRAP_SINCE: ${{ vars.BOOTSTRAP_SINCE }}
+        run: node scripts/catch.mjs
+
+      - name: Commiter les nouvelles captures
+        run: |
+          if git diff --quiet -- data/catches.json; then
+            echo "Rien de nouveau, pas de commit."
+            exit 0
+          fi
+          git config user.name  "pr-dex[bot]"
+          git config user.email "pr-dex@users.noreply.github.com"
+          git add data/catches.json
+          git commit -m "chore: nouvelles captures"
+          git push
