@@ -79,17 +79,35 @@ for (const s of Object.values(DEX)) {
   for (const t of (Array.isArray(s.to) ? s.to : [s.to])) PARENT[t] = s.id
 }
 
-/** Remonte la chaîne d'évolution jusqu'à l'espèce de base. Clé des bonbons : une famille, un compteur. */
+/**
+ * Remonte la chaîne d'évolution jusqu'à l'espèce de base. Clé des bonbons : une famille, un compteur.
+ * Bornée à SPECIES.length pas : une table malformée (cycle introduit par erreur de transcription)
+ * lève plutôt que de boucler indéfiniment — cette fonction tourne dans des computed() Vue à chaque rendu.
+ */
 export function familyOf(id) {
   let current = id
-  while (PARENT[current]) current = PARENT[current]
+  const visited = new Set()
+  while (PARENT[current] !== undefined) {
+    if (visited.has(current) || visited.size >= SPECIES.length) {
+      throw new Error(`familyOf: cycle détecté dans PARENT en remontant depuis l'id ${id} (bloqué sur ${current})`)
+    }
+    visited.add(current)
+    current = PARENT[current]
+  }
   return current
+}
+
+// Précalculé une fois au chargement du module : racines de famille comportant au moins une évolution.
+// La table est un littéral statique qui ne change jamais après le chargement — inutile de la
+// retraverser à chaque appel depuis un computed() Vue (jusqu'à 151 par rendu complet).
+const FAMILIES_WITH_EVO = new Set()
+for (const s of Object.values(DEX)) {
+  if (s.to) FAMILIES_WITH_EVO.add(familyOf(s.id))
 }
 
 /** Vrai si la famille de `id` comporte au moins une évolution — sert à repérer les bonbons morts. */
 export function hasEvoInFamily(id) {
-  const fam = familyOf(id)
-  return Object.values(DEX).some((s) => familyOf(s.id) === fam && s.to)
+  return FAMILIES_WITH_EVO.has(familyOf(id))
 }
 
 export const POOL = { c: [], u: [], r: [], l: [] }

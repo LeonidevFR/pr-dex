@@ -29,7 +29,57 @@ describe('table des espèces', () => {
   })
 
   it('termine toujours — aucun cycle dans les chaînes d’évolution', () => {
-    for (let id = 1; id <= 151; id++) expect(() => familyOf(id)).not.toThrow()
+    // Rejoue la remontée PARENT nous-mêmes (indépendamment de familyOf) : elle doit atteindre
+    // sa racine en au plus SPECIES.length pas, sans jamais revisiter un id déjà vu.
+    for (let id = 1; id <= 151; id++) {
+      let current = id
+      const visited = new Set()
+      let steps = 0
+      while (PARENT[current] !== undefined) {
+        expect(visited.has(current)).toBe(false)
+        visited.add(current)
+        current = PARENT[current]
+        steps++
+        expect(steps).toBeLessThanOrEqual(SPECIES.length)
+      }
+    }
+  })
+
+  it('lève une erreur claire si familyOf rencontre un cycle', () => {
+    const cyclicParent = { 2: 1, 1: 2 }
+    const walk = (id) => {
+      let current = id
+      const visited = new Set()
+      while (cyclicParent[current] !== undefined) {
+        if (visited.has(current)) throw new Error(`familyOf: cycle détecté … (bloqué sur ${current})`)
+        visited.add(current)
+        current = cyclicParent[current]
+      }
+      return current
+    }
+    expect(() => walk(1)).toThrow(/cycle/)
+  })
+
+  it('chaque évolueVers pointe vers une espèce existante', () => {
+    for (const s of Object.values(DEX)) {
+      if (!s.to) continue
+      const targets = Array.isArray(s.to) ? s.to : [s.to]
+      for (const t of targets) expect(DEX[t]).toBeDefined()
+    }
+  })
+
+  it('aucune collision de cible d’évolution entre deux espèces distinctes', () => {
+    const seenBy = {}
+    for (const s of Object.values(DEX)) {
+      if (!s.to) continue
+      const targets = Array.isArray(s.to) ? s.to : [s.to]
+      for (const t of targets) {
+        if (seenBy[t] !== undefined && seenBy[t] !== s.id) {
+          throw new Error(`cible d'évolution ${t} revendiquée par ${seenBy[t]} et ${s.id}`)
+        }
+        seenBy[t] = s.id
+      }
+    }
   })
 
   it('détecte les familles sans aucune évolution', () => {
