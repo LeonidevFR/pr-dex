@@ -86,11 +86,15 @@ Dans le repo privé qui contiendra `data/` :
 2. Dans **Settings → Secrets and variables → Actions** du repo de données, créer :
    - le secret `CATCH_TOKEN` : le PAT de l'Action décrit ci-dessus.
    - les variables (onglet *Variables*, pas *Secrets*) :
-     - `WATCH_USER` : le compte GitHub dont on veut capturer les PR mergées.
+     - `WATCH_USER` : le compte GitHub dont on veut capturer les PR mergées. **Requis**
+       — le run échoue immédiatement avec un message explicite si elle est absente.
      - `WATCH_REPOS` : la liste des repos surveillés, séparés par des virgules
-       (ex. `moi/atlas,moi/pergola`).
+       (ex. `moi/atlas,moi/pergola`). **Requis**, même échec explicite si absente.
      - `BOOTSTRAP_SINCE` : la date (`AAAA-MM-JJ`) à partir de laquelle chercher des PR
-       lors du tout premier run.
+       lors du tout premier run. **Optionnelle** — si elle n'est pas définie,
+       `2026-01-01` est utilisé par défaut.
+
+   `CATCH_TOKEN` (le secret) est également requis : même échec explicite si absent.
 3. Le workflow tourne toutes les 30 minutes (`workflow_dispatch` disponible pour un
    run manuel) et commite les nouvelles captures dans `data/catches.json`.
 

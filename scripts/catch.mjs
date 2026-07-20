@@ -86,11 +86,13 @@ const readJson = (path, fallback) => {
 }
 
 export async function main() {
-  const path = process.env.CATCHES_PATH ?? 'data/catches.json'
+  // `??` ne rattraperait pas une variable de dépôt GitHub Actions non définie : celle-ci arrive
+  // comme une chaîne vide, jamais `undefined`. `||` est donc volontairement utilisé ici.
+  const path = process.env.CATCHES_PATH || 'data/catches.json'
   const user = process.env.WATCH_USER
   const repos = (process.env.WATCH_REPOS ?? '').split(',').map((r) => r.trim()).filter(Boolean)
   const token = process.env.CATCH_TOKEN
-  const bootstrap = process.env.BOOTSTRAP_SINCE ?? '2026-01-01'
+  const bootstrap = process.env.BOOTSTRAP_SINCE || '2026-01-01'
 
   if (!user || !token || !repos.length) {
     throw new Error('WATCH_USER, WATCH_REPOS et CATCH_TOKEN sont requis.')

@@ -222,4 +222,42 @@ describe('main', () => {
     delete process.env.WATCH_USER
     await expect(main()).rejects.toThrow(/WATCH_USER/)
   })
+
+  it('traite un BOOTSTRAP_SINCE vide (variable de dépôt non définie) comme la date par défaut', async () => {
+    // GitHub Actions passe '' pour une variable non définie, jamais `undefined` : `??` ne
+    // l'aurait pas rattrapée et la requête serait partie avec `merged:>=` sans date.
+    process.env.BOOTSTRAP_SINCE = ''
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(searchPage([item('moi/atlas', 1, 'a')]))
+      .mockResolvedValueOnce(prDetail('sha-a', '2026-01-02T10:00:00Z'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    const url = fetchMock.mock.calls[0][0]
+    expect(url).toContain('merged%3A%3E%3D2026-01-01')
+    expect(url).not.toContain('merged%3A%3E%3D&')
+    expect(url).not.toMatch(/merged%3A%3E%3D$/)
+  })
+
+  it('traite un CATCHES_PATH vide comme le chemin par défaut plutôt que d’échouer à l’écriture', async () => {
+    delete process.env.CATCHES_PATH
+    process.env.CATCHES_PATH = ''
+    const defaultPath = 'data/catches.json'
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(searchPage([item('moi/atlas', 1, 'a')]))
+      .mockResolvedValueOnce(prDetail('sha-a', '2026-01-02T10:00:00Z'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      await expect(main()).resolves.not.toThrow()
+      expect(existsSync(defaultPath)).toBe(true)
+      const result = JSON.parse(readFileSync(defaultPath, 'utf8'))
+      expect(result[0].sha).toBe('sha-a')
+    } finally {
+      rmSync(defaultPath, { force: true })
+      rmSync('data', { recursive: true, force: true })
+    }
+  })
 })
