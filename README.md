@@ -134,7 +134,7 @@ Dans le repo privé qui contiendra `data/` :
        fenêtre passée (ex. les deux dernières semaines).
 
    `CATCH_TOKEN` (le secret) est également requis : même échec explicite si absent.
-3. Le workflow tourne toutes les 30 minutes (`workflow_dispatch` disponible pour un
+3. Le workflow tourne toutes les heures entre 8h et 19h, heure de Paris (`workflow_dispatch` disponible pour un
    run manuel) et commite les nouvelles captures dans `data/catches.json`.
 
 ## Structure du dépôt

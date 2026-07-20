@@ -2,9 +2,12 @@ name: catch
 
 on:
   schedule:
-    # Toutes les 30 minutes. GitHub endort les workflows planifiés après 60 jours
-    # d'inactivité du repo — celui-ci commite dans son propre repo, il s'auto-entretient.
-    - cron: '*/30 * * * *'
+    # Toutes les heures, 8h-19h heure de Paris (6h-17h UTC, calé sur l'été CEST — glisse
+    # d'1h en hiver CET faute de fuseau horaire dans la syntaxe cron de GitHub Actions).
+    # GitHub endort les workflows planifiés après 60 jours d'inactivité du repo — celui-ci
+    # commite dans son propre repo dès qu'il capture, il s'auto-entretient tant qu'il y a
+    # des PR à trouver.
+    - cron: '0 6-17 * * *'
   workflow_dispatch:
 
 permissions:
