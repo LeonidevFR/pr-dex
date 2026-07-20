@@ -57,6 +57,44 @@ describe('collection', () => {
     expect(d.bySpecies.value[130][0].shiny).toBe(true)
   })
 
+  it('hérite le chromatique de la capture précise désignée par fromSha, même si une capture plus ancienne et non chromatique de la même espèce existe', () => {
+    const d = setup([
+      catchOf('old', 129, { shiny: false, date: '2026-01-01' }),
+      catchOf('new', 129, { shiny: true, date: '2026-02-01' }),
+    ], {
+      claimed: ['old', 'new'],
+      evolutions: [{ species: 130, from: 129, fromSha: 'new', date: '2026-07-14' }],
+    })
+    expect(d.bySpecies.value[130][0].shiny).toBe(true)
+  })
+
+  it('reste non chromatique quand fromSha désigne une capture non chromatique malgré un doublon chromatique', () => {
+    const d = setup([
+      catchOf('old', 129, { shiny: false, date: '2026-01-01' }),
+      catchOf('new', 129, { shiny: true, date: '2026-02-01' }),
+    ], {
+      claimed: ['old', 'new'],
+      evolutions: [{ species: 130, from: 129, fromSha: 'old', date: '2026-07-14' }],
+    })
+    expect(d.bySpecies.value[130][0].shiny).toBe(false)
+  })
+
+  it('résout via l’espèce source quand fromSha est absent (chemin legacy)', () => {
+    const d = setup([catchOf('a', 129, { shiny: true })], {
+      claimed: ['a'],
+      evolutions: [{ species: 130, from: 129, date: '2026-07-14' }],
+    })
+    expect(d.bySpecies.value[130][0].shiny).toBe(true)
+  })
+
+  it('ne lève pas et retombe à non chromatique quand fromSha ne correspond à rien', () => {
+    const d = setup([catchOf('a', 129, { shiny: true })], {
+      claimed: ['a'],
+      evolutions: [{ species: 130, from: 129, fromSha: 'fantome', date: '2026-07-14' }],
+    })
+    expect(d.bySpecies.value[130][0].shiny).toBe(false)
+  })
+
   it('ignore une capture dont le sha est réclamé mais absent de catches.json', () => {
     const d = setup([catchOf('a', 25)], { claimed: ['a', 'fantome'] })
     expect(d.claimed.value).toHaveLength(1)
@@ -71,12 +109,12 @@ describe('collection', () => {
 describe('bonbons', () => {
   it('crédite trois bonbons par capture à la famille', () => {
     const d = setup([catchOf('a', 2), catchOf('b', 3)], { claimed: ['a', 'b'] })
-    expect(d.candies.value(1)).toBe(6)
+    expect(d.candies(1)).toBe(6)
   })
 
   it('ne crédite rien pour une capture non encore ouverte', () => {
     const d = setup([catchOf('a', 1), catchOf('b', 1)], { claimed: ['a'] })
-    expect(d.candies.value(1)).toBe(3)
+    expect(d.candies(1)).toBe(3)
   })
 
   it('ne crédite aucun bonbon pour une évolution', () => {
@@ -84,7 +122,7 @@ describe('bonbons', () => {
       claimed: ['a'],
       evolutions: [{ species: 130, from: 129, date: '2026-07-14' }],
     })
-    expect(d.candies.value(129)).toBe(3)
+    expect(d.candies(129)).toBe(3)
   })
 
   it('déduit les bonbons dépensés', () => {
@@ -92,14 +130,14 @@ describe('bonbons', () => {
       claimed: ['a', 'b', 'c'],
       spent: { 1: 8 },
     })
-    expect(d.candies.value(1)).toBe(1)
+    expect(d.candies(1)).toBe(1)
   })
 
   it('partage le compteur entre toutes les espèces d’une famille', () => {
     const d = setup([catchOf('a', 1), catchOf('b', 2), catchOf('c', 3)], { claimed: ['a', 'b', 'c'] })
-    expect(d.candies.value(1)).toBe(9)
-    expect(d.candies.value(2)).toBe(9)
-    expect(d.candies.value(3)).toBe(9)
+    expect(d.candies(1)).toBe(9)
+    expect(d.candies(2)).toBe(9)
+    expect(d.candies(3)).toBe(9)
   })
 })
 
@@ -109,22 +147,22 @@ describe('évolution possible', () => {
       Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1)),
       { claimed: ['s0', 's1', 's2'] },
     )
-    expect(d.canEvolve.value(1)).toBe(true)
+    expect(d.canEvolve(1)).toBe(true)
   })
 
   it('refuse l’évolution en dessous du coût', () => {
     const d = setup([catchOf('a', 1)], { claimed: ['a'] })
-    expect(d.canEvolve.value(1)).toBe(false)
+    expect(d.canEvolve(1)).toBe(false)
   })
 
   it('refuse d’évoluer une espèce absente de la collection', () => {
     const d = setup([catchOf('a', 4)], { claimed: ['a'] })
-    expect(d.canEvolve.value(1)).toBe(false)
+    expect(d.canEvolve(1)).toBe(false)
   })
 
   it('refuse d’évoluer une espèce terminale', () => {
     const d = setup([catchOf('a', 143)], { claimed: ['a'] })
-    expect(d.canEvolve.value(143)).toBe(false)
+    expect(d.canEvolve(143)).toBe(false)
   })
 
   it('autorise Évoli dès que le coût est atteint, quel que soit le choix', () => {
@@ -132,15 +170,15 @@ describe('évolution possible', () => {
       Array.from({ length: 3 }, (_, i) => catchOf('e' + i, 133)),
       { claimed: ['e0', 'e1', 'e2'] },
     )
-    expect(d.canEvolve.value(133)).toBe(true)
+    expect(d.canEvolve(133)).toBe(true)
   })
 })
 
 describe('bonbons morts', () => {
   it('repère une espèce dont la famille n’évolue pas', () => {
     const d = setup([], {})
-    expect(d.isDeadEnd.value(143)).toBe(true)
-    expect(d.isDeadEnd.value(1)).toBe(false)
+    expect(d.isDeadEnd(143)).toBe(true)
+    expect(d.isDeadEnd(1)).toBe(false)
   })
 })
 
@@ -153,5 +191,14 @@ describe('réactivité', () => {
     state.value = { ...state.value, claimed: ['a'] }
     expect(d.caughtCount.value).toBe(1)
     expect(d.pending.value).toHaveLength(0)
+  })
+
+  it('les accesseurs reflètent un changement d’état sans être des computed', () => {
+    const catches = ref([catchOf('a', 1)])
+    const state = ref({ claimed: [], spent: {}, evolutions: [] })
+    const d = useDex(catches, state)
+    expect(d.candies(1)).toBe(0)
+    state.value = { ...state.value, claimed: ['a'] }
+    expect(d.candies(1)).toBe(3)
   })
 })

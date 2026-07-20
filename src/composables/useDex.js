@@ -21,10 +21,14 @@ export function useDex(catches, state) {
     catches.value.filter((c) => !claimedSet.value.has(c.sha)).map((c) => ({ ...c, via: 'pr' })).sort(byDate),
   )
 
-  // Le chromatique d'une évolution est hérité de la source, jamais retiré.
+  // Le chromatique est hérité de la capture précise qui a évolué, identifiée par son sha.
+  // Sans `fromSha` (entrée écrite par une version antérieure), on retombe sur la première
+  // capture de l'espèce source — au mieux ambigu, d'où l'enregistrement du sha désormais.
   const evolved = computed(() =>
     state.value.evolutions.map((e) => {
-      const source = claimed.value.find((c) => c.species === e.from)
+      const source = e.fromSha
+        ? claimed.value.find((c) => c.sha === e.fromSha)
+        : claimed.value.find((c) => c.species === e.from)
       return { ...e, via: 'evo', shiny: source?.shiny ?? false }
     }),
   )
@@ -40,21 +44,27 @@ export function useDex(catches, state) {
   /**
    * Bonbons disponibles pour la famille de `id`. Seules les captures de PR en produisent :
    * une évolution consomme, elle ne crédite pas.
+   *
+   * Fonction simple et non `computed` : un `computed` qui ne fait que renvoyer une closure
+   * ne mémoïse rien — sa propre dépendance est vide. La réactivité vient des `.value` lus
+   * à l'appel, que le rendu d'un template suit correctement.
    */
-  const candies = computed(() => (id) => {
+  function candies(id) {
     const fam = familyOf(id)
     const earned = claimed.value.filter((e) => familyOf(e.species) === fam).length * CANDY_PER_CATCH
     return earned - (state.value.spent[fam] ?? 0)
-  })
+  }
 
-  const canEvolve = computed(() => (id) => {
+  function canEvolve(id) {
     const s = DEX[id]
     if (!s?.to) return false
     if (!bySpecies.value[id]) return false
-    return candies.value(id) >= s.cost
-  })
+    return candies(id) >= s.cost
+  }
 
-  const isDeadEnd = computed(() => (id) => !hasEvoInFamily(id))
+  function isDeadEnd(id) {
+    return !hasEvoInFamily(id)
+  }
 
   return { claimed, pending, evolved, bySpecies, caughtCount, candies, canEvolve, isDeadEnd }
 }
