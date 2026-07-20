@@ -63,11 +63,22 @@ volontairement séparées :
   `localStorage` (clés `prdex.token` et `prdex.repo` uniquement — jamais l'état de jeu).
   Portée : le repo de données uniquement, permission `Contents: Read and write`, sans
   expiration.
-- **Le PAT de l'Action, secret `CATCH_TOKEN`.** Portée : `Contents: Read` et
-  `Pull requests: Read` sur les repos **surveillés** (ceux dont on veut capturer les PR
-  mergées), plus `Contents: Write` sur le repo de données. Le `GITHUB_TOKEN` fourni
-  automatiquement par GitHub Actions ne suffit pas : il ne donne accès qu'au repo dans
-  lequel le workflow s'exécute, jamais aux repos surveillés.
+- **Le PAT de l'Action, secret `CATCH_TOKEN`.** Portée : les repos **surveillés**
+  uniquement, permission `Pull requests: Read`. Rien d'autre — et surtout **aucun droit
+  d'écriture nulle part**.
+
+  Il sert exclusivement à deux requêtes de lecture (`search/issues` pour trouver les PR
+  mergées, `repos/{repo}/pulls/{n}` pour récupérer le `merge_commit_sha`). Le script
+  n'écrit jamais via l'API : il écrit sur le disque du runner, et c'est le `git push` du
+  workflow qui persiste le résultat.
+
+  Ce push utilise le **`GITHUB_TOKEN`** installé automatiquement par `actions/checkout`,
+  adossé au `permissions: contents: write` déclaré dans `catch.yml`. Rien à créer, rien à
+  configurer.
+
+  Conséquence pratique : chaque jeton ne vise qu'un seul propriétaire de ressources, ce
+  qui reste compatible avec la contrainte des PAT fine-grained même quand les repos
+  surveillés appartiennent à une organisation distincte de celle du repo de données.
 
 ### Cas d'un repo d'organisation surveillé
 
