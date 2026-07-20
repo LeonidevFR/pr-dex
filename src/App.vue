@@ -3,11 +3,13 @@ import { ref } from 'vue'
 import TheRail from './components/TheRail.vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
+import RitualOverlay from './components/RitualOverlay.vue'
 import { useCollection } from './composables/useCollection.js'
 import { loadDemoClient } from './fixtures/demo.js'
 
 const collection = useCollection()
 const selected = ref(null)
+const ritualEntry = ref(null)
 
 // Provisoire : branché sur les données de démo tant que l'écran de connexion n'existe pas.
 collection.load(loadDemoClient())
@@ -16,13 +18,22 @@ function onEvolve({ from, to }) {
   selected.value = null
   collection.evolve(from, to, new Date().toISOString().slice(0, 10))
 }
+
+const openRitual = () => { ritualEntry.value = collection.dex.pending.value[0] ?? null }
+const nextRitual = () => { ritualEntry.value = collection.dex.pending.value[0] ?? null }
+
+async function skipAll() {
+  const rest = [...collection.dex.pending.value]
+  ritualEntry.value = null
+  for (const e of rest) await collection.claim(e.sha)
+}
 </script>
 
 <template>
   <TheRail
     :caught-count="collection.dex.caughtCount.value"
     :pending-count="collection.dex.pending.value.length"
-    @open="() => {}"
+    @open="openRitual"
     @settings="() => {}"
   />
   <TheTray :by-species="collection.dex.bySpecies.value" @select="(id) => (selected = id)" />
@@ -36,6 +47,17 @@ function onEvolve({ from, to }) {
       :is-dead-end="collection.dex.isDeadEnd(selected)"
       @close="selected = null"
       @evolve="onEvolve"
+    />
+  </transition>
+  <transition name="fade">
+    <RitualOverlay
+      v-if="ritualEntry"
+      :key="ritualEntry.sha"
+      :entry="ritualEntry"
+      :remaining="collection.dex.pending.value.length"
+      @claim="collection.claim"
+      @next="nextRitual"
+      @skip-all="skipAll"
     />
   </transition>
 </template>
