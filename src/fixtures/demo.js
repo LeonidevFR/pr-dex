@@ -61,7 +61,7 @@ export function demoCatches() {
   })
 }
 
-/** Client en mémoire respectant l'interface de `createGithubClient`. Trois PR restent à ouvrir. */
+/** Client en mémoire respectant l'interface commune des clients de données. Trois PR restent à ouvrir. */
 export function loadDemoClient() {
   const catches = demoCatches()
   let state = { claimed: catches.slice(0, -3).map((c) => c.sha), spent: {}, evolutions: [] }

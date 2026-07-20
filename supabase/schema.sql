@@ -16,23 +16,6 @@ create policy "profiles_select_own" on public.profiles
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = user_id);
 
--- Auto-création du profil (et de l'état vide) à l'inscription. `raw_user_meta_data->>'user_name'`
--- est le login GitHub tel que peuplé par le provider OAuth GitHub de Supabase Auth.
-create function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  insert into public.profiles (user_id, github_login)
-  values (new.id, new.raw_user_meta_data ->> 'user_name');
-
-  insert into public.state (user_id) values (new.id);
-
-  return new;
-end;
-$$;
-
 -- catches : l'historique des captures. Écrit uniquement par l'Action (service_role, contourne RLS).
 -- Les devs n'ont qu'un accès en lecture sur leurs propres lignes — jamais d'écriture directe,
 -- même règle qu'avant : un seul écrivain par table.
@@ -72,6 +55,23 @@ create policy "state_select_own" on public.state
 
 create policy "state_update_own" on public.state
   for update using (auth.uid() = user_id);
+
+-- Auto-création du profil et de l'état vide à l'inscription. `raw_user_meta_data->>'user_name'`
+-- est le login GitHub tel que peuplé par le provider OAuth GitHub de Supabase Auth.
+create function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (user_id, github_login)
+  values (new.id, new.raw_user_meta_data ->> 'user_name');
+
+  insert into public.state (user_id) values (new.id);
+
+  return new;
+end;
+$$;
 
 create trigger on_auth_user_created
   after insert on auth.users

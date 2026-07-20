@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { useCollection } from './useCollection.js'
-import { GithubError } from '../lib/github.js'
+import { SupabaseDataError } from '../lib/supabaseData.js'
 
 const catchOf = (sha, species, extra = {}) => ({
   sha, species, shiny: false, repo: 'moi/atlas', pr: 1, title: 't', date: '2026-02-03', ...extra,
@@ -26,7 +26,7 @@ describe('chargement', () => {
 
   it('expose un jeton révoqué sans planter', async () => {
     const client = fakeClient()
-    client.readCatches.mockRejectedValue(new GithubError('revoked', 'nope', 401))
+    client.readCatches.mockRejectedValue(new SupabaseDataError('revoked', 'nope', 401))
     const c = useCollection()
     await c.load(client)
     expect(c.error.value).toBe('revoked')
@@ -76,7 +76,7 @@ describe('claim', () => {
   it('rejoue silencieusement sur conflit, sans exposer d’erreur', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25), catchOf('b', 1)] })
     client.writeState
-      .mockRejectedValueOnce(new GithubError('conflict', 'stale', 409))
+      .mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
       .mockResolvedValueOnce({ blobSha: 'blob9' })
     client.readState
       .mockResolvedValueOnce({ state: { claimed: [], spent: {}, evolutions: [] }, blobSha: 'blob1' })
@@ -94,7 +94,7 @@ describe('claim', () => {
 
   it('abandonne après un seul rejeu', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
-    client.writeState.mockRejectedValue(new GithubError('conflict', 'stale', 409))
+    client.writeState.mockRejectedValue(new SupabaseDataError('conflict', 'stale', 409))
     const c = useCollection()
     await c.load(client)
     await c.claim('a')
@@ -104,7 +104,7 @@ describe('claim', () => {
 
   it('signale une écriture hors ligne et restaure l’état', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
-    client.writeState.mockRejectedValue(new GithubError('offline', 'pas de réseau'))
+    client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))
     const c = useCollection()
     await c.load(client)
     await c.claim('a')
@@ -181,7 +181,7 @@ describe('évolution', () => {
 
   it('restaure l’état si l’écriture échoue', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
-    client.writeState.mockRejectedValue(new GithubError('offline', 'pas de réseau'))
+    client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))
     const c = useCollection()
     await c.load(client)
     await c.evolve(1, 2, '2026-07-20')
@@ -192,7 +192,7 @@ describe('évolution', () => {
 
   it('abandonne le rejeu si l’autre appareil a déjà dépensé les mêmes bonbons', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
-    client.writeState.mockRejectedValueOnce(new GithubError('conflict', 'stale', 409))
+    client.writeState.mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
     client.readState
       .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob1' })
       .mockResolvedValueOnce({
@@ -218,7 +218,7 @@ describe('évolution', () => {
   it('rejoue et écrit quand l’état frais permet toujours l’évolution', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
     client.writeState
-      .mockRejectedValueOnce(new GithubError('conflict', 'stale', 409))
+      .mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
       .mockResolvedValueOnce({ blobSha: 'blob9' })
     client.readState
       .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob1' })
@@ -250,7 +250,7 @@ describe('évolution', () => {
 describe('erreur périmée', () => {
   it('une action qui n’écrit rien efface l’erreur d’une action précédente', async () => {
     const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: ['a'], spent: {}, evolutions: [] } })
-    client.writeState.mockRejectedValue(new GithubError('offline', 'pas de réseau'))
+    client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))
     const c = useCollection()
     await c.load(client)
     await c.claim('z')

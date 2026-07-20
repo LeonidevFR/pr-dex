@@ -1,5 +1,5 @@
 <script setup>
-defineProps({ repo: { type: String, required: true } })
+defineProps({ githubLogin: { type: String, required: true } })
 defineEmits(['close', 'disconnect'])
 </script>
 
@@ -10,27 +10,22 @@ defineEmits(['close', 'disconnect'])
         <button class="x" @click="$emit('close')">✕</button>
         <div>
           <span class="panel-plate mono">RÉGLAGES</span>
-          <h2 class="panel-name" style="font-size:23px;margin-bottom:0">Source de données</h2>
+          <h2 class="panel-name" style="font-size:23px;margin-bottom:0">Compte</h2>
         </div>
       </div>
       <div class="sect">
-        <div class="eyebrow sect-h"><span>Repo pointé</span></div>
-        <div class="repo-ptr"><span class="dot"></span>{{ repo }} · connecté</div>
+        <div class="eyebrow sect-h"><span>Connecté avec GitHub</span></div>
+        <div class="repo-ptr"><span class="dot"></span>{{ githubLogin }}</div>
       </div>
       <div class="sect">
-        <div class="eyebrow sect-h"><span>Jeton d'accès</span></div>
-        <div class="field">
-          <input type="password" value="github_pat_••••••••••••••••" readonly style="opacity:.7">
-        </div>
         <div class="front-actions" style="margin-top:12px">
-          <button class="btn-ghost" @click="$emit('disconnect')">Remplacer le jeton</button>
+          <button class="btn-ghost" @click="$emit('disconnect')">Se déconnecter</button>
         </div>
       </div>
       <div class="sect">
         <p class="muted">
-          Le jeton est stocké sur cette machine uniquement. Les captures viennent de
-          <b class="mono">catches.json</b> (écrit par l'Action) ; tes décisions vont dans
-          <b class="mono">state.json</b> (écrit ici).
+          Tes captures et tes décisions sont liées à ton compte GitHub, isolées des autres
+          joueurs par les règles d'accès de la base.
         </p>
       </div>
     </div>
