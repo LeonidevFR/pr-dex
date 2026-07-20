@@ -15,7 +15,13 @@ export function useAuth() {
     session.value = s
   })
 
-  const signInWithGithub = () => supabase.auth.signInWithOAuth({ provider: 'github' })
+  // Sans `redirectTo` explicite, Supabase retombe sur le "Site URL" configuré côté
+  // dashboard — un réglage unique et statique, incompatible avec dev local + prod sur le
+  // même projet. `location.href` (pas `.origin`, qui perdrait le sous-chemin /pr-dex/ de
+  // GitHub Pages) fonctionne pour les deux, à condition que l'URL exacte soit dans la
+  // liste blanche "Redirect URLs" du dashboard.
+  const signInWithGithub = () =>
+    supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: location.href } })
   const signOut = () => supabase.auth.signOut()
 
   return { session, ready, signInWithGithub, signOut }
