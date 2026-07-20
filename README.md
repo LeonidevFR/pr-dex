@@ -69,11 +69,30 @@ volontairement séparées :
   automatiquement par GitHub Actions ne suffit pas : il ne donne accès qu'au repo dans
   lequel le workflow s'exécute, jamais aux repos surveillés.
 
-**Non vérifié :** un PAT fine-grained ciblant un repo appartenant à une organisation
-nécessite en général que l'organisation ait explicitement autorisé les PAT
-fine-grained dans ses paramètres. À confirmer avant de pointer l'Action vers des repos
-d'organisation — sans cette autorisation côté organisation, le token peut être créé
-mais échouer silencieusement à accéder au repo.
+### Cas d'un repo d'organisation surveillé
+
+Le montage courant est : le repo de données et l'Action vivent sur un compte ou une
+organisation personnelle, tandis que les repos **surveillés** appartiennent à
+l'organisation de l'employeur. Trois points à connaître.
+
+**Les organisations autorisent les PAT fine-grained par défaut** (« By default, both
+Personal access tokens (classic) and fine-grained personal access tokens are enabled »).
+Une organisation peut avoir restreint cela ; c'est alors un réglage à faire lever par un
+propriétaire, pas un obstacle à prévoir systématiquement.
+
+**L'expiration « aucune » n'est pas tenable pour `CATCH_TOKEN`.** Les organisations
+imposent une durée de vie maximale aux PAT fine-grained, et la valeur par défaut est de
+**366 jours**. Un jeton visant des repos d'organisation expirera donc au plus tard dans
+l'année et devra être refait — l'Action s'arrêtera de capturer en silence ce jour-là.
+Seul le PAT du front, qui ne vise que le repo de données personnel, peut réellement être
+créé sans expiration. Prévoir un rappel.
+
+**Non vérifié :** un PAT fine-grained semble rattaché à un seul *resource owner*, choisi
+à la création. Si c'est le cas, un jeton unique ne peut pas à la fois lire les repos de
+l'organisation et écrire dans le repo de données personnel : il en faut **deux**, et
+`catch.yml` doit alors recevoir un secret par portée. Vérification directe : ouvrir la
+page de création d'un fine-grained token et regarder si le champ « Resource owner » est
+un choix unique ou multiple.
 
 ## Installer `catch.yml` dans le repo de données
 

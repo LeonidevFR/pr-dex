@@ -86,6 +86,45 @@ Consignés comme dette, pas comme oubli :
   30 minutes), mais un long bootstrap pourrait échouer en cours de route ; le script
   échoue bruyamment, sans retry ni backoff.
 
+## Supabase envisagé, reporté sciemment (juillet 2026)
+
+Remplacer le repo-base-de-données par une base Supabase a été évalué en fin de
+construction. L'analyse tient en un point : **le coût de la bascule ne grandit pas avec
+le temps**, donc rien n'obligeait à trancher avant la mise en service.
+
+Surface réelle à réécrire, mesurée et non estimée :
+
+| | |
+|---|---|
+| `src/lib/github.js` | 91 lignes — seul module du front qui touche au réseau |
+| `src/App.vue` | un import |
+| `scripts/catch.mjs` | le chemin d'écriture de l'Action |
+
+Rien d'autre. `useDex` est de la dérivation pure, les sept composants ne connaissent que
+des props, `shared/species.js` et `shared/draw.js` ignorent d'où viennent les données.
+C'est la contrainte « un seul module parle au réseau » qui rend la couche de stockage
+interchangeable — elle a été posée pour la testabilité, elle sert ici à autre chose.
+
+**Ce que Supabase apporterait**, le jour où un collègue veut entrer : le multi-utilisateur
+par une colonne `user_id` et du RLS au lieu d'un repo privé, deux PAT et un workflow à
+installer par personne ; la disparition de l'écran de saisie de jeton au profit d'un OAuth
+GitHub ; et la disparition de toute la logique de rejeu sur conflit — celle où vivait le
+bug de double dépense de bonbons — remplacée par une contrainte SQL.
+
+**Ce que ça coûterait** : une dépendance externe là où il n'y en a aucune, l'historique git
+de la collection, et la contrainte centrale de la spec technique (« Pas de backend. Le repo
+est la base de données. »).
+
+**Point vérifié qui aurait pu disqualifier l'option** : les projets Supabase gratuits sont
+mis en pause après une semaine d'inactivité, et l'usage prévu est d'une à trois ouvertures
+par semaine — soit juste à la limite. Mais l'Action interroge la base toutes les 30 minutes
+pour connaître les SHA déjà capturés : le projet ne serait jamais inactif. Les autres
+limites du plan gratuit sont hors sujet (500 Mo contre ~63 Ko de captures par an et par
+personne).
+
+**Décision** : mettre en service la version GitHub, s'en servir réellement, et basculer
+si et quand le besoin collectif devient concret plutôt qu'hypothétique.
+
 ## Hors périmètre, non touché
 
 Comptes, OAuth, partage, classements, échanges, combats, génération 2 et suivantes,
