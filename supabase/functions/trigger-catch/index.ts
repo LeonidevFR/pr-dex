@@ -11,11 +11,25 @@ const GITHUB_REPO = 'pr-dex-data'
 const WORKFLOW_FILE = 'catch.yml'
 const REF = 'main'
 
+// supabase-js envoie un preflight OPTIONS (Authorization/apikey sont des headers "non
+// simples") avant le vrai POST — sans ces en-têtes, le navigateur bloque tout avant même
+// d'émettre la requête réelle. L'origine n'est pas la vraie barrière de sécurité ici, le
+// JWT vérifié par la plateforme l'est : origin '*' est sans conséquence, cf. plateformes
+// serveur à serveur/curl qui ignorent CORS de toute façon.
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+}
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: CORS_HEADERS })
+  }
+
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'method not allowed' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   }
 
@@ -23,7 +37,7 @@ Deno.serve(async (req) => {
   if (!token) {
     return new Response(JSON.stringify({ error: 'server misconfigured' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   }
 
@@ -47,12 +61,12 @@ Deno.serve(async (req) => {
     const detail = await res.text()
     return new Response(JSON.stringify({ error: 'github dispatch failed', status: res.status, detail }), {
       status: 502,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   }
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
   })
 })
