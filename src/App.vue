@@ -9,6 +9,7 @@ import SettingsPanel from './components/SettingsPanel.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useAuth } from './composables/useAuth.js'
+import { useTrayFilters } from './composables/useTrayFilters.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
 const collection = useCollection()
@@ -23,6 +24,8 @@ const ritualEntry = ref(null)
 const ritualRemaining = ref(0)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
+
+const filters = useTrayFilters()
 
 async function connectSession(s) {
   connecting.value = true
@@ -113,11 +116,16 @@ function finishEvo() {
       :caught-count="collection.dex.caughtCount.value"
       :pending-count="collection.dex.pending.value.length"
       :syncing="collection.loading.value" :sync-error="collection.error.value"
+      :filters-open="filters.open.value" :filters-active="filters.active.value"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
+      @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
       :by-species="collection.dex.bySpecies.value" :evolvable="collection.dex.evolvableIds.value"
+      :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
+      :caught-filter="filters.caughtFilter.value"
       @select="(id) => (selected = id)"
+      @toggle-tier="filters.toggleTier" @set-caught-filter="filters.setCaughtFilter" @reset-filters="filters.reset"
     />
 
     <transition name="fade">

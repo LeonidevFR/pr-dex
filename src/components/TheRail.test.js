@@ -40,6 +40,34 @@ describe('TheRail', () => {
     })
   })
 
+  describe('bouton de filtre', () => {
+    it('émet toggle-filters au clic', async () => {
+      const w = mountRail()
+      await w.find('.filter-toggle').trigger('click')
+      expect(w.emitted('toggle-filters')).toHaveLength(1)
+    })
+
+    it('porte une vraie icône (svg), pas un glyphe texte', () => {
+      const w = mountRail()
+      expect(w.find('.filter-toggle svg').exists()).toBe(true)
+    })
+
+    it('se marque actif quand le panneau est ouvert', () => {
+      const w = mountRail({ filtersOpen: true })
+      expect(w.find('.filter-toggle').classes()).toContain('active')
+    })
+
+    it('se marque actif quand un filtre est posé, même panneau fermé', () => {
+      const w = mountRail({ filtersOpen: false, filtersActive: true })
+      expect(w.find('.filter-toggle').classes()).toContain('active')
+    })
+
+    it('n’est pas actif sans filtre ni panneau ouvert', () => {
+      const w = mountRail()
+      expect(w.find('.filter-toggle').classes()).not.toContain('active')
+    })
+  })
+
   describe('anti-spam', () => {
     beforeEach(() => vi.useFakeTimers())
     afterEach(() => vi.useRealTimers())

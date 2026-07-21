@@ -59,13 +59,18 @@
   .bar{height:3px;background:var(--rule);position:relative;overflow:hidden}
   .bar-fill{position:absolute;inset:0 auto 0 0;background:var(--herb);transition:width .8s cubic-bezier(.2,.8,.2,1)}
   .rail-tools{display:flex;align-items:center;gap:10px}
-  .gear{position:relative;border:1px solid var(--rule-hi);background:transparent;color:var(--ink-2);width:38px;height:38px;cursor:pointer;font-size:15px;transition:background .16s,color .16s}
+  .gear{
+    position:relative;display:inline-flex;align-items:center;justify-content:center;
+    border:1px solid var(--rule-hi);background:transparent;color:var(--ink-2);width:38px;height:38px;
+    cursor:pointer;font-size:15px;transition:background .16s,color .16s,border-color .16s;
+  }
   .gear:hover:not(:disabled){background:var(--plate);color:var(--ink)}
   .gear:disabled{cursor:default}
   .gear.sync.spinning{color:var(--herb)}
   .gear.sync.spinning{animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .err-dot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--stamp);box-shadow:0 0 0 1.5px var(--paper)}
+  .filter-toggle.active{border-color:var(--herb);color:var(--herb)}
 
   .claim-btn{
     position:relative;border:1.5px solid var(--stamp);background:transparent;color:var(--stamp);
@@ -80,10 +85,7 @@
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(158,59,46,0)}50%{box-shadow:0 0 0 4px rgba(158,59,46,.12)}}
 
   /* ───────── tiroir ───────── */
-  .tray-controls{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:10px}
-  .filter-toggle{font-size:13px}
-  .filter-toggle.active{border-color:var(--herb);color:var(--herb)}
-  .filters{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:8px}
+  .filters{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
   .filter-group{display:flex;gap:6px;flex-wrap:wrap}
   .filter-chip{
     font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;

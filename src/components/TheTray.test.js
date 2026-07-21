@@ -7,6 +7,7 @@ const entry = (sha, species, extra = {}) => ({
 })
 
 const mountTray = (bySpecies, evolvable) => mount(TheTray, { props: { bySpecies, evolvable } })
+const mountFiltered = (props) => mount(TheTray, { props: { bySpecies: {}, filtersOpen: true, ...props } })
 
 describe('TheTray', () => {
   it('affiche les 151 cases', () => {
@@ -95,64 +96,54 @@ describe('TheTray', () => {
   })
 
   describe('filtres', () => {
-    const openFilters = (w) => w.find('.filter-toggle').trigger('click')
     const chipByText = (w, text) => w.findAll('.filter-chip').find((c) => c.text() === text)
 
-    it('affiche les 151 cases par défaut, panneau fermé', () => {
-      const w = mountTray({})
-      expect(w.find('.filters').exists()).toBe(false)
-      expect(w.findAll('.cell')).toHaveLength(151)
+    it('ne rend pas le panneau quand filtersOpen est faux', () => {
+      expect(mountTray({}).find('.filters').exists()).toBe(false)
     })
 
-    it('ouvre le panneau de filtres au clic sur le bouton', async () => {
-      const w = mountTray({})
-      await openFilters(w)
-      expect(w.find('.filters').exists()).toBe(true)
+    it('rend le panneau quand filtersOpen est vrai', () => {
+      expect(mountFiltered().find('.filters').exists()).toBe(true)
     })
 
-    it('filtre par palier : ne garde que les légendaires (5 espèces)', async () => {
-      const w = mountTray({})
-      await openFilters(w)
-      await chipByText(w, 'Commun').trigger('click')
-      await chipByText(w, 'Peu commun').trigger('click')
-      await chipByText(w, 'Rare').trigger('click')
+    it('ne garde que les paliers listés dans activeTiers (5 légendaires)', () => {
+      const w = mountFiltered({ activeTiers: new Set(['l']) })
       expect(w.findAll('.cell')).toHaveLength(5)
     })
 
-    it('refuse de désactiver le dernier palier actif', async () => {
-      const w = mountTray({})
-      await openFilters(w)
+    it('émet toggle-tier avec le palier cliqué, ne mute rien elle-même', async () => {
+      const w = mountFiltered()
       await chipByText(w, 'Commun').trigger('click')
-      await chipByText(w, 'Peu commun').trigger('click')
-      await chipByText(w, 'Rare').trigger('click')
-      await chipByText(w, 'Légendaire').trigger('click')
-      expect(w.findAll('.cell')).toHaveLength(5)
+      expect(w.emitted('toggle-tier')[0]).toEqual(['c'])
+      expect(w.findAll('.cell')).toHaveLength(151) // le parent décide, pas la case ici
     })
 
-    it('filtre sur les captures seules', async () => {
-      const w = mountTray({ 25: [entry('a', 25)] })
-      await openFilters(w)
-      await chipByText(w, 'Capturés').trigger('click')
+    it('filtre sur les captures via le prop caughtFilter', () => {
+      const w = mountFiltered({ bySpecies: { 25: [entry('a', 25)] }, caughtFilter: 'caught' })
       expect(w.findAll('.cell')).toHaveLength(1)
       expect(w.findAll('.cell')[0].classes()).toContain('has')
     })
 
-    it('filtre sur les non-capturées seules', async () => {
-      const w = mountTray({ 25: [entry('a', 25)] })
-      await openFilters(w)
-      await chipByText(w, 'Non capturés').trigger('click')
+    it('filtre sur les non-capturées via le prop caughtFilter', () => {
+      const w = mountFiltered({ bySpecies: { 25: [entry('a', 25)] }, caughtFilter: 'uncaught' })
       expect(w.findAll('.cell')).toHaveLength(150)
     })
 
-    it('le bouton réinitialiser n’apparaît que si un filtre est actif, et remet tout à zéro', async () => {
-      const w = mountTray({})
-      await openFilters(w)
-      expect(w.find('.filter-reset').exists()).toBe(false)
+    it('émet set-caught-filter au clic sur un chip de statut', async () => {
+      const w = mountFiltered()
       await chipByText(w, 'Capturés').trigger('click')
-      expect(w.find('.filter-reset').exists()).toBe(true)
+      expect(w.emitted('set-caught-filter')[0]).toEqual(['caught'])
+    })
+
+    it('n’affiche le bouton réinitialiser que si un filtre est actif', () => {
+      expect(mountFiltered().find('.filter-reset').exists()).toBe(false)
+      expect(mountFiltered({ caughtFilter: 'caught' }).find('.filter-reset').exists()).toBe(true)
+    })
+
+    it('émet reset-filters au clic sur réinitialiser', async () => {
+      const w = mountFiltered({ caughtFilter: 'caught' })
       await w.find('.filter-reset').trigger('click')
-      expect(w.findAll('.cell')).toHaveLength(151)
-      expect(w.find('.filter-reset').exists()).toBe(false)
+      expect(w.emitted('reset-filters')).toBeTruthy()
     })
   })
 })
