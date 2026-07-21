@@ -93,4 +93,66 @@ describe('TheTray', () => {
   it('ne marque pas une légendaire non capturée', () => {
     expect(mountTray({}).findAll('.cell')[143].classes()).not.toContain('legendary')
   })
+
+  describe('filtres', () => {
+    const openFilters = (w) => w.find('.filter-toggle').trigger('click')
+    const chipByText = (w, text) => w.findAll('.filter-chip').find((c) => c.text() === text)
+
+    it('affiche les 151 cases par défaut, panneau fermé', () => {
+      const w = mountTray({})
+      expect(w.find('.filters').exists()).toBe(false)
+      expect(w.findAll('.cell')).toHaveLength(151)
+    })
+
+    it('ouvre le panneau de filtres au clic sur le bouton', async () => {
+      const w = mountTray({})
+      await openFilters(w)
+      expect(w.find('.filters').exists()).toBe(true)
+    })
+
+    it('filtre par palier : ne garde que les légendaires (5 espèces)', async () => {
+      const w = mountTray({})
+      await openFilters(w)
+      await chipByText(w, 'Commun').trigger('click')
+      await chipByText(w, 'Peu commun').trigger('click')
+      await chipByText(w, 'Rare').trigger('click')
+      expect(w.findAll('.cell')).toHaveLength(5)
+    })
+
+    it('refuse de désactiver le dernier palier actif', async () => {
+      const w = mountTray({})
+      await openFilters(w)
+      await chipByText(w, 'Commun').trigger('click')
+      await chipByText(w, 'Peu commun').trigger('click')
+      await chipByText(w, 'Rare').trigger('click')
+      await chipByText(w, 'Légendaire').trigger('click')
+      expect(w.findAll('.cell')).toHaveLength(5)
+    })
+
+    it('filtre sur les captures seules', async () => {
+      const w = mountTray({ 25: [entry('a', 25)] })
+      await openFilters(w)
+      await chipByText(w, 'Capturés').trigger('click')
+      expect(w.findAll('.cell')).toHaveLength(1)
+      expect(w.findAll('.cell')[0].classes()).toContain('has')
+    })
+
+    it('filtre sur les non-capturées seules', async () => {
+      const w = mountTray({ 25: [entry('a', 25)] })
+      await openFilters(w)
+      await chipByText(w, 'Non capturés').trigger('click')
+      expect(w.findAll('.cell')).toHaveLength(150)
+    })
+
+    it('le bouton réinitialiser n’apparaît que si un filtre est actif, et remet tout à zéro', async () => {
+      const w = mountTray({})
+      await openFilters(w)
+      expect(w.find('.filter-reset').exists()).toBe(false)
+      await chipByText(w, 'Capturés').trigger('click')
+      expect(w.find('.filter-reset').exists()).toBe(true)
+      await w.find('.filter-reset').trigger('click')
+      expect(w.findAll('.cell')).toHaveLength(151)
+      expect(w.find('.filter-reset').exists()).toBe(false)
+    })
+  })
 })

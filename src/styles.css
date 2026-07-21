@@ -80,6 +80,23 @@
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(158,59,46,0)}50%{box-shadow:0 0 0 4px rgba(158,59,46,.12)}}
 
   /* ───────── tiroir ───────── */
+  .tray-controls{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+  .filter-toggle{font-size:13px}
+  .filter-toggle.active{border-color:var(--herb);color:var(--herb)}
+  .filters{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:8px}
+  .filter-group{display:flex;gap:6px;flex-wrap:wrap}
+  .filter-chip{
+    font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    padding:7px 11px;border:1px solid var(--rule-hi);background:transparent;color:var(--ink-3);cursor:pointer;
+    transition:border-color .15s,color .15s;
+  }
+  .filter-chip:hover{color:var(--ink)}
+  .filter-chip.active{border-color:var(--tier,var(--herb));color:var(--tier,var(--herb))}
+  .filter-reset{
+    font-family:var(--f-data);font-size:10px;color:var(--ink-3);background:none;border:0;cursor:pointer;
+    text-decoration:underline;text-underline-offset:2px;
+  }
+  .filter-reset:hover{color:var(--stamp)}
   .tray{
     display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:1px;
     background:var(--rule-hi);border:1px solid var(--rule-hi);
