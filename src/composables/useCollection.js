@@ -18,11 +18,16 @@ export function useCollection() {
 
   const dex = useDex(catches, state)
 
-  async function load(githubClient) {
+  /**
+   * `triggerCatch: true` déclenche l'Action avant de relire — réservé à `refresh()` : le
+   * chargement initial n'a pas à forcer un run, la connexion suffit à justifier une lecture.
+   */
+  async function load(githubClient, { triggerCatch = false } = {}) {
     client = githubClient ?? client
     loading.value = true
     error.value = null
     try {
+      if (triggerCatch) await client.triggerCatch()
       const [c, s] = await Promise.all([client.readCatches(), client.readState()])
       catches.value = c
       state.value = s.state
@@ -75,12 +80,13 @@ export function useCollection() {
   }
 
   /**
-   * Recharge captures et état sur le client déjà connu — le workflow tourne à l'heure (cron
-   * 8h-19h) et l'utilisateur peut vouloir vérifier tout de suite après avoir mergé une PR,
-   * sans attendre. Simple relecture : aucune écriture, ne déclenche jamais l'Action elle-même.
+   * Déclenche l'Action de capture puis relit — pour vérifier tout de suite après avoir mergé
+   * une PR, sans attendre le prochain passage du cron (8h-19h). Le déclenchement passe par une
+   * fonction Edge Supabase : le front n'a jamais de jeton GitHub capable d'écrire quoi que ce
+   * soit, seulement sa session Supabase habituelle.
    */
   function refresh() {
-    return load()
+    return load(undefined, { triggerCatch: true })
   }
 
   /** Marque une capture comme ouverte. Idempotent : rejouer un claim ne duplique rien. */

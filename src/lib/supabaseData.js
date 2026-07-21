@@ -23,9 +23,10 @@ async function query(fn) {
 }
 
 /**
- * Même contrat que createGithubClient (checkAccess/readCatches/readState/writeState) : useCollection.js
+ * Même contrat que l'ancien createGithubClient (checkAccess/readCatches/readState/writeState) : useCollection.js
  * ne change pas d'une ligne entre les deux backends. `blobSha` porte en réalité l'entier `version`
  * de la table `state` — nom gardé pour ne pas toucher à l'appelant, qui le traite comme un jeton opaque.
+ * `triggerCatch` est une addition sans équivalent côté ancien client (pas de bouton de sync à l'époque).
  */
 export function createSupabaseClient(userId) {
   async function checkAccess() {
@@ -51,6 +52,15 @@ export function createSupabaseClient(userId) {
     return { state, blobSha: version }
   }
 
+  /**
+   * Déclenche l'Action `catch.yml` sans attendre qu'elle tourne — la fonction Edge répond
+   * dès que GitHub a accepté la mise en file, pas quand la capture est faite. `readCatches`
+   * juste après n'aura donc rien de neuf tant que le run n'est pas terminé.
+   */
+  async function triggerCatch() {
+    return query(() => supabase.functions.invoke('trigger-catch', { method: 'POST' }))
+  }
+
   async function writeState(state, blobSha) {
     const version = blobSha ?? 0
     const data = await query(() =>
@@ -67,5 +77,5 @@ export function createSupabaseClient(userId) {
     return { blobSha: data[0].version }
   }
 
-  return { checkAccess, readCatches, readState, writeState }
+  return { checkAccess, readCatches, readState, writeState, triggerCatch }
 }

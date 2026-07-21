@@ -59,12 +59,13 @@
   .bar{height:3px;background:var(--rule);position:relative;overflow:hidden}
   .bar-fill{position:absolute;inset:0 auto 0 0;background:var(--herb);transition:width .8s cubic-bezier(.2,.8,.2,1)}
   .rail-tools{display:flex;align-items:center;gap:10px}
-  .gear{border:1px solid var(--rule-hi);background:transparent;color:var(--ink-2);width:38px;height:38px;cursor:pointer;font-size:15px;transition:background .16s,color .16s}
+  .gear{position:relative;border:1px solid var(--rule-hi);background:transparent;color:var(--ink-2);width:38px;height:38px;cursor:pointer;font-size:15px;transition:background .16s,color .16s}
   .gear:hover:not(:disabled){background:var(--plate);color:var(--ink)}
   .gear:disabled{cursor:default}
   .gear.sync.spinning{color:var(--herb)}
   .gear.sync.spinning{animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
+  .err-dot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--stamp);box-shadow:0 0 0 1.5px var(--paper)}
 
   .claim-btn{
     position:relative;border:1.5px solid var(--stamp);background:transparent;color:var(--stamp);

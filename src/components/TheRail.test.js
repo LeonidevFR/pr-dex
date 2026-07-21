@@ -22,6 +22,24 @@ describe('TheRail', () => {
     expect(w.find('.sync').attributes('disabled')).toBeUndefined()
   })
 
+  describe('erreur de sync', () => {
+    it('n’affiche aucun badge sans erreur', () => {
+      const w = mountRail()
+      expect(w.find('.err-dot').exists()).toBe(false)
+    })
+
+    it('affiche un badge et un message adapté à l’erreur', () => {
+      const w = mountRail({ syncError: 'offline' })
+      expect(w.find('.err-dot').exists()).toBe(true)
+      expect(w.find('.sync').attributes('title')).toContain('Hors ligne')
+    })
+
+    it('retombe sur un message générique pour un kind inconnu', () => {
+      const w = mountRail({ syncError: 'mystere' })
+      expect(w.find('.sync').attributes('title')).toBe('La synchronisation a échoué.')
+    })
+  })
+
   describe('anti-spam', () => {
     beforeEach(() => vi.useFakeTimers())
     afterEach(() => vi.useRealTimers())

@@ -112,7 +112,7 @@ function finishEvo() {
     <TheRail
       :caught-count="collection.dex.caughtCount.value"
       :pending-count="collection.dex.pending.value.length"
-      :syncing="collection.loading.value"
+      :syncing="collection.loading.value" :sync-error="collection.error.value"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
     />
     <TheTray

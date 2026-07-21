@@ -12,6 +12,7 @@ function fakeClient({ catches = [], state = { claimed: [], spent: {}, evolutions
     readCatches: vi.fn().mockResolvedValue(catches),
     readState: vi.fn().mockResolvedValue({ state, blobSha }),
     writeState: vi.fn().mockResolvedValue({ blobSha: 'blob2' }),
+    triggerCatch: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -61,6 +62,31 @@ describe('refresh', () => {
     expect(c.loading.value).toBe(true)
     await p
     expect(c.loading.value).toBe(false)
+  })
+
+  it('déclenche l’Action de capture avant de relire', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    await c.refresh()
+    expect(client.triggerCatch).toHaveBeenCalledOnce()
+  })
+
+  it('ne déclenche pas l’Action au chargement initial, seulement au refresh', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    expect(client.triggerCatch).not.toHaveBeenCalled()
+  })
+
+  it('signale l’échec du déclenchement sans planter ni vider la collection déjà chargée', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    client.triggerCatch.mockRejectedValue(new SupabaseDataError('server', 'github dispatch failed'))
+    await c.refresh()
+    expect(c.error.value).toBe('server')
+    expect(c.catches.value).toHaveLength(1)
   })
 })
 

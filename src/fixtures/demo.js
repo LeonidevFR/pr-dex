@@ -90,5 +90,7 @@ export function loadDemoClient() {
     readCatches: async () => catches,
     readState: async () => ({ state: JSON.parse(JSON.stringify(state)), blobSha: 'demo' }),
     writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'demo' } },
+    // Rien à déclencher en démo : pas de vraie Action, pas de vrai repo derrière.
+    triggerCatch: async () => {},
   }
 }

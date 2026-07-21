@@ -5,7 +5,8 @@ GitHub. Chaque PR mergée tire, de façon déterministe, un Pokémon à partir d
 son commit de merge — l'ouverture se joue comme un booster, dans l'application.
 
 Aucun serveur applicatif : le jeu s'appuie sur l'API GitHub et sur Supabase (Postgres +
-Auth), en base de données et fournisseur de connexion — voir « Architecture » plus bas.
+Auth + une fonction Edge pour le bouton de sync), en base de données et fournisseur de
+connexion — voir « Architecture » plus bas.
 
 ## Lancer en local
 
@@ -73,28 +74,46 @@ déjà faites — seules les nouvelles entrées suivent la nouvelle règle.
 concurrence optimiste (un appareil qui écrit sur une version périmée reçoit un conflit,
 rejoué une fois sur l'état frais — même logique qu'avant, autre mécanisme de stockage).
 
-## Les deux secrets privilégiés
+## Le bouton de sync
 
-Vivent uniquement dans le repo privé `pr-dex-data`, jamais dans le front :
+`refresh()` (bouton ⟳ dans `TheRail`) fait deux choses : déclencher `catch.yml` tout de
+suite plutôt que d'attendre le prochain passage du cron, puis relire Supabase. Le
+déclenchement passe par une fonction Edge Supabase (`supabase/functions/trigger-catch`),
+jamais par un appel direct du front à l'API GitHub — le front n'a que sa session
+Supabase habituelle, aucun jeton GitHub capable d'écrire quoi que ce soit. Un
+`workflow_dispatch` accepté ne dit pas que le run est fini : les nouvelles captures
+n'apparaissent qu'après, à un refresh suivant.
 
-- **`CATCH_TOKEN`** (secret GitHub Actions). PAT fine-grained, lecture seule
-  (`Pull requests: Read`) sur les repos à surveiller — ou *All repositories* sur
-  l'organisation si on ne restreint à aucune liste (voir `WATCH_REPOS` par profil dans
-  `pr-dex-data/README.md`). Aucun droit d'écriture nulle part.
-- **`SUPABASE_SERVICE_ROLE_KEY`** (secret GitHub Actions). Contourne RLS — c'est le seul
-  moyen d'écrire dans `catches` pour n'importe quel `user_id`, puisque les utilisateurs
-  n'ont eux-mêmes aucune permission d'écriture sur cette table. Ne doit **jamais**
-  transiter par un chat, un log, ou le front.
+## Les trois secrets privilégiés
+
+- **`CATCH_TOKEN`** et **`SUPABASE_SERVICE_ROLE_KEY`** (secrets GitHub Actions), vivent
+  uniquement dans le repo privé `pr-dex-data`, jamais dans le front :
+  - **`CATCH_TOKEN`** : PAT fine-grained, lecture seule (`Pull requests: Read`) sur les
+    repos à surveiller — ou *All repositories* sur l'organisation si on ne restreint à
+    aucune liste (voir `WATCH_REPOS` par profil dans `pr-dex-data/README.md`). Aucun
+    droit d'écriture nulle part.
+  - **`SUPABASE_SERVICE_ROLE_KEY`** : contourne RLS — c'est le seul moyen d'écrire dans
+    `catches` pour n'importe quel `user_id`, puisque les utilisateurs n'ont eux-mêmes
+    aucune permission d'écriture sur cette table.
+- **`CATCH_DISPATCH_TOKEN`** (secret de la fonction Edge Supabase, réglage
+  Project Settings → Edge Functions → Secrets — pas GitHub Actions). PAT fine-grained,
+  scopé au seul repo `pr-dex-data`, permission `Actions: Read and write` — c'est ce qui
+  permet d'appeler `workflow_dispatch` sur `catch.yml`. Rien d'autre : pas d'accès
+  contenu, pas d'accès aux autres repos.
+
+Aucun de ces trois secrets ne doit **jamais** transiter par un chat, un log, ou le front.
 
 Le workflow tourne toutes les heures entre 8h et 19h heure de Paris (calé sur l'été
 CEST, glisse d'1h en hiver CET faute de fuseau horaire dans la syntaxe cron de GitHub
-Actions), boucle sur chaque profil enregistré et insère ses nouvelles captures. Détails
+Actions), boucle sur chaque profil enregistré et insère ses nouvelles captures — plus,
+depuis peu, sur `workflow_dispatch` (déclenché par le bouton de sync). Détails
 d'installation dans `pr-dex-data/README.md`.
 
 ## Structure du dépôt
 
 ```
-supabase/schema.sql       tables profiles/catches/state, policies RLS, trigger d'auto-création
+supabase/schema.sql               tables profiles/catches/state, policies RLS, trigger d'auto-création
+supabase/functions/trigger-catch  fonction Edge : déclenche workflow_dispatch sur catch.yml
 shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
 shared/draw.js            fnv1a + drawFromSha, partagé front ↔ Action
 scripts/catch.mjs         Action : boucle sur les profils, insère via service_role
