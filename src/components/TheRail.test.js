@@ -61,11 +61,19 @@ describe('TheRail', () => {
     it('réautorise un clic une fois le cooldown écoulé', async () => {
       const w = mountRail()
       await w.find('.sync').trigger('click')
-      vi.advanceTimersByTime(10_000)
+      vi.advanceTimersByTime(5 * 60 * 1000)
       await w.vm.$nextTick()
       expect(w.find('.sync').attributes('disabled')).toBeUndefined()
       await w.find('.sync').trigger('click')
       expect(w.emitted('sync')).toHaveLength(2)
+    })
+
+    it('reste désactivé juste avant la fin du cooldown', async () => {
+      const w = mountRail()
+      await w.find('.sync').trigger('click')
+      vi.advanceTimersByTime(5 * 60 * 1000 - 1)
+      await w.vm.$nextTick()
+      expect(w.find('.sync').attributes('disabled')).toBeDefined()
     })
   })
 })

@@ -23,10 +23,11 @@ const syncTitle = computed(() =>
     : 'Vérifier les nouvelles captures',
 )
 
-// Chaque sync relit Supabase : cinq clics rapides sont cinq requêtes pour la même absence
-// de nouveauté. Un court cooldown après le déclenchement empêche le martelage sans gêner
-// l'usage normal (une vérification ponctuelle après un merge, pas une action répétée).
-const COOLDOWN_MS = 10_000
+// Chaque sync déclenche un vrai run de l'Action côté GitHub, pas juste une lecture — cinq
+// clics rapides sont cinq runs pour le même résultat. 5 minutes : le temps qu'un run se
+// termine avant qu'un nouveau ait un sens, sans gêner l'usage normal (une vérification
+// ponctuelle après un merge, pas une action répétée).
+const COOLDOWN_MS = 5 * 60 * 1000
 const cooling = ref(false)
 let cooldownTimer = null
 
