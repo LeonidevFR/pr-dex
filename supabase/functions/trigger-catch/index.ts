@@ -21,25 +21,19 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS_HEADERS })
-  }
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+  })
+}
 
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'method not allowed' }), {
-      status: 405,
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    })
-  }
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
+  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
 
   const token = Deno.env.get('CATCH_DISPATCH_TOKEN')
-  if (!token) {
-    return new Response(JSON.stringify({ error: 'server misconfigured' }), {
-      status: 500,
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    })
-  }
+  if (!token) return json({ error: 'server misconfigured' }, 500)
 
   const res = await fetch(
     `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
@@ -59,14 +53,8 @@ Deno.serve(async (req) => {
   // garantit pas que le run a déjà fini, juste qu'il a été mis en file.
   if (res.status !== 204) {
     const detail = await res.text()
-    return new Response(JSON.stringify({ error: 'github dispatch failed', status: res.status, detail }), {
-      status: 502,
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    })
+    return json({ error: 'github dispatch failed', status: res.status, detail }, 502)
   }
 
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-  })
+  return json({ ok: true })
 })
