@@ -50,7 +50,7 @@ const fakeSha = (i) =>
   Array.from({ length: 5 }, (_, k) => fnv1a(`seed${i}/${k}`).toString(16).padStart(8, '0')).join('')
 
 export function demoCatches() {
-  return FAKE_PRS.map(([title, repo, pr, date], i) => {
+  const drawn = FAKE_PRS.map(([title, repo, pr, date], i) => {
     const sha = fakeSha(i)
     const { species, shiny } = drawFromSha(sha)
     // Aucun chromatique ne sort naturellement des 40 tirages : on en force deux pour que
@@ -59,6 +59,26 @@ export function demoCatches() {
     const forcedShiny = i === 9 || i === FAKE_PRS.length - 2
     return { sha, repo, pr, title, date, species, shiny: shiny || forcedShiny }
   })
+
+  // Aucune famille n'atteint le seuil de bonbons dans les 40 tirages naturels : on force une
+  // troisième capture Roucool (la lignée en compte déjà deux, cf. plus haut) pour que le badge
+  // « peut évoluer » de la grille soit visible dès la démo. Insérée juste avant les 3 en attente
+  // pour rester capturée sans toucher ni aux 40 tirages naturels ni au nombre de plis en attente.
+  drawn.splice(-3, 0, {
+    sha: 'ev0e1c10ded1c4700000000000000000000000',
+    repo: 'moi/atlas', pr: 224, title: 'fix: timeout sur le webhook Slack',
+    date: '2026-07-18', species: 16, shiny: false,
+  })
+
+  // Idem pour une légendaire : à 0,5 % par tirage, aucune ne sort naturellement sur 40-41
+  // essais. Sulfura forcée pour que le halo légendaire de la grille soit visible en démo.
+  drawn.splice(-3, 0, {
+    sha: 'ev1eg3ndary000000000000000000000000000',
+    repo: 'moi/atlas', pr: 225, title: 'perf: cache des agrégats du dashboard',
+    date: '2026-07-19', species: 146, shiny: false,
+  })
+
+  return drawn
 }
 
 /** Client en mémoire respectant l'interface commune des clients de données. Trois PR restent à ouvrir. */

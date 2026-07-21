@@ -30,7 +30,7 @@ Pour l'essayer sans backend et sans connexion, ouvrir l'URL avec `?demo` :
 http://localhost:5173/?demo
 ```
 
-Ce mode charge 40 fausses PR (`src/fixtures/demo.js`, chargé dynamiquement, jamais
+Ce mode charge 42 fausses PR (`src/fixtures/demo.js`, chargé dynamiquement, jamais
 inclus dans le build de production) : toute l'interface est cliquable sans compte ni
 connexion réseau.
 
@@ -102,7 +102,7 @@ src/lib/                  supabaseClient.js, supabaseData.js (seul module résea
 src/composables/          useAuth.js (session OAuth), useDex.js (dérivation pure), useCollection.js (effets)
 src/components/           TheRail, TheTray, SpeciesSheet, RitualOverlay, EvolutionOverlay,
                           SettingsPanel, ConnectScreen
-src/fixtures/demo.js      40 fausses PR, chargées dynamiquement derrière ?demo
+src/fixtures/demo.js      42 fausses PR, chargées dynamiquement derrière ?demo
 docs/                     brief de design, spec technique, maquette
 ```
 

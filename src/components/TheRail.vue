@@ -2,8 +2,9 @@
 defineProps({
   caughtCount: { type: Number, required: true },
   pendingCount: { type: Number, required: true },
+  syncing: { type: Boolean, default: false },
 })
-defineEmits(['open', 'settings'])
+defineEmits(['open', 'settings', 'sync'])
 </script>
 
 <template>
@@ -24,6 +25,10 @@ defineEmits(['open', 'settings'])
         {{ pendingCount ? 'Ouvrir' : 'Rien à ouvrir' }}
         <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
       </button>
+      <button
+        class="gear sync" :class="{ spinning: syncing }" title="Vérifier les nouvelles captures"
+        :disabled="syncing" @click="$emit('sync')"
+      >⟳</button>
       <button class="gear" title="Réglages" @click="$emit('settings')">⚙</button>
     </div>
   </header>

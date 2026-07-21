@@ -19,7 +19,7 @@ export function useCollection() {
   const dex = useDex(catches, state)
 
   async function load(githubClient) {
-    client = githubClient
+    client = githubClient ?? client
     loading.value = true
     error.value = null
     try {
@@ -74,6 +74,15 @@ export function useCollection() {
     }
   }
 
+  /**
+   * Recharge captures et état sur le client déjà connu — le workflow tourne à l'heure (cron
+   * 8h-19h) et l'utilisateur peut vouloir vérifier tout de suite après avoir mergé une PR,
+   * sans attendre. Simple relecture : aucune écriture, ne déclenche jamais l'Action elle-même.
+   */
+  function refresh() {
+    return load()
+  }
+
   /** Marque une capture comme ouverte. Idempotent : rejouer un claim ne duplique rien. */
   async function claim(sha) {
     error.value = null
@@ -121,5 +130,5 @@ export function useCollection() {
     )
   }
 
-  return { catches, state, error, loading, dex, load, claim, evolve }
+  return { catches, state, error, loading, dex, load, refresh, claim, evolve }
 }

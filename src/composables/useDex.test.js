@@ -174,6 +174,43 @@ describe('évolution possible', () => {
   })
 })
 
+describe('évolutions disponibles (mise en avant grille)', () => {
+  it('inclut une espèce capturée dont les bonbons suffisent', () => {
+    const d = setup(
+      Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1)),
+      { claimed: ['s0', 's1', 's2'] },
+    )
+    expect(d.evolvableIds.value.has(1)).toBe(true)
+  })
+
+  it('exclut une espèce capturée sans assez de bonbons', () => {
+    const d = setup([catchOf('a', 1)], { claimed: ['a'] })
+    expect(d.evolvableIds.value.has(1)).toBe(false)
+  })
+
+  it('exclut une espèce terminale même gorgée de doublons', () => {
+    const d = setup(
+      Array.from({ length: 5 }, (_, i) => catchOf('r' + i, 143)),
+      { claimed: ['r0', 'r1', 'r2', 'r3', 'r4'] },
+    )
+    expect(d.evolvableIds.value.has(143)).toBe(false)
+  })
+
+  it('exclut une espèce non capturée', () => {
+    const d = setup([], {})
+    expect(d.evolvableIds.value.has(1)).toBe(false)
+  })
+
+  it('recalcule quand des bonbons sont dépensés', () => {
+    const catches = ref(Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1)))
+    const state = ref({ claimed: ['s0', 's1', 's2'], spent: {}, evolutions: [] })
+    const d = useDex(catches, state)
+    expect(d.evolvableIds.value.has(1)).toBe(true)
+    state.value = { ...state.value, spent: { 1: 8 } }
+    expect(d.evolvableIds.value.has(1)).toBe(false)
+  })
+})
+
 describe('bonbons morts', () => {
   it('repère une espèce dont la famille n’évolue pas', () => {
     const d = setup([], {})

@@ -112,9 +112,13 @@ function finishEvo() {
     <TheRail
       :caught-count="collection.dex.caughtCount.value"
       :pending-count="collection.dex.pending.value.length"
-      @open="openRitual" @settings="settingsOpen = true"
+      :syncing="collection.loading.value"
+      @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
     />
-    <TheTray :by-species="collection.dex.bySpecies.value" @select="(id) => (selected = id)" />
+    <TheTray
+      :by-species="collection.dex.bySpecies.value" :evolvable="collection.dex.evolvableIds.value"
+      @select="(id) => (selected = id)"
+    />
 
     <transition name="fade">
       <SpeciesSheet

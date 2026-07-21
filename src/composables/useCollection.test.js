@@ -42,6 +42,28 @@ describe('chargement', () => {
   })
 })
 
+describe('refresh', () => {
+  it('relit sur le client déjà connu, sans qu’on ait à le repasser', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    client.readCatches.mockResolvedValue([catchOf('a', 25), catchOf('b', 1)])
+    await c.refresh()
+    expect(c.catches.value).toHaveLength(2)
+    expect(client.readCatches).toHaveBeenCalledTimes(2)
+  })
+
+  it('bascule loading pendant le refresh', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    const p = c.refresh()
+    expect(c.loading.value).toBe(true)
+    await p
+    expect(c.loading.value).toBe(false)
+  })
+})
+
 describe('claim', () => {
   it('ajoute le sha aux réclamés et persiste', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })

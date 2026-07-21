@@ -66,5 +66,13 @@ export function useDex(catches, state) {
     return !hasEvoInFamily(id)
   }
 
-  return { claimed, pending, evolved, bySpecies, caughtCount, candies, canEvolve, isDeadEnd }
+  // Grille : quelles cases capturées ont de quoi évoluer maintenant, pour un badge discret —
+  // la décision reste au joueur, ceci ne fait que la rendre visible sans ouvrir chaque fiche.
+  const evolvableIds = computed(
+    () => new Set(Object.keys(bySpecies.value).map(Number).filter((id) => canEvolve(id))),
+  )
+
+  return {
+    claimed, pending, evolved, bySpecies, caughtCount, candies, canEvolve, isDeadEnd, evolvableIds,
+  }
 }

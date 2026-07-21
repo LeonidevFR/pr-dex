@@ -6,7 +6,7 @@ const entry = (sha, species, extra = {}) => ({
   sha, species, shiny: false, via: 'pr', repo: 'moi/atlas', pr: 1, title: 't', date: '2026-02-03', ...extra,
 })
 
-const mountTray = (bySpecies) => mount(TheTray, { props: { bySpecies } })
+const mountTray = (bySpecies, evolvable) => mount(TheTray, { props: { bySpecies, evolvable } })
 
 describe('TheTray', () => {
   it('affiche les 151 cases', () => {
@@ -62,5 +62,35 @@ describe('TheTray', () => {
     const img = w.findAll('.cell')[24].find('img')
     img.trigger('error')
     expect(w.findAll('.cell')).toHaveLength(151)
+  })
+
+  it('marque une case dont l’espèce peut évoluer maintenant', () => {
+    const w = mountTray({ 1: [entry('a', 1)] }, new Set([1]))
+    expect(w.findAll('.cell')[0].find('.cell-evo').exists()).toBe(true)
+  })
+
+  it('n’affiche pas le badge d’évolution pour une espèce qui n’en a pas les moyens', () => {
+    const w = mountTray({ 1: [entry('a', 1)] }, new Set())
+    expect(w.findAll('.cell')[0].find('.cell-evo').exists()).toBe(false)
+  })
+
+  it('n’affiche pas le badge d’évolution sans le prop (valeur par défaut)', () => {
+    const w = mountTray({ 1: [entry('a', 1)] })
+    expect(w.findAll('.cell')[0].find('.cell-evo').exists()).toBe(false)
+  })
+
+  it('marque une légendaire capturée pour le halo', () => {
+    // 144 Artikodin est légendaire (DEX[144].tier === 'l')
+    const w = mountTray({ 144: [entry('a', 144)] })
+    expect(w.findAll('.cell')[143].classes()).toContain('legendary')
+  })
+
+  it('ne marque pas une non-légendaire', () => {
+    const w = mountTray({ 25: [entry('a', 25)] })
+    expect(w.findAll('.cell')[24].classes()).not.toContain('legendary')
+  })
+
+  it('ne marque pas une légendaire non capturée', () => {
+    expect(mountTray({}).findAll('.cell')[143].classes()).not.toContain('legendary')
   })
 })

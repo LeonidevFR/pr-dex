@@ -60,7 +60,11 @@
   .bar-fill{position:absolute;inset:0 auto 0 0;background:var(--herb);transition:width .8s cubic-bezier(.2,.8,.2,1)}
   .rail-tools{display:flex;align-items:center;gap:10px}
   .gear{border:1px solid var(--rule-hi);background:transparent;color:var(--ink-2);width:38px;height:38px;cursor:pointer;font-size:15px;transition:background .16s,color .16s}
-  .gear:hover{background:var(--plate);color:var(--ink)}
+  .gear:hover:not(:disabled){background:var(--plate);color:var(--ink)}
+  .gear:disabled{cursor:default}
+  .gear.sync.spinning{color:var(--herb)}
+  .gear.sync.spinning{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   .claim-btn{
     position:relative;border:1.5px solid var(--stamp);background:transparent;color:var(--stamp);
@@ -87,21 +91,31 @@
   .cell.has{cursor:pointer}
   .cell.has:hover,.cell.has:focus-visible{background:var(--plate-hi);outline:none}
   .cell.has:focus-visible{box-shadow:inset 0 0 0 1.5px var(--herb)}
-  .cell img{width:76%;height:76%;object-fit:contain;transition:transform .18s}
+  /* halo : shiny et légendaires se distinguent d'un coup d'œil dans la grille pleine */
+  .cell.has.legendary::after,.cell.has.shiny::after{
+    content:"";position:absolute;inset:5px;border-radius:50%;z-index:0;pointer-events:none;
+    opacity:.4;
+  }
+  /* légendaire en --stamp plutôt que --tier : --t-l vaut la même teinte que --ochre, or le
+     shiny porte déjà --ochre partout ailleurs (étoile, chip) — les deux halos se confondraient. */
+  .cell.has.legendary::after{background:radial-gradient(circle, var(--stamp), transparent 70%)}
+  .cell.has.shiny::after{background:radial-gradient(circle, var(--ochre), transparent 70%)}
+  .cell img{width:76%;height:76%;object-fit:contain;transition:transform .18s;position:relative;z-index:1}
   .cell img[data-broken],.panel-art img[data-broken]{opacity:.18;filter:grayscale(1)}
   .cell.has:hover img{transform:scale(1.09) translateY(-2px)}
-  .cell-no{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--ink-3);letter-spacing:.02em;transition:opacity .16s}
+  .cell-no{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--ink-3);letter-spacing:.02em;transition:opacity .16s;z-index:2}
   .cell.has .cell-no{opacity:.9}
   .cell.has:hover .cell-no{opacity:0}
-  .cell-sha{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--stamp);opacity:0;transition:opacity .16s}
+  .cell-sha{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--stamp);opacity:0;transition:opacity .16s;z-index:2}
   .cell.has:hover .cell-sha{opacity:1}
-  .cell-dupes{position:absolute;right:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--ink-3)}
-  .cell .tier{position:absolute;right:6px;bottom:6px;width:7px;height:7px;border-radius:50%;background:var(--tier);box-shadow:0 0 0 1.5px var(--plate),0 0 0 2.5px rgba(120,96,64,.28)}
+  .cell-dupes{position:absolute;right:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--ink-3);z-index:2}
+  .cell .tier{position:absolute;right:6px;bottom:6px;width:7px;height:7px;border-radius:50%;background:var(--tier);box-shadow:0 0 0 1.5px var(--plate),0 0 0 2.5px rgba(120,96,64,.28);z-index:2}
   /* silhouette : dessin préparatoire au trait */
-  .cell.ghost::after{content:"";position:absolute;inset:11px;border:1px dashed rgba(140,110,72,.34)}
+  .cell.ghost::after{content:"";position:absolute;inset:11px;border:1px dashed rgba(140,110,72,.34);z-index:2}
   .cell.ghost img{filter:sepia(1) saturate(.5) brightness(.55);opacity:.16}
   .cell.ghost .cell-no{opacity:.5}
   .cell.shiny::before{content:"✦";position:absolute;right:6px;top:5px;font-size:10px;color:var(--ochre);z-index:2}
+  .cell-evo{position:absolute;left:6px;bottom:5px;font-size:9px;color:var(--herb);z-index:2}
 
   /* ───────── fiche ───────── */
   .scrim{position:fixed;inset:0;z-index:40;background:rgba(44,38,32,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px}

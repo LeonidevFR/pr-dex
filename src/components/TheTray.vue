@@ -4,6 +4,7 @@ import { spriteUrl } from '../lib/sprites.js'
 
 defineProps({
   bySpecies: { type: Object, required: true },
+  evolvable: { type: Set, default: () => new Set() },
 })
 defineEmits(['select'])
 
@@ -15,7 +16,10 @@ const isShiny = (entries) => entries?.some((e) => e.shiny) ?? false
   <div class="tray">
     <button
       v-for="id in ids" :key="id" class="cell"
-      :class="{ has: bySpecies[id], ghost: !bySpecies[id], shiny: isShiny(bySpecies[id]) }"
+      :class="{
+        has: bySpecies[id], ghost: !bySpecies[id], shiny: isShiny(bySpecies[id]),
+        legendary: bySpecies[id] && DEX[id].tier === 'l',
+      }"
       :style="{ '--tier': TIER_VAR[DEX[id].tier] }"
       :disabled="!bySpecies[id]"
       @click="$emit('select', id)"
@@ -29,6 +33,7 @@ const isShiny = (entries) => entries?.some((e) => e.shiny) ?? false
         :src="spriteUrl(id, isShiny(bySpecies[id]))" :alt="DEX[id].name" loading="lazy"
         @error="$event.target.dataset.broken = '1'"
       >
+      <span v-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer">▲</span>
       <span v-if="bySpecies[id]" class="tier"></span>
     </button>
   </div>
