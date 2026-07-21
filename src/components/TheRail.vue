@@ -1,10 +1,28 @@
 <script setup>
-defineProps({
+import { ref, onUnmounted } from 'vue'
+
+const props = defineProps({
   caughtCount: { type: Number, required: true },
   pendingCount: { type: Number, required: true },
   syncing: { type: Boolean, default: false },
 })
-defineEmits(['open', 'settings', 'sync'])
+const emit = defineEmits(['open', 'settings', 'sync'])
+
+// Chaque sync relit Supabase : cinq clics rapides sont cinq requêtes pour la même absence
+// de nouveauté. Un court cooldown après le déclenchement empêche le martelage sans gêner
+// l'usage normal (une vérification ponctuelle après un merge, pas une action répétée).
+const COOLDOWN_MS = 10_000
+const cooling = ref(false)
+let cooldownTimer = null
+
+function triggerSync() {
+  if (props.syncing || cooling.value) return
+  emit('sync')
+  cooling.value = true
+  cooldownTimer = setTimeout(() => { cooling.value = false }, COOLDOWN_MS)
+}
+
+onUnmounted(() => clearTimeout(cooldownTimer))
 </script>
 
 <template>
@@ -27,7 +45,7 @@ defineEmits(['open', 'settings', 'sync'])
       </button>
       <button
         class="gear sync" :class="{ spinning: syncing }" title="Vérifier les nouvelles captures"
-        :disabled="syncing" @click="$emit('sync')"
+        :disabled="syncing || cooling" @click="triggerSync"
       >⟳</button>
       <button class="gear" title="Réglages" @click="$emit('settings')">⚙</button>
     </div>

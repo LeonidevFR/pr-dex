@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TheRail from './TheRail.vue'
 
@@ -20,5 +20,34 @@ describe('TheRail', () => {
   it('n’est pas désactivé hors synchronisation', () => {
     const w = mountRail({ syncing: false })
     expect(w.find('.sync').attributes('disabled')).toBeUndefined()
+  })
+
+  describe('anti-spam', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('ignore les clics répétés pendant le cooldown', async () => {
+      const w = mountRail()
+      await w.find('.sync').trigger('click')
+      await w.find('.sync').trigger('click')
+      await w.find('.sync').trigger('click')
+      expect(w.emitted('sync')).toHaveLength(1)
+    })
+
+    it('désactive le bouton pendant le cooldown, même si syncing redevient false', async () => {
+      const w = mountRail()
+      await w.find('.sync').trigger('click')
+      expect(w.find('.sync').attributes('disabled')).toBeDefined()
+    })
+
+    it('réautorise un clic une fois le cooldown écoulé', async () => {
+      const w = mountRail()
+      await w.find('.sync').trigger('click')
+      vi.advanceTimersByTime(10_000)
+      await w.vm.$nextTick()
+      expect(w.find('.sync').attributes('disabled')).toBeUndefined()
+      await w.find('.sync').trigger('click')
+      expect(w.emitted('sync')).toHaveLength(2)
+    })
   })
 })
