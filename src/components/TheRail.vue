@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   caughtCount: { type: Number, required: true },
@@ -32,16 +32,35 @@ const syncTitle = computed(() => {
 // clics rapides sont cinq runs pour le même résultat. 5 minutes : le temps qu'un run se
 // termine avant qu'un nouveau ait un sens, sans gêner l'usage normal (une vérification
 // ponctuelle après un merge, pas une action répétée).
+//
+// Le cooldown est mémorisé dans localStorage, pas juste en mémoire : un simple F5 remettait
+// sinon le compteur à zéro, ce qui a produit plusieurs runs rapprochés en pratique (observé
+// en prod : quatre déclenchements en 5 minutes). Ça ne protège qu'un même navigateur — deux
+// personnes qui cliquent à quelques minutes d'écart déclenchent quand même deux runs, le
+// verrou n'étant pas partagé côté serveur.
 const COOLDOWN_MS = 5 * 60 * 1000
+const COOLDOWN_KEY = 'pr-dex-sync-cooldown-until'
 const cooling = ref(false)
 let cooldownTimer = null
+
+function armCooldown(ms) {
+  clearTimeout(cooldownTimer)
+  cooling.value = true
+  cooldownTimer = setTimeout(() => { cooling.value = false }, ms)
+}
 
 function triggerSync() {
   if (props.syncing || cooling.value) return
   emit('sync')
-  cooling.value = true
-  cooldownTimer = setTimeout(() => { cooling.value = false }, COOLDOWN_MS)
+  localStorage.setItem(COOLDOWN_KEY, String(Date.now() + COOLDOWN_MS))
+  armCooldown(COOLDOWN_MS)
 }
+
+onMounted(() => {
+  const until = Number(localStorage.getItem(COOLDOWN_KEY) ?? 0)
+  const remaining = until - Date.now()
+  if (remaining > 0) armCooldown(remaining)
+})
 
 onUnmounted(() => clearTimeout(cooldownTimer))
 </script>

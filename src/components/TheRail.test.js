@@ -6,6 +6,8 @@ const mountRail = (props = {}) =>
   mount(TheRail, { props: { caughtCount: 12, pendingCount: 0, ...props } })
 
 describe('TheRail', () => {
+  beforeEach(() => localStorage.clear())
+
   it('émet sync au clic sur le bouton de synchronisation', async () => {
     const w = mountRail()
     await w.find('.sync').trigger('click')
@@ -107,6 +109,29 @@ describe('TheRail', () => {
       vi.advanceTimersByTime(5 * 60 * 1000 - 1)
       await w.vm.$nextTick()
       expect(w.find('.sync').attributes('disabled')).toBeDefined()
+    })
+
+    it('survit à un rechargement de page (recalculé depuis localStorage au montage)', async () => {
+      const w1 = mountRail()
+      await w1.find('.sync').trigger('click')
+      w1.unmount()
+
+      vi.advanceTimersByTime(60 * 1000) // 1 min plus tard, toujours dans le cooldown
+      const w2 = mountRail()
+      await w2.vm.$nextTick()
+      expect(w2.find('.sync').attributes('disabled')).toBeDefined()
+      await w2.find('.sync').trigger('click')
+      expect(w2.emitted('sync')).toBeUndefined()
+    })
+
+    it('réautorise après remontage une fois le cooldown écoulé', async () => {
+      const w1 = mountRail()
+      await w1.find('.sync').trigger('click')
+      w1.unmount()
+
+      vi.advanceTimersByTime(5 * 60 * 1000)
+      const w2 = mountRail()
+      expect(w2.find('.sync').attributes('disabled')).toBeUndefined()
     })
   })
 })
