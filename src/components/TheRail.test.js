@@ -96,7 +96,7 @@ describe('TheRail', () => {
     it('réautorise un clic une fois le cooldown écoulé', async () => {
       const w = mountRail()
       await w.find('.sync').trigger('click')
-      vi.advanceTimersByTime(5 * 60 * 1000)
+      vi.advanceTimersByTime(60 * 1000)
       await w.vm.$nextTick()
       expect(w.find('.sync').attributes('disabled')).toBeUndefined()
       await w.find('.sync').trigger('click')
@@ -106,7 +106,7 @@ describe('TheRail', () => {
     it('reste désactivé juste avant la fin du cooldown', async () => {
       const w = mountRail()
       await w.find('.sync').trigger('click')
-      vi.advanceTimersByTime(5 * 60 * 1000 - 1)
+      vi.advanceTimersByTime(60 * 1000 - 1)
       await w.vm.$nextTick()
       expect(w.find('.sync').attributes('disabled')).toBeDefined()
     })
@@ -116,7 +116,7 @@ describe('TheRail', () => {
       await w1.find('.sync').trigger('click')
       w1.unmount()
 
-      vi.advanceTimersByTime(60 * 1000) // 1 min plus tard, toujours dans le cooldown
+      vi.advanceTimersByTime(30 * 1000) // encore dans le cooldown d'1 min
       const w2 = mountRail()
       await w2.vm.$nextTick()
       expect(w2.find('.sync').attributes('disabled')).toBeDefined()
@@ -129,7 +129,7 @@ describe('TheRail', () => {
       await w1.find('.sync').trigger('click')
       w1.unmount()
 
-      vi.advanceTimersByTime(5 * 60 * 1000)
+      vi.advanceTimersByTime(60 * 1000)
       const w2 = mountRail()
       expect(w2.find('.sync').attributes('disabled')).toBeUndefined()
     })

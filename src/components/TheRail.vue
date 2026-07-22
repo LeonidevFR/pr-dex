@@ -29,16 +29,17 @@ const syncTitle = computed(() => {
 })
 
 // Chaque sync déclenche un vrai run de l'Action côté GitHub, pas juste une lecture — cinq
-// clics rapides sont cinq runs pour le même résultat. 5 minutes : le temps qu'un run se
-// termine avant qu'un nouveau ait un sens, sans gêner l'usage normal (une vérification
-// ponctuelle après un merge, pas une action répétée).
+// clics rapides sont cinq runs pour le même résultat. 1 minute : assez pour qu'un run ait eu
+// le temps de finir (il dure rarement plus de 30s en pratique) sans faire attendre quelqu'un
+// qui vient de merger et veut sa capture tout de suite — 5 minutes, essayé d'abord, s'est
+// avéré frustrant dans ce cas précis très courant.
 //
 // Le cooldown est mémorisé dans localStorage, pas juste en mémoire : un simple F5 remettait
 // sinon le compteur à zéro, ce qui a produit plusieurs runs rapprochés en pratique (observé
 // en prod : quatre déclenchements en 5 minutes). Ça ne protège qu'un même navigateur — deux
 // personnes qui cliquent à quelques minutes d'écart déclenchent quand même deux runs, le
 // verrou n'étant pas partagé côté serveur.
-const COOLDOWN_MS = 5 * 60 * 1000
+const COOLDOWN_MS = 60 * 1000
 const COOLDOWN_KEY = 'pr-dex-sync-cooldown-until'
 const cooling = ref(false)
 let cooldownTimer = null
