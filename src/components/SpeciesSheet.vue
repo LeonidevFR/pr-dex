@@ -6,6 +6,9 @@ import { spriteUrl } from '../lib/sprites.js'
 const props = defineProps({
   id: { type: Number, required: true },
   entries: { type: Array, default: null },
+  // Exemplaires disponibles maintenant (une évolution passée a pu en consommer) — distinct
+  // de `entries.length`, qui reste le journal complet, y compris les exemplaires déjà évolués.
+  copies: { type: Number, default: null },
   candies: { type: Number, required: true },
   canEvolve: { type: Boolean, required: true },
   isDeadEnd: { type: Boolean, required: true },
@@ -22,6 +25,7 @@ const targets = computed(() => {
   return to === null ? [] : Array.isArray(to) ? to : [to]
 })
 const pad = (n) => String(n).padStart(3, '0')
+const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 0)
 </script>
 
 <template>
@@ -55,8 +59,8 @@ const pad = (n) => String(n).padStart(3, '0')
       <div v-if="caught" class="sect">
         <div class="eyebrow sect-h">
           <span>Journal des captures</span>
-          <span class="mono" style="color:var(--ink-3)">
-            {{ entries.length }} entrée{{ entries.length > 1 ? 's' : '' }}
+          <span class="mono copies-count">
+            {{ availableCopies }} exemplaire{{ availableCopies > 1 ? 's' : '' }}
           </span>
         </div>
         <div class="log">

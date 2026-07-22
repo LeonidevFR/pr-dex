@@ -13,25 +13,34 @@ export function useDex(catches, state) {
 
   const claimedSet = computed(() => new Set(state.value.claimed))
 
+  // `key` identifie un exemplaire précis, capture de PR ou évolution, indépendamment de
+  // l'espèce : une capture de PR se reconnaît par son sha, une évolution par son rang dans
+  // `state.evolutions` (append-only, donc stable). Sert à savoir quel exemplaire précis a été
+  // consommé par une évolution ultérieure.
   const claimed = computed(() =>
-    catches.value.filter((c) => claimedSet.value.has(c.sha)).map((c) => ({ ...c, via: 'pr' })).sort(byDate),
+    catches.value.filter((c) => claimedSet.value.has(c.sha))
+      .map((c) => ({ ...c, via: 'pr', key: c.sha })).sort(byDate),
   )
 
   const pending = computed(() =>
     catches.value.filter((c) => !claimedSet.value.has(c.sha)).map((c) => ({ ...c, via: 'pr' })).sort(byDate),
   )
 
-  // Le chromatique est hérité de la capture précise qui a évolué, identifiée par son sha.
-  // Sans `fromSha` (entrée écrite par une version antérieure), on retombe sur la première
-  // capture de l'espèce source — au mieux ambigu, d'où l'enregistrement du sha désormais.
-  const evolved = computed(() =>
-    state.value.evolutions.map((e) => {
-      const source = e.fromSha
-        ? claimed.value.find((c) => c.sha === e.fromSha)
-        : claimed.value.find((c) => c.species === e.from)
-      return { ...e, via: 'evo', shiny: source?.shiny ?? false }
-    }),
-  )
+  // Le chromatique est hérité de la capture précise qui a évolué, identifiée par sa clé.
+  // Construit par accumulation (pas de simple `.map`) : une évolution en chaîne (ex. Ivysaur →
+  // Venusaur) doit pouvoir retrouver un exemplaire produit par une évolution précédente, pas
+  // seulement une capture de PR. `fromSha` reste lu pour les entrées écrites par une version
+  // antérieure (avant l'introduction de `fromKey`).
+  const evolved = computed(() => {
+    const result = []
+    state.value.evolutions.forEach((e, i) => {
+      const pool = [...claimed.value, ...result]
+      const fromKey = e.fromKey ?? e.fromSha
+      const source = fromKey ? pool.find((c) => c.key === fromKey) : pool.find((c) => c.species === e.from)
+      result.push({ ...e, via: 'evo', shiny: source?.shiny ?? false, key: `evo:${i}` })
+    })
+    return result
+  })
 
   const bySpecies = computed(() => {
     const map = {}
@@ -40,6 +49,21 @@ export function useDex(catches, state) {
   })
 
   const caughtCount = computed(() => Object.keys(bySpecies.value).length)
+
+  // Un exemplaire consommé par une évolution ne compte plus dans le stock courant — mais
+  // l'espèce reste acquise pour toujours dans `bySpecies` (le Pokédex garde ce qui a été vu,
+  // même si le dernier exemplaire a servi à évoluer).
+  const consumedKeys = computed(
+    () => new Set(state.value.evolutions.map((e) => e.fromKey ?? e.fromSha).filter(Boolean)),
+  )
+
+  function availableEntries(id) {
+    return (bySpecies.value[id] ?? []).filter((e) => !consumedKeys.value.has(e.key))
+  }
+
+  function copyCount(id) {
+    return availableEntries(id).length
+  }
 
   /**
    * Bonbons disponibles pour la famille de `id`. Seules les captures de PR en produisent :
@@ -55,10 +79,12 @@ export function useDex(catches, state) {
     return earned - (state.value.spent[fam] ?? 0)
   }
 
+  // Une évolution consomme un exemplaire précis : sans stock disponible, plus de matière à
+  // évoluer, même si l'espèce reste acquise et même si la famille a encore des bonbons.
   function canEvolve(id) {
     const s = DEX[id]
     if (!s?.to) return false
-    if (!bySpecies.value[id]) return false
+    if (copyCount(id) < 1) return false
     return candies(id) >= s.cost
   }
 
@@ -74,5 +100,6 @@ export function useDex(catches, state) {
 
   return {
     claimed, pending, evolved, bySpecies, caughtCount, candies, canEvolve, isDeadEnd, evolvableIds,
+    availableEntries, copyCount,
   }
 }

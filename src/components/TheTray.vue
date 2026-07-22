@@ -5,6 +5,9 @@ import { spriteUrl } from '../lib/sprites.js'
 
 const props = defineProps({
   bySpecies: { type: Object, required: true },
+  // Exemplaires disponibles par espèce (après consommation par des évolutions) — à défaut,
+  // retombe sur le total brut de `bySpecies` (rétrocompatible avec un appelant qui ne le passe pas).
+  copies: { type: Object, default: () => ({}) },
   evolvable: { type: Set, default: () => new Set() },
   filtersOpen: { type: Boolean, default: false },
   activeTiers: { type: Set, default: () => new Set(['c', 'u', 'r', 'l']) },
@@ -14,6 +17,7 @@ const emit = defineEmits(['select', 'toggle-tier', 'set-caught-filter', 'reset-f
 
 const ids = Object.keys(DEX).map(Number)
 const isShiny = (entries) => entries?.some((e) => e.shiny) ?? false
+const copyCount = (id) => props.copies[id] ?? props.bySpecies[id]?.length ?? 0
 
 const TIERS = Object.keys(TIER_LABEL)
 const hasActiveFilters = computed(
@@ -72,7 +76,7 @@ const visibleIds = computed(() =>
       <span v-if="bySpecies[id]" class="cell-sha mono">
         {{ bySpecies[id][0].via === 'pr' ? bySpecies[id][0].sha.slice(0, 7) : 'évolué' }}
       </span>
-      <span v-if="bySpecies[id]?.length > 1" class="cell-dupes mono">×{{ bySpecies[id].length }}</span>
+      <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
       <img
         :src="spriteUrl(id, isShiny(bySpecies[id]))" :alt="DEX[id].name" loading="lazy"
         @error="$event.target.dataset.broken = '1'"

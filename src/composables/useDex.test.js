@@ -211,6 +211,56 @@ describe('évolutions disponibles (mise en avant grille)', () => {
   })
 })
 
+describe('exemplaires consommés par une évolution', () => {
+  it('retire l’exemplaire choisi du stock disponible', () => {
+    const d = setup(
+      Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1)),
+      { claimed: ['s0', 's1', 's2'], evolutions: [{ species: 2, from: 1, fromKey: 's0', date: '2026-07-14' }] },
+    )
+    expect(d.copyCount(1)).toBe(2)
+  })
+
+  it('n’en retire pas l’espèce du dex, même sans stock restant', () => {
+    const d = setup([catchOf('a', 1)], {
+      claimed: ['a'],
+      evolutions: [{ species: 2, from: 1, fromKey: 'a', date: '2026-07-14' }],
+    })
+    expect(d.copyCount(1)).toBe(0)
+    expect(d.bySpecies.value[1]).toHaveLength(1) // toujours acquise, juste plus d'exemplaire dispo
+    expect(d.caughtCount.value).toBe(2) // l'espèce source ET la cible comptent comme vues
+  })
+
+  it('refuse une nouvelle évolution sans exemplaire disponible même avec assez de bonbons', () => {
+    const d = setup(
+      Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1)),
+      {
+        claimed: ['s0', 's1', 's2'],
+        evolutions: [
+          { species: 2, from: 1, fromKey: 's0', date: '2026-07-01' },
+          { species: 2, from: 1, fromKey: 's1', date: '2026-07-02' },
+          { species: 2, from: 1, fromKey: 's2', date: '2026-07-03' },
+        ],
+      },
+    )
+    expect(d.candies(1)).toBeGreaterThanOrEqual(0)
+    expect(d.copyCount(1)).toBe(0)
+    expect(d.canEvolve(1)).toBe(false)
+  })
+
+  it('reconnaît un exemplaire source produit par une évolution précédente (chaîne)', () => {
+    // Bulbizarre → Herbizarre → Florizarre : la source de la seconde évolution est
+    // l'exemplaire d'Herbizarre produit par la première, pas une capture de PR.
+    const d = setup(
+      Array.from({ length: 6 }, (_, i) => catchOf('s' + i, 1)),
+      {
+        claimed: ['s0', 's1', 's2', 's3', 's4', 's5'],
+        evolutions: [{ species: 2, from: 1, fromKey: 's0', date: '2026-07-14' }],
+      },
+    )
+    expect(d.copyCount(2)).toBe(1)
+  })
+})
+
 describe('bonbons morts', () => {
   it('repère une espèce dont la famille n’évolue pas', () => {
     const d = setup([], {})

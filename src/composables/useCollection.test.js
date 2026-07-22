@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useCollection } from './useCollection.js'
 import { SupabaseDataError } from '../lib/supabaseData.js'
 
@@ -44,7 +44,10 @@ describe('chargement', () => {
 })
 
 describe('refresh', () => {
-  it('relit sur le client déjà connu, sans qu’on ait à le repasser', async () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('relit tout de suite : pas d’attente si du nouveau apparaît dès la première lecture', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
     const c = useCollection()
     await c.load(client)
@@ -54,12 +57,46 @@ describe('refresh', () => {
     expect(client.readCatches).toHaveBeenCalledTimes(2)
   })
 
-  it('bascule loading pendant le refresh', async () => {
+  it('repasse lire à intervalles tant que rien de nouveau n’apparaît, jusqu’à trouver une capture fraîche', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    // Les deux premières relectures ne montrent rien de neuf, la troisième si.
+    client.readCatches
+      .mockResolvedValueOnce([catchOf('a', 25)])
+      .mockResolvedValueOnce([catchOf('a', 25)])
+      .mockResolvedValueOnce([catchOf('a', 25), catchOf('b', 1)])
+
+    const p = c.refresh()
+    await vi.advanceTimersByTimeAsync(5000)
+    await vi.advanceTimersByTimeAsync(5000)
+    await p
+
+    expect(c.catches.value).toHaveLength(2)
+    expect(client.readCatches).toHaveBeenCalledTimes(4) // 1 au chargement + 3 au refresh
+  })
+
+  it('abandonne après ~30s si rien de nouveau n’est jamais apparu', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+
+    const p = c.refresh()
+    await vi.advanceTimersByTimeAsync(30000)
+    await p
+
+    expect(c.catches.value).toHaveLength(1)
+    expect(c.error.value).toBeNull()
+    expect(client.readCatches).toHaveBeenCalledTimes(7) // 1 au chargement + 6 tentatives de refresh
+  })
+
+  it('reste en chargement pendant tout le sondage', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
     const c = useCollection()
     await c.load(client)
     const p = c.refresh()
     expect(c.loading.value).toBe(true)
+    await vi.advanceTimersByTimeAsync(30000)
     await p
     expect(c.loading.value).toBe(false)
   })
@@ -68,6 +105,7 @@ describe('refresh', () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
     const c = useCollection()
     await c.load(client)
+    client.readCatches.mockResolvedValue([catchOf('a', 25), catchOf('b', 1)])
     await c.refresh()
     expect(client.triggerCatch).toHaveBeenCalledOnce()
   })
@@ -172,7 +210,7 @@ describe('évolution', () => {
     await c.evolve(1, 2, '2026-07-20')
     expect(c.state.value.spent[1]).toBe(8)
     expect(c.state.value.evolutions).toEqual([
-      { species: 2, from: 1, fromSha: 's0', date: '2026-07-20' },
+      { species: 2, from: 1, fromKey: 's0', date: '2026-07-20' },
     ])
     expect(client.writeState).toHaveBeenCalledOnce()
   })
@@ -183,7 +221,34 @@ describe('évolution', () => {
     const c = useCollection()
     await c.load(client)
     await c.evolve(1, 2, '2026-07-20')
-    expect(c.state.value.evolutions[0].fromSha).toBe('s1')
+    expect(c.state.value.evolutions[0].fromKey).toBe('s1')
+  })
+
+  it('consomme l’exemplaire évolué : plus disponible pour une évolution suivante, mais l’espèce reste acquise', async () => {
+    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
+    const c = useCollection()
+    await c.load(client)
+    await c.evolve(1, 2, '2026-07-20')
+    expect(c.dex.copyCount(1)).toBe(2)
+    expect(c.dex.bySpecies.value[1]).toHaveLength(3) // toujours dans le journal / la grille
+  })
+
+  it('refuse d’évoluer sans exemplaire disponible, même avec assez de bonbons', async () => {
+    // Une seule capture, mais suffisamment de doublons dans le reste de la famille pour
+    // financer le coût — les bonbons ne sont pas liés à un exemplaire précis.
+    const catches = [
+      catchOf('only', 1),
+      ...Array.from({ length: 5 }, (_, i) => catchOf('extra' + i, 2)),
+    ]
+    const client = fakeClient({
+      catches,
+      state: { claimed: catches.map((c) => c.sha), spent: {}, evolutions: [{ species: 2, from: 1, fromKey: 'only', date: '2026-07-01' }] },
+    })
+    const c = useCollection()
+    await c.load(client)
+    expect(c.dex.copyCount(1)).toBe(0)
+    await c.evolve(1, 2, '2026-07-20')
+    expect(client.writeState).not.toHaveBeenCalled()
   })
 
   it('refuse l’évolution sans bonbons suffisants et n’écrit rien', async () => {

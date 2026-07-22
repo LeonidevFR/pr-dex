@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import TheRail from './components/TheRail.vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
@@ -26,6 +26,14 @@ const evoAnim = ref(null)
 const settingsOpen = ref(false)
 
 const filters = useTrayFilters()
+
+// Stock disponible par espèce (une évolution passée a pu en consommer un) — recalculé sur
+// les seules espèces déjà rencontrées, pas les 151 : les autres n'ont de toute façon rien à afficher.
+const copiesById = computed(() => {
+  const map = {}
+  for (const id of Object.keys(collection.dex.bySpecies.value)) map[id] = collection.dex.copyCount(Number(id))
+  return map
+})
 
 async function connectSession(s) {
   connecting.value = true
@@ -121,7 +129,7 @@ function finishEvo() {
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
-      :by-species="collection.dex.bySpecies.value" :evolvable="collection.dex.evolvableIds.value"
+      :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
       :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
       :caught-filter="filters.caughtFilter.value"
       @select="(id) => (selected = id)"
@@ -132,6 +140,7 @@ function finishEvo() {
       <SpeciesSheet
         v-if="selected" :id="selected"
         :entries="collection.dex.bySpecies.value[selected] ?? null"
+        :copies="collection.dex.copyCount(selected)"
         :candies="collection.dex.candies(selected)"
         :can-evolve="collection.dex.canEvolve(selected)"
         :is-dead-end="collection.dex.isDeadEnd(selected)"

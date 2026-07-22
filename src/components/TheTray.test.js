@@ -52,6 +52,20 @@ describe('TheTray', () => {
     expect(w.findAll('.cell')[24].find('.cell-dupes').exists()).toBe(false)
   })
 
+  it('affiche le stock disponible (prop copies) plutôt que le total brut quand fourni', () => {
+    const w = mount(TheTray, {
+      props: { bySpecies: { 1: [entry('a', 1), entry('b', 1)] }, copies: { 1: 1 } },
+    })
+    expect(w.findAll('.cell')[0].find('.cell-dupes').exists()).toBe(false) // 1 disponible : pas de badge
+  })
+
+  it('remonte à ×N avec la prop copies quand du stock reste', () => {
+    const w = mount(TheTray, {
+      props: { bySpecies: { 1: [entry('a', 1), entry('b', 1), entry('c', 1)] }, copies: { 1: 2 } },
+    })
+    expect(w.findAll('.cell')[0].find('.cell-dupes').text()).toBe('×2')
+  })
+
   it('marque une espèce dont au moins une capture est chromatique', () => {
     const w = mountTray({ 25: [entry('a', 25), entry('b', 25, { shiny: true })] })
     expect(w.findAll('.cell')[24].classes()).toContain('shiny')

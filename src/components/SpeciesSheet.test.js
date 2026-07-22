@@ -83,13 +83,13 @@ describe('journal des captures', () => {
     expect(w.text()).toContain('Évolué depuis Magicarpe')
   })
 
-  it('compte les entrées au pluriel', () => {
+  it('compte les exemplaires au pluriel', () => {
     const w = mountSheet({ id: 25, entries: [pr('a', 25), pr('b', 25)] })
-    expect(w.text()).toContain('2 entrées')
+    expect(w.text()).toContain('2 exemplaires')
   })
 
-  it('compte une entrée au singulier', () => {
-    expect(mountSheet({ id: 25, entries: [pr('a', 25)] }).text()).toContain('1 entrée')
+  it('compte un exemplaire au singulier', () => {
+    expect(mountSheet({ id: 25, entries: [pr('a', 25)] }).text()).toContain('1 exemplaire')
   })
 })
 

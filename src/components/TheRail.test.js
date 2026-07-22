@@ -38,6 +38,11 @@ describe('TheRail', () => {
       const w = mountRail({ syncError: 'mystere' })
       expect(w.find('.sync').attributes('title')).toBe('La synchronisation a échoué.')
     })
+
+    it('affiche un message d’attente explicite pendant la synchronisation', () => {
+      const w = mountRail({ syncing: true })
+      expect(w.find('.sync').attributes('title')).toContain('en cours')
+    })
   })
 
   describe('bouton de filtre', () => {

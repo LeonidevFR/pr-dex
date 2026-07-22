@@ -20,10 +20,13 @@ const SYNC_ERROR_LABEL = {
   conflict: 'Conflit de synchronisation — réessaie.',
   revoked: 'Session expirée — reconnecte-toi.',
 }
-const syncTitle = computed(() =>
-  props.syncError ? (SYNC_ERROR_LABEL[props.syncError] ?? 'La synchronisation a échoué.')
-    : 'Vérifier les nouvelles captures',
-)
+// Le clic déclenche un vrai run GitHub Action, pas une lecture instantanée : sans ce message,
+// le bouton semble juste tourner dans le vide pendant que le run travaille en coulisses.
+const syncTitle = computed(() => {
+  if (props.syncing) return 'Recherche en cours côté GitHub (jusqu’à 30s)…'
+  if (props.syncError) return SYNC_ERROR_LABEL[props.syncError] ?? 'La synchronisation a échoué.'
+  return 'Vérifier les nouvelles captures'
+})
 
 // Chaque sync déclenche un vrai run de l'Action côté GitHub, pas juste une lecture — cinq
 // clics rapides sont cinq runs pour le même résultat. 5 minutes : le temps qu'un run se

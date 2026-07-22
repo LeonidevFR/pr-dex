@@ -18,16 +18,11 @@ export function useCollection() {
 
   const dex = useDex(catches, state)
 
-  /**
-   * `triggerCatch: true` déclenche l'Action avant de relire — réservé à `refresh()` : le
-   * chargement initial n'a pas à forcer un run, la connexion suffit à justifier une lecture.
-   */
-  async function load(githubClient, { triggerCatch = false } = {}) {
+  async function load(githubClient) {
     client = githubClient ?? client
     loading.value = true
     error.value = null
     try {
-      if (triggerCatch) await client.triggerCatch()
       const [c, s] = await Promise.all([client.readCatches(), client.readState()])
       catches.value = c
       state.value = s.state
@@ -79,14 +74,41 @@ export function useCollection() {
     }
   }
 
+  const REFRESH_POLL_MS = 5000
+  const REFRESH_ATTEMPTS = 6 // ~30s : le temps qu'un run de l'Action se termine côté GitHub
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
   /**
    * Déclenche l'Action de capture puis relit — pour vérifier tout de suite après avoir mergé
    * une PR, sans attendre le prochain passage du cron (8h-19h). Le déclenchement passe par une
    * fonction Edge Supabase : le front n'a jamais de jeton GitHub capable d'écrire quoi que ce
    * soit, seulement sa session Supabase habituelle.
+   *
+   * Le déclenchement ne confirme que la réception de la demande par GitHub, pas la fin du run.
+   * Relire une seule fois juste après revoyait donc l'état d'avant — invisible pour
+   * l'utilisateur, qui devait recharger la page à la main pour voir sa capture. On relit
+   * plutôt à intervalles jusqu'à voir du nouveau ou abandonner ; `loading` reste vrai tout du
+   * long pour que le bouton continue de signaler que ça travaille encore.
    */
-  function refresh() {
-    return load(undefined, { triggerCatch: true })
+  async function refresh() {
+    loading.value = true
+    error.value = null
+    try {
+      await client.triggerCatch()
+      const before = catches.value.length
+      for (let attempt = 0; attempt < REFRESH_ATTEMPTS; attempt++) {
+        if (attempt > 0) await wait(REFRESH_POLL_MS)
+        const [c, s] = await Promise.all([client.readCatches(), client.readState()])
+        catches.value = c
+        state.value = s.state
+        blobSha.value = s.blobSha
+        if (c.length !== before) break
+      }
+    } catch (e) {
+      error.value = e.kind ?? 'server'
+    } finally {
+      loading.value = false
+    }
   }
 
   /** Marque une capture comme ouverte. Idempotent : rejouer un claim ne duplique rien. */
@@ -99,6 +121,31 @@ export function useCollection() {
     )
   }
 
+  /**
+   * Exemplaire disponible de `fromId` sur un état `s` donné (pas nécessairement `state.value`
+   * — `persist` rejoue ce calcul sur l'état frais après un conflit). Un exemplaire chromatique
+   * est privilégié : perdre un shiny à l'évolution se lirait comme un bug. Réplique volontairement
+   * la logique de `useDex` (clé, exemplaires consommés) sur un objet simple plutôt que sur des
+   * refs, `s` n'étant qu'un clone en cours de mutation.
+   */
+  function pickAvailable(fromId, s) {
+    const claimedSet = new Set(s.claimed)
+    const claimedEntries = catches.value
+      .filter((c) => claimedSet.has(c.sha))
+      .map((c) => ({ ...c, key: c.sha }))
+    const evolvedEntries = []
+    s.evolutions.forEach((e, i) => {
+      const pool = [...claimedEntries, ...evolvedEntries]
+      const fromKey = e.fromKey ?? e.fromSha
+      const src = fromKey ? pool.find((c) => c.key === fromKey) : pool.find((c) => c.species === e.from)
+      evolvedEntries.push({ species: e.species, shiny: src?.shiny ?? false, key: `evo:${i}` })
+    })
+    const consumed = new Set(s.evolutions.map((e) => e.fromKey ?? e.fromSha).filter(Boolean))
+    const available = [...claimedEntries, ...evolvedEntries]
+      .filter((c) => c.species === fromId && !consumed.has(c.key))
+    return available.find((c) => c.shiny) ?? available[0]
+  }
+
   async function evolve(fromId, toId, date) {
     error.value = null
     const source = DEX[fromId]
@@ -107,29 +154,26 @@ export function useCollection() {
     if (!targets.includes(toId)) return
     if (!dex.canEvolve(fromId)) return
 
-    // On enregistre QUELLE capture évolue, pas seulement son espèce : sans ça, deux captures
-    // de la même espèce dont une chromatique rendent l'héritage du shiny indécidable.
-    // À défaut de choix explicite, une capture chromatique est privilégiée — perdre un shiny
-    // à l'évolution se lirait comme un bug.
-    const candidates = dex.bySpecies.value[fromId] ?? []
-    const picked = candidates.find((c) => c.shiny) ?? candidates[0]
-
     const fam = familyOf(fromId)
     await persist(
       (s) => {
         // Revalidation sur l'état reçu, et non sur l'état d'avant l'appel : `persist` rejoue
         // ce mutateur sur l'état frais après un conflit. Sans ce recalcul, deux appareils
-        // dépensent les mêmes bonbons et le solde passe sous zéro.
+        // dépensent les mêmes bonbons, ou évoluent le même dernier exemplaire, et l'un des
+        // deux devrait échouer plutôt que de passer en double.
         const claimedSha = new Set(s.claimed)
         const earned = catches.value.filter(
           (c) => claimedSha.has(c.sha) && familyOf(c.species) === fam,
         ).length * CANDY_PER_CATCH
         if (earned - (s.spent[fam] ?? 0) < source.cost) return null
 
+        const picked = pickAvailable(fromId, s)
+        if (!picked) return null
+
         return {
           ...s,
           spent: { ...s.spent, [fam]: (s.spent[fam] ?? 0) + source.cost },
-          evolutions: [...s.evolutions, { species: toId, from: fromId, fromSha: picked?.sha ?? null, date }],
+          evolutions: [...s.evolutions, { species: toId, from: fromId, fromKey: picked.key, date }],
         }
       },
       `evolve ${source.name} → ${DEX[toId].name}`,
