@@ -92,10 +92,9 @@ onUnmounted(() => clearTimeout(cooldownTimer))
           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
         ><polygon points="3 4 21 4 14 12.5 14 20 10 20 10 12.5 3 4"></polygon></svg>
       </button>
-      <button
-        class="gear sync" :class="{ spinning: syncing }" :title="syncTitle"
-        :disabled="syncing || cooling" @click="triggerSync"
-      >⟳<span v-if="syncError" class="err-dot"></span></button>
+      <button class="gear sync" :title="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
+        <span :class="{ spinning: syncing }">⟳</span><span v-if="syncError" class="err-dot"></span>
+      </button>
       <button class="gear" title="Réglages" @click="$emit('settings')">⚙</button>
     </div>
   </header>

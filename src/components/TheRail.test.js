@@ -24,6 +24,12 @@ describe('TheRail', () => {
     expect(w.find('.sync').attributes('disabled')).toBeUndefined()
   })
 
+  it('fait tourner le glyphe, pas tout le bouton — sinon la pastille d’erreur tournerait avec', () => {
+    const w = mountRail({ syncing: true, syncError: 'offline' })
+    expect(w.find('.sync').classes()).not.toContain('spinning')
+    expect(w.find('.sync span.spinning').exists()).toBe(true)
+  })
+
   describe('erreur de sync', () => {
     it('n’affiche aucun badge sans erreur', () => {
       const w = mountRail()

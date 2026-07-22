@@ -66,8 +66,9 @@
   }
   .gear:hover:not(:disabled){background:var(--plate);color:var(--ink)}
   .gear:disabled{cursor:default}
-  .gear.sync.spinning{color:var(--herb)}
-  .gear.sync.spinning{animation:spin .8s linear infinite}
+  /* La rotation est sur le glyphe (span), pas sur le bouton entier : sinon la pastille
+     d'erreur, positionnée dans un coin du bouton, tournait avec tout le bloc. */
+  .gear.sync span.spinning{color:var(--herb);display:inline-block;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .err-dot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--stamp);box-shadow:0 0 0 1.5px var(--paper)}
   .filter-toggle.active{border-color:var(--herb);color:var(--herb)}
