@@ -87,13 +87,26 @@
   /* ───────── tiroir ───────── */
   .filters{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
   .filter-group{display:flex;gap:6px;flex-wrap:wrap}
+  /* Coché vs non coché doit se lire d'un regard, sans avoir à comparer deux nuances de bordure
+     l'une à l'autre — remonté par plusieurs personnes qui trouvaient les chips illisibles.
+     Coché : pastille pleine, texte clair sur fond couleur du palier. Non coché : atténué, pas
+     juste une bordure plus terne. */
   .filter-chip{
     font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-    padding:7px 11px;border:1px solid var(--rule-hi);background:transparent;color:var(--ink-3);cursor:pointer;
-    transition:border-color .15s,color .15s;
+    padding:7px 11px 7px 9px;border:1.5px solid var(--rule-hi);border-radius:3px;background:transparent;
+    color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    transition:border-color .15s,color .15s,background-color .15s,opacity .15s;
   }
-  .filter-chip:hover{color:var(--ink)}
-  .filter-chip.active{border-color:var(--tier,var(--herb));color:var(--tier,var(--herb))}
+  .filter-chip::before{
+    content:"";width:7px;height:7px;border-radius:50%;flex-shrink:0;
+    border:1.5px solid currentColor;transition:background-color .15s;
+  }
+  .filter-chip:hover{color:var(--ink);border-color:var(--ink-3)}
+  .filter-chip.active{
+    border-color:var(--tier,var(--herb));background:var(--tier,var(--herb));color:var(--paper);
+  }
+  .filter-chip.active::before{background:var(--paper)}
+  .filter-chip:not(.active){opacity:.6}
   .filter-reset{
     font-family:var(--f-data);font-size:10px;color:var(--ink-3);background:none;border:0;cursor:pointer;
     text-decoration:underline;text-underline-offset:2px;
