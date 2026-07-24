@@ -10,6 +10,17 @@ const entryOf = (over = {}) => ({
   date: '2026-02-03', species: 25, shiny: false, via: 'pr', ...over,
 })
 
+const catchOf = (sha, species, over = {}) => entryOf({ sha, species, ...over })
+
+const fakeClient = (catches, claimed) => {
+  let state = { claimed, spent: {}, evolutions: [] }
+  return {
+    readCatches: async () => catches,
+    readState: async () => ({ state: JSON.parse(JSON.stringify(state)), blobSha: 'blob' }),
+    writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'blob' } },
+  }
+}
+
 const mountRitual = (props = {}) =>
   mount(RitualOverlay, { props: { entry: entryOf(), remaining: 1, ...props } })
 
@@ -143,6 +154,48 @@ describe('chromatique', () => {
   })
 })
 
+describe('espèce jamais rencontrée', () => {
+  const reveal = async (props) => {
+    const w = mountRitual(props)
+    await w.find('.packet').trigger('click')
+    vi.advanceTimersByTime(2800) // couvre aussi la tenue plus longue du légendaire
+    await w.vm.$nextTick()
+    return w
+  }
+
+  it('marque la révélation d’une espèce nouvelle', async () => {
+    const w = await reveal({ isNew: true })
+    expect(w.find('.new-chip').text()).toBe('Nouveau')
+    expect(w.find('.reveal-note').text()).toContain('Première entrée à la planche')
+  })
+
+  it('ne marque rien pour une espèce déjà à la planche', async () => {
+    const w = await reveal({ isNew: false })
+    expect(w.find('.new-chip').exists()).toBe(false)
+    expect(w.find('.reveal-note').text()).toContain('Déjà à la planche')
+  })
+
+  it('ne suppose rien quand la propriété est absente', async () => {
+    const w = await reveal()
+    expect(w.find('.new-chip').exists()).toBe(false)
+  })
+
+  it('ne divulgue rien avant la révélation — le pli scellé et la silhouette restent muets', async () => {
+    const w = mountRitual({ isNew: true })
+    expect(w.text()).not.toContain('Nouveau')
+    await w.find('.packet').trigger('click')
+    expect(w.find('.reveal').classes()).toContain('silhouette')
+    expect(w.text()).not.toContain('Nouveau')
+  })
+
+  it('cohabite avec le palier et le chromatique sans les remplacer', async () => {
+    const w = await reveal({ entry: entryOf({ species: 144, shiny: true }), isNew: true })
+    expect(w.find('.new-chip').exists()).toBe(true)
+    expect(w.find('.shiny-chip').exists()).toBe(true)
+    expect(w.findAll('.chip')).toHaveLength(3)
+  })
+})
+
 describe('suite de la file', () => {
   it('propose le retour quand c’est le dernier', async () => {
     const w = mountRitual({ remaining: 1 })
@@ -225,6 +278,40 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
     // 3 en attente au départ : celui-ci + 2 → le libellé doit annoncer 2
     expect(w.find('.next-btn').text()).toContain('2 restants')
     expect(col.dex.pending.value).toHaveLength(2)
+  })
+
+  // `claim` inscrit l'espèce au dex dès le sceau brisé : lue trop tard, la question
+  // « jamais rencontrée ? » répond toujours non et le marqueur ne s'allume jamais.
+  it('marque la nouveauté lue avant le claim, pas après', async () => {
+    const col = useCollection()
+    await col.load(fakeClient([catchOf('a', 25)], []))
+    const entry = col.dex.pending.value[0]
+    const isNew = ref(col.dex.isNewSpecies(entry.species)) // figé comme dans App.vue
+
+    const w = mount({
+      components: { RitualOverlay },
+      setup: () => ({ col, entry, isNew }),
+      template: `<RitualOverlay :entry="entry" :remaining="1" :is-new="isNew" @claim="col.claim" />`,
+    })
+    await w.find('.packet').trigger('click')
+    vi.advanceTimersByTime(2200)
+    await w.vm.$nextTick()
+
+    expect(col.dex.isNewSpecies(25)).toBe(false) // le claim l'a déjà inscrite
+    expect(w.find('.new-chip').exists()).toBe(true)
+  })
+
+  it('ne marque pas le second pli d’une espèce ouverte au pli précédent', async () => {
+    const col = useCollection()
+    await col.load(fakeClient([catchOf('a', 25), catchOf('b', 25, { date: '2026-02-04' })], []))
+
+    const first = col.dex.pending.value[0]
+    expect(col.dex.isNewSpecies(first.species)).toBe(true)
+    await col.claim(first.sha)
+
+    const second = col.dex.pending.value[0]
+    expect(second.sha).toBe('b')
+    expect(col.dex.isNewSpecies(second.species)).toBe(false)
   })
 })
 

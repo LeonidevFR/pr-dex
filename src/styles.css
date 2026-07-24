@@ -186,6 +186,7 @@
   .panel-name{font-family:var(--f-display);font-size:28px;font-weight:600;letter-spacing:-.015em;line-height:1.08;margin:5px 0 11px}
   .chip{display:inline-block;font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:4px 9px;border:1px solid var(--tier);color:var(--tier);background:rgba(255,255,255,.25)}
   .chip.shiny-chip{border-color:var(--ochre);color:var(--ochre)}
+  .chip.new-chip{border-color:var(--herb);color:var(--herb)}
   .x{position:absolute;right:16px;top:14px;background:none;border:0;color:var(--ink-3);font-family:var(--f-data);font-size:16px;cursor:pointer;padding:6px;line-height:1}
   .x:hover{color:var(--ink)}
 
@@ -290,6 +291,10 @@
   .reveal-name{font-family:var(--f-display);font-size:40px;font-weight:700;letter-spacing:-.025em;line-height:1;color:#f6efdf}
   .reveal-tags{display:flex;gap:8px;justify-content:center;margin-top:13px}
   .reveal .chip{background:rgba(255,255,255,.06)}
+  /* Seule chip pleine de la scène : le palier et le chromatique se lisent déjà sur le sprite
+     (halo, rayons, scintillement), « nouveau » n'a aucun autre porteur visuel. Le vert d'herbe
+     du rail est trop sombre sur ce fond — même famille, remontée pour le contraste. */
+  .reveal-tags .chip.new-chip{border-color:#a8c495;color:#16200f;background:#a8c495}
   .reveal-note{font-family:var(--f-data);font-size:11px;margin-top:17px;color:#a99a7f}
   .reveal-note b{color:var(--ochre);font-weight:500}
   .next-btn{border:1.5px solid rgba(240,231,212,.35);background:transparent;color:#f0e7d4;font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 24px;cursor:pointer;animation:fadeUp .5s ease-out .75s both}
