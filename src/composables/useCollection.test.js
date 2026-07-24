@@ -1,10 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useCollection } from './useCollection.js'
 import { SupabaseDataError } from '../lib/supabaseData.js'
+import { entryKey } from '../../shared/entry.js'
 
-const catchOf = (sha, species, extra = {}) => ({
-  sha, species, shiny: false, repo: 'moi/atlas', pr: 1, title: 't', date: '2026-02-03', ...extra,
+/** Clé d'exemplaire telle que `useDex` la dérive — ce que `claim` et `fromKey` référencent. */
+const K = (id) => entryKey('github', id)
+
+const catchOf = (id, species, extra = {}) => ({
+  source: 'github', external_id: id, species, shiny: false,
+  label: 't', ref: 'moi/atlas#1', url: 'https://github.com/moi/atlas/pull/1',
+  date: '2026-02-03', ...extra,
 })
+
+const keysOf = (catches) => catches.map((c) => entryKey(c.source, c.external_id))
 
 function fakeClient({ catches = [], state = { claimed: [], spent: {}, evolutions: [] }, blobSha = 'blob1' } = {}) {
   return {
@@ -129,34 +137,44 @@ describe('refresh', () => {
 })
 
 describe('claim', () => {
-  it('ajoute le sha aux réclamés et persiste', async () => {
+  it('ajoute la clé d’exemplaire aux réclamés et persiste', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
     const c = useCollection()
     await c.load(client)
-    await c.claim('a')
-    expect(c.state.value.claimed).toContain('a')
+    await c.claim(K('a'))
+    expect(c.state.value.claimed).toContain(K('a'))
     expect(client.writeState).toHaveBeenCalledOnce()
-    expect(client.writeState.mock.calls[0][0].claimed).toEqual(['a'])
+    expect(client.writeState.mock.calls[0][0].claimed).toEqual([K('a')])
   })
 
   it('transmet le blob sha courant et mémorise le nouveau', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25), catchOf('b', 1)] })
     const c = useCollection()
     await c.load(client)
-    await c.claim('a')
+    await c.claim(K('a'))
     expect(client.writeState.mock.calls[0][1]).toBe('blob1')
-    await c.claim('b')
+    await c.claim(K('b'))
     expect(client.writeState.mock.calls[1][1]).toBe('blob2')
   })
 
-  it('ne réclame pas deux fois le même sha', async () => {
+  it('ne réclame pas deux fois la même clé', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
     const c = useCollection()
     await c.load(client)
-    await c.claim('a')
-    await c.claim('a')
-    expect(c.state.value.claimed).toEqual(['a'])
+    await c.claim(K('a'))
+    await c.claim(K('a'))
+    expect(c.state.value.claimed).toEqual([K('a')])
     expect(client.writeState).toHaveBeenCalledOnce()
+  })
+
+  it('ne confond pas deux captures qui portent le même identifiant dans deux sources', async () => {
+    const catches = [catchOf('42', 25), catchOf('42', 1, { source: 'crm' })]
+    const client = fakeClient({ catches })
+    const c = useCollection()
+    await c.load(client)
+    await c.claim(K('42'))
+    expect(c.dex.pending.value).toHaveLength(1)
+    expect(c.dex.pending.value[0].source).toBe('crm')
   })
 
   it('rejoue silencieusement sur conflit, sans exposer d’erreur', async () => {
@@ -166,16 +184,16 @@ describe('claim', () => {
       .mockResolvedValueOnce({ blobSha: 'blob9' })
     client.readState
       .mockResolvedValueOnce({ state: { claimed: [], spent: {}, evolutions: [] }, blobSha: 'blob1' })
-      .mockResolvedValueOnce({ state: { claimed: ['b'], spent: {}, evolutions: [] }, blobSha: 'blob8' })
+      .mockResolvedValueOnce({ state: { claimed: [K('b')], spent: {}, evolutions: [] }, blobSha: 'blob8' })
 
     const c = useCollection()
     await c.load(client)
-    await c.claim('a')
+    await c.claim(K('a'))
 
     expect(c.error.value).toBeNull()
     expect(client.writeState).toHaveBeenCalledTimes(2)
     // l'opération est rejouée sur l'état frais : le claim de l'autre appareil survit
-    expect(c.state.value.claimed).toEqual(['b', 'a'])
+    expect(c.state.value.claimed).toEqual([K('b'), K('a')])
   })
 
   it('abandonne après un seul rejeu', async () => {
@@ -183,7 +201,7 @@ describe('claim', () => {
     client.writeState.mockRejectedValue(new SupabaseDataError('conflict', 'stale', 409))
     const c = useCollection()
     await c.load(client)
-    await c.claim('a')
+    await c.claim(K('a'))
     expect(client.writeState).toHaveBeenCalledTimes(2)
     expect(c.error.value).toBe('conflict')
   })
@@ -193,7 +211,7 @@ describe('claim', () => {
     client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))
     const c = useCollection()
     await c.load(client)
-    await c.claim('a')
+    await c.claim(K('a'))
     expect(c.error.value).toBe('offline')
     expect(c.state.value.claimed).toEqual([])
   })
@@ -201,16 +219,16 @@ describe('claim', () => {
 
 describe('évolution', () => {
   const threeBulbizarre = Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1))
-  const claimedThree = { claimed: ['s0', 's1', 's2'], spent: {}, evolutions: [] }
+  const claimedThree = { claimed: keysOf(threeBulbizarre), spent: {}, evolutions: [] }
 
-  it('dépense les bonbons et enregistre l’évolution avec son sha source', async () => {
+  it('dépense les bonbons et enregistre l’évolution avec la clé de sa source', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
     const c = useCollection()
     await c.load(client)
     await c.evolve(1, 2, '2026-07-20')
     expect(c.state.value.spent[1]).toBe(8)
     expect(c.state.value.evolutions).toEqual([
-      { species: 2, from: 1, fromKey: 's0', date: '2026-07-20' },
+      { species: 2, from: 1, fromKey: K('s0'), date: '2026-07-20' },
     ])
     expect(client.writeState).toHaveBeenCalledOnce()
   })
@@ -221,7 +239,7 @@ describe('évolution', () => {
     const c = useCollection()
     await c.load(client)
     await c.evolve(1, 2, '2026-07-20')
-    expect(c.state.value.evolutions[0].fromKey).toBe('s1')
+    expect(c.state.value.evolutions[0].fromKey).toBe(K('s1'))
   })
 
   it('consomme l’exemplaire évolué : plus disponible pour une évolution suivante, mais l’espèce reste acquise', async () => {
@@ -233,6 +251,17 @@ describe('évolution', () => {
     expect(c.dex.bySpecies.value[1]).toHaveLength(3) // toujours dans le journal / la grille
   })
 
+  it('compte les bonbons de toutes les sources confondues', async () => {
+    // Deux captures GitHub et une capture d'une autre source dans la même famille : le coût
+    // est atteint et l'évolution passe. Le jeu ne trie pas ses bonbons par pôle.
+    const catches = [catchOf('s0', 1), catchOf('s1', 2), catchOf('x', 3, { source: 'crm' })]
+    const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
+    const c = useCollection()
+    await c.load(client)
+    await c.evolve(1, 2, '2026-07-20')
+    expect(c.state.value.spent[1]).toBe(8)
+  })
+
   it('refuse d’évoluer sans exemplaire disponible, même avec assez de bonbons', async () => {
     // Une seule capture, mais suffisamment de doublons dans le reste de la famille pour
     // financer le coût — les bonbons ne sont pas liés à un exemplaire précis.
@@ -242,7 +271,11 @@ describe('évolution', () => {
     ]
     const client = fakeClient({
       catches,
-      state: { claimed: catches.map((c) => c.sha), spent: {}, evolutions: [{ species: 2, from: 1, fromKey: 'only', date: '2026-07-01' }] },
+      state: {
+        claimed: keysOf(catches),
+        spent: {},
+        evolutions: [{ species: 2, from: 1, fromKey: K('only'), date: '2026-07-01' }],
+      },
     })
     const c = useCollection()
     await c.load(client)
@@ -252,7 +285,7 @@ describe('évolution', () => {
   })
 
   it('refuse l’évolution sans bonbons suffisants et n’écrit rien', async () => {
-    const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: ['a'], spent: {}, evolutions: [] } })
+    const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: [K('a')], spent: {}, evolutions: [] } })
     const c = useCollection()
     await c.load(client)
     await c.evolve(1, 2, '2026-07-20')
@@ -269,10 +302,8 @@ describe('évolution', () => {
   })
 
   it('refuse d’évoluer une espèce terminale', async () => {
-    const client = fakeClient({
-      catches: Array.from({ length: 3 }, (_, i) => catchOf('r' + i, 143)),
-      state: { claimed: ['r0', 'r1', 'r2'], spent: {}, evolutions: [] },
-    })
+    const catches = Array.from({ length: 3 }, (_, i) => catchOf('r' + i, 143))
+    const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
     const c = useCollection()
     await c.load(client)
     await c.evolve(143, 999, '2026-07-20')
@@ -281,10 +312,8 @@ describe('évolution', () => {
 
   it('accepte chacune des trois évolutions d’Évoli', async () => {
     for (const target of [134, 135, 136]) {
-      const client = fakeClient({
-        catches: Array.from({ length: 3 }, (_, i) => catchOf('e' + i, 133)),
-        state: { claimed: ['e0', 'e1', 'e2'], spent: {}, evolutions: [] },
-      })
+      const catches = Array.from({ length: 3 }, (_, i) => catchOf('e' + i, 133))
+      const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
       const c = useCollection()
       await c.load(client)
       await c.evolve(133, target, '2026-07-20')
@@ -310,9 +339,9 @@ describe('évolution', () => {
       .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob1' })
       .mockResolvedValueOnce({
         state: {
-          claimed: ['s0', 's1', 's2'],
+          claimed: keysOf(threeBulbizarre),
           spent: { 1: 8 },
-          evolutions: [{ species: 2, from: 1, fromSha: 's1', date: '2026-07-19' }],
+          evolutions: [{ species: 2, from: 1, fromKey: K('s1'), date: '2026-07-19' }],
         },
         blobSha: 'blob8',
       })
@@ -349,10 +378,7 @@ describe('évolution', () => {
 
   it('facture 40 bonbons à Magicarpe', async () => {
     const catches = Array.from({ length: 14 }, (_, i) => catchOf('m' + i, 129))
-    const client = fakeClient({
-      catches,
-      state: { claimed: catches.map((c) => c.sha), spent: {}, evolutions: [] },
-    })
+    const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
     const c = useCollection()
     await c.load(client)
     await c.evolve(129, 130, '2026-07-20')
@@ -362,11 +388,11 @@ describe('évolution', () => {
 
 describe('erreur périmée', () => {
   it('une action qui n’écrit rien efface l’erreur d’une action précédente', async () => {
-    const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: ['a'], spent: {}, evolutions: [] } })
+    const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: [K('a')], spent: {}, evolutions: [] } })
     client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))
     const c = useCollection()
     await c.load(client)
-    await c.claim('z')
+    await c.claim(K('z'))
     expect(c.error.value).toBe('offline')
 
     // Cette évolution est un no-op silencieux (bonbons insuffisants) : elle ne doit pas

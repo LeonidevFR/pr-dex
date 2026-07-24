@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useDex } from './useDex.js'
 import { DEX, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
+import { entryKey } from '../../shared/entry.js'
 
 const clone = (o) => JSON.parse(JSON.stringify(o))
 
@@ -111,13 +112,13 @@ export function useCollection() {
     }
   }
 
-  /** Marque une capture comme ouverte. Idempotent : rejouer un claim ne duplique rien. */
-  async function claim(sha) {
+  /** Marque une capture comme ouverte, par sa clé d'exemplaire. Idempotent : rejouer un claim ne duplique rien. */
+  async function claim(key) {
     error.value = null
-    if (state.value.claimed.includes(sha)) return
+    if (state.value.claimed.includes(key)) return
     await persist(
-      (s) => (s.claimed.includes(sha) ? null : { ...s, claimed: [...s.claimed, sha] }),
-      `claim ${sha.slice(0, 7)}`,
+      (s) => (s.claimed.includes(key) ? null : { ...s, claimed: [...s.claimed, key] }),
+      `claim ${key}`,
     )
   }
 
@@ -131,8 +132,8 @@ export function useCollection() {
   function pickAvailable(fromId, s) {
     const claimedSet = new Set(s.claimed)
     const claimedEntries = catches.value
-      .filter((c) => claimedSet.has(c.sha))
-      .map((c) => ({ ...c, key: c.sha }))
+      .map((c) => ({ ...c, key: entryKey(c.source, c.external_id) }))
+      .filter((c) => claimedSet.has(c.key))
     const evolvedEntries = []
     s.evolutions.forEach((e, i) => {
       const pool = [...claimedEntries, ...evolvedEntries]
@@ -161,9 +162,9 @@ export function useCollection() {
         // ce mutateur sur l'état frais après un conflit. Sans ce recalcul, deux appareils
         // dépensent les mêmes bonbons, ou évoluent le même dernier exemplaire, et l'un des
         // deux devrait échouer plutôt que de passer en double.
-        const claimedSha = new Set(s.claimed)
+        const claimedKeys = new Set(s.claimed)
         const earned = catches.value.filter(
-          (c) => claimedSha.has(c.sha) && familyOf(c.species) === fam,
+          (c) => claimedKeys.has(entryKey(c.source, c.external_id)) && familyOf(c.species) === fam,
         ).length * CANDY_PER_CATCH
         if (earned - (s.spent[fam] ?? 0) < source.cost) return null
 

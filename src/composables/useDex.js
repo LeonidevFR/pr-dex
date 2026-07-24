@@ -1,5 +1,6 @@
 import { computed } from 'vue'
 import { DEX, familyOf, hasEvoInFamily, CANDY_PER_CATCH } from '../../shared/species.js'
+import { entryKey } from '../../shared/entry.js'
 
 /**
  * Dérive tout l'état affichable de `catches.json` et `state.json`. Aucun effet de bord,
@@ -13,31 +14,34 @@ export function useDex(catches, state) {
 
   const claimedSet = computed(() => new Set(state.value.claimed))
 
-  // `key` identifie un exemplaire précis, capture de PR ou évolution, indépendamment de
-  // l'espèce : une capture de PR se reconnaît par son sha, une évolution par son rang dans
-  // `state.evolutions` (append-only, donc stable). Sert à savoir quel exemplaire précis a été
-  // consommé par une évolution ultérieure.
-  const claimed = computed(() =>
-    catches.value.filter((c) => claimedSet.value.has(c.sha))
-      .map((c) => ({ ...c, via: 'pr', key: c.sha })).sort(byDate),
+  // `key` identifie un exemplaire précis, capture ou évolution, indépendamment de l'espèce :
+  // une capture se reconnaît par sa source et son identifiant chez elle, une évolution par son
+  // rang dans `state.evolutions` (append-only, donc stable). Sert à savoir quel exemplaire
+  // précis a été consommé par une évolution ultérieure.
+  //
+  // `via` ne distingue que la provenance de l'exemplaire dans le jeu — capturé ou fabriqué par
+  // une évolution. La source métier reste lisible à part, dans `source` : le front n'a jamais
+  // à connaître la liste des sources pour afficher une capture.
+  const keyed = computed(() =>
+    catches.value.map((c) => ({ ...c, via: 'catch', key: entryKey(c.source, c.external_id) })),
   )
 
-  const pending = computed(() =>
-    catches.value.filter((c) => !claimedSet.value.has(c.sha)).map((c) => ({ ...c, via: 'pr' })).sort(byDate),
-  )
+  const claimed = computed(() => keyed.value.filter((c) => claimedSet.value.has(c.key)).sort(byDate))
+
+  const pending = computed(() => keyed.value.filter((c) => !claimedSet.value.has(c.key)).sort(byDate))
 
   // Le chromatique est hérité de la capture précise qui a évolué, identifiée par sa clé.
   // Construit par accumulation (pas de simple `.map`) : une évolution en chaîne (ex. Ivysaur →
   // Venusaur) doit pouvoir retrouver un exemplaire produit par une évolution précédente, pas
-  // seulement une capture de PR. `fromSha` reste lu pour les entrées écrites par une version
+  // seulement une capture. `fromSha` reste lu pour les entrées écrites par une version
   // antérieure (avant l'introduction de `fromKey`).
   const evolved = computed(() => {
     const result = []
     state.value.evolutions.forEach((e, i) => {
       const pool = [...claimed.value, ...result]
       const fromKey = e.fromKey ?? e.fromSha
-      const source = fromKey ? pool.find((c) => c.key === fromKey) : pool.find((c) => c.species === e.from)
-      result.push({ ...e, via: 'evo', shiny: source?.shiny ?? false, key: `evo:${i}` })
+      const origin = fromKey ? pool.find((c) => c.key === fromKey) : pool.find((c) => c.species === e.from)
+      result.push({ ...e, via: 'evo', shiny: origin?.shiny ?? false, key: `evo:${i}` })
     })
     return result
   })
@@ -66,7 +70,7 @@ export function useDex(catches, state) {
   }
 
   /**
-   * Bonbons disponibles pour la famille de `id`. Seules les captures de PR en produisent :
+   * Bonbons disponibles pour la famille de `id`. Seules les captures en produisent :
    * une évolution consomme, elle ne crédite pas.
    *
    * Fonction simple et non `computed` : un `computed` qui ne fait que renvoyer une closure

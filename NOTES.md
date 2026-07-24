@@ -129,6 +129,50 @@ Accepté : ce dépôt n'a de toute façon plus d'autre activité que ce workflow
 l'évaluation initiale reste vrai mais sans conséquence : l'Action tourne plusieurs fois par
 jour même sur le cron restreint (8h-19h, une fois par heure), largement au-dessus du seuil.
 
+## Découplage de la source, juillet 2026
+
+Demande d'origine : d'autres pôles voudraient le même objet, chacun sur un acte de leur
+métier. Le tirage, lui, n'a jamais rien su de GitHub (`shared/draw.js` ne voit qu'une
+chaîne) ; le couplage vivait ailleurs, en quatre endroits — le schéma, l'auth, l'ingestion,
+l'affichage.
+
+**La connexion et l'identité-source ont été séparées.** C'était l'hypothèse implicite qui
+saute au deuxième pôle : `profiles.github_login` faisait à la fois preuve d'identité, clé de
+profil et handle chez la source. Une table `identities` porte désormais une ligne par
+(personne, source). La connexion reste en OAuth GitHub — la basculer sur un provider commun
+est un autre chantier, celui qui touche des comptes existants — mais plus rien n'y oblige :
+le trigger d'inscription crée simplement l'identité `github` que cette connexion prouve.
+
+**Le tirage reste au centre, jamais dans un connecteur.** Un connecteur rend des événements
+bruts et n'attribue aucune espèce. C'est ce qui empêche un pôle de se donner de meilleures
+chances, et c'est la traduction en code de la règle produit : un pôle déclare quel acte vaut
+un tirage, pas ce que vaut un tirage.
+
+**Un curseur de recherche par source, pas par personne.** `sinceDate` se calculait sur la
+capture la plus récente d'un profil, toutes sources confondues. Avec deux sources, la plus
+active aurait tiré la fenêtre de la plus lente en avant, dont les événements seraient passés
+hors fenêtre sans jamais être vus. Bug introduit à la première source ajoutée, invisible
+jusque-là — il y a un test dédié.
+
+**La faible entropie des identifiants de CRM a été mesurée, pas supposée.** Un sha de merge
+est un seed à forte entropie ; l'identifiant d'un objet de CRM est un entier séquentiel. Vu
+le précédent de la fixture effondrée à 16 espèces (plus haut), la question ne pouvait pas
+rester ouverte — d'autant que `% SHINY_ODDS` est un modulo par une puissance de deux, donc
+ne dépend que des bits bas. Mesuré sur 100 000 identifiants consécutifs : paliers à ±1 %,
+151 espèces distinctes, taux de chromatique dans la bande attendue. Rien à corriger, mais le
+test reste pour que la réponse ne se reperde pas.
+
+**`label` / `ref` / `url` plutôt qu'un `meta jsonb`.** Le front affichait `repo#pr` et un sha
+court ; il lui fallait un équivalent générique. Trois colonnes que le connecteur remplit dans
+le vocabulaire de son pôle, plutôt qu'un fourre-tout que chaque source remplirait à sa façon
+et que le front devrait apprendre à lire source par source. Conséquence assumée : le sha
+court affiché sous chaque case du tiroir est remplacé par le nom de la source — l'information
+qui devient utile dès qu'il y en a deux.
+
+**Ce qui n'a pas bougé, encore une fois** : `useDex`, `useCollection`, les composants de jeu
+et `shared/species.js`. Comme à la bascule Supabase, le cœur du jeu ignorait déjà d'où
+venaient les données.
+
 ## Hors périmètre, non touché
 
 Comptes, OAuth, partage, classements, échanges, combats, génération 2 et suivantes,

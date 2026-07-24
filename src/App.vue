@@ -101,7 +101,7 @@ const nextRitual = showNextPacket
 async function skipAll() {
   const rest = [...collection.dex.pending.value]
   ritualEntry.value = null
-  for (const e of rest) await collection.claim(e.sha)
+  for (const e of rest) await collection.claim(e.key)
 }
 
 async function onEvolve({ from, to }) {
@@ -157,7 +157,7 @@ function finishEvo() {
 
     <transition name="fade">
       <RitualOverlay
-        v-if="ritualEntry" :key="ritualEntry.sha" :entry="ritualEntry"
+        v-if="ritualEntry" :key="ritualEntry.key" :entry="ritualEntry"
         :remaining="ritualRemaining" :is-new="ritualIsNew"
         @claim="collection.claim" @next="nextRitual" @skip-all="skipAll"
         @close="ritualEntry = null"

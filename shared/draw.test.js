@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { fnv1a, drawFromSha, WEIGHTS } from './draw.js'
+import { fnv1a, drawFrom, WEIGHTS, SHINY_ODDS } from './draw.js'
+import { entryKey } from './entry.js'
 import { DEX, POOL } from './species.js'
 import golden from './draw.golden.json' with { type: 'json' }
 
@@ -8,6 +9,20 @@ import golden from './draw.golden.json' with { type: 'json' }
 // sur une poignée de valeurs distinctes.
 const shaAt = (i) =>
   Array.from({ length: 5 }, (_, k) => fnv1a(`sha${i}/${k}`).toString(16).padStart(8, '0')).join('')
+
+/** Distribution des paliers et des chromatiques sur N seeds produits par `seedAt`. */
+function measure(seedAt, n) {
+  const counts = { c: 0, u: 0, r: 0, l: 0 }
+  const species = new Set()
+  let shiny = 0
+  for (let i = 0; i < n; i++) {
+    const drawn = drawFrom(seedAt(i))
+    counts[DEX[drawn.species].tier]++
+    species.add(drawn.species)
+    if (drawn.shiny) shiny++
+  }
+  return { counts, species, shiny }
+}
 
 describe('fnv1a', () => {
   it('renvoie un entier non signé sur 32 bits', () => {
@@ -26,15 +41,15 @@ describe('fnv1a', () => {
   })
 })
 
-describe('drawFromSha', () => {
-  it('est déterministe — même sha, même résultat', () => {
-    const sha = 'a3f8c21e9b4d7f0c1e2a5b8d9f0c3e6a7b4d1f8c'
-    expect(drawFromSha(sha)).toEqual(drawFromSha(sha))
+describe('drawFrom', () => {
+  it('est déterministe — même seed, même résultat', () => {
+    const seed = 'github:a3f8c21e9b4d7f0c1e2a5b8d9f0c3e6a7b4d1f8c'
+    expect(drawFrom(seed)).toEqual(drawFrom(seed))
   })
 
   it('ne tire que des espèces existantes du palier annoncé', () => {
     for (let i = 0; i < 500; i++) {
-      const { species } = drawFromSha(shaAt(i))
+      const { species } = drawFrom(shaAt(i))
       expect(DEX[species]).toBeDefined()
       expect(POOL[DEX[species].tier]).toContain(species)
     }
@@ -42,8 +57,7 @@ describe('drawFromSha', () => {
 
   it('respecte les poids des paliers à ±1 % sur 100 000 tirages', () => {
     const N = 100000
-    const counts = { c: 0, u: 0, r: 0, l: 0 }
-    for (let i = 0; i < N; i++) counts[DEX[drawFromSha(shaAt(i)).species].tier]++
+    const { counts } = measure(shaAt, N)
     for (const [tier, weight] of WEIGHTS) {
       expect(Math.abs(counts[tier] / N - weight)).toBeLessThan(0.01)
     }
@@ -51,15 +65,14 @@ describe('drawFromSha', () => {
 
   it('tire un chromatique environ une fois sur 128', () => {
     const N = 100000
-    let shiny = 0
-    for (let i = 0; i < N; i++) if (drawFromSha(shaAt(i)).shiny) shiny++
-    expect(shiny / N).toBeGreaterThan(1 / 128 * 0.7)
-    expect(shiny / N).toBeLessThan(1 / 128 * 1.3)
+    const { shiny } = measure(shaAt, N)
+    expect(shiny / N).toBeGreaterThan(1 / SHINY_ODDS * 0.7)
+    expect(shiny / N).toBeLessThan(1 / SHINY_ODDS * 1.3)
   })
 
   it('reproduit les tirages figés — garde-fou contre une modification involontaire de l’algo', () => {
-    for (const { sha, species, shiny } of golden) {
-      expect(drawFromSha(sha)).toEqual({ species, shiny })
+    for (const { seed, species, shiny } of golden) {
+      expect(drawFrom(seed)).toEqual({ species, shiny })
     }
   })
 
@@ -67,5 +80,30 @@ describe('drawFromSha', () => {
     const tiers = new Set(golden.map((g) => DEX[g.species].tier))
     expect([...tiers].sort()).toEqual(['c', 'l', 'r', 'u'])
     expect(golden.some((g) => g.shiny)).toBe(true)
+  })
+
+  /**
+   * Un sha de merge est un seed à forte entropie ; l'identifiant d'un objet de CRM est un
+   * entier séquentiel, où seuls quelques caractères varient d'un événement au suivant.
+   * Ce projet a déjà vu une entrée à faible entropie effondrer une distribution sans qu'aucun
+   * test ne le remarque (cf. NOTES.md) — celui-ci ferme le cas pour les sources non-git.
+   *
+   * Le tirage chromatique est le point sensible : `% SHINY_ODDS` est un modulo par une
+   * puissance de deux, donc il ne dépend que des bits bas de FNV-1a.
+   */
+  it('ne s’effondre pas sur des identifiants séquentiels courts', () => {
+    const N = 100000
+    const { counts, species, shiny } = measure((i) => entryKey('crm', 1000000 + i), N)
+
+    for (const [tier, weight] of WEIGHTS) {
+      expect(Math.abs(counts[tier] / N - weight)).toBeLessThan(0.01)
+    }
+    expect(species.size).toBe(151)
+    expect(shiny / N).toBeGreaterThan(1 / SHINY_ODDS * 0.7)
+    expect(shiny / N).toBeLessThan(1 / SHINY_ODDS * 1.3)
+  })
+
+  it('sépare les espaces de tirage de deux sources qui numérotent pareil', () => {
+    expect(drawFrom(entryKey('github', 42))).not.toEqual(drawFrom(entryKey('crm', 42)))
   })
 })

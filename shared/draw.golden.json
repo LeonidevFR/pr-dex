@@ -1,71 +1,71 @@
 [
   {
-    "sha": "3c4f95f83d4f978b3e4f991e3f4f9ab1404f9c44",
+    "seed": "3c4f95f83d4f978b3e4f991e3f4f9ab1404f9c44",
     "species": 79,
     "shiny": false
   },
   {
-    "sha": "421629034116277044162c2943162a9646162f4f",
+    "seed": "421629034116277044162c2943162a9646162f4f",
     "species": 110,
     "shiny": false
   },
   {
-    "sha": "929e0c42939e0dd5909e091c919e0aaf8e9e05f6",
+    "seed": "929e0c42939e0dd5909e091c919e0aaf8e9e05f6",
     "species": 32,
     "shiny": false
   },
   {
-    "sha": "b7279d2db6279b9ab5279a07b4279874b32796e1",
+    "seed": "b7279d2db6279b9ab5279a07b4279874b32796e1",
     "species": 52,
     "shiny": false
   },
   {
-    "sha": "913f8fc4923f9157933f92ea943f947d8d3f8978",
+    "seed": "913f8fc4923f9157933f92ea943f947d8d3f8978",
     "species": 22,
     "shiny": false
   },
   {
-    "sha": "6b78ca596a78c8c66978c7336878c5a06f78d0a5",
+    "seed": "6b78ca596a78c8c66978c7336878c5a06f78d0a5",
     "species": 36,
     "shiny": false
   },
   {
-    "sha": "9e0dfee29f0e00759c0dfbbc9d0dfd4f9a0df896",
+    "seed": "9e0dfee29f0e00759c0dfbbc9d0dfd4f9a0df896",
     "species": 124,
     "shiny": false
   },
   {
-    "sha": "72af104e73af11e170af0d2871af0ebb76af169a",
+    "seed": "72af104e73af11e170af0d2871af0ebb76af169a",
     "species": 82,
     "shiny": true
   },
   {
-    "sha": "d87b4b3fd77b49acda7b4e65d97b4cd2d47b44f3",
+    "seed": "d87b4b3fd77b49acda7b4e65d97b4cd2d47b44f3",
     "species": 76,
     "shiny": false
   },
   {
-    "sha": "838b5173828b4fe0858b5499848b5306878b57bf",
+    "seed": "838b5173828b4fe0858b5499848b5306878b57bf",
     "species": 149,
     "shiny": false
   },
   {
-    "sha": "75ea3f6c76ea40ff77ea429278ea442571ea3920",
+    "seed": "75ea3f6c76ea40ff77ea429278ea442571ea3920",
     "species": 146,
     "shiny": false
   },
   {
-    "sha": "3ed02e7c3fd0300f40d031a241d033353ad02830",
+    "seed": "3ed02e7c3fd0300f40d031a241d033353ad02830",
     "species": 118,
     "shiny": true
   },
   {
-    "sha": "394a6dc3384a6c303b4a70e93a4a6f563d4a740f",
+    "seed": "394a6dc3384a6c303b4a70e93a4a6f563d4a740f",
     "species": 144,
     "shiny": false
   },
   {
-    "sha": "0acb1b3b09cb19a80ccb1e610bcb1cce0ecb2187",
+    "seed": "0acb1b3b09cb19a80ccb1e610bcb1cce0ecb2187",
     "species": 146,
     "shiny": false
   }

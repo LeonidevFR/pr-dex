@@ -54,7 +54,7 @@ function tear() {
   // preuve d'écriture. Si `claim` échoue, `state.claimed` n'est jamais mis à jour et le pli
   // reste dans `pending` — il réapparaît à la prochaine ouverture. C'est le comportement
   // voulu : ne pas avaler l'échec en gardant la révélation silencieuse sur son sort réel.
-  emit('claim', props.entry.sha)
+  emit('claim', props.entry.key)
   const reduced = window.matchMedia('(prefers-reduced-motion:reduce)').matches
   const hold = reduced ? 150 : (tier.value === 'l' ? 2800 : 2200)
   timer = setTimeout(() => { stage.value = 'revealed' }, hold)
@@ -78,8 +78,8 @@ onUnmounted(() => clearTimeout(timer))
           <div class="pkt-head"><span class="pkt-kicker">Pli scellé · {{ entry.date }}</span></div>
           <div class="pkt-body">
             <div class="pkt-seal">✳</div>
-            <div class="pkt-title">{{ entry.title }}</div>
-            <div class="pkt-pr mono">{{ entry.repo }}#{{ entry.pr }}<br>{{ entry.sha.slice(0, 7) }}</div>
+            <div class="pkt-title">{{ entry.label }}</div>
+            <div v-if="entry.ref" class="pkt-pr mono">{{ entry.ref }}</div>
           </div>
           <div class="pkt-foot">Briser le sceau</div>
         </button>
