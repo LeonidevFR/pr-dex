@@ -261,6 +261,47 @@ describe('exemplaires consommés par une évolution', () => {
   })
 })
 
+describe('espèce jamais rencontrée', () => {
+  it('tient pour nouvelle une espèce absente de la collection', () => {
+    const d = setup([catchOf('a', 25)], { claimed: ['a'] })
+    expect(d.isNewSpecies(1)).toBe(true)
+  })
+
+  it('ne tient pas pour nouvelle une espèce déjà ouverte', () => {
+    const d = setup([catchOf('a', 25)], { claimed: ['a'] })
+    expect(d.isNewSpecies(25)).toBe(false)
+  })
+
+  it('tient pour nouvelle une espèce dont la seule capture attend encore d’être ouverte', () => {
+    const d = setup([catchOf('a', 25)], {})
+    expect(d.isNewSpecies(25)).toBe(true)
+  })
+
+  it('ne tient pas pour nouvelle une espèce obtenue par évolution seule', () => {
+    const d = setup([catchOf('a', 129)], {
+      claimed: ['a'],
+      evolutions: [{ species: 130, from: 129, fromKey: 'a', date: '2026-07-14' }],
+    })
+    expect(d.isNewSpecies(130)).toBe(false)
+  })
+
+  it('ne tient pas pour nouvelle une espèce dont le dernier exemplaire a été consommé', () => {
+    const d = setup([catchOf('a', 129)], {
+      claimed: ['a'],
+      evolutions: [{ species: 130, from: 129, fromKey: 'a', date: '2026-07-14' }],
+    })
+    expect(d.copyCount(129)).toBe(0)
+    expect(d.isNewSpecies(129)).toBe(false)
+  })
+
+  it('s’aligne sur caughtCount — une espèce nouvelle est une espèce non comptée', () => {
+    const d = setup([catchOf('a', 25), catchOf('b', 1)], { claimed: ['a'] })
+    const news = [25, 1, 4].filter((id) => d.isNewSpecies(id))
+    expect(news).toEqual([1, 4])
+    expect(d.caughtCount.value).toBe(1)
+  })
+})
+
 describe('bonbons morts', () => {
   it('repère une espèce dont la famille n’évolue pas', () => {
     const d = setup([], {})

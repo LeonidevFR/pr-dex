@@ -22,6 +22,7 @@ const githubLogin = ref('')
 const selected = ref(null)
 const ritualEntry = ref(null)
 const ritualRemaining = ref(0)
+const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
 
@@ -83,10 +84,16 @@ watch(
 // Figé à l'ouverture du pli : `claim` retire aussitôt l'entrée de `pending`, donc une
 // liaison directe sur `pending.length` décrémenterait sous le composant pendant qu'il
 // est affiché. Le composant attend un `remaining` qui inclut le pli courant.
+//
+// Même raison pour `isNew`, plus impérieuse encore : `claim` inscrit l'espèce au dex avant
+// même la révélation, donc une liaison directe la dirait déjà rencontrée — le marqueur ne
+// s'allumerait jamais. Il se lit sur l'état d'avant l'ouverture, seul état où la question
+// « jamais rencontrée ? » a un sens.
 function showNextPacket() {
   const queue = collection.dex.pending.value
   ritualEntry.value = queue[0] ?? null
   ritualRemaining.value = queue.length
+  ritualIsNew.value = ritualEntry.value ? collection.dex.isNewSpecies(ritualEntry.value.species) : false
 }
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
@@ -151,7 +158,7 @@ function finishEvo() {
     <transition name="fade">
       <RitualOverlay
         v-if="ritualEntry" :key="ritualEntry.sha" :entry="ritualEntry"
-        :remaining="ritualRemaining"
+        :remaining="ritualRemaining" :is-new="ritualIsNew"
         @claim="collection.claim" @next="nextRitual" @skip-all="skipAll"
         @close="ritualEntry = null"
       />

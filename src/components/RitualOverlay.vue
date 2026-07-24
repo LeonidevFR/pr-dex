@@ -7,6 +7,8 @@ import { spriteUrl } from '../lib/sprites.js'
 const props = defineProps({
   entry: { type: Object, required: true },
   remaining: { type: Number, required: true },
+  // Lu par App.vue avant le `claim` — celui-ci inscrit l'espèce au dex dès le sceau brisé.
+  isNew: { type: Boolean, default: false },
 })
 const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
 
@@ -109,10 +111,12 @@ onUnmounted(() => clearTimeout(timer))
           <div v-else-if="tier === 'l'" class="reveal-banner">★ Légendaire ★</div>
           <div class="reveal-name">{{ species.name }}</div>
           <div class="reveal-tags">
+            <span v-if="isNew" class="chip new-chip">Nouveau</span>
             <span class="chip">{{ TIER_LABEL[tier] }}</span>
             <span v-if="entry.shiny" class="chip shiny-chip">✦ Chromatique</span>
           </div>
           <div class="reveal-note mono">
+            {{ isNew ? 'Première entrée à la planche' : 'Déjà à la planche' }} ·
             +{{ CANDY_PER_CATCH }} bonbons <b>{{ DEX[familyOf(entry.species)].name }}</b>
           </div>
         </div>

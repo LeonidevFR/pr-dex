@@ -92,6 +92,16 @@ export function useDex(catches, state) {
     return !hasEvoInFamily(id)
   }
 
+  /**
+   * Espèce jamais rencontrée : absente de `bySpecies`, donc ni capturée-ouverte ni obtenue par
+   * évolution — la même définition que `caughtCount`, pour que le marqueur du rituel et le
+   * compteur du rail ne puissent pas se contredire. Une capture encore en attente ne compte
+   * pas : tant que le pli n'est pas ouvert, l'espèce n'a pas été vue.
+   */
+  function isNewSpecies(id) {
+    return !bySpecies.value[id]
+  }
+
   // Grille : quelles cases capturées ont de quoi évoluer maintenant, pour un badge discret —
   // la décision reste au joueur, ceci ne fait que la rendre visible sans ouvrir chaque fiche.
   const evolvableIds = computed(
@@ -100,6 +110,6 @@ export function useDex(catches, state) {
 
   return {
     claimed, pending, evolved, bySpecies, caughtCount, candies, canEvolve, isDeadEnd, evolvableIds,
-    availableEntries, copyCount,
+    availableEntries, copyCount, isNewSpecies,
   }
 }
