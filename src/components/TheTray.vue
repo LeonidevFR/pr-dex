@@ -73,8 +73,8 @@ const visibleIds = computed(() =>
       @click="$emit('select', id)"
     >
       <span class="cell-no mono">{{ String(id).padStart(3, '0') }}</span>
-      <span v-if="bySpecies[id]" class="cell-sha mono">
-        {{ bySpecies[id][0].via === 'pr' ? bySpecies[id][0].sha.slice(0, 7) : 'évolué' }}
+      <span v-if="bySpecies[id]" class="cell-origin mono">
+        {{ bySpecies[id][0].via === 'catch' ? bySpecies[id][0].source : 'évolué' }}
       </span>
       <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
       <img

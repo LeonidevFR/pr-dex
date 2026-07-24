@@ -51,7 +51,7 @@ const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 
 
       <div v-if="!caught" class="sect">
         <p class="muted">
-          Pas encore à la planche. Sortira d'une PR<template v-if="PARENT[id]">, ou d'une évolution de
+          Pas encore à la planche. Sortira d'une capture<template v-if="PARENT[id]">, ou d'une évolution de
           <b>{{ DEX[PARENT[id]].name }}</b></template>.
         </p>
       </div>
@@ -65,16 +65,16 @@ const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 
         </div>
         <div class="log">
           <component
-            v-for="(e, i) in entries" :key="e.sha ?? e.date + '-' + i"
-            :is="e.via === 'pr' ? 'a' : 'div'" class="log-row"
-            :href="e.via === 'pr' ? `https://github.com/${e.repo}/pull/${e.pr}` : null"
+            v-for="(e, i) in entries" :key="e.key ?? e.date + '-' + i"
+            :is="e.via === 'catch' && e.url ? 'a' : 'div'" class="log-row"
+            :href="e.via === 'catch' ? e.url : null"
             target="_blank" rel="noopener"
           >
-            <span v-if="e.via === 'pr'" class="log-sha">{{ e.sha.slice(0, 7) }}</span>
+            <span v-if="e.via === 'catch'" class="log-sha">{{ e.source }}</span>
             <span v-else class="log-evo">↑ évo</span>
             <span class="log-title">
-              {{ e.via === 'pr' ? e.title : 'Évolué depuis ' + DEX[e.from].name }}
-              <span v-if="e.via === 'pr'" class="log-repo"> · {{ e.repo }}#{{ e.pr }}</span>
+              {{ e.via === 'catch' ? e.label : 'Évolué depuis ' + DEX[e.from].name }}
+              <span v-if="e.via === 'catch' && e.ref" class="log-repo"> · {{ e.ref }}</span>
             </span>
             <span class="log-date">{{ e.date }}</span>
           </component>

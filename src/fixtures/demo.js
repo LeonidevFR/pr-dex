@@ -1,4 +1,5 @@
-import { fnv1a, drawFromSha } from '../../shared/draw.js'
+import { fnv1a, drawFrom } from '../../shared/draw.js'
+import { entryKey } from '../../shared/entry.js'
 
 const FAKE_PRS = [
   ['fix: race condition à l\'upload de fichiers', 'moi/atlas', 142, '2026-02-03'],
@@ -49,42 +50,56 @@ const FAKE_PRS = [
 const fakeSha = (i) =>
   Array.from({ length: 5 }, (_, k) => fnv1a(`seed${i}/${k}`).toString(16).padStart(8, '0')).join('')
 
+/** Une capture GitHub telle que le connecteur la produirait, sans passer par l'API. */
+const ghCatch = (sha, repo, pr, label, date, species, shiny) => ({
+  source: 'github',
+  external_id: sha,
+  label,
+  ref: `${repo}#${pr} · ${sha.slice(0, 7)}`,
+  url: `https://github.com/${repo}/pull/${pr}`,
+  date,
+  species,
+  shiny,
+})
+
 export function demoCatches() {
   const drawn = FAKE_PRS.map(([title, repo, pr, date], i) => {
     const sha = fakeSha(i)
-    const { species, shiny } = drawFromSha(sha)
+    const { species, shiny } = drawFrom(entryKey('github', sha))
     // Aucun chromatique ne sort naturellement des 40 tirages : on en force deux pour que
     // le cas soit visible en démo — un capturé (au tiroir et à la fiche) et un en attente
     // (au rituel).
     const forcedShiny = i === 9 || i === FAKE_PRS.length - 2
-    return { sha, repo, pr, title, date, species, shiny: shiny || forcedShiny }
+    return ghCatch(sha, repo, pr, title, date, species, shiny || forcedShiny)
   })
 
   // Aucune famille n'atteint le seuil de bonbons dans les 40 tirages naturels : on force une
   // troisième capture Roucool (la lignée en compte déjà deux, cf. plus haut) pour que le badge
   // « peut évoluer » de la grille soit visible dès la démo. Insérée juste avant les 3 en attente
   // pour rester capturée sans toucher ni aux 40 tirages naturels ni au nombre de plis en attente.
-  drawn.splice(-3, 0, {
-    sha: 'ev0e1c10ded1c4700000000000000000000000',
-    repo: 'moi/atlas', pr: 224, title: 'fix: timeout sur le webhook Slack',
-    date: '2026-07-18', species: 16, shiny: false,
-  })
+  drawn.splice(-3, 0, ghCatch(
+    'ev0e1c10ded1c4700000000000000000000000',
+    'moi/atlas', 224, 'fix: timeout sur le webhook Slack', '2026-07-18', 16, false,
+  ))
 
   // Idem pour une légendaire : à 0,5 % par tirage, aucune ne sort naturellement sur 40-41
   // essais. Sulfura forcée pour que le halo légendaire de la grille soit visible en démo.
-  drawn.splice(-3, 0, {
-    sha: 'ev1eg3ndary000000000000000000000000000',
-    repo: 'moi/atlas', pr: 225, title: 'perf: cache des agrégats du dashboard',
-    date: '2026-07-19', species: 146, shiny: false,
-  })
+  drawn.splice(-3, 0, ghCatch(
+    'ev1eg3ndary000000000000000000000000000',
+    'moi/atlas', 225, 'perf: cache des agrégats du dashboard', '2026-07-19', 146, false,
+  ))
 
   return drawn
 }
 
-/** Client en mémoire respectant l'interface commune des clients de données. Trois PR restent à ouvrir. */
+/** Client en mémoire respectant l'interface commune des clients de données. Trois plis restent à ouvrir. */
 export function loadDemoClient() {
   const catches = demoCatches()
-  let state = { claimed: catches.slice(0, -3).map((c) => c.sha), spent: {}, evolutions: [] }
+  let state = {
+    claimed: catches.slice(0, -3).map((c) => entryKey(c.source, c.external_id)),
+    spent: {},
+    evolutions: [],
+  }
   return {
     checkAccess: async () => true,
     readCatches: async () => catches,

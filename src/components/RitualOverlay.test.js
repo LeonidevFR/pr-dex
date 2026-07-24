@@ -4,13 +4,21 @@ import { ref } from 'vue'
 import RitualOverlay from './RitualOverlay.vue'
 import { useCollection } from '../composables/useCollection.js'
 import { loadDemoClient } from '../fixtures/demo.js'
+import { entryKey } from '../../shared/entry.js'
 
-const entryOf = (over = {}) => ({
-  sha: 'a3f8c21e9b4d', repo: 'moi/atlas', pr: 142, title: 'fix: race condition',
-  date: '2026-02-03', species: 25, shiny: false, via: 'pr', ...over,
-})
+// `key` est dérivée plutôt que codée en dur : surcharger `external_id` doit suffire à obtenir
+// un exemplaire distinct, sans avoir à penser à mettre la clé à jour avec.
+const entryOf = (over = {}) => {
+  const entry = {
+    source: 'github', external_id: 'a3f8c21e9b4d',
+    label: 'fix: race condition', ref: 'moi/atlas#142 · a3f8c21',
+    url: 'https://github.com/moi/atlas/pull/142',
+    date: '2026-02-03', species: 25, shiny: false, via: 'catch', ...over,
+  }
+  return { key: entryKey(entry.source, entry.external_id), ...entry }
+}
 
-const catchOf = (sha, species, over = {}) => entryOf({ sha, species, ...over })
+const catchOf = (id, species, over = {}) => entryOf({ external_id: id, species, ...over })
 
 const fakeClient = (catches, claimed) => {
   let state = { claimed, spent: {}, evolutions: [] }
@@ -31,11 +39,17 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 describe('pli scellé', () => {
-  it('porte le titre de la PR, son dépôt et son sha court', () => {
+  it('porte le libellé de la capture et la référence donnée par sa source', () => {
     const w = mountRitual()
     expect(w.find('.pkt-title').text()).toBe('fix: race condition')
-    expect(w.find('.pkt-pr').text()).toContain('moi/atlas#142')
-    expect(w.find('.pkt-pr').text()).toContain('a3f8c21')
+    expect(w.find('.pkt-pr').text()).toContain('moi/atlas#142 · a3f8c21')
+  })
+
+  // Une source peut n'avoir aucune référence courte à donner : le pli doit rester lisible.
+  it('se passe de la ligne de référence quand la source n’en fournit pas', () => {
+    const w = mountRitual({ entry: entryOf({ source: 'crm', ref: null }) })
+    expect(w.find('.pkt-pr').exists()).toBe(false)
+    expect(w.find('.pkt-title').text()).toBe('fix: race condition')
   })
 
   it('ne révèle rien avant d’être ouvert', () => {
@@ -63,7 +77,7 @@ describe('ouverture', () => {
   it('réclame la capture dès que le sceau est brisé', async () => {
     const w = mountRitual()
     await w.find('.packet').trigger('click')
-    expect(w.emitted('claim')[0]).toEqual(['a3f8c21e9b4d'])
+    expect(w.emitted('claim')[0]).toEqual(['github:a3f8c21e9b4d'])
   })
 
   it('passe par la silhouette avant la révélation', async () => {
@@ -307,10 +321,10 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
 
     const first = col.dex.pending.value[0]
     expect(col.dex.isNewSpecies(first.species)).toBe(true)
-    await col.claim(first.sha)
+    await col.claim(first.key)
 
     const second = col.dex.pending.value[0]
-    expect(second.sha).toBe('b')
+    expect(second.external_id).toBe('b')
     expect(col.dex.isNewSpecies(second.species)).toBe(false)
   })
 })

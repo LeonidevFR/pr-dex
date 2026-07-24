@@ -14,11 +14,13 @@ export function fnv1a(str) {
 }
 
 /**
- * Seul le sha entre. Aucune métadonnée de PR — ni taille, ni type, ni heure, ni repo.
- * Règle produit : le système ne récompense ni le volume ni le travail nocturne.
+ * Seul le seed entre — la clé d'exemplaire (`entryKey`), rien d'autre. Aucune métadonnée de
+ * l'événement source : ni taille, ni type, ni heure, ni dépôt, ni note obtenue. Règle
+ * produit, valable pour toute source : un pôle déclare quel acte vaut un tirage, il ne
+ * déclare pas ce que vaut un tirage.
  */
-export function drawFromSha(sha) {
-  const r = fnv1a(sha + ':tier') / 2 ** 32
+export function drawFrom(seed) {
+  const r = fnv1a(seed + ':tier') / 2 ** 32
   let acc = 0
   let tier = 'l'
   for (const [t, w] of WEIGHTS) {
@@ -27,7 +29,7 @@ export function drawFromSha(sha) {
   }
   const pool = POOL[tier]
   return {
-    species: pool[fnv1a(sha + ':pick') % pool.length],
-    shiny: fnv1a(sha + ':shiny') % SHINY_ODDS === 0,
+    species: pool[fnv1a(seed + ':pick') % pool.length],
+    shiny: fnv1a(seed + ':shiny') % SHINY_ODDS === 0,
   }
 }

@@ -1,12 +1,13 @@
-import { drawFromSha } from '../shared/draw.js'
+import { drawFrom } from '../shared/draw.js'
+import { entryKey } from '../shared/entry.js'
+import * as github from './connectors/github.mjs'
 
-const API = 'https://api.github.com'
-
-const ghHeaders = (token) => ({
-  Accept: 'application/vnd.github+json',
-  Authorization: `Bearer ${token}`,
-  'X-GitHub-Api-Version': '2022-11-28',
-})
+/**
+ * Registre des sources : ajouter un pôle, c'est écrire un connecteur et l'inscrire ici.
+ * Ni le schéma, ni le front, ni la logique de jeu n'ont à bouger — c'est le critère auquel
+ * ce découpage se juge.
+ */
+export const CONNECTORS = Object.fromEntries([github].map((c) => [c.id, c]))
 
 const sbHeaders = (key) => ({
   apikey: key,
@@ -15,10 +16,16 @@ const sbHeaders = (key) => ({
 })
 
 /**
- * Point de départ de la recherche pour UN profil : sa capture la plus récente moins sept
- * jours de marge, ou la date de bootstrap au tout premier run. Par défaut (pas de
- * BOOTSTRAP_SINCE), le jour du run — jamais une date fixe dans le passé, sinon un profil
- * créé longtemps après la mise en service rattraperait tout son historique d'un coup.
+ * Point de départ de la recherche pour UNE identité : sa capture la plus récente sur CETTE
+ * source moins sept jours de marge, ou la date de bootstrap au tout premier run.
+ *
+ * Le curseur est par source, pas par personne : une source active tirerait sinon la fenêtre
+ * d'une source plus lente en avant, dont les événements passeraient alors hors fenêtre sans
+ * jamais être vus.
+ *
+ * Par défaut (pas de BOOTSTRAP_SINCE), le jour du run — jamais une date fixe dans le passé,
+ * sinon un profil créé longtemps après la mise en service rattraperait tout son historique
+ * d'un coup.
  */
 export function sinceDate(catches, bootstrap) {
   if (!catches.length) return bootstrap
@@ -29,124 +36,113 @@ export function sinceDate(catches, bootstrap) {
 }
 
 /**
- * Retourne les entrées à ajouter pour un profil donné. Identique à la version historique
- * mono-repo : storage-agnostique, ne connaît que `existing` (sha/repo/pr déjà connus) et
- * les paramètres de recherche. `repos` vide ou absent : aucun filtre, tous les repos
- * accessibles au token sont retenus (son propre périmètre fait foi).
+ * Le tirage vit ici, et nulle part ailleurs : un connecteur rend des événements bruts, il
+ * n'attribue aucune espèce. C'est ce qui garantit que toutes les sources jouent au même jeu.
  */
-export async function collectNewCatches(existing, { user, repos, token, since }, fetchFn = fetch) {
-  const knownSha = new Set(existing.map((c) => c.sha))
-  const knownPr = new Set(existing.map((c) => `${c.repo}#${c.pr}`))
-  const watched = repos?.length ? new Set(repos) : null
-  const out = []
-  const seen = new Set()
-
-  const query = `is:pr is:merged author:${user} merged:>=${since}`
-  let page = 1
-
-  for (;;) {
-    const url = `${API}/search/issues?q=${encodeURIComponent(query)}&per_page=100&page=${page}`
-    const res = await fetchFn(url, { headers: ghHeaders(token) })
-    if (!res.ok) throw new Error(`search/issues a répondu ${res.status}`)
-    const body = await res.json()
-
-    for (const it of body.items ?? []) {
-      const repo = it.repository_url.replace(`${API}/repos/`, '')
-      if (watched && !watched.has(repo)) continue
-      if (knownPr.has(`${repo}#${it.number}`)) continue
-
-      const detailRes = await fetchFn(`${API}/repos/${repo}/pulls/${it.number}`, { headers: ghHeaders(token) })
-      if (!detailRes.ok) continue
-      const detail = await detailRes.json()
-      const sha = detail.merge_commit_sha
-      if (!sha || knownSha.has(sha) || seen.has(sha)) continue
-      seen.add(sha)
-
-      const { species, shiny } = drawFromSha(sha)
-      out.push({
-        sha,
-        repo,
-        pr: it.number,
-        title: it.title,
-        date: (detail.merged_at ?? it.pull_request.merged_at).slice(0, 10),
-        species,
-        shiny,
-      })
+export function toRows(userId, source, events) {
+  return events.map((e) => {
+    const { species, shiny } = drawFrom(entryKey(source, e.externalId))
+    return {
+      user_id: userId,
+      source,
+      external_id: e.externalId,
+      label: e.label,
+      ref: e.ref ?? null,
+      url: e.url ?? null,
+      date: e.date,
+      species,
+      shiny,
     }
-
-    const link = res.headers?.get?.('link') ?? ''
-    if (!link.includes('rel="next"')) break
-    page++
-  }
-
-  return out
+  })
 }
 
-/** Tous les profils enregistrés — un par dev connecté au moins une fois via OAuth GitHub. */
-export async function fetchProfiles(supabaseUrl, serviceKey, fetchFn = fetch) {
-  const res = await fetchFn(`${supabaseUrl}/rest/v1/profiles?select=user_id,github_login,watch_repos`, {
+/** Une ligne par (personne, source) — créée à la connexion pour GitHub, ajoutée à la main sinon. */
+export async function fetchIdentities(supabaseUrl, serviceKey, fetchFn = fetch) {
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/identities?select=user_id,source,handle,config`, {
     headers: sbHeaders(serviceKey),
   })
-  if (!res.ok) throw new Error(`profiles a répondu ${res.status}`)
+  if (!res.ok) throw new Error(`identities a répondu ${res.status}`)
   return res.json()
 }
 
-/** Captures déjà connues d'un profil — sert de base à la déduplication et à `sinceDate`. */
-export async function fetchExistingCatches(supabaseUrl, serviceKey, userId, fetchFn = fetch) {
+/** Captures déjà connues d'une identité — base de la déduplication et de `sinceDate`. */
+export async function fetchExistingCatches(supabaseUrl, serviceKey, userId, source, fetchFn = fetch) {
   const res = await fetchFn(
-    `${supabaseUrl}/rest/v1/catches?user_id=eq.${userId}&select=sha,repo,pr,date`,
+    `${supabaseUrl}/rest/v1/catches?user_id=eq.${userId}&source=eq.${source}&select=external_id,url,date`,
     { headers: sbHeaders(serviceKey) },
   )
-  if (!res.ok) throw new Error(`catches (lecture) a répondu ${res.status} pour ${userId}`)
+  if (!res.ok) throw new Error(`catches (lecture) a répondu ${res.status} pour ${userId}/${source}`)
   return res.json()
 }
 
 /**
  * `resolution=ignore-duplicates` : garde-fou d'idempotence côté base, en plus de la
- * déduplication déjà faite en mémoire — la contrainte unique (user_id, sha) absorbe un
- * rejeu sans jamais dupliquer ni réécrire une entrée existante.
+ * déduplication déjà faite en mémoire — la contrainte unique (user_id, source, external_id)
+ * absorbe un rejeu sans jamais dupliquer ni réécrire une entrée existante.
  */
-export async function insertCatches(supabaseUrl, serviceKey, userId, entries, fetchFn = fetch) {
-  if (!entries.length) return
-  const rows = entries.map((e) => ({ user_id: userId, ...e }))
+export async function insertCatches(supabaseUrl, serviceKey, rows, fetchFn = fetch) {
+  if (!rows.length) return
   const res = await fetchFn(`${supabaseUrl}/rest/v1/catches`, {
     method: 'POST',
     headers: { ...sbHeaders(serviceKey), Prefer: 'resolution=ignore-duplicates,return=minimal' },
     body: JSON.stringify(rows),
   })
-  if (!res.ok) throw new Error(`catches (écriture) a répondu ${res.status} pour ${userId}`)
+  if (!res.ok) throw new Error(`catches (écriture) a répondu ${res.status} pour ${rows[0].user_id}`)
+}
+
+/**
+ * Secrets des seules sources réellement présentes en base, vérifiés avant la première
+ * requête : un secret manquant doit arrêter le run tout de suite, pas après quelques
+ * insertions. Une source déclarée sans connecteur n'arrête rien — le run continue sur les
+ * autres, sinon un pôle en cours d'installation gèlerait la capture de tout le monde.
+ */
+export function planSources(identities) {
+  const sources = [...new Set(identities.map((i) => i.source))]
+  const unknown = sources.filter((s) => !CONNECTORS[s])
+  const missing = [...new Set(
+    sources.filter((s) => CONNECTORS[s]).map((s) => CONNECTORS[s].secretEnv).filter((env) => !process.env[env]),
+  )]
+  return { unknown, missing }
 }
 
 export async function main() {
   const supabaseUrl = process.env.SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const catchToken = process.env.CATCH_TOKEN
   const bootstrap = process.env.BOOTSTRAP_SINCE || new Date().toISOString().slice(0, 10)
 
-  if (!supabaseUrl || !serviceKey || !catchToken) {
-    throw new Error('SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY et CATCH_TOKEN sont requis.')
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error('SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont requis.')
   }
 
-  const profiles = await fetchProfiles(supabaseUrl, serviceKey)
+  const identities = await fetchIdentities(supabaseUrl, serviceKey)
+  const { unknown, missing } = planSources(identities)
+  if (missing.length) throw new Error(`Secret(s) de source manquant(s) : ${missing.join(', ')}.`)
+  if (unknown.length) console.warn(`Source(s) sans connecteur, ignorée(s) : ${unknown.join(', ')}.`)
+
   let total = 0
 
-  for (const profile of profiles) {
-    const existing = await fetchExistingCatches(supabaseUrl, serviceKey, profile.user_id)
-    const since = sinceDate(existing, bootstrap)
-    const fresh = await collectNewCatches(existing, {
-      user: profile.github_login,
-      repos: profile.watch_repos,
-      token: catchToken,
-      since,
+  for (const identity of identities) {
+    const connector = CONNECTORS[identity.source]
+    if (!connector) continue
+
+    const existing = await fetchExistingCatches(supabaseUrl, serviceKey, identity.user_id, identity.source)
+    const events = await connector.collect({
+      handle: identity.handle,
+      config: identity.config,
+      since: sinceDate(existing, bootstrap),
+      secret: process.env[connector.secretEnv],
+      existing,
     })
-    if (fresh.length) {
-      await insertCatches(supabaseUrl, serviceKey, profile.user_id, fresh)
-      total += fresh.length
+
+    const rows = toRows(identity.user_id, identity.source, events)
+    if (rows.length) {
+      await insertCatches(supabaseUrl, serviceKey, rows)
+      total += rows.length
     }
-    console.log(`${profile.github_login} : ${fresh.length} nouvelle(s) capture(s).`)
+    console.log(`${identity.source}/${identity.handle} : ${rows.length} nouvelle(s) capture(s).`)
   }
 
-  console.log(`${total} nouvelle(s) capture(s) au total sur ${profiles.length} profil(s).`)
+  console.log(`${total} nouvelle(s) capture(s) au total sur ${identities.length} identité(s).`)
   return total
 }
 

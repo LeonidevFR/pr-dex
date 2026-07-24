@@ -38,7 +38,7 @@ export function createSupabaseClient(userId) {
     return query(() =>
       supabase
         .from('catches')
-        .select('sha, repo, pr, title, date, species, shiny')
+        .select('source, external_id, label, ref, url, date, species, shiny')
         .eq('user_id', userId)
         .order('date', { ascending: true }),
     )

@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import TheTray from './TheTray.vue'
 
-const entry = (sha, species, extra = {}) => ({
-  sha, species, shiny: false, via: 'pr', repo: 'moi/atlas', pr: 1, title: 't', date: '2026-02-03', ...extra,
+const entry = (id, species, extra = {}) => ({
+  source: 'github', external_id: id, key: `github:${id}`, species, shiny: false, via: 'catch',
+  label: 't', ref: 'moi/atlas#1', url: 'https://github.com/moi/atlas/pull/1',
+  date: '2026-02-03', ...extra,
 })
 
 const mountTray = (bySpecies, evolvable) => mount(TheTray, { props: { bySpecies, evolvable } })
@@ -32,14 +34,14 @@ describe('TheTray', () => {
     expect(w.emitted('select')[0]).toEqual([25])
   })
 
-  it('montre le short sha d’une capture de PR', () => {
-    const w = mountTray({ 25: [entry('a3f8c21e9b4d', 25)] })
-    expect(w.findAll('.cell')[24].find('.cell-sha').text()).toBe('a3f8c21')
+  it('montre la source d’une capture', () => {
+    const w = mountTray({ 25: [entry('a3f8c21e9b4d', 25, { source: 'crm' })] })
+    expect(w.findAll('.cell')[24].find('.cell-origin').text()).toBe('crm')
   })
 
-  it('affiche « évolué » plutôt qu’un sha pour une entrée d’évolution', () => {
+  it('affiche « évolué » plutôt qu’une source pour une entrée d’évolution', () => {
     const w = mountTray({ 130: [{ species: 130, from: 129, via: 'evo', date: '2026-07-14', shiny: false }] })
-    expect(w.findAll('.cell')[129].find('.cell-sha').text()).toBe('évolué')
+    expect(w.findAll('.cell')[129].find('.cell-origin').text()).toBe('évolué')
   })
 
   it('compte les doublons', () => {
