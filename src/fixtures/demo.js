@@ -62,6 +62,38 @@ const ghCatch = (sha, repo, pr, label, date, species, shiny) => ({
   shiny,
 })
 
+/**
+ * Une seconde source, inventée pour la démo. Aucune source métier réelle n'est branchée à ce
+ * jour : `crm` n'existe que dans ce fichier, jamais en base ni dans `CONNECTORS`.
+ *
+ * Elle est là pour rendre visible ce que le découpage par source a changé — un dex qui mêle
+ * deux pôles — sur les trois endroits où ça se voit : la provenance sous chaque case du
+ * tiroir, le libellé du pli, et la ligne du journal. Elle sert aussi de cas limite utile :
+ * pas d'`url`, donc une ligne de journal non cliquable, ce qu'une source sans page par
+ * événement produirait pour de vrai.
+ */
+const crmCatch = (id, client, note, date) => {
+  const { species, shiny } = drawFrom(entryKey('crm', id))
+  return {
+    source: 'crm',
+    external_id: id,
+    label: `${client} — ${note}/10`,
+    ref: `enquête valeur · ${date}`,
+    url: null,
+    date,
+    species,
+    shiny,
+  }
+}
+
+const FAKE_CRM = [
+  ['104428', 'Groupe Meridiem', 9, '2026-06-12'],
+  ['104517', 'Hôtels du Littoral', 10, '2026-06-19'],
+  ['104603', 'Résidences Vallon', 8, '2026-06-27'],
+  ['104790', 'Groupe Meridiem', 10, '2026-07-08'],
+  ['104862', 'Camping Les Ormes', 9, '2026-07-14'],
+]
+
 export function demoCatches() {
   const drawn = FAKE_PRS.map(([title, repo, pr, date], i) => {
     const sha = fakeSha(i)
@@ -89,10 +121,21 @@ export function demoCatches() {
     'moi/atlas', 225, 'perf: cache des agrégats du dashboard', '2026-07-19', 146, false,
   ))
 
+  // Quatre captures de la seconde source déjà ouvertes, insérées avant la file d'attente…
+  drawn.splice(-3, 0, ...FAKE_CRM.slice(0, -1).map((c) => crmCatch(...c)))
+
+  // …et la cinquième glissée dans les trois derniers, donc en attente. Sa date la place en
+  // tête de file : le premier pli scellé de la démo vient de l'autre pôle, ce qui est
+  // précisément ce qu'on cherche à montrer. Le nombre de plis en attente reste à trois.
+  drawn.splice(-1, 0, crmCatch(...FAKE_CRM[FAKE_CRM.length - 1]))
+
   return drawn
 }
 
-/** Client en mémoire respectant l'interface commune des clients de données. Trois plis restent à ouvrir. */
+/**
+ * Client en mémoire respectant l'interface commune des clients de données. Trois plis restent
+ * à ouvrir, dont un venu de la seconde source.
+ */
 export function loadDemoClient() {
   const catches = demoCatches()
   let state = {
