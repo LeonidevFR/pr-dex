@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SPECIES, DEX, PARENT, POOL, familyOf, hasEvoInFamily } from './species.js'
+import { SPECIES, DEX, PARENT, POOL, NOT_DRAWABLE, familyOf, hasEvoInFamily } from './species.js'
 
 describe('table des espèces', () => {
   it('contient exactement les 151 de la première génération', () => {
@@ -11,9 +11,9 @@ describe('table des espèces', () => {
   it('répartit les espèces en quatre paliers conformes au brief', () => {
     expect(POOL.c).toHaveLength(22)
     expect(POOL.u).toHaveLength(78)
-    expect(POOL.r).toHaveLength(46)
+    expect(POOL.r).toHaveLength(45)
     expect(POOL.l).toHaveLength(5)
-    expect(POOL.c.length + POOL.u.length + POOL.r.length + POOL.l.length).toBe(151)
+    expect(POOL.c.length + POOL.u.length + POOL.r.length + POOL.l.length).toBe(151 - NOT_DRAWABLE.size)
   })
 
   it('déclare les cinq légendaires', () => {
@@ -96,6 +96,13 @@ describe('table des espèces', () => {
 
   it('facture 40 bonbons à Magicarpe, exprès', () => {
     expect(DEX[129].cost).toBe(40)
+  })
+
+  it("exclut Léviator du tirage — seule voie d'accès, l'évolution", () => {
+    expect(NOT_DRAWABLE.has(130)).toBe(true)
+    expect(POOL.r).not.toContain(130)
+    expect(DEX[130]).toBeDefined()
+    expect(PARENT[130]).toBe(129)
   })
 
   it('applique 8 puis 16 bonbons aux paliers d’évolution', () => {
