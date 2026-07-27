@@ -18,10 +18,10 @@ const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
  * une attente plus longue — sinon on cherche à le sauter au bout d'une semaine.
  */
 const INTENSITY = {
-  c: { rayop: 0, glow: '8px', flashscale: 2.4 },
-  u: { rayop: 0.10, glow: '16px', flashscale: 3.2 },
-  r: { rayop: 0.20, glow: '30px', flashscale: 4.2 },
-  l: { rayop: 0.34, glow: '52px', flashscale: 5.5 },
+  c: { rayop: 0, glow: '8px', flashscale: 2.4, rayspeed: '6s' },
+  u: { rayop: 0.14, glow: '16px', flashscale: 3.2, rayspeed: '6s' },
+  r: { rayop: 0.30, glow: '30px', flashscale: 4.6, rayspeed: '4s' },
+  l: { rayop: 0.48, glow: '52px', flashscale: 6, rayspeed: '2.5s' },
 }
 
 const stage = ref('sealed') // sealed → silhouette → revealed
@@ -30,6 +30,9 @@ let timer = null
 const species = computed(() => DEX[props.entry.species])
 const tier = computed(() => species.value.tier)
 const intensity = computed(() => INTENSITY[tier.value])
+// Le flash + la salve de particules ne sont pas réservés au chromatique : un rare ou un
+// légendaire doit taper aussi fort, à chaque tirage — pas seulement le premier de sa vie.
+const big = computed(() => props.entry.shiny || tier.value === 'r' || tier.value === 'l')
 
 const style = computed(() => ({
   '--tier': TIER_VAR[tier.value],
@@ -38,6 +41,7 @@ const style = computed(() => ({
         '--rayop': intensity.value.rayop,
         '--glow': intensity.value.glow,
         '--flashscale': intensity.value.flashscale,
+        '--rayspeed': intensity.value.rayspeed,
       }
     : {}),
 }))
@@ -90,13 +94,14 @@ onUnmounted(() => clearTimeout(timer))
     <template v-else>
       <div class="reveal" :class="stage">
         <div v-if="tier !== 'c'" class="rays"></div>
+        <div v-if="tier === 'r' || tier === 'l'" class="rays rays-alt"></div>
         <div v-if="stage === 'silhouette'" class="dev-ring"></div>
         <div v-if="stage === 'revealed'" class="flash"></div>
         <img
           :class="{ silh: stage === 'silhouette' }" :src="spriteUrl(entry.species, entry.shiny)"
           :alt="species.name" @error="$event.target.dataset.broken = '1'"
         >
-        <div v-if="entry.shiny && stage === 'revealed'" class="shiny-burst">
+        <div v-if="big && stage === 'revealed'" class="burst">
           <span v-for="(s, i) in sparks" :key="i" class="spark" :style="s"></span>
         </div>
       </div>

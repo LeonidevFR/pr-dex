@@ -268,9 +268,14 @@
   .rays{position:absolute;width:920px;height:920px;pointer-events:none;
     background:conic-gradient(from 0deg, var(--tier) 0deg 2.5deg, transparent 2.5deg 20deg);
     opacity:0;mask-image:radial-gradient(circle,#000 0%,transparent 60%);-webkit-mask-image:radial-gradient(circle,#000 0%,transparent 60%);
-    animation:raysSpin 6s linear infinite, raysIn .8s ease-out forwards}
+    animation:raysSpin var(--rayspeed) linear infinite, raysIn .8s ease-out forwards}
+  .rays-alt{width:760px;height:760px;
+    background:conic-gradient(from 0deg, var(--tier) 0deg 1deg, transparent 1deg 9deg);
+    animation:raysSpinRev calc(var(--rayspeed) * .6) linear infinite, raysInAlt .8s ease-out forwards}
   @keyframes raysSpin{to{transform:rotate(360deg)}}
+  @keyframes raysSpinRev{to{transform:rotate(-360deg)}}
   @keyframes raysIn{to{opacity:var(--rayop)}}
+  @keyframes raysInAlt{to{opacity:calc(var(--rayop) * .55)}}
   .flash{position:absolute;width:200px;height:200px;border-radius:50%;background:#fff5e6;animation:flash .55s ease-out forwards}
   @keyframes flash{0%{transform:scale(.15);opacity:.95}100%{transform:scale(var(--flashscale));opacity:0}}
   .reveal img{width:220px;height:220px;object-fit:contain;position:relative;
@@ -299,7 +304,7 @@
   .reveal-note b{color:var(--ochre);font-weight:500}
   .next-btn{border:1.5px solid rgba(240,231,212,.35);background:transparent;color:#f0e7d4;font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 24px;cursor:pointer;animation:fadeUp .5s ease-out .75s both}
   .next-btn:hover{border-color:#f0e7d4}
-  .shiny-burst{position:absolute;inset:0;pointer-events:none}
+  .burst{position:absolute;inset:0;pointer-events:none}
   .spark{position:absolute;width:4px;height:4px;background:#ffe9a8;border-radius:50%;box-shadow:0 0 6px #ffd766;animation:spark 1.6s ease-out infinite}
   @keyframes spark{0%{transform:scale(0);opacity:0}30%{transform:scale(2.6);opacity:1}100%{transform:scale(0);opacity:0}}
 

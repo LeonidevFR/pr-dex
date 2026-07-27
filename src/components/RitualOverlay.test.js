@@ -132,6 +132,30 @@ describe('échelle d’intensité', () => {
     expect(w.find('.reveal-banner').text()).toContain('Légendaire')
   })
 
+  it('ajoute un second rayon contre-rotatif pour rare et légendaire, pas pour peu commun', async () => {
+    const rays = async (species) => {
+      const w = mountRitual({ entry: entryOf({ species }) })
+      await w.find('.packet').trigger('click')
+      return w.findAll('.rays-alt')
+    }
+    expect(await rays(20)).toHaveLength(0)  // peu commun
+    expect(await rays(1)).toHaveLength(1)   // rare
+    expect(await rays(144)).toHaveLength(1) // légendaire
+  })
+
+  it('déclenche la salve de particules sur un rare ou un légendaire, même sans chromatique', async () => {
+    const burst = async (species) => {
+      const w = mountRitual({ entry: entryOf({ species }) })
+      await w.find('.packet').trigger('click')
+      vi.advanceTimersByTime(2800)
+      await w.vm.$nextTick()
+      return w.findAll('.spark').length
+    }
+    expect(await burst(20)).toBe(0)   // peu commun : pas de salve
+    expect(await burst(1)).toBe(16)   // rare
+    expect(await burst(144)).toBe(16) // légendaire
+  })
+
   it('garde une durée proche entre paliers — l’écart passe par l’intensité', async () => {
     const w = mountRitual({ entry: entryOf({ species: 19 }) })
     await w.find('.packet').trigger('click')
