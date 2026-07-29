@@ -99,10 +99,10 @@ describe('ouverture', () => {
 })
 
 describe('échelle d’intensité', () => {
-  it('n’affiche pas de rayons pour un commun', async () => {
+  it('affiche des rayons dès le palier commun', async () => {
     const w = mountRitual({ entry: entryOf({ species: 19 }) }) // Rattata, commun
     await w.find('.packet').trigger('click')
-    expect(w.find('.rays').exists()).toBe(false)
+    expect(w.find('.rays').exists()).toBe(true)
   })
 
   it('affiche des rayons dès le palier peu commun', async () => {
@@ -119,8 +119,8 @@ describe('échelle d’intensité', () => {
     }
     expect(await glow(19)).toContain('--glow: 8px')    // commun
     expect(await glow(20)).toContain('--glow: 16px')   // peu commun
-    expect(await glow(1)).toContain('--glow: 30px')    // rare
-    expect(await glow(144)).toContain('--glow: 52px')  // légendaire
+    expect(await glow(1)).toContain('--glow: 38px')    // rare
+    expect(await glow(144)).toContain('--glow: 66px')  // légendaire
   })
 
   it('marque la scène légendaire', async () => {
