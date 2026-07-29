@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { fnv1a, drawFrom, WEIGHTS, SHINY_ODDS } from './draw.js'
 import { entryKey } from './entry.js'
-import { DEX, POOL } from './species.js'
+import { DEX, POOL, NOT_DRAWABLE } from './species.js'
 import golden from './draw.golden.json' with { type: 'json' }
 
 // Cinq hachages 32 bits rendus en hexadécimal — on utilise tous les bits de sortie.
@@ -98,12 +98,18 @@ describe('drawFrom', () => {
     for (const [tier, weight] of WEIGHTS) {
       expect(Math.abs(counts[tier] / N - weight)).toBeLessThan(0.01)
     }
-    expect(species.size).toBe(151)
+    expect(species.size).toBe(151 - NOT_DRAWABLE.size)
     expect(shiny / N).toBeGreaterThan(1 / SHINY_ODDS * 0.7)
     expect(shiny / N).toBeLessThan(1 / SHINY_ODDS * 1.3)
   })
 
   it('sépare les espaces de tirage de deux sources qui numérotent pareil', () => {
     expect(drawFrom(entryKey('github', 42))).not.toEqual(drawFrom(entryKey('crm', 42)))
+  })
+
+  it('ne tire jamais Léviator — seule voie d’accès, l’évolution de Magicarpe', () => {
+    const N = 100000
+    const { species } = measure(shaAt, N)
+    expect(species.has(130)).toBe(false)
   })
 })

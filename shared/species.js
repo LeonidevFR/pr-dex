@@ -110,8 +110,16 @@ export function hasEvoInFamily(id) {
   return FAMILIES_WITH_EVO.has(familyOf(id))
 }
 
+// Léviator ne se tire jamais : seul accès, faire évoluer Magicarpe (40 bonbons, cf. son coût
+// volontairement élevé). Exception ciblée, pas une règle générale sur les 3e évolutions —
+// celles-ci (Dracaufeu, Tortank...) restent tirables normalement.
+export const NOT_DRAWABLE = new Set([130])
+
 export const POOL = { c: [], u: [], r: [], l: [] }
-for (const s of Object.values(DEX)) POOL[s.tier].push(s.id)
+for (const s of Object.values(DEX)) {
+  if (NOT_DRAWABLE.has(s.id)) continue
+  POOL[s.tier].push(s.id)
+}
 
 export const TIER_LABEL = { c: 'Commun', u: 'Peu commun', r: 'Rare', l: 'Légendaire' }
 export const TIER_VAR = { c: 'var(--t-c)', u: 'var(--t-u)', r: 'var(--t-r)', l: 'var(--t-l)' }
