@@ -25,9 +25,19 @@ export function pullRefOf(url) {
 }
 
 /**
+ * Organisation surveillée par défaut quand une identité ne restreint pas `config.repos`
+ * explicitement. Sans ça, tout PAT fine-grained garde un accès lecture implicite à
+ * n'importe quel dépôt public sur GitHub, quel que soit son scope réel — un dépôt perso
+ * public (ex. pr-dex lui-même) remontait donc comme capture au même titre qu'un dépôt
+ * Guest Suite.
+ */
+const DEFAULT_ORG = 'Guest-Suite'
+
+/**
  * Contrat commun à tous les connecteurs : rendre les événements du handle survenus depuis
  * `since`, sans tirage ni écriture — `catch.mjs` s'en charge, seul endroit où vit la règle
- * du tirage. `config.repos` vide ou absent : aucun filtre, le périmètre du jeton fait foi.
+ * du tirage. `config.repos` vide ou absent : repli sur `DEFAULT_ORG`, pas sur l'absence
+ * totale de filtre.
  */
 export async function collect({ handle, config = {}, since, secret, existing = [], fetchFn = fetch }) {
   const knownExternal = new Set(existing.map((c) => c.external_id))
@@ -47,7 +57,7 @@ export async function collect({ handle, config = {}, since, secret, existing = [
 
     for (const it of body.items ?? []) {
       const repo = it.repository_url.replace(`${API}/repos/`, '')
-      if (watched && !watched.has(repo)) continue
+      if (watched ? !watched.has(repo) : repo.split('/')[0] !== DEFAULT_ORG) continue
       if (knownPulls.has(`${repo}#${it.number}`)) continue
 
       const detailRes = await fetchFn(`${API}/repos/${repo}/pulls/${it.number}`, { headers: ghHeaders(secret) })

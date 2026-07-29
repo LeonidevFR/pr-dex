@@ -67,12 +67,17 @@ describe('collect', () => {
     expect(await collect({ ...opts, fetchFn: fetchMock })).toEqual([])
   })
 
-  it('surveille tous les repos accessibles au jeton quand la config est vide', async () => {
+  it('sans config.repos, ne retient que les dépôts de DEFAULT_ORG (Guest-Suite)', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(searchPage([item('moi/nimporte-quoi', 1, 'x')]))
+      .mockResolvedValueOnce(searchPage([item('Guest-Suite/atlas', 1, 'x')]))
       .mockResolvedValueOnce(prDetail('shax', '2026-02-03T10:00:00Z'))
     const out = await collect({ ...opts, config: {}, fetchFn: fetchMock })
-    expect(out[0].url).toBe('https://github.com/moi/nimporte-quoi/pull/1')
+    expect(out[0].url).toBe('https://github.com/Guest-Suite/atlas/pull/1')
+  })
+
+  it('sans config.repos, écarte un dépôt hors DEFAULT_ORG même accessible au jeton', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(searchPage([item('moi/perso', 1, 'x')]))
+    expect(await collect({ ...opts, config: {}, fetchFn: fetchMock })).toEqual([])
   })
 
   it('ne refetch jamais une PR déjà capturée', async () => {

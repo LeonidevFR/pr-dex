@@ -203,16 +203,28 @@ describe('main', () => {
     expect(search[0]).toContain('merged%3A%3E%3D2026-01-13')
   })
 
-  it('config vide sur une identité surveille tous les repos accessibles au jeton', async () => {
+  it('config vide sur une identité replie sur DEFAULT_ORG (Guest-Suite), pas sur tous les repos', async () => {
     const fetchMock = makeFetch({
       identities: [identity('u1', { config: {} })],
-      github: [searchPage([item('nimporte/quoi', 1, 'a')]), prDetail('sha-a', '2026-01-02T10:00:00Z')],
+      github: [searchPage([item('Guest-Suite/atlas', 1, 'a')]), prDetail('sha-a', '2026-01-02T10:00:00Z')],
     })
     vi.stubGlobal('fetch', fetchMock)
 
     await main()
 
-    expect(fetchMock.inserted[0][0].url).toBe('https://github.com/nimporte/quoi/pull/1')
+    expect(fetchMock.inserted[0][0].url).toBe('https://github.com/Guest-Suite/atlas/pull/1')
+  })
+
+  it('config vide écarte un dépôt personnel hors Guest-Suite', async () => {
+    const fetchMock = makeFetch({
+      identities: [identity('u1', { config: {} })],
+      github: [searchPage([item('moi/pr-dex', 1, 'a')])],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    expect(fetchMock.inserted).toHaveLength(0)
   })
 
   it("n'insère rien pour une identité sans nouvelle capture", async () => {
