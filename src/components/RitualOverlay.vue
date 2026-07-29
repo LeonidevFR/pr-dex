@@ -18,10 +18,10 @@ const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
  * une attente plus longue — sinon on cherche à le sauter au bout d'une semaine.
  */
 const INTENSITY = {
-  c: { rayop: 0, glow: '8px', flashscale: 2.4, rayspeed: '6s' },
-  u: { rayop: 0.14, glow: '16px', flashscale: 3.2, rayspeed: '6s' },
-  r: { rayop: 0.30, glow: '30px', flashscale: 4.6, rayspeed: '4s' },
-  l: { rayop: 0.48, glow: '52px', flashscale: 6, rayspeed: '2.5s' },
+  c: { rayop: 0.10, glow: '8px', flashscale: 2.4, rayspeed: '7s' },
+  u: { rayop: 0.18, glow: '16px', flashscale: 3.2, rayspeed: '6s' },
+  r: { rayop: 0.42, glow: '38px', flashscale: 5.2, rayspeed: '3.2s' },
+  l: { rayop: 0.65, glow: '66px', flashscale: 7.5, rayspeed: '1.8s' },
 }
 
 const stage = ref('sealed') // sealed → silhouette → revealed
@@ -93,7 +93,7 @@ onUnmounted(() => clearTimeout(timer))
 
     <template v-else>
       <div class="reveal" :class="stage">
-        <div v-if="tier !== 'c'" class="rays"></div>
+        <div class="rays"></div>
         <div v-if="tier === 'r' || tier === 'l'" class="rays rays-alt"></div>
         <div v-if="stage === 'silhouette'" class="dev-ring"></div>
         <div v-if="stage === 'revealed'" class="flash"></div>
