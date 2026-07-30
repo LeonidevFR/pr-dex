@@ -114,6 +114,7 @@ describe('échelle d’intensité', () => {
     const w = mountRitual({ entry: entryOf({ species: 20 }) }) // peu commun
     await w.find('.packet').trigger('click')
     const layers = w.findAll('.ray-layer')
+    expect(layers).toHaveLength(4)
     for (const layer of layers) {
       expect(layer.attributes('style')).toContain('--ray-color: var(--t-u)')
     }
