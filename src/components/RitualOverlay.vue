@@ -41,6 +41,7 @@ const rayLayers = computed(() => {
     speedMultiplier: SPEED_MULTIPLIERS[i % SPEED_MULTIPLIERS.length],
     wedgeDeg: Math.max(20 - i * 2.5, 6),
     opacityFactor: Math.max(1 - i * 0.12, 0.4),
+    fromDeg: (i * 360) / count,
   }))
 })
 
@@ -49,6 +50,7 @@ function rayLayerStyle(layer) {
     '--ray-color': layer.color,
     '--ray-wedge': layer.wedgeDeg + 'deg',
     '--ray-opacity-factor': layer.opacityFactor,
+    '--ray-from': layer.fromDeg + 'deg',
     animationDuration: `calc(var(--rayspeed) * ${layer.speedMultiplier}), .8s`,
     animationDirection: `${layer.direction}, normal`,
   }
