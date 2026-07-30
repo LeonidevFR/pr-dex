@@ -221,7 +221,7 @@ describe('évolution', () => {
   const threeBulbizarre = Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1))
   const claimedThree = { claimed: keysOf(threeBulbizarre), spent: {}, evolutions: [] }
 
-  it('dépense les bonbons et enregistre l\'évolution avec la clé choisie', async () => {
+  it('dépense les bonbons et enregistre l’évolution avec la clé choisie', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
     const c = useCollection()
     await c.load(client)
@@ -233,7 +233,7 @@ describe('évolution', () => {
     expect(client.writeState).toHaveBeenCalledOnce()
   })
 
-  it('consomme l\'exemplaire choisi explicitement, y compris un chromatique', async () => {
+  it('consomme l’exemplaire choisi explicitement, y compris un chromatique', async () => {
     const catches = [catchOf('s0', 1), catchOf('s1', 1, { shiny: true }), catchOf('s2', 1)]
     const client = fakeClient({ catches, state: claimedThree })
     const c = useCollection()
@@ -242,7 +242,7 @@ describe('évolution', () => {
     expect(c.state.value.evolutions[0].fromKey).toBe(K('s1'))
   })
 
-  it('consomme l\'exemplaire choisi même non chromatique, alors qu\'un chromatique existe', async () => {
+  it('consomme l’exemplaire choisi même non chromatique, alors qu’un chromatique existe', async () => {
     // Le choix appartient au joueur : la couche données ne force plus la priorité au shiny,
     // elle valide seulement que la clé demandée correspond à un exemplaire disponible.
     const catches = [catchOf('s0', 1), catchOf('s1', 1, { shiny: true }), catchOf('s2', 1)]
@@ -253,7 +253,7 @@ describe('évolution', () => {
     expect(c.state.value.evolutions[0].fromKey).toBe(K('s2'))
   })
 
-  it('refuse une clé d\'exemplaire qui n\'est plus disponible', async () => {
+  it('refuse une clé d’exemplaire qui n’est plus disponible', async () => {
     const catches = [catchOf('s0', 1), catchOf('s1', 1, { shiny: true }), catchOf('s2', 1)]
     const client = fakeClient({ catches, state: claimedThree })
     const c = useCollection()
@@ -263,7 +263,7 @@ describe('évolution', () => {
     expect(client.writeState).not.toHaveBeenCalled()
   })
 
-  it('consomme l\'exemplaire évolué : plus disponible pour une évolution suivante, mais l\'espèce reste acquise', async () => {
+  it('consomme l’exemplaire évolué : plus disponible pour une évolution suivante, mais l’espèce reste acquise', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
     const c = useCollection()
     await c.load(client)
@@ -283,7 +283,7 @@ describe('évolution', () => {
     expect(c.state.value.spent[1]).toBe(8)
   })
 
-  it('refuse d\'évoluer sans exemplaire disponible, même avec assez de bonbons', async () => {
+  it('refuse d’évoluer sans exemplaire disponible, même avec assez de bonbons', async () => {
     // Une seule capture, mais suffisamment de doublons dans le reste de la famille pour
     // financer le coût — les bonbons ne sont pas liés à un exemplaire précis.
     const catches = [
@@ -305,7 +305,7 @@ describe('évolution', () => {
     expect(client.writeState).not.toHaveBeenCalled()
   })
 
-  it('refuse l\'évolution sans bonbons suffisants et n\'écrit rien', async () => {
+  it('refuse l’évolution sans bonbons suffisants et n’écrit rien', async () => {
     const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: [K('a')], spent: {}, evolutions: [] } })
     const c = useCollection()
     await c.load(client)
@@ -314,7 +314,7 @@ describe('évolution', () => {
     expect(client.writeState).not.toHaveBeenCalled()
   })
 
-  it('refuse une cible qui n\'est pas une évolution de la source', async () => {
+  it('refuse une cible qui n’est pas une évolution de la source', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
     const c = useCollection()
     await c.load(client)
@@ -322,7 +322,7 @@ describe('évolution', () => {
     expect(client.writeState).not.toHaveBeenCalled()
   })
 
-  it('refuse d\'évoluer une espèce terminale', async () => {
+  it('refuse d’évoluer une espèce terminale', async () => {
     const catches = Array.from({ length: 3 }, (_, i) => catchOf('r' + i, 143))
     const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
     const c = useCollection()
@@ -331,7 +331,7 @@ describe('évolution', () => {
     expect(client.writeState).not.toHaveBeenCalled()
   })
 
-  it('accepte chacune des trois évolutions d\'Évoli', async () => {
+  it('accepte chacune des trois évolutions d’Évoli', async () => {
     for (const target of [134, 135, 136]) {
       const catches = Array.from({ length: 3 }, (_, i) => catchOf('e' + i, 133))
       const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
@@ -342,7 +342,7 @@ describe('évolution', () => {
     }
   })
 
-  it('restaure l\'état si l\'écriture échoue', async () => {
+  it('restaure l’état si l’écriture échoue', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
     client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))
     const c = useCollection()
@@ -353,7 +353,7 @@ describe('évolution', () => {
     expect(c.error.value).toBe('offline')
   })
 
-  it('abandonne le rejeu si l\'autre appareil a déjà dépensé les mêmes bonbons', async () => {
+  it('abandonne le rejeu si l’autre appareil a déjà dépensé les mêmes bonbons', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
     client.writeState.mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
     client.readState
@@ -378,7 +378,7 @@ describe('évolution', () => {
     expect(client.writeState).toHaveBeenCalledOnce()
   })
 
-  it('rejoue et écrit quand l\'état frais permet toujours l\'évolution', async () => {
+  it('rejoue et écrit quand l’état frais permet toujours l’évolution', async () => {
     const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
     client.writeState
       .mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
@@ -408,7 +408,7 @@ describe('évolution', () => {
 })
 
 describe('erreur périmée', () => {
-  it('une action qui n\'écrit rien efface l\'erreur d\'une action précédente', async () => {
+  it('une action qui n’écrit rien efface l’erreur d’une action précédente', async () => {
     const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: [K('a')], spent: {}, evolutions: [] } })
     client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))
     const c = useCollection()
