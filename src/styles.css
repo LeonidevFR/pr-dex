@@ -370,6 +370,3 @@
     .reveal-name{font-size:30px}
     .stack{width:210px;height:300px}
   }
-  @media (prefers-reduced-motion:reduce){
-    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-  }

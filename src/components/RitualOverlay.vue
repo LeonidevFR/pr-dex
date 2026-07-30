@@ -59,8 +59,7 @@ function tear() {
   // reste dans `pending` — il réapparaît à la prochaine ouverture. C'est le comportement
   // voulu : ne pas avaler l'échec en gardant la révélation silencieuse sur son sort réel.
   emit('claim', props.entry.key)
-  const reduced = window.matchMedia('(prefers-reduced-motion:reduce)').matches
-  const hold = reduced ? 150 : (tier.value === 'l' ? 2800 : 2200)
+  const hold = tier.value === 'l' ? 2800 : 2200
   timer = setTimeout(() => { stage.value = 'revealed' }, hold)
 }
 
