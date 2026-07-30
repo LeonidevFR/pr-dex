@@ -220,6 +220,11 @@
   .evo-choice:hover:not(:disabled){border-color:var(--ochre);color:var(--ink)}
   .evo-choice:disabled{opacity:.45;cursor:default}
   .evo-choice img{width:46px;height:46px}
+  .picker-row{cursor:pointer}
+  .picker-row input{margin:0}
+  .picker-actions{display:flex;gap:9px;margin-top:13px}
+  .cancel-btn{border:1.5px solid var(--rule-hi);background:transparent;color:var(--ink-2);font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:10px 16px;cursor:pointer}
+  .cancel-btn:hover{border-color:var(--ink-3);color:var(--ink)}
   .muted{color:var(--ink-2);font-size:12.5px;line-height:1.55}
   .muted b{color:var(--ink)}
 

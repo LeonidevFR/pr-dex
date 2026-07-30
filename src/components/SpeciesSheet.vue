@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
@@ -12,8 +12,46 @@ const props = defineProps({
   candies: { type: Number, required: true },
   canEvolve: { type: Boolean, required: true },
   isDeadEnd: { type: Boolean, required: true },
+  // Exemplaires consommables par une évolution, chacun avec sa `key` et son statut `shiny` —
+  // sert au sélecteur, distinct de `entries` qui garde tout le journal (y compris consommé).
+  available: { type: Array, default: () => [] },
 })
-defineEmits(['close', 'evolve'])
+const emit = defineEmits(['close', 'evolve'])
+
+// Cible d'évolution en cours de sélection (id de l'espèce), ou `null` hors sélection.
+const pickingTarget = ref(null)
+const selectedKey = ref(null)
+
+function startPicking(target) {
+  pickingTarget.value = target
+  // Le chromatique reste protégé par défaut : pré-coché s'il y en a un, modifiable ensuite.
+  selectedKey.value = props.available.find((e) => e.shiny)?.key ?? props.available[0]?.key ?? null
+}
+
+function cancelPicking() {
+  pickingTarget.value = null
+  selectedKey.value = null
+}
+
+// Le picker peut rester ouvert pendant qu'un `refresh()` change `available` (ex. l'autre
+// appareil a consommé l'exemplaire sélectionné). Sans ça, `selectedKey` pointerait vers un
+// exemplaire disparu : aucun radio coché, mais le bouton Confirmer resterait actif.
+watch(
+  () => props.available,
+  (list) => {
+    if (!pickingTarget.value) return
+    if (list.some((e) => e.key === selectedKey.value)) return
+    selectedKey.value = list.find((e) => e.shiny)?.key ?? list[0]?.key ?? null
+  },
+)
+
+function confirmEvolve() {
+  if (!selectedKey.value) return
+  const to = pickingTarget.value
+  const key = selectedKey.value
+  cancelPicking()
+  emit('evolve', { from: props.id, to, key })
+}
 
 const species = computed(() => DEX[props.id])
 const caught = computed(() => (props.entries?.length ?? 0) > 0)
@@ -83,31 +121,56 @@ const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 
 
       <div v-if="caught && targets.length" class="sect">
         <div class="eyebrow sect-h"><span>Bonbons {{ DEX[familyOf(id)].name }}</span></div>
-        <div class="candy">
-          <div class="candy-meter">
-            <div class="candy-nums"><b>{{ candies }}</b><i> / {{ species.cost }}</i></div>
-            <div class="cbar">
-              <div class="cbar-fill" :style="{ width: Math.min(100, candies / species.cost * 100) + '%' }"></div>
+
+        <template v-if="!pickingTarget">
+          <div class="candy">
+            <div class="candy-meter">
+              <div class="candy-nums"><b>{{ candies }}</b><i> / {{ species.cost }}</i></div>
+              <div class="cbar">
+                <div class="cbar-fill" :style="{ width: Math.min(100, candies / species.cost * 100) + '%' }"></div>
+              </div>
             </div>
+            <button
+              v-if="targets.length === 1" class="evo-btn" :disabled="!canEvolve"
+              @click="startPicking(targets[0])"
+            >
+              Faire évoluer en {{ DEX[targets[0]].name }}
+            </button>
           </div>
-          <button
-            v-if="targets.length === 1" class="evo-btn" :disabled="!canEvolve"
-            @click="$emit('evolve', { from: id, to: targets[0] })"
-          >
-            Faire évoluer en {{ DEX[targets[0]].name }}
-          </button>
-        </div>
-        <div v-if="targets.length > 1" class="evo-choices">
-          <button
-            v-for="t in targets" :key="t" class="evo-choice" :disabled="!canEvolve"
-            @click="$emit('evolve', { from: id, to: t })"
-          >
-            <img :src="spriteUrl(t)" :alt="DEX[t].name">{{ DEX[t].name }}
-          </button>
-        </div>
-        <p class="muted" style="margin-top:12px">
-          {{ CANDY_PER_CATCH }} bonbons par capture dans la famille. Les doublons servent à ça.
-        </p>
+          <div v-if="targets.length > 1" class="evo-choices">
+            <button
+              v-for="t in targets" :key="t" class="evo-choice" :disabled="!canEvolve"
+              @click="startPicking(t)"
+            >
+              <img :src="spriteUrl(t)" :alt="DEX[t].name">{{ DEX[t].name }}
+            </button>
+          </div>
+          <p class="muted" style="margin-top:12px">
+            {{ CANDY_PER_CATCH }} bonbons par capture dans la famille. Les doublons servent à ça.
+          </p>
+        </template>
+
+        <template v-else>
+          <p class="muted" style="margin-bottom:12px">
+            Choisis l'exemplaire à faire évoluer en <b>{{ DEX[pickingTarget].name }}</b>.
+          </p>
+          <div class="log">
+            <label v-for="e in available" :key="e.key" class="log-row picker-row">
+              <input type="radio" name="specimen" :value="e.key" v-model="selectedKey">
+              <span v-if="e.via === 'catch'" class="log-sha">{{ e.source }}</span>
+              <span v-else class="log-evo">↑ évo</span>
+              <span class="log-title">
+                {{ e.via === 'catch' ? e.label : 'Évolué depuis ' + DEX[e.from].name }}
+                <span v-if="e.shiny" class="chip shiny-chip" style="margin-left:6px">✦</span>
+              </span>
+              <span class="log-date">{{ e.date }}</span>
+            </label>
+          </div>
+          <div class="picker-actions">
+            <button class="evo-btn" :disabled="!selectedKey" @click="confirmEvolve">Confirmer</button>
+            <button class="cancel-btn" @click="cancelPicking">Annuler</button>
+          </div>
+        </template>
       </div>
 
       <div v-else-if="caught && !isDeadEnd" class="sect">
