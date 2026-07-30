@@ -270,17 +270,12 @@
   .queue-note{font-family:var(--f-data);font-size:11px;color:var(--ink-3);letter-spacing:.04em}
 
   .reveal{position:relative;display:grid;place-items:center;width:360px;height:360px}
-  .rays{position:absolute;width:920px;height:920px;pointer-events:none;
-    background:conic-gradient(from 0deg, var(--tier) 0deg 2.5deg, transparent 2.5deg 20deg);
+  .ray-layer{position:absolute;width:920px;height:920px;pointer-events:none;
+    background:conic-gradient(from var(--ray-from, 0deg), var(--ray-color, var(--tier)) 0deg calc(var(--ray-wedge, 20deg) * .125), transparent calc(var(--ray-wedge, 20deg) * .125) var(--ray-wedge, 20deg));
     opacity:0;mask-image:radial-gradient(circle,#000 0%,transparent 60%);-webkit-mask-image:radial-gradient(circle,#000 0%,transparent 60%);
     animation:raysSpin var(--rayspeed) linear infinite, raysIn .8s ease-out forwards}
-  .rays-alt{width:760px;height:760px;
-    background:conic-gradient(from 0deg, var(--tier) 0deg 1deg, transparent 1deg 9deg);
-    animation:raysSpinRev calc(var(--rayspeed) * .6) linear infinite, raysInAlt .8s ease-out forwards}
   @keyframes raysSpin{to{transform:rotate(360deg)}}
-  @keyframes raysSpinRev{to{transform:rotate(-360deg)}}
-  @keyframes raysIn{to{opacity:var(--rayop)}}
-  @keyframes raysInAlt{to{opacity:calc(var(--rayop) * .55)}}
+  @keyframes raysIn{to{opacity:calc(var(--rayop) * var(--ray-opacity-factor, 1))}}
   .flash{position:absolute;width:200px;height:200px;border-radius:50%;background:#fff5e6;animation:flash .55s ease-out forwards}
   @keyframes flash{0%{transform:scale(.15);opacity:.95}100%{transform:scale(var(--flashscale));opacity:0}}
   .reveal img{width:220px;height:220px;object-fit:contain;position:relative;
