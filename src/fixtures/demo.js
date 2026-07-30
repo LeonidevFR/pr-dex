@@ -114,6 +114,15 @@ export function demoCatches() {
     'moi/atlas', 224, 'fix: timeout sur le webhook Slack', '2026-07-18', 16, false,
   ))
 
+  // Un troisième exemplaire Chenipan, forcé chromatique : Chenipan a déjà deux exemplaires
+  // non-shiny et évolue dès la démo (cf. les 40 tirages naturels), ce qui en fait le cas de
+  // démo du sélecteur d'exemplaire — un shiny pré-coché par défaut, mais un normal disponible
+  // pour tester le changement de sélection avant de confirmer l'évolution.
+  drawn.splice(-3, 0, ghCatch(
+    'ev2ch3n1p4n000000000000000000000000000',
+    'moi/atlas', 226, 'fix: timeout sur la génération du sprite', '2026-07-19', 10, true,
+  ))
+
   // Idem pour une légendaire : à 0,5 % par tirage, aucune ne sort naturellement sur 40-41
   // essais. Sulfura forcée pour que le halo légendaire de la grille soit visible en démo.
   drawn.splice(-3, 0, ghCatch(
