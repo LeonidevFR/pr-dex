@@ -107,9 +107,10 @@ async function skipAll() {
 async function onEvolve({ from, to, key }) {
   const shiny = collection.dex.availableEntries(from).find((e) => e.key === key)?.shiny ?? false
   selected.value = null
-  await collection.evolve(from, to, key, new Date().toISOString().slice(0, 10))
-  // L'écriture a échoué : pas de cérémonie pour une évolution qui n'a pas eu lieu.
-  if (collection.error.value) return
+  const written = await collection.evolve(from, to, key, new Date().toISOString().slice(0, 10))
+  // L'écriture a échoué, ou n'a rien eu à faire (exemplaire déjà consommé ailleurs,
+  // bonbons insuffisants sur l'état frais) : pas de cérémonie pour une évolution qui n'a pas eu lieu.
+  if (!written || collection.error.value) return
   evoAnim.value = { from, to, shiny }
 }
 

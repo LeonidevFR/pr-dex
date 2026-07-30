@@ -203,6 +203,23 @@ describe('sélection de l’exemplaire à évoluer', () => {
     expect(w.find('.picker-row').exists()).toBe(false)
     expect(w.emitted('evolve')).toBeUndefined()
   })
+
+  it('revalide la sélection si l’exemplaire choisi disparaît de la liste pendant que le picker est ouvert', async () => {
+    const ab = [capture('a', 1), capture('b', 1)]
+    const w = mountSheet({ id: 1, entries: ab, available: ab, candies: 9, canEvolve: true })
+    await w.find('.evo-btn').trigger('click')
+    // Pré-coché sur le premier disponible ('a', pas de chromatique ici).
+    let checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
+    expect(checked.element.value).toBe('github:a')
+
+    // L'autre appareil consomme 'a' entre-temps : un refresh() ne laisse plus que 'b'.
+    await w.setProps({ available: [capture('b', 1)] })
+    checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
+    expect(checked.element.value).toBe('github:b')
+
+    await w.find('.evo-btn').trigger('click')
+    expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:b' }])
+  })
 })
 
 describe('la réserve', () => {

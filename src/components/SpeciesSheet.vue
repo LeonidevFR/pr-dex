@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
@@ -32,6 +32,18 @@ function cancelPicking() {
   pickingTarget.value = null
   selectedKey.value = null
 }
+
+// Le picker peut rester ouvert pendant qu'un `refresh()` change `available` (ex. l'autre
+// appareil a consommé l'exemplaire sélectionné). Sans ça, `selectedKey` pointerait vers un
+// exemplaire disparu : aucun radio coché, mais le bouton Confirmer resterait actif.
+watch(
+  () => props.available,
+  (list) => {
+    if (!pickingTarget.value) return
+    if (list.some((e) => e.key === selectedKey.value)) return
+    selectedKey.value = list.find((e) => e.shiny)?.key ?? list[0]?.key ?? null
+  },
+)
 
 function confirmEvolve() {
   if (!selectedKey.value) return

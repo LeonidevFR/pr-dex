@@ -42,36 +42,43 @@ export function useCollection() {
    *
    * `mutate` renvoie `null` quand l'opération est devenue sans objet sur l'état frais
    * (l'autre appareil l'a déjà faite) : on adopte alors l'état distant sans réécrire.
+   *
+   * Renvoie `true` si une écriture a effectivement eu lieu (premier essai ou rejeu après
+   * conflit), `false` sinon (mutateur sans objet, ou état distant adopté sans réécrire) —
+   * pour permettre à l'appelant de distinguer "rien à faire" de "erreur", cas tous deux
+   * silencieux du point de vue de `error.value`.
    */
   async function persist(mutate, message) {
     const before = clone(state.value)
     const next = mutate(clone(state.value))
-    if (!next) return
+    if (!next) return false
     state.value = next
     try {
       const r = await client.writeState(next, blobSha.value, message)
       blobSha.value = r.blobSha
       error.value = null
+      return true
     } catch (e) {
       if (e.kind === 'conflict') {
         try {
           const fresh = await client.readState()
           blobSha.value = fresh.blobSha
           const replayed = mutate(clone(fresh.state))
-          if (!replayed) { state.value = fresh.state; return }
+          if (!replayed) { state.value = fresh.state; return false }
           state.value = replayed
           const r = await client.writeState(replayed, blobSha.value, message)
           blobSha.value = r.blobSha
           error.value = null
-          return
+          return true
         } catch (e2) {
           state.value = before
           error.value = e2.kind ?? 'server'
-          return
+          return false
         }
       }
       state.value = before
       error.value = e.kind ?? 'server'
+      return false
     }
   }
 
@@ -149,13 +156,13 @@ export function useCollection() {
   async function evolve(fromId, toId, specimenKey, date) {
     error.value = null
     const source = DEX[fromId]
-    if (!source?.to) return
+    if (!source?.to) return false
     const targets = Array.isArray(source.to) ? source.to : [source.to]
-    if (!targets.includes(toId)) return
-    if (!dex.canEvolve(fromId)) return
+    if (!targets.includes(toId)) return false
+    if (!dex.canEvolve(fromId)) return false
 
     const fam = familyOf(fromId)
-    await persist(
+    return await persist(
       (s) => {
         // Revalidation sur l'état reçu, et non sur l'état d'avant l'appel : `persist` rejoue
         // ce mutateur sur l'état frais après un conflit. Sans ce recalcul, deux appareils
