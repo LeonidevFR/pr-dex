@@ -123,13 +123,13 @@ export function useCollection() {
   }
 
   /**
-   * Exemplaire disponible de `fromId` sur un état `s` donné (pas nécessairement `state.value`
-   * — `persist` rejoue ce calcul sur l'état frais après un conflit). Un exemplaire chromatique
-   * est privilégié : perdre un shiny à l'évolution se lirait comme un bug. Réplique volontairement
-   * la logique de `useDex` (clé, exemplaires consommés) sur un objet simple plutôt que sur des
-   * refs, `s` n'étant qu'un clone en cours de mutation.
+   * Exemplaires disponibles de `fromId` sur un état `s` donné (pas nécessairement `state.value`
+   * — `persist` rejoue ce calcul sur l'état frais après un conflit). Réplique volontairement la
+   * logique de `useDex` (clé, exemplaires consommés) sur un objet simple plutôt que sur des refs,
+   * `s` n'étant qu'un clone en cours de mutation. Le choix de l'exemplaire précis revient au
+   * joueur (`specimenKey` dans `evolve`) : cette fonction énumère, elle ne priorise rien.
    */
-  function pickAvailable(fromId, s) {
+  function availableFor(fromId, s) {
     const claimedSet = new Set(s.claimed)
     const claimedEntries = catches.value
       .map((c) => ({ ...c, key: entryKey(c.source, c.external_id) }))
@@ -142,12 +142,11 @@ export function useCollection() {
       evolvedEntries.push({ species: e.species, shiny: src?.shiny ?? false, key: `evo:${i}` })
     })
     const consumed = new Set(s.evolutions.map((e) => e.fromKey ?? e.fromSha).filter(Boolean))
-    const available = [...claimedEntries, ...evolvedEntries]
+    return [...claimedEntries, ...evolvedEntries]
       .filter((c) => c.species === fromId && !consumed.has(c.key))
-    return available.find((c) => c.shiny) ?? available[0]
   }
 
-  async function evolve(fromId, toId, date) {
+  async function evolve(fromId, toId, specimenKey, date) {
     error.value = null
     const source = DEX[fromId]
     if (!source?.to) return
@@ -161,14 +160,17 @@ export function useCollection() {
         // Revalidation sur l'état reçu, et non sur l'état d'avant l'appel : `persist` rejoue
         // ce mutateur sur l'état frais après un conflit. Sans ce recalcul, deux appareils
         // dépensent les mêmes bonbons, ou évoluent le même dernier exemplaire, et l'un des
-        // deux devrait échouer plutôt que de passer en double.
+        // deux devrait échouer plutôt que de passer en double. Si la clé demandée n'est plus
+        // disponible sur l'état frais (déjà consommée par l'autre appareil), le mutateur
+        // devient sans objet — même traitement que des bonbons insuffisants, sans repli
+        // automatique sur un autre exemplaire.
         const claimedKeys = new Set(s.claimed)
         const earned = catches.value.filter(
           (c) => claimedKeys.has(entryKey(c.source, c.external_id)) && familyOf(c.species) === fam,
         ).length * CANDY_PER_CATCH
         if (earned - (s.spent[fam] ?? 0) < source.cost) return null
 
-        const picked = pickAvailable(fromId, s)
+        const picked = availableFor(fromId, s).find((c) => c.key === specimenKey)
         if (!picked) return null
 
         return {
