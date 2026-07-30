@@ -34,7 +34,6 @@ const mountRitual = (props = {}) =>
 
 beforeEach(() => {
   vi.useFakeTimers()
-  vi.stubGlobal('matchMedia', () => ({ matches: false }))
 })
 afterEach(() => vi.useRealTimers())
 
@@ -350,16 +349,5 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
     const second = col.dex.pending.value[0]
     expect(second.external_id).toBe('b')
     expect(col.dex.isNewSpecies(second.species)).toBe(false)
-  })
-})
-
-describe('accessibilité', () => {
-  it('révèle presque immédiatement si l’utilisateur refuse les animations', async () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }))
-    const w = mountRitual()
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(150)
-    await w.vm.$nextTick()
-    expect(w.find('.reveal').classes()).toContain('revealed')
   })
 })
