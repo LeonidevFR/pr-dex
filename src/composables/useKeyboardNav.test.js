@@ -5,16 +5,26 @@ import { useKeyboardNav } from './useKeyboardNav.js'
 
 // `attachTo` est indispensable : sans insertion dans le document, `document.activeElement`
 // reste `<body>` et la garde sur l'élément focalisé ne peut pas être testée.
-const host = (opts) =>
-  mount(
+const mounted = []
+const host = (opts) => {
+  const w = mount(
     { setup: () => useKeyboardNav(opts), template: '<button class="b">x</button>' },
     { attachTo: document.body },
   )
+  mounted.push(w)
+  return w
+}
 
 const press = (key, over = {}) =>
   window.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true, ...over }))
 
-afterEach(() => { document.body.innerHTML = '' })
+// Vider le corps de page ne démonte rien : sans `unmount`, l'écouteur `keydown` posé sur
+// `window` survit au test et la suite devient dépendante de l'ordre d'exécution.
+// `unmount` est idempotent — un test démonte déjà lui-même.
+afterEach(() => {
+  for (const w of mounted.splice(0)) w.unmount()
+  document.body.innerHTML = ''
+})
 
 const opts = (over = {}) => ({
   blocked: ref(false), onSpace: vi.fn(), onEscape: vi.fn(), ...over,
