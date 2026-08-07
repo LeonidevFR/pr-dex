@@ -21,10 +21,15 @@ export function useKeyboardNav({ blocked, onSpace, onEscape }) {
     if (e.key !== ' ') return
     if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
 
-    // L'événement est absorbé même sans action : il faut neutraliser le bouton resté
-    // focalisé DERRIÈRE l'overlay, sans quoi Espace ré-active « Ouvrir » et remet la
-    // file au premier pli.
-    if (blocked.value) { e.preventDefault(); return }
+    // Overlay ouvert : si son bouton principal a le focus, il faut laisser Espace
+    // l'activer nativement — c'est tout le mécanisme de la chaîne « Espace pour
+    // enchaîner ». Rien d'interactif focalisé (étape « silhouette » du rituel, qui ne
+    // focalise volontairement rien) : aucune activation n'est possible, on absorbe
+    // seulement pour empêcher la page de défiler derrière l'overlay.
+    if (blocked.value) {
+      if (!isInteractive(document.activeElement)) e.preventDefault()
+      return
+    }
 
     // Le focus prime : Espace sur un bouton doit activer ce bouton, pas ouvrir le deck.
     if (isInteractive(document.activeElement)) return

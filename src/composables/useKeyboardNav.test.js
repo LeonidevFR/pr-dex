@@ -53,13 +53,25 @@ describe('Espace', () => {
     expect(o.onSpace).not.toHaveBeenCalled()
   })
 
-  // Sans cette absorption, le bouton resté focalisé DERRIÈRE l'overlay se ré-active :
-  // « Ouvrir » remettrait la file au premier pli.
-  it('absorbe quand même l’événement pendant qu’un overlay est ouvert', () => {
+  // Rien n'a le focus (étape « silhouette » du rituel) : aucune activation native n'est
+  // possible, on absorbe uniquement pour empêcher la page de défiler derrière l'overlay.
+  it('absorbe l’événement quand un overlay est ouvert et que rien d’interactif n’a le focus', () => {
     host(opts({ blocked: ref(true) }))
     const e = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true })
     window.dispatchEvent(e)
     expect(e.defaultPrevented).toBe(true)
+  })
+
+  // Le bouton principal de l'overlay a le focus : son activation native est tout le
+  // mécanisme de la chaîne « Espace pour enchaîner ». L'absorber cassait la fonctionnalité
+  // (régression constatée en navigateur : plus rien ne répond après le premier Espace).
+  it('laisse l’activation native se faire quand un bouton a le focus, même overlay ouvert', () => {
+    const o = opts({ blocked: ref(true) }); const w = host(o)
+    w.find('.b').element.focus()
+    const e = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true })
+    window.dispatchEvent(e)
+    expect(e.defaultPrevented).toBe(false)
+    expect(o.onSpace).not.toHaveBeenCalled()
   })
 
   // Sinon Espace sur le bouton « filtrer » ouvrirait le deck au lieu de replier les filtres.
