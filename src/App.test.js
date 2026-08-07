@@ -69,6 +69,9 @@ describe('évolution', () => {
     await cellOf(w, CHENIPAN).trigger('click')
     expect(w.find('.evo-btn').exists()).toBe(true)
 
+    // Deux clics sur le même bouton : le premier ouvre le sélecteur d'exemplaire, le second
+    // confirme. Chenipan n'a qu'un exemplaire disponible, donc il est pré-coché.
+    await w.find('.evo-btn').trigger('click')
     await w.find('.evo-btn').trigger('click')
     await flushPromises()
 

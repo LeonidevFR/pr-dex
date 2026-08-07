@@ -15,7 +15,7 @@ const evo = (species, from, extra = {}) => ({
 const mountSheet = (props) =>
   mount(SpeciesSheet, {
     props: {
-      id: 1, entries: null, candies: 0, canEvolve: false, isDeadEnd: false,
+      id: 1, entries: null, available: [], candies: 0, canEvolve: false, isDeadEnd: false,
       caughtIds: new Set(), ...props,
     },
   })
@@ -119,10 +119,22 @@ describe('bonbons et évolution', () => {
     expect(w.find('.evo-btn').attributes('disabled')).toBeDefined()
   })
 
-  it('émet l’évolution demandée', async () => {
-    const w = mountSheet({ id: 1, entries: [capture('a', 1)], candies: 9, canEvolve: true })
+  it('affiche le sélecteur d’exemplaire au clic sur le bouton d’évolution', async () => {
+    const w = mountSheet({
+      id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
+    })
     await w.find('.evo-btn').trigger('click')
-    expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2 }])
+    expect(w.find('.picker-row').exists()).toBe(true)
+    expect(w.find('.evo-choices').exists()).toBe(false)
+  })
+
+  it('émet l’évolution avec l’exemplaire choisi après confirmation', async () => {
+    const w = mountSheet({
+      id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
+    })
+    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn').trigger('click') // le même bouton sert de « Confirmer » à l'étape 2
+    expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:a' }])
   })
 
   it('propose les trois évolutions d’Évoli', () => {
@@ -134,10 +146,13 @@ describe('bonbons et évolution', () => {
     expect(w.text()).toContain('Pyroli')
   })
 
-  it('émet le choix d’évolution d’Évoli', async () => {
-    const w = mountSheet({ id: 133, entries: [capture('a', 133)], candies: 9, canEvolve: true })
+  it('émet le choix d’évolution d’Évoli après confirmation', async () => {
+    const w = mountSheet({
+      id: 133, entries: [capture('a', 133)], available: [capture('a', 133)], candies: 9, canEvolve: true,
+    })
     await w.findAll('.evo-choice')[1].trigger('click')
-    expect(w.emitted('evolve')[0]).toEqual([{ from: 133, to: 135 }])
+    await w.find('.evo-btn').trigger('click')
+    expect(w.emitted('evolve')[0]).toEqual([{ from: 133, to: 135, key: 'github:a' }])
   })
 
   it('n’affiche aucune jauge pour une espèce terminale', () => {
@@ -148,6 +163,65 @@ describe('bonbons et évolution', () => {
   it('borne la jauge à 100 % au-delà du coût', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], candies: 40, canEvolve: true })
     expect(w.find('.cbar-fill').attributes('style')).toContain('width: 100%')
+  })
+})
+
+describe('sélection de l’exemplaire à évoluer', () => {
+  const shinyAndNot = [capture('a', 1), capture('b', 1, { shiny: true })]
+
+  it('pré-coche le chromatique par défaut', async () => {
+    const w = mountSheet({
+      id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
+    })
+    await w.find('.evo-btn').trigger('click')
+    const checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
+    expect(checked.element.value).toBe('github:b')
+  })
+
+  it('permet de choisir un autre exemplaire que celui pré-coché', async () => {
+    const w = mountSheet({
+      id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
+    })
+    await w.find('.evo-btn').trigger('click')
+    const radios = w.findAll('input[type=radio]')
+    await radios.find((i) => i.element.value === 'github:a').setValue()
+    await w.find('.evo-btn').trigger('click')
+    expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:a' }])
+  })
+
+  it('affiche le sélecteur même avec un seul exemplaire disponible', async () => {
+    const w = mountSheet({
+      id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
+    })
+    await w.find('.evo-btn').trigger('click')
+    expect(w.findAll('.picker-row')).toHaveLength(1)
+  })
+
+  it('annule la sélection sans émettre d’évolution', async () => {
+    const w = mountSheet({
+      id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
+    })
+    await w.find('.evo-btn').trigger('click')
+    await w.find('.cancel-btn').trigger('click')
+    expect(w.find('.picker-row').exists()).toBe(false)
+    expect(w.emitted('evolve')).toBeUndefined()
+  })
+
+  it('revalide la sélection si l’exemplaire choisi disparaît de la liste pendant que le picker est ouvert', async () => {
+    const ab = [capture('a', 1), capture('b', 1)]
+    const w = mountSheet({ id: 1, entries: ab, available: ab, candies: 9, canEvolve: true })
+    await w.find('.evo-btn').trigger('click')
+    // Pré-coché sur le premier disponible ('a', pas de chromatique ici).
+    let checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
+    expect(checked.element.value).toBe('github:a')
+
+    // L'autre appareil consomme 'a' entre-temps : un refresh() ne laisse plus que 'b'.
+    await w.setProps({ available: [capture('b', 1)] })
+    checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
+    expect(checked.element.value).toBe('github:b')
+
+    await w.find('.evo-btn').trigger('click')
+    expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:b' }])
   })
 })
 

@@ -152,4 +152,6 @@ for (const s of Object.values(DEX)) {
 
 export const TIER_LABEL = { c: 'Commun', u: 'Peu commun', r: 'Rare', l: 'Légendaire' }
 export const TIER_VAR = { c: 'var(--t-c)', u: 'var(--t-u)', r: 'var(--t-r)', l: 'var(--t-l)' }
+// Rayons laser multicolores (rare/légendaire uniquement) — cycle fixe, partagé entre les deux paliers.
+export const RAY_PALETTE = ['#e63946', '#457b9d', '#f4d35e', '#5c7a52', '#9b5de5']
 export const CANDY_PER_CATCH = 3

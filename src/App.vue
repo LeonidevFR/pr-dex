@@ -107,17 +107,18 @@ async function skipAll() {
   for (const e of rest) await collection.claim(e.key)
 }
 
-async function onEvolve({ from, to }) {
-  const shiny = collection.dex.bySpecies.value[from]?.some((e) => e.shiny) ?? false
+async function onEvolve({ from, to, key }) {
+  const shiny = collection.dex.availableEntries(from).find((e) => e.key === key)?.shiny ?? false
   // Figé avant l'écriture, pour la même raison que `ritualIsNew` plus haut : `evolve`
   // inscrit l'espèce cible au dex dès l'appel, donc une lecture après coup la dirait
   // toujours déjà rencontrée. Les bonbons suivent la règle inverse et se lisent au rendu,
   // après la dépense — d'où leur absence de cet instantané.
   const isNew = collection.dex.isNewSpecies(to)
   selected.value = null
-  await collection.evolve(from, to, new Date().toISOString().slice(0, 10))
-  // L'écriture a échoué : pas de cérémonie pour une évolution qui n'a pas eu lieu.
-  if (collection.error.value) return
+  const written = await collection.evolve(from, to, key, new Date().toISOString().slice(0, 10))
+  // L'écriture a échoué, ou n'a rien eu à faire (exemplaire déjà consommé ailleurs,
+  // bonbons insuffisants sur l'état frais) : pas de cérémonie pour une évolution qui n'a pas eu lieu.
+  if (!written || collection.error.value) return
   evoAnim.value = { from, to, shiny, isNew }
 }
 
@@ -186,6 +187,7 @@ useKeyboardNav({
       <SpeciesSheet
         v-if="selected" :id="selected"
         :entries="collection.dex.bySpecies.value[selected] ?? null"
+        :available="collection.dex.availableEntries(selected)"
         :copies="collection.dex.copyCount(selected)"
         :candies="collection.dex.candies(selected)"
         :can-evolve="collection.dex.canEvolve(selected)"

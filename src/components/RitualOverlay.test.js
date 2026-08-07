@@ -34,7 +34,6 @@ const mountRitual = (props = {}) =>
 
 beforeEach(() => {
   vi.useFakeTimers()
-  vi.stubGlobal('matchMedia', () => ({ matches: false }))
 })
 afterEach(() => vi.useRealTimers())
 
@@ -99,16 +98,37 @@ describe('ouverture', () => {
 })
 
 describe('échelle d’intensité', () => {
-  it('affiche des rayons dès le palier commun', async () => {
-    const w = mountRitual({ entry: entryOf({ species: 19 }) }) // Rattata, commun
-    await w.find('.packet').trigger('click')
-    expect(w.find('.rays').exists()).toBe(true)
+  it('affiche le nombre de rayons attendu par palier', async () => {
+    const layerCount = async (species) => {
+      const w = mountRitual({ entry: entryOf({ species }) })
+      await w.find('.packet').trigger('click')
+      return w.findAll('.ray-layer').length
+    }
+    expect(await layerCount(19)).toBe(3)   // commun (Rattata)
+    expect(await layerCount(20)).toBe(4)   // peu commun (Rattatac)
+    expect(await layerCount(1)).toBe(5)    // rare (Bulbizarre)
+    expect(await layerCount(144)).toBe(6)  // légendaire (Artikodin)
   })
 
-  it('affiche des rayons dès le palier peu commun', async () => {
-    const w = mountRitual({ entry: entryOf({ species: 20 }) }) // Rattatac, peu commun
+  it('garde la couleur unique du palier pour commun et peu commun', async () => {
+    const w = mountRitual({ entry: entryOf({ species: 20 }) }) // peu commun
     await w.find('.packet').trigger('click')
-    expect(w.find('.rays').exists()).toBe(true)
+    const layers = w.findAll('.ray-layer')
+    expect(layers).toHaveLength(4)
+    for (const layer of layers) {
+      expect(layer.attributes('style')).toContain('--ray-color: var(--t-u)')
+    }
+  })
+
+  it('cycle sur la palette multicolore pour rare et légendaire', async () => {
+    const palette = ['#e63946', '#457b9d', '#f4d35e', '#5c7a52', '#9b5de5']
+    const w = mountRitual({ entry: entryOf({ species: 144 }) }) // légendaire, 6 couches
+    await w.find('.packet').trigger('click')
+    const layers = w.findAll('.ray-layer')
+    expect(layers).toHaveLength(6)
+    layers.forEach((layer, i) => {
+      expect(layer.attributes('style')).toContain(`--ray-color: ${palette[i % palette.length]}`)
+    })
   })
 
   it('monte le halo avec le palier', async () => {
@@ -130,17 +150,6 @@ describe('échelle d’intensité', () => {
     vi.advanceTimersByTime(2800)
     await w.vm.$nextTick()
     expect(w.find('.reveal-banner').text()).toContain('Légendaire')
-  })
-
-  it('ajoute un second rayon contre-rotatif pour rare et légendaire, pas pour peu commun', async () => {
-    const rays = async (species) => {
-      const w = mountRitual({ entry: entryOf({ species }) })
-      await w.find('.packet').trigger('click')
-      return w.findAll('.rays-alt')
-    }
-    expect(await rays(20)).toHaveLength(0)  // peu commun
-    expect(await rays(1)).toHaveLength(1)   // rare
-    expect(await rays(144)).toHaveLength(1) // légendaire
   })
 
   it('déclenche la salve de particules sur un rare ou un légendaire, même sans chromatique', async () => {
@@ -350,17 +359,6 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
     const second = col.dex.pending.value[0]
     expect(second.external_id).toBe('b')
     expect(col.dex.isNewSpecies(second.species)).toBe(false)
-  })
-})
-
-describe('accessibilité', () => {
-  it('révèle presque immédiatement si l’utilisateur refuse les animations', async () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }))
-    const w = mountRitual()
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(150)
-    await w.vm.$nextTick()
-    expect(w.find('.reveal').classes()).toContain('revealed')
   })
 })
 

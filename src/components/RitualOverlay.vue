@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { DEX, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
+import { DEX, TIER_LABEL, TIER_VAR, RAY_PALETTE, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import { fnv1a } from '../../shared/draw.js'
 import { spriteUrl } from '../lib/sprites.js'
 
@@ -22,6 +22,38 @@ const INTENSITY = {
   u: { rayop: 0.18, glow: '16px', flashscale: 3.2, rayspeed: '6s' },
   r: { rayop: 0.42, glow: '38px', flashscale: 5.2, rayspeed: '3.2s' },
   l: { rayop: 0.65, glow: '66px', flashscale: 7.5, rayspeed: '1.8s' },
+}
+
+const RAY_LAYER_COUNT = { c: 3, u: 4, r: 5, l: 6 }
+const MULTICOLOR_TIERS = new Set(['r', 'l'])
+// Vitesses et pas de wedge décorrélés de l'index pour éviter que les couches se superposent
+// à l'identique (lisible comme "un seul disque plus épais" plutôt que plusieurs rayons).
+const SPEED_MULTIPLIERS = [1, 0.8, 1.3, 0.65, 1.15, 0.9]
+
+const rayLayers = computed(() => {
+  const count = RAY_LAYER_COUNT[tier.value]
+  const multicolor = MULTICOLOR_TIERS.has(tier.value)
+  const baseColor = TIER_VAR[tier.value]
+  return Array.from({ length: count }, (_, i) => ({
+    key: i,
+    color: multicolor ? RAY_PALETTE[i % RAY_PALETTE.length] : baseColor,
+    direction: i % 2 === 0 ? 'normal' : 'reverse',
+    speedMultiplier: SPEED_MULTIPLIERS[i % SPEED_MULTIPLIERS.length],
+    wedgeDeg: Math.max(20 - i * 2.5, 6),
+    opacityFactor: Math.max(1 - i * 0.12, 0.4),
+    fromDeg: (i * 360) / count,
+  }))
+})
+
+function rayLayerStyle(layer) {
+  return {
+    '--ray-color': layer.color,
+    '--ray-wedge': layer.wedgeDeg + 'deg',
+    '--ray-opacity-factor': layer.opacityFactor,
+    '--ray-from': layer.fromDeg + 'deg',
+    animationDuration: `calc(var(--rayspeed) * ${layer.speedMultiplier}), .8s`,
+    animationDirection: `${layer.direction}, normal`,
+  }
 }
 
 const stage = ref('sealed') // sealed → silhouette → revealed
@@ -59,8 +91,7 @@ function tear() {
   // reste dans `pending` — il réapparaît à la prochaine ouverture. C'est le comportement
   // voulu : ne pas avaler l'échec en gardant la révélation silencieuse sur son sort réel.
   emit('claim', props.entry.key)
-  const reduced = window.matchMedia('(prefers-reduced-motion:reduce)').matches
-  const hold = reduced ? 150 : (tier.value === 'l' ? 2800 : 2200)
+  const hold = tier.value === 'l' ? 2800 : 2200
   timer = setTimeout(() => { stage.value = 'revealed' }, hold)
 }
 
@@ -76,6 +107,9 @@ const nextEl = ref(null)
  *
  * L'étape `silhouette` ne focalise rien, volontairement : l'attente fait partie du rituel et
  * ne doit pas pouvoir être escamotée d'un Espace pressé trop tôt.
+ *
+ * Le focus initial passe par `onMounted` plutôt que par un `watch` en `immediate` : ce dernier
+ * s'exécute pendant le `setup`, avant que la référence de template ne soit renseignée.
  */
 onMounted(() => packetEl.value?.focus())
 watch(stage, async (s) => {
@@ -110,8 +144,10 @@ watch(stage, async (s) => {
 
     <template v-else>
       <div class="reveal" :class="stage">
-        <div class="rays"></div>
-        <div v-if="tier === 'r' || tier === 'l'" class="rays rays-alt"></div>
+        <div
+          v-for="layer in rayLayers" :key="layer.key" class="ray-layer"
+          :style="rayLayerStyle(layer)"
+        ></div>
         <div v-if="stage === 'silhouette'" class="dev-ring"></div>
         <div v-if="stage === 'revealed'" class="flash"></div>
         <img

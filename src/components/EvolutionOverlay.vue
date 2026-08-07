@@ -25,12 +25,14 @@ let focusTimer = null
 
 // Aligné sur le retard d'apparition de `.evo-cap` dans styles.css (fadeUp … 2.4s) : donner
 // le focus avant la fin de la cérémonie permettrait de l'escamoter d'un Espace pressé trop tôt.
+//
+// Le délai ne consulte pas `prefers-reduced-motion`, comme le rituel depuis ac68ba4 : des
+// postes le forcent (réglage caché, profil durci) alors que la cérémonie, elle, joue quand
+// même. Raccourcir le focus sur ce signal rendrait le bouton activable pendant une animation
+// bien visible — l'Espace suivant l'escamoterait.
 const CAP_DELAY = 2400
 
-onMounted(() => {
-  const reduced = window.matchMedia('(prefers-reduced-motion:reduce)').matches
-  focusTimer = setTimeout(() => nextEl.value?.focus(), reduced ? 0 : CAP_DELAY)
-})
+onMounted(() => { focusTimer = setTimeout(() => nextEl.value?.focus(), CAP_DELAY) })
 onUnmounted(() => clearTimeout(focusTimer))
 </script>
 

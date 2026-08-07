@@ -138,7 +138,7 @@ describe('intégration — App.vue ne doit pas lire la nouveauté après l’éc
     const isNew = col.dex.isNewSpecies(2) // figé comme dans App.vue, AVANT l'écriture
     expect(isNew).toBe(true)
 
-    await col.evolve(1, 2, '2026-08-07')
+    await col.evolve(1, 2, col.dex.availableEntries(1)[0].key, '2026-08-07')
     expect(col.error.value).toBe(null)
     expect(col.dex.isNewSpecies(2)).toBe(false) // l'écriture l'a déjà inscrite
 
@@ -149,7 +149,7 @@ describe('intégration — App.vue ne doit pas lire la nouveauté après l’éc
   it('affiche le solde de bonbons d’après la dépense', async () => {
     const col = await loadedCollection()
     expect(col.dex.candies(1)).toBe(9)
-    await col.evolve(1, 2, '2026-08-07')
+    await col.evolve(1, 2, col.dex.availableEntries(1)[0].key, '2026-08-07')
 
     const w = mountEvo({ from: 1, to: 2, candies: col.dex.candies(2) })
     expect(col.dex.candies(2)).toBe(1) // 9 gagnés − 8 dépensés
@@ -179,10 +179,17 @@ describe('focus clavier', () => {
     expect(document.activeElement).toBe(w.find('.next-btn').element)
   })
 
-  it('focalise sans attendre si l’utilisateur refuse les animations', async () => {
+  // Des postes forcent prefers-reduced-motion sans que l'utilisateur l'ait demandé, et la
+  // cérémonie joue quand même depuis ac68ba4 : raccourcir le focus sur ce signal rendrait le
+  // bouton activable pendant une animation bien visible.
+  it('attend la cérémonie même quand le système demande de réduire les animations', async () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true }))
     const w = mountAttached()
     vi.advanceTimersByTime(0)
+    await w.vm.$nextTick()
+    expect(document.activeElement).toBe(document.body)
+
+    vi.advanceTimersByTime(2400)
     await w.vm.$nextTick()
     expect(document.activeElement).toBe(w.find('.next-btn').element)
   })
