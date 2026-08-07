@@ -293,6 +293,28 @@ describe('lignée', () => {
   })
 })
 
+describe('types', () => {
+  it('affiche les deux types d’une espèce capturée', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
+    expect(w.findAll('.type-chip').map((c) => c.text())).toEqual(['Plante', 'Poison'])
+  })
+
+  it('affiche le type unique d’une espèce mono-type', () => {
+    const w = mountSheet({ id: 4, entries: [capture('a', 4)], caughtIds: new Set([4]) })
+    expect(w.findAll('.type-chip').map((c) => c.text())).toEqual(['Feu'])
+  })
+
+  it('teinte chaque pastille par l’identifiant du type', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
+    expect(w.findAll('.type-chip')[0].attributes('style')).toContain('--type-grass')
+  })
+
+  // Cohérent avec le nom déjà masqué : une silhouette ne divulgue rien.
+  it('se tait sur une espèce jamais capturée', () => {
+    expect(mountSheet({ id: 1, entries: null }).findAll('.type-chip')).toHaveLength(0)
+  })
+})
+
 describe('fermeture', () => {
   it('émet close au bouton', async () => {
     const w = mountSheet({ id: 1 })

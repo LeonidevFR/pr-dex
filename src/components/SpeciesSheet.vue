@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
+import SPECIES_INFO from '../../shared/species-info.json'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -31,6 +32,7 @@ const pad = (n) => String(n).padStart(3, '0')
 const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 0)
 const line = computed(() => familyLine(props.id))
 const seen = (id) => props.caughtIds.has(id)
+const info = computed(() => SPECIES_INFO[props.id] ?? null)
 </script>
 
 <template>
@@ -51,6 +53,10 @@ const seen = (id) => props.caughtIds.has(id)
           <h2 class="panel-name">{{ caught ? species.name : '—————' }}</h2>
           <span class="chip">{{ TIER_LABEL[species.tier] }}</span>
           <span v-if="shiny" class="chip shiny-chip" style="margin-left:6px">✦ Chromatique</span>
+          <span
+            v-for="t in (caught ? info?.types ?? [] : [])" :key="t.slug"
+            class="type-chip" :style="{ '--type': `var(--type-${t.slug})` }"
+          >{{ t.name }}</span>
         </div>
       </div>
 

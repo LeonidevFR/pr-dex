@@ -17,6 +17,15 @@
     --t-r:#9e3b2e;   /* rare       — tampon  */
     --t-l:#b8862b;   /* légendaire — ocre    */
 
+    /* Teintes de type désaturées vers la palette parchemin : les couleurs standard
+       (jaune Électrik, rose Fée) jureraient avec les ocres du reste de l'interface. */
+    --type-normal:#8a8175;   --type-fire:#a8552f;     --type-water:#4f6f8a;
+    --type-electric:#a8862b; --type-grass:#5c7a52;    --type-ice:#6f8a8a;
+    --type-fighting:#8a4a3a; --type-poison:#6f5480;   --type-ground:#8a7550;
+    --type-flying:#7a7f96;   --type-psychic:#96566a;  --type-bug:#75824a;
+    --type-rock:#7d7256;     --type-ghost:#5f5570;    --type-dragon:#5b5a91;
+    --type-dark:#544c46;     --type-steel:#7c8086;    --type-fairy:#9a6478;
+
     --f-display:"IBM Plex Serif", Georgia, serif;
     --f-label:"IBM Plex Sans Condensed", "Helvetica Neue", sans-serif;
     --f-data:"IBM Plex Mono", ui-monospace, monospace;
@@ -187,6 +196,11 @@
   .chip{display:inline-block;font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:4px 9px;border:1px solid var(--tier);color:var(--tier);background:rgba(255,255,255,.25)}
   .chip.shiny-chip{border-color:var(--ochre);color:var(--ochre)}
   .chip.new-chip{border-color:var(--herb);color:var(--herb)}
+  .type-chip{
+    display:inline-block;margin-left:6px;
+    font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    padding:4px 9px;border:1px solid var(--type);color:var(--type);background:rgba(255,255,255,.25);
+  }
   .x{position:absolute;right:16px;top:14px;background:none;border:0;color:var(--ink-3);font-family:var(--f-data);font-size:16px;cursor:pointer;padding:6px;line-height:1}
   .x:hover{color:var(--ink)}
 
