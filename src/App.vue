@@ -10,6 +10,7 @@ import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
+import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
 const collection = useCollection()
@@ -35,6 +36,8 @@ const copiesById = computed(() => {
   for (const id of Object.keys(collection.dex.bySpecies.value)) map[id] = collection.dex.copyCount(Number(id))
   return map
 })
+
+const caughtIds = computed(() => new Set(Object.keys(collection.dex.bySpecies.value).map(Number)))
 
 async function connectSession(s) {
   connecting.value = true
@@ -106,18 +109,54 @@ async function skipAll() {
 
 async function onEvolve({ from, to, key }) {
   const shiny = collection.dex.availableEntries(from).find((e) => e.key === key)?.shiny ?? false
+  // Figé avant l'écriture, pour la même raison que `ritualIsNew` plus haut : `evolve`
+  // inscrit l'espèce cible au dex dès l'appel, donc une lecture après coup la dirait
+  // toujours déjà rencontrée. Les bonbons suivent la règle inverse et se lisent au rendu,
+  // après la dépense — d'où leur absence de cet instantané.
+  const isNew = collection.dex.isNewSpecies(to)
   selected.value = null
   const written = await collection.evolve(from, to, key, new Date().toISOString().slice(0, 10))
   // L'écriture a échoué, ou n'a rien eu à faire (exemplaire déjà consommé ailleurs,
   // bonbons insuffisants sur l'état frais) : pas de cérémonie pour une évolution qui n'a pas eu lieu.
   if (!written || collection.error.value) return
-  evoAnim.value = { from, to, shiny }
+  evoAnim.value = { from, to, shiny, isNew }
 }
 
 function finishEvo() {
   selected.value = evoAnim.value.to
   evoAnim.value = null
 }
+
+const overlayOpen = computed(() =>
+  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value),
+)
+
+// Priorité calquée sur l'empilement visuel donné par les z-index de styles.css :
+// évolution (70), rituel (60), puis réglages et fiche (40). Fermer le rituel conserve
+// les plis restants, comme le fait déjà sa croix.
+function closeTopOverlay() {
+  if (evoAnim.value) finishEvo()
+  else if (ritualEntry.value) ritualEntry.value = null
+  else if (settingsOpen.value) settingsOpen.value = false
+  else if (selected.value) selected.value = null
+  else return
+
+  // La fiche et les réglages n'ont pas de discipline de focus : leur déclencheur (la case de la
+  // planche, le bouton ⚙) garde le focus derrière le scrim. Sans ce retour au repos, l'Espace
+  // suivant l'active nativement et rouvre ce qu'Échap vient de fermer — Échap/Espace boucle et
+  // la chaîne « tout faire à la touche Espace » devient inatteignable sans reprendre la souris.
+  // Focaliser la croix de fermeture serait pire : Espace refermerait alors la fiche, alors que
+  // la spécification veut qu'il n'y fasse rien.
+  document.activeElement?.blur()
+}
+
+useKeyboardNav({
+  blocked: overlayOpen,
+  // Seul état sans bouton principal à focaliser : la home au repos. `openRitual` laisse
+  // `ritualEntry` à null quand la file est vide — rien à cas-particulariser ici.
+  onSpace: openRitual,
+  onEscape: closeTopOverlay,
+})
 </script>
 
 <template>
@@ -153,6 +192,7 @@ function finishEvo() {
         :candies="collection.dex.candies(selected)"
         :can-evolve="collection.dex.canEvolve(selected)"
         :is-dead-end="collection.dex.isDeadEnd(selected)"
+        :caught-ids="caughtIds"
         @close="selected = null" @evolve="onEvolve"
       />
     </transition>
@@ -168,7 +208,8 @@ function finishEvo() {
 
     <transition name="fade">
       <EvolutionOverlay
-        v-if="evoAnim" :from="evoAnim.from" :to="evoAnim.to" :shiny="evoAnim.shiny" @done="finishEvo"
+        v-if="evoAnim" :from="evoAnim.from" :to="evoAnim.to" :shiny="evoAnim.shiny"
+        :is-new="evoAnim.isNew" :candies="collection.dex.candies(evoAnim.to)" @done="finishEvo"
       />
     </transition>
 

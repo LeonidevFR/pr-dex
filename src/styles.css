@@ -17,6 +17,15 @@
     --t-r:#9e3b2e;   /* rare       — tampon  */
     --t-l:#b8862b;   /* légendaire — ocre    */
 
+    /* Teintes de type désaturées vers la palette parchemin : les couleurs standard
+       (jaune Électrik, rose Fée) jureraient avec les ocres du reste de l'interface. */
+    --type-normal:#8a8175;   --type-fire:#a8552f;     --type-water:#4f6f8a;
+    --type-electric:#a8862b; --type-grass:#5c7a52;    --type-ice:#6f8a8a;
+    --type-fighting:#8a4a3a; --type-poison:#6f5480;   --type-ground:#8a7550;
+    --type-flying:#7a7f96;   --type-psychic:#96566a;  --type-bug:#75824a;
+    --type-rock:#7d7256;     --type-ghost:#5f5570;    --type-dragon:#5b5a91;
+    --type-dark:#544c46;     --type-steel:#7c8086;    --type-fairy:#9a6478;
+
     --f-display:"IBM Plex Serif", Georgia, serif;
     --f-label:"IBM Plex Sans Condensed", "Helvetica Neue", sans-serif;
     --f-data:"IBM Plex Mono", ui-monospace, monospace;
@@ -187,6 +196,11 @@
   .chip{display:inline-block;font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:4px 9px;border:1px solid var(--tier);color:var(--tier);background:rgba(255,255,255,.25)}
   .chip.shiny-chip{border-color:var(--ochre);color:var(--ochre)}
   .chip.new-chip{border-color:var(--herb);color:var(--herb)}
+  .type-chip{
+    display:inline-block;margin-left:6px;
+    font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    padding:4px 9px;border:1px solid var(--type);color:var(--type);background:rgba(255,255,255,.25);
+  }
   .x{position:absolute;right:16px;top:14px;background:none;border:0;color:var(--ink-3);font-family:var(--f-data);font-size:16px;cursor:pointer;padding:6px;line-height:1}
   .x:hover{color:var(--ink)}
 
@@ -194,6 +208,11 @@
   .sect:last-child{border-bottom:0}
   .sect-h{margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline}
   .copies-count{font-size:11px;font-weight:700;color:var(--paper);background:var(--stamp);border-radius:9px;padding:2px 8px}
+
+  .dexnote{
+    font-family:var(--f-display);font-size:14px;font-style:italic;line-height:1.6;color:var(--ink-2);
+    padding-left:14px;border-left:2px solid var(--rule);
+  }
 
   .log{display:flex;flex-direction:column}
   .log-row{display:flex;gap:13px;align-items:baseline;padding:10px 0;border-bottom:1px solid rgba(179,161,121,.4)}
@@ -204,6 +223,21 @@
   .log-repo{font-family:var(--f-data);font-size:11px;color:var(--ink-3)}
   .log-date{font-family:var(--f-data);font-size:10px;color:var(--ink-3);flex-shrink:0}
   .log-evo{font-family:var(--f-data);font-size:11px;color:var(--ochre);flex-shrink:0}
+
+  .line{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
+  .line-step{display:flex;gap:8px;flex-wrap:wrap}
+  .line-cell{
+    width:80px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;
+    background:var(--plate);box-shadow:inset 0 0 0 1px var(--rule);
+  }
+  .line-cell.here{box-shadow:inset 0 0 0 2px var(--tier)}
+  .line-cell img{width:48px;height:48px;object-fit:contain}
+  .line-cell.unseen img{filter:brightness(0) invert(.5) contrast(.85);opacity:.5}
+  .line-name{font-family:var(--f-label);font-size:10px;font-weight:600;color:var(--ink-2);text-align:center;line-height:1.25}
+  .line-here{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--stamp)}
+  .line-arrow{display:flex;flex-direction:column;align-items:center;gap:1px;padding-top:24px;font-size:11px;color:var(--ink-3)}
+  .line-cost{font-size:10px}
+  .line-cost::after{content:" 🍬"}
 
   .candy{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
   .candy-meter{flex:1;min-width:150px}

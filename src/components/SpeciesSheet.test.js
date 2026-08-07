@@ -14,7 +14,10 @@ const evo = (species, from, extra = {}) => ({
 
 const mountSheet = (props) =>
   mount(SpeciesSheet, {
-    props: { id: 1, entries: null, available: [], candies: 0, canEvolve: false, isDeadEnd: false, ...props },
+    props: {
+      id: 1, entries: null, available: [], candies: 0, canEvolve: false, isDeadEnd: false,
+      caughtIds: new Set(), ...props,
+    },
   })
 
 describe('espèce non capturée', () => {
@@ -313,6 +316,86 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
   })
 })
 
+describe('lignée', () => {
+  const withLine = (id, caughtIds) =>
+    mountSheet({ id, entries: [capture('a', id)], caughtIds: new Set(caughtIds) })
+
+  it('déplie les trois étages d’une lignée droite', () => {
+    const w = withLine(2, [1, 2])
+    expect(w.findAll('.line-cell')).toHaveLength(3)
+  })
+
+  it('marque l’étape courante', () => {
+    const w = withLine(2, [1, 2])
+    const here = w.findAll('.line-cell').filter((c) => c.classes().includes('here'))
+    expect(here).toHaveLength(1)
+    expect(here[0].text()).toContain('Herbizarre')
+  })
+
+  // La lignée nomme ses étapes, y compris celles jamais rencontrées : c'est ce qui permet
+  // de savoir vers quoi on avance. Ce n'est pas une divulgation — le bouton d'évolution
+  // nomme déjà la cible deux sections plus bas, on ne peut pas évoluer à l'aveugle.
+  it('nomme les étapes jamais rencontrées', () => {
+    const w = withLine(2, [1, 2])
+    const unseen = w.findAll('.line-cell').filter((c) => c.classes().includes('unseen'))
+    expect(unseen).toHaveLength(1)
+    expect(unseen[0].text()).toContain('Florizarre')
+  })
+
+  // Le sprite, lui, reste caché : c'est la découverte visuelle qui fait le moment de jeu,
+  // pas le nom. La classe porte le filtre de silhouette, le même que celui du rituel.
+  it('garde le sprite d’une étape jamais rencontrée en silhouette', () => {
+    const w = withLine(2, [1, 2])
+    const unseen = w.findAll('.line-cell').filter((c) => c.classes().includes('unseen'))
+    expect(unseen[0].find('img').attributes('alt')).toBe('Florizarre, jamais rencontré')
+  })
+
+  it('porte le coût en bonbons sur chaque flèche', () => {
+    const w = withLine(2, [1, 2])
+    const costs = w.findAll('.line-cost').map((c) => c.text())
+    expect(costs).toEqual(['8', '16']) // Bulbizarre → Herbizarre → Florizarre
+  })
+
+  it('range les trois évolutions d’Évoli sur un même étage', () => {
+    const w = withLine(133, [133])
+    expect(w.findAll('.line-cell')).toHaveLength(4)
+    expect(w.findAll('.line-step')).toHaveLength(2)
+    expect(w.findAll('.line-arrow')).toHaveLength(1)
+  })
+
+  // Une lignée d'une seule case n'apprend rien.
+  it('se tait pour une famille solitaire', () => {
+    expect(withLine(95, [95]).find('.line').exists()).toBe(false)
+  })
+
+  it('se tait sur une espèce jamais capturée', () => {
+    const w = mountSheet({ id: 2, entries: null, caughtIds: new Set([1]) })
+    expect(w.find('.line').exists()).toBe(false)
+  })
+})
+
+describe('types', () => {
+  it('affiche les deux types d’une espèce capturée', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
+    expect(w.findAll('.type-chip').map((c) => c.text())).toEqual(['Plante', 'Poison'])
+  })
+
+  it('affiche le type unique d’une espèce mono-type', () => {
+    const w = mountSheet({ id: 4, entries: [capture('a', 4)], caughtIds: new Set([4]) })
+    expect(w.findAll('.type-chip').map((c) => c.text())).toEqual(['Feu'])
+  })
+
+  it('teinte chaque pastille par l’identifiant du type', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
+    expect(w.findAll('.type-chip')[0].attributes('style')).toContain('--type-grass')
+  })
+
+  // Cohérent avec le nom déjà masqué : une silhouette ne divulgue rien.
+  it('se tait sur une espèce jamais capturée', () => {
+    expect(mountSheet({ id: 1, entries: null }).findAll('.type-chip')).toHaveLength(0)
+  })
+})
+
 describe('fermeture', () => {
   it('émet close au bouton', async () => {
     const w = mountSheet({ id: 1 })
@@ -324,5 +407,22 @@ describe('fermeture', () => {
     const w = mountSheet({ id: 1 })
     await w.find('.scrim').trigger('click')
     expect(w.emitted('close')).toBeTruthy()
+  })
+})
+
+describe('notice', () => {
+  it('affiche le texte de Pokédex d’une espèce capturée', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
+    expect(w.find('.dexnote').text().length).toBeGreaterThan(10)
+  })
+
+  it('se tait sur une espèce jamais capturée', () => {
+    expect(mountSheet({ id: 1, entries: null }).find('.dexnote').exists()).toBe(false)
+  })
+
+  it('est la dernière section du panneau', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
+    const sections = w.findAll('.sect')
+    expect(sections[sections.length - 1].find('.dexnote').exists()).toBe(true)
   })
 })

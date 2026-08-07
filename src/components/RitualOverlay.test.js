@@ -361,3 +361,34 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
     expect(col.dex.isNewSpecies(second.species)).toBe(false)
   })
 })
+
+describe('focus clavier', () => {
+  // Monté dans le document : `document.activeElement` ne bouge pas sur un arbre détaché.
+  const mountAttached = (props = {}) =>
+    mount(RitualOverlay, { props: { entry: entryOf(), remaining: 1, ...props }, attachTo: document.body })
+
+  afterEach(() => { document.body.innerHTML = '' })
+
+  it('pose le focus sur le pli à l’ouverture', () => {
+    const w = mountAttached()
+    expect(document.activeElement).toBe(w.find('.packet').element)
+  })
+
+  it('pose le focus sur le bouton suivant une fois révélé', async () => {
+    const w = mountAttached()
+    await w.find('.packet').trigger('click')
+    vi.advanceTimersByTime(2200)
+    await w.vm.$nextTick()
+    await w.vm.$nextTick()
+    expect(document.activeElement).toBe(w.find('.next-btn').element)
+  })
+
+  // L'attente fait partie du rituel : rien à focaliser, donc Espace n'a rien à activer.
+  it('ne focalise rien pendant la silhouette', async () => {
+    const w = mountAttached()
+    await w.find('.packet').trigger('click')
+    await w.vm.$nextTick()
+    expect(w.find('.reveal').classes()).toContain('silhouette')
+    expect(document.activeElement).toBe(document.body)
+  })
+})

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SPECIES, DEX, PARENT, POOL, NOT_DRAWABLE, familyOf, hasEvoInFamily } from './species.js'
+import { SPECIES, DEX, PARENT, POOL, NOT_DRAWABLE, familyOf, hasEvoInFamily, familyLine } from './species.js'
 
 describe('table des espèces', () => {
   it('contient exactement les 151 de la première génération', () => {
@@ -116,6 +116,50 @@ describe('table des espèces', () => {
     for (const s of Object.values(DEX)) {
       if (s.to) expect(s.cost).toBeGreaterThan(0)
       else expect(s.cost).toBeNull()
+    }
+  })
+})
+
+describe('familyLine', () => {
+  it('déplie une lignée droite à trois étages', () => {
+    expect(familyLine(2)).toEqual([[1], [2], [3]])
+  })
+
+  it('déplie une lignée à deux étages', () => {
+    expect(familyLine(129)).toEqual([[129], [130]])
+  })
+
+  it('rend une famille solitaire comme un unique étage', () => {
+    expect(familyLine(95)).toEqual([[95]]) // Onix
+  })
+
+  // Le format en étages est justement ce qui permet de rendre l'éventail et la ligne
+  // droite avec le même code d'affichage.
+  it('met les trois évolutions d’Évoli sur le même étage', () => {
+    expect(familyLine(133)).toEqual([[133], [134, 135, 136]])
+  })
+
+  it('donne le même résultat quel que soit le membre interrogé', () => {
+    const expected = [[133], [134, 135, 136]]
+    for (const id of [133, 134, 135, 136]) expect(familyLine(id)).toEqual(expected)
+  })
+
+  it('contient toujours l’espèce interrogée, pour les 151', () => {
+    for (const [id] of SPECIES) {
+      expect(familyLine(id).flat()).toContain(id)
+    }
+  })
+
+  it('reste cohérente avec familyOf sur les 151', () => {
+    for (const [id] of SPECIES) {
+      expect(familyLine(id)[0]).toEqual([familyOf(id)])
+    }
+  })
+
+  it('ne produit jamais de doublon', () => {
+    for (const [id] of SPECIES) {
+      const flat = familyLine(id).flat()
+      expect(new Set(flat).size).toBe(flat.length)
     }
   })
 })

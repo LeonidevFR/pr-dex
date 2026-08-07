@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
+import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
+import SPECIES_INFO from '../../shared/species-info.json'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -12,6 +13,9 @@ const props = defineProps({
   candies: { type: Number, required: true },
   canEvolve: { type: Boolean, required: true },
   isDeadEnd: { type: Boolean, required: true },
+  // Ensemble des espèces déjà à la planche : la lignée doit savoir lesquelles de ses étapes
+  // ont été vues, information qu'`entries` (limité à l'espèce courante) ne porte pas.
+  caughtIds: { type: Set, default: () => new Set() },
   // Exemplaires consommables par une évolution, chacun avec sa `key` et son statut `shiny` —
   // sert au sélecteur, distinct de `entries` qui garde tout le journal (y compris consommé).
   available: { type: Array, default: () => [] },
@@ -64,6 +68,9 @@ const targets = computed(() => {
 })
 const pad = (n) => String(n).padStart(3, '0')
 const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 0)
+const line = computed(() => familyLine(props.id))
+const seen = (id) => props.caughtIds.has(id)
+const info = computed(() => SPECIES_INFO[props.id] ?? null)
 </script>
 
 <template>
@@ -84,6 +91,10 @@ const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 
           <h2 class="panel-name">{{ caught ? species.name : '—————' }}</h2>
           <span class="chip">{{ TIER_LABEL[species.tier] }}</span>
           <span v-if="shiny" class="chip shiny-chip" style="margin-left:6px">✦ Chromatique</span>
+          <span
+            v-for="t in (caught ? info?.types ?? [] : [])" :key="t.slug"
+            class="type-chip" :style="{ '--type': `var(--type-${t.slug})` }"
+          >{{ t.name }}</span>
         </div>
       </div>
 
@@ -92,6 +103,28 @@ const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 
           Pas encore à la planche. Sortira d'une capture<template v-if="PARENT[id]">, ou d'une évolution de
           <b>{{ DEX[PARENT[id]].name }}</b></template>.
         </p>
+      </div>
+
+      <div v-if="caught && line.length > 1" class="sect">
+        <div class="eyebrow sect-h"><span>Lignée</span></div>
+        <div class="line">
+          <template v-for="(step, i) in line" :key="i">
+            <div v-if="i" class="line-arrow mono" aria-hidden="true">
+              <span>▶</span><span class="line-cost">{{ DEX[line[i - 1][0]].cost }}</span>
+            </div>
+            <div class="line-step">
+              <div
+                v-for="s in step" :key="s" class="line-cell"
+                :class="{ here: s === id, unseen: !seen(s) }"
+                :style="{ '--tier': TIER_VAR[DEX[s].tier] }"
+              >
+                <img :src="spriteUrl(s)" :alt="seen(s) ? DEX[s].name : DEX[s].name + ', jamais rencontré'">
+                <span class="line-name">{{ DEX[s].name }}</span>
+                <span v-if="s === id" class="line-here mono">ici</span>
+              </div>
+            </div>
+          </template>
+        </div>
       </div>
 
       <div v-if="caught" class="sect">
@@ -199,6 +232,11 @@ const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 
             <div class="press"><span v-for="n in Math.min(entries.length, 12)" :key="n">{{ pad(id) }}</span></div>
           </div>
         </div>
+      </div>
+
+      <div v-if="caught && info" class="sect">
+        <div class="eyebrow sect-h"><span>Notice</span></div>
+        <blockquote class="dexnote">{{ info.text }}</blockquote>
       </div>
     </div>
 

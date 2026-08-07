@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR, RAY_PALETTE, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import { fnv1a } from '../../shared/draw.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -96,6 +96,26 @@ function tear() {
 }
 
 onUnmounted(() => clearTimeout(timer))
+
+const packetEl = ref(null)
+const nextEl = ref(null)
+
+/**
+ * Le focus part sur l'action principale de l'étape courante, et Espace agit alors nativement.
+ * Cela corrige au passage un vrai trou d'accessibilité : sans ça, le focus reste sur le bouton
+ * « Ouvrir » de TheRail, DERRIÈRE l'overlay.
+ *
+ * L'étape `silhouette` ne focalise rien, volontairement : l'attente fait partie du rituel et
+ * ne doit pas pouvoir être escamotée d'un Espace pressé trop tôt.
+ *
+ * Le focus initial passe par `onMounted` plutôt que par un `watch` en `immediate` : ce dernier
+ * s'exécute pendant le `setup`, avant que la référence de template ne soit renseignée.
+ */
+onMounted(() => packetEl.value?.focus())
+watch(stage, async (s) => {
+  await nextTick()
+  if (s === 'revealed') nextEl.value?.focus()
+})
 </script>
 
 <template>
@@ -109,7 +129,7 @@ onUnmounted(() => clearTimeout(timer))
       <div class="stack">
         <div v-if="remaining > 2" class="ghost-pkt g1"></div>
         <div v-if="remaining > 1" class="ghost-pkt g2"></div>
-        <button class="packet" @click="tear">
+        <button ref="packetEl" class="packet" @click="tear">
           <div class="pkt-head"><span class="pkt-kicker">Pli scellé · {{ entry.date }}</span></div>
           <div class="pkt-body">
             <div class="pkt-seal">✳</div>
@@ -158,7 +178,7 @@ onUnmounted(() => clearTimeout(timer))
             +{{ CANDY_PER_CATCH }} bonbons <b>{{ DEX[familyOf(entry.species)].name }}</b>
           </div>
         </div>
-        <button class="next-btn" @click="$emit('next')">
+        <button ref="nextEl" class="next-btn" @click="$emit('next')">
           {{ remaining > 1 ? `Suivant · ${remaining - 1} restant${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la planche' }}
         </button>
         <button
