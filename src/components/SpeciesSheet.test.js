@@ -258,15 +258,22 @@ describe('lignée', () => {
     expect(here[0].text()).toContain('Herbizarre')
   })
 
-  // Divulguer le nom d'une espèce jamais vue viderait la découverte de son intérêt.
-  // L'assertion porte sur la cellule, pas sur toute la fiche : le bouton d'évolution
-  // nomme déjà la cible, et c'est voulu — on ne peut pas choisir d'évoluer à l'aveugle.
-  it('tait les étapes jamais rencontrées et les rend en silhouette', () => {
+  // La lignée nomme ses étapes, y compris celles jamais rencontrées : c'est ce qui permet
+  // de savoir vers quoi on avance. Ce n'est pas une divulgation — le bouton d'évolution
+  // nomme déjà la cible deux sections plus bas, on ne peut pas évoluer à l'aveugle.
+  it('nomme les étapes jamais rencontrées', () => {
     const w = withLine(2, [1, 2])
     const unseen = w.findAll('.line-cell').filter((c) => c.classes().includes('unseen'))
     expect(unseen).toHaveLength(1)
-    expect(unseen[0].text()).not.toContain('Florizarre')
-    expect(unseen[0].text()).toContain('———')
+    expect(unseen[0].text()).toContain('Florizarre')
+  })
+
+  // Le sprite, lui, reste caché : c'est la découverte visuelle qui fait le moment de jeu,
+  // pas le nom. La classe porte le filtre de silhouette, le même que celui du rituel.
+  it('garde le sprite d’une étape jamais rencontrée en silhouette', () => {
+    const w = withLine(2, [1, 2])
+    const unseen = w.findAll('.line-cell').filter((c) => c.classes().includes('unseen'))
+    expect(unseen[0].find('img').attributes('alt')).toBe('Florizarre, jamais rencontré')
   })
 
   it('porte le coût en bonbons sur chaque flèche', () => {

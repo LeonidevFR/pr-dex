@@ -80,8 +80,8 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
                 :class="{ here: s === id, unseen: !seen(s) }"
                 :style="{ '--tier': TIER_VAR[DEX[s].tier] }"
               >
-                <img :src="spriteUrl(s)" :alt="seen(s) ? DEX[s].name : 'Espèce jamais rencontrée'">
-                <span class="line-name">{{ seen(s) ? DEX[s].name : '———' }}</span>
+                <img :src="spriteUrl(s)" :alt="seen(s) ? DEX[s].name : DEX[s].name + ', jamais rencontré'">
+                <span class="line-name">{{ DEX[s].name }}</span>
                 <span v-if="s === id" class="line-here mono">ici</span>
               </div>
             </div>

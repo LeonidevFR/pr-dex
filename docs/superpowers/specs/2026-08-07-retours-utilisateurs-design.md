@@ -315,6 +315,11 @@ Bulbizarre     Herbizarre     Florizarre
 - Étapes **non capturées** rendues en silhouette, avec le même filtre que
   `.reveal img.silh` (`brightness(0) invert(.5) contrast(.85)`) — cohérent avec
   la silhouette du rituel et sans divulguer l'aspect d'un Pokémon jamais vu.
+- En revanche la lignée **nomme toutes ses étapes**, capturées ou non. C'est ce
+  qui permet de savoir vers quoi on avance, et le nom n'était de toute façon pas
+  protégé : le bouton d'évolution l'affiche déjà deux sections plus bas
+  (« Faire évoluer en Chrysacier »). Seul le sprite reste caché — la découverte
+  visuelle est le moment de jeu, pas la lecture d'un nom.
 - **Masquée** si la famille ne compte qu'un membre (Onix, Ptéra, les
   légendaires…) : une lignée d'une seule case n'apprend rien.
 
@@ -352,6 +357,11 @@ Types, lignée et texte de Pokédex ne s'affichent **que pour une espèce
 capturée**. La fiche masque déjà le nom (`—————` quand `caught` est faux) : il
 serait incohérent de divulguer le reste. La section « Pas encore à la planche »
 existante reste le seul contenu d'une fiche non capturée.
+
+Cette règle porte sur **la fiche entière**, pas sur les cases de la lignée : à
+l'intérieur d'une fiche déjà ouverte — donc d'une espèce déjà capturée — les
+étapes non rencontrées sont nommées (cf. C.3). Ce qui reste protégé, c'est
+l'aspect du Pokémon, pas son existence : la planche affiche déjà les 151 cases.
 
 ---
 
