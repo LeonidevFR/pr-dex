@@ -17,9 +17,15 @@ const isInteractive = (el) => Boolean(el) && (INTERACTIVE.has(el.tagName) || el.
  */
 export function useKeyboardNav({ blocked, onSpace, onEscape }) {
   function handle(e) {
+    // Garde commune aux deux touches. Pour Espace, la répétition ouvrirait toute la file de plis
+    // d'un coup. Pour Échap, elle est encore plus destructrice : maintenir la touche pendant
+    // l'évolution ferme la cérémonie au premier keydown puis, ~30 ms plus tard, la fiche de
+    // l'espèce obtenue que « Voir la planche » venait d'ouvrir — l'utilisateur ne la voit jamais.
+    // Les modificateurs, eux, appartiennent aux raccourcis du navigateur et du système.
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+
     if (e.key === 'Escape') { onEscape(); return }
     if (e.key !== ' ') return
-    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
 
     // Overlay ouvert : si son bouton principal a le focus, il faut laisser Espace
     // l'activer nativement — c'est tout le mécanisme de la chaîne « Espace pour

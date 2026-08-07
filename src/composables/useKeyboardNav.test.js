@@ -102,6 +102,22 @@ describe('Échap', () => {
     press('Escape')
     expect(o.onEscape).toHaveBeenCalledTimes(1)
   })
+
+  // Une touche maintenue fermerait deux overlays d'affilée : la cérémonie d'évolution, puis
+  // aussitôt la fiche de l'espèce obtenue que sa fermeture vient d'ouvrir.
+  it('ignore la répétition automatique', () => {
+    const o = opts({ blocked: ref(true) }); host(o)
+    press('Escape', { repeat: true })
+    expect(o.onEscape).not.toHaveBeenCalled()
+  })
+
+  // Ctrl/Cmd/Alt/Maj + Échap appartiennent au navigateur et au système — l'application n'a
+  // pas à s'y greffer.
+  it('ignore les combinaisons à modificateur', () => {
+    const o = opts({ blocked: ref(true) }); host(o)
+    for (const mod of ['ctrlKey', 'metaKey', 'altKey', 'shiftKey']) press('Escape', { [mod]: true })
+    expect(o.onEscape).not.toHaveBeenCalled()
+  })
 })
 
 describe('cycle de vie', () => {

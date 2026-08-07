@@ -134,10 +134,19 @@ const overlayOpen = computed(() =>
 // évolution (70), rituel (60), puis réglages et fiche (40). Fermer le rituel conserve
 // les plis restants, comme le fait déjà sa croix.
 function closeTopOverlay() {
-  if (evoAnim.value) { finishEvo(); return }
-  if (ritualEntry.value) { ritualEntry.value = null; return }
-  if (settingsOpen.value) { settingsOpen.value = false; return }
-  if (selected.value) selected.value = null
+  if (evoAnim.value) finishEvo()
+  else if (ritualEntry.value) ritualEntry.value = null
+  else if (settingsOpen.value) settingsOpen.value = false
+  else if (selected.value) selected.value = null
+  else return
+
+  // La fiche et les réglages n'ont pas de discipline de focus : leur déclencheur (la case de la
+  // planche, le bouton ⚙) garde le focus derrière le scrim. Sans ce retour au repos, l'Espace
+  // suivant l'active nativement et rouvre ce qu'Échap vient de fermer — Échap/Espace boucle et
+  // la chaîne « tout faire à la touche Espace » devient inatteignable sans reprendre la souris.
+  // Focaliser la croix de fermeture serait pire : Espace refermerait alors la fiche, alors que
+  // la spécification veut qu'il n'y fasse rien.
+  document.activeElement?.blur()
 }
 
 useKeyboardNav({
