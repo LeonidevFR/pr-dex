@@ -110,6 +110,35 @@ export function hasEvoInFamily(id) {
   return FAMILIES_WITH_EVO.has(familyOf(id))
 }
 
+/**
+ * Lignée complète de la famille de `id`, en étages successifs depuis la racine :
+ *
+ *   familyLine(2)   → [[1], [2], [3]]
+ *   familyLine(133) → [[133], [134, 135, 136]]   ← l'éventail d'Évoli
+ *   familyLine(95)  → [[95]]                     ← Onix, seul de sa famille
+ *
+ * Le format en étages plutôt qu'une liste plate est ce qui permet à l'affichage de traiter
+ * d'un même geste la lignée droite et la ramification : un étage à trois membres se rend en
+ * éventail après une seule flèche, sans cas particulier.
+ *
+ * Bornée comme `familyOf`, et pour la même raison : elle est appelée depuis le rendu d'un
+ * template, une table malformée doit lever plutôt que boucler indéfiniment.
+ */
+export function familyLine(id) {
+  const line = [[familyOf(id)]]
+  for (;;) {
+    const next = line[line.length - 1].flatMap((s) => {
+      const to = DEX[s].to
+      return to === null ? [] : Array.isArray(to) ? to : [to]
+    })
+    if (!next.length) return line
+    if (line.length >= SPECIES.length) {
+      throw new Error(`familyLine: chaîne anormalement longue en descendant depuis l'id ${id}`)
+    }
+    line.push(next)
+  }
+}
+
 // Léviator ne se tire jamais : seul accès, faire évoluer Magicarpe (40 bonbons, cf. son coût
 // volontairement élevé). Exception ciblée, pas une règle générale sur les 3e évolutions —
 // celles-ci (Dracaufeu, Tortank...) restent tirables normalement.
