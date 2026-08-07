@@ -196,10 +196,18 @@ Le gestionnaire est retiré dans `onUnmounted`.
 
 ### Échap
 
-Complément naturel du même chantier : Échap ferme l'overlay du dessus — fiche
-espèce, panneau de réglages, zoom, rituel. Fermer le rituel **conserve les plis
-restants** (c'est déjà le contrat du bouton `.ritual-close`). Échap suit la même
-priorité que l'empilement visuel : zoom avant fiche, réglages avant tout le reste.
+Complément naturel du même chantier : Échap ferme l'overlay du dessus, dans
+l'ordre de l'empilement visuel donné par les `z-index` de `styles.css` —
+évolution (70), rituel (60), réglages, fiche espèce (40). Fermer le rituel
+**conserve les plis restants** (c'est déjà le contrat du bouton `.ritual-close`) ;
+fermer l'écran d'évolution fait la même chose que son bouton, c'est-à-dire ouvrir
+la fiche de l'espèce obtenue.
+
+Le zoom du sprite est un état **interne** à `SpeciesSheet` : Échap ferme la fiche
+entière, zoom compris, plutôt que le zoom seul. Le faire autrement demanderait
+soit de remonter cet état dans `App.vue`, soit un écouteur en phase de capture
+avec `stopPropagation` — beaucoup de mécanique pour une sous-couche d'un retour
+qui a par ailleurs été abandonné.
 
 ### Tests
 
@@ -233,10 +241,17 @@ dépôt** (~30 Ko) :
 
 ```json
 {
-  "1": { "types": ["Plante", "Poison"], "text": "Il a une graine sur le dos depuis sa naissance…" },
-  "2": { "types": ["Plante", "Poison"], "text": "…" }
+  "1": {
+    "types": [{ "slug": "grass", "name": "Plante" }, { "slug": "poison", "name": "Poison" }],
+    "text": "Il a une graine sur le dos depuis sa naissance…"
+  }
 }
 ```
+
+Chaque type porte **son identifiant anglais et son nom français**. L'identifiant
+sert de clé de couleur en CSS (`--type-grass`) : le déduire du nom français en
+retirant les accents marcherait, mais ferait dépendre une variable CSS d'une
+chaîne traduite.
 
 Le script interroge PokeAPI :
 
