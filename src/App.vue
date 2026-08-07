@@ -10,6 +10,7 @@ import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
+import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
 const collection = useCollection()
@@ -122,6 +123,28 @@ function finishEvo() {
   selected.value = evoAnim.value.to
   evoAnim.value = null
 }
+
+const overlayOpen = computed(() =>
+  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value),
+)
+
+// Priorité calquée sur l'empilement visuel donné par les z-index de styles.css :
+// évolution (70), rituel (60), puis réglages et fiche (40). Fermer le rituel conserve
+// les plis restants, comme le fait déjà sa croix.
+function closeTopOverlay() {
+  if (evoAnim.value) { finishEvo(); return }
+  if (ritualEntry.value) { ritualEntry.value = null; return }
+  if (settingsOpen.value) { settingsOpen.value = false; return }
+  if (selected.value) selected.value = null
+}
+
+useKeyboardNav({
+  blocked: overlayOpen,
+  // Seul état sans bouton principal à focaliser : la home au repos. `openRitual` laisse
+  // `ritualEntry` à null quand la file est vide — rien à cas-particulariser ici.
+  onSpace: openRitual,
+  onEscape: closeTopOverlay,
+})
 </script>
 
 <template>
