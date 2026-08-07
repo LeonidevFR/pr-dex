@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR, familyOf } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
@@ -19,6 +19,19 @@ defineEmits(['done'])
 
 const target = computed(() => DEX[props.to])
 const family = computed(() => DEX[familyOf(props.to)])
+
+const nextEl = ref(null)
+let focusTimer = null
+
+// Aligné sur le retard d'apparition de `.evo-cap` dans styles.css (fadeUp … 2.4s) : donner
+// le focus avant la fin de la cérémonie permettrait de l'escamoter d'un Espace pressé trop tôt.
+const CAP_DELAY = 2400
+
+onMounted(() => {
+  const reduced = window.matchMedia('(prefers-reduced-motion:reduce)').matches
+  focusTimer = setTimeout(() => nextEl.value?.focus(), reduced ? 0 : CAP_DELAY)
+})
+onUnmounted(() => clearTimeout(focusTimer))
 </script>
 
 <template>
@@ -42,7 +55,7 @@ const family = computed(() => DEX[familyOf(props.to)])
         {{ isNew ? 'Première entrée à la planche' : 'Déjà à la planche' }} ·
         il reste {{ candies }} bonbon{{ candies > 1 ? 's' : '' }} <b>{{ family.name }}</b>
       </div>
-      <button class="next-btn" style="margin-top:20px" @click="$emit('done')">Voir la planche</button>
+      <button ref="nextEl" class="next-btn" style="margin-top:20px" @click="$emit('done')">Voir la planche</button>
     </div>
   </div>
 </template>

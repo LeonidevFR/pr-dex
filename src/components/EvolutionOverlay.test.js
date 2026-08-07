@@ -1,8 +1,17 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import EvolutionOverlay from './EvolutionOverlay.vue'
 import { useCollection } from '../composables/useCollection.js'
 import { entryKey } from '../../shared/entry.js'
+
+beforeEach(() => {
+  vi.useFakeTimers()
+  vi.stubGlobal('matchMedia', () => ({ matches: false }))
+})
+afterEach(() => {
+  vi.useRealTimers()
+  document.body.innerHTML = ''
+})
 
 const catchOf = (id, species) => {
   const entry = {
@@ -146,5 +155,35 @@ describe('intégration — App.vue ne doit pas lire la nouveauté après l’éc
     expect(col.dex.candies(2)).toBe(1) // 9 gagnés − 8 dépensés
     expect(w.find('.reveal-note').text()).toContain('il reste 1 bonbon')
     expect(w.find('.reveal-note').text()).not.toContain('1 bonbons')
+  })
+})
+
+describe('focus clavier', () => {
+  const mountAttached = (props = {}) =>
+    mount(EvolutionOverlay, {
+      props: { from: 1, to: 2, shiny: false, candies: 0, ...props },
+      attachTo: document.body,
+    })
+
+  // La cérémonie dure ~2,4 s : focaliser tout de suite permettrait de l'escamoter
+  // d'un Espace pressé trop tôt.
+  it('ne focalise rien pendant la cérémonie', () => {
+    mountAttached()
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('pose le focus sur le bouton une fois la cérémonie finie', async () => {
+    const w = mountAttached()
+    vi.advanceTimersByTime(2400)
+    await w.vm.$nextTick()
+    expect(document.activeElement).toBe(w.find('.next-btn').element)
+  })
+
+  it('focalise sans attendre si l’utilisateur refuse les animations', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }))
+    const w = mountAttached()
+    vi.advanceTimersByTime(0)
+    await w.vm.$nextTick()
+    expect(document.activeElement).toBe(w.find('.next-btn').element)
   })
 })
