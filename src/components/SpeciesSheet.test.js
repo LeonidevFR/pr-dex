@@ -328,3 +328,20 @@ describe('fermeture', () => {
     expect(w.emitted('close')).toBeTruthy()
   })
 })
+
+describe('notice', () => {
+  it('affiche le texte de Pokédex d’une espèce capturée', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
+    expect(w.find('.dexnote').text().length).toBeGreaterThan(10)
+  })
+
+  it('se tait sur une espèce jamais capturée', () => {
+    expect(mountSheet({ id: 1, entries: null }).find('.dexnote').exists()).toBe(false)
+  })
+
+  it('est la dernière section du panneau', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
+    const sections = w.findAll('.sect')
+    expect(sections[sections.length - 1].find('.dexnote').exists()).toBe(true)
+  })
+})

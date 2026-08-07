@@ -209,6 +209,11 @@
   .sect-h{margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline}
   .copies-count{font-size:11px;font-weight:700;color:var(--paper);background:var(--stamp);border-radius:9px;padding:2px 8px}
 
+  .dexnote{
+    font-family:var(--f-display);font-size:14px;font-style:italic;line-height:1.6;color:var(--ink-2);
+    padding-left:14px;border-left:2px solid var(--rule);
+  }
+
   .log{display:flex;flex-direction:column}
   .log-row{display:flex;gap:13px;align-items:baseline;padding:10px 0;border-bottom:1px solid rgba(179,161,121,.4)}
   .log-row:last-child{border-bottom:0}

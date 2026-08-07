@@ -170,6 +170,11 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
           </div>
         </div>
       </div>
+
+      <div v-if="caught && info" class="sect">
+        <div class="eyebrow sect-h"><span>Notice</span></div>
+        <blockquote class="dexnote">{{ info.text }}</blockquote>
+      </div>
     </div>
 
     <div v-if="zoomed" class="zoom-scrim" @click="zoomed = false">
