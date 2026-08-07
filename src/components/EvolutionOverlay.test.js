@@ -1,6 +1,26 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import EvolutionOverlay from './EvolutionOverlay.vue'
+import { useCollection } from '../composables/useCollection.js'
+import { entryKey } from '../../shared/entry.js'
+
+const catchOf = (id, species) => {
+  const entry = {
+    source: 'github', external_id: id, species, shiny: false, via: 'catch',
+    label: 'fix: race condition', ref: 'moi/atlas#142 · a3f8c21',
+    url: 'https://github.com/moi/atlas/pull/142', date: '2026-02-03',
+  }
+  return { key: entryKey(entry.source, entry.external_id), ...entry }
+}
+
+const fakeClient = (catches, claimed) => {
+  let state = { claimed, spent: {}, evolutions: [] }
+  return {
+    readCatches: async () => catches,
+    readState: async () => ({ state: JSON.parse(JSON.stringify(state)), blobSha: 'blob' }),
+    writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'blob' } },
+  }
+}
 
 const mountEvo = (props) =>
   mount(EvolutionOverlay, { props: { from: 1, to: 2, shiny: false, candies: 0, ...props } })
@@ -92,5 +112,39 @@ describe('bloc d’informations', () => {
   it('cumule les trois puces sans qu’aucune n’en remplace une autre', () => {
     const w = mountEvo({ isNew: true, shiny: true })
     expect(w.findAll('.chip')).toHaveLength(3)
+  })
+})
+
+describe('intégration — App.vue ne doit pas lire la nouveauté après l’écriture', () => {
+  // Trois captures de Bulbizarre = 9 bonbons, au-dessus des 8 que coûte Herbizarre.
+  const loadedCollection = async () => {
+    const col = useCollection()
+    const catches = [catchOf('a', 1), catchOf('b', 1), catchOf('c', 1)]
+    await col.load(fakeClient(catches, catches.map((c) => c.key)))
+    return col
+  }
+
+  it('marque la nouveauté lue avant l’évolution, pas après', async () => {
+    const col = await loadedCollection()
+    const isNew = col.dex.isNewSpecies(2) // figé comme dans App.vue, AVANT l'écriture
+    expect(isNew).toBe(true)
+
+    await col.evolve(1, 2, '2026-08-07')
+    expect(col.error.value).toBe(null)
+    expect(col.dex.isNewSpecies(2)).toBe(false) // l'écriture l'a déjà inscrite
+
+    const w = mountEvo({ from: 1, to: 2, isNew, candies: col.dex.candies(2) })
+    expect(w.find('.new-chip').exists()).toBe(true)
+  })
+
+  it('affiche le solde de bonbons d’après la dépense', async () => {
+    const col = await loadedCollection()
+    expect(col.dex.candies(1)).toBe(9)
+    await col.evolve(1, 2, '2026-08-07')
+
+    const w = mountEvo({ from: 1, to: 2, candies: col.dex.candies(2) })
+    expect(col.dex.candies(2)).toBe(1) // 9 gagnés − 8 dépensés
+    expect(w.find('.reveal-note').text()).toContain('il reste 1 bonbon')
+    expect(w.find('.reveal-note').text()).not.toContain('1 bonbons')
   })
 })

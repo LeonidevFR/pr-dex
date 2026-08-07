@@ -106,11 +106,16 @@ async function skipAll() {
 
 async function onEvolve({ from, to }) {
   const shiny = collection.dex.bySpecies.value[from]?.some((e) => e.shiny) ?? false
+  // Figé avant l'écriture, pour la même raison que `ritualIsNew` plus haut : `evolve`
+  // inscrit l'espèce cible au dex dès l'appel, donc une lecture après coup la dirait
+  // toujours déjà rencontrée. Les bonbons suivent la règle inverse et se lisent au rendu,
+  // après la dépense — d'où leur absence de cet instantané.
+  const isNew = collection.dex.isNewSpecies(to)
   selected.value = null
   await collection.evolve(from, to, new Date().toISOString().slice(0, 10))
   // L'écriture a échoué : pas de cérémonie pour une évolution qui n'a pas eu lieu.
   if (collection.error.value) return
-  evoAnim.value = { from, to, shiny }
+  evoAnim.value = { from, to, shiny, isNew }
 }
 
 function finishEvo() {
@@ -166,7 +171,8 @@ function finishEvo() {
 
     <transition name="fade">
       <EvolutionOverlay
-        v-if="evoAnim" :from="evoAnim.from" :to="evoAnim.to" :shiny="evoAnim.shiny" @done="finishEvo"
+        v-if="evoAnim" :from="evoAnim.from" :to="evoAnim.to" :shiny="evoAnim.shiny"
+        :is-new="evoAnim.isNew" :candies="collection.dex.candies(evoAnim.to)" @done="finishEvo"
       />
     </transition>
 
