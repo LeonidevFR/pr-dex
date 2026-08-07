@@ -37,6 +37,8 @@ const copiesById = computed(() => {
   return map
 })
 
+const caughtIds = computed(() => new Set(Object.keys(collection.dex.bySpecies.value).map(Number)))
+
 async function connectSession(s) {
   connecting.value = true
   connectError.value = null
@@ -179,6 +181,7 @@ useKeyboardNav({
         :candies="collection.dex.candies(selected)"
         :can-evolve="collection.dex.canEvolve(selected)"
         :is-dead-end="collection.dex.isDeadEnd(selected)"
+        :caught-ids="caughtIds"
         @close="selected = null" @evolve="onEvolve"
       />
     </transition>

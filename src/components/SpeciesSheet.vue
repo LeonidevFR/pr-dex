@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
+import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
 const props = defineProps({
@@ -12,6 +12,9 @@ const props = defineProps({
   candies: { type: Number, required: true },
   canEvolve: { type: Boolean, required: true },
   isDeadEnd: { type: Boolean, required: true },
+  // Ensemble des espèces déjà à la planche : la lignée doit savoir lesquelles de ses étapes
+  // ont été vues, information qu'`entries` (limité à l'espèce courante) ne porte pas.
+  caughtIds: { type: Set, default: () => new Set() },
 })
 defineEmits(['close', 'evolve'])
 
@@ -26,6 +29,8 @@ const targets = computed(() => {
 })
 const pad = (n) => String(n).padStart(3, '0')
 const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 0)
+const line = computed(() => familyLine(props.id))
+const seen = (id) => props.caughtIds.has(id)
 </script>
 
 <template>
@@ -54,6 +59,28 @@ const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 
           Pas encore à la planche. Sortira d'une capture<template v-if="PARENT[id]">, ou d'une évolution de
           <b>{{ DEX[PARENT[id]].name }}</b></template>.
         </p>
+      </div>
+
+      <div v-if="caught && line.length > 1" class="sect">
+        <div class="eyebrow sect-h"><span>Lignée</span></div>
+        <div class="line">
+          <template v-for="(step, i) in line" :key="i">
+            <div v-if="i" class="line-arrow mono" aria-hidden="true">
+              <span>▶</span><span class="line-cost">{{ DEX[line[i - 1][0]].cost }}</span>
+            </div>
+            <div class="line-step">
+              <div
+                v-for="s in step" :key="s" class="line-cell"
+                :class="{ here: s === id, unseen: !seen(s) }"
+                :style="{ '--tier': TIER_VAR[DEX[s].tier] }"
+              >
+                <img :src="spriteUrl(s)" :alt="seen(s) ? DEX[s].name : 'Espèce jamais rencontrée'">
+                <span class="line-name">{{ seen(s) ? DEX[s].name : '———' }}</span>
+                <span v-if="s === id" class="line-here mono">ici</span>
+              </div>
+            </div>
+          </template>
+        </div>
       </div>
 
       <div v-if="caught" class="sect">

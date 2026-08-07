@@ -14,7 +14,10 @@ const evo = (species, from, extra = {}) => ({
 
 const mountSheet = (props) =>
   mount(SpeciesSheet, {
-    props: { id: 1, entries: null, candies: 0, canEvolve: false, isDeadEnd: false, ...props },
+    props: {
+      id: 1, entries: null, candies: 0, canEvolve: false, isDeadEnd: false,
+      caughtIds: new Set(), ...props,
+    },
   })
 
 describe('espèce non capturée', () => {
@@ -236,6 +239,57 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
     const w = mountSheet({ id: 6, entries: null, isDeadEnd: false })
     expect(w.find('.candy').exists()).toBe(false)
     expect(w.find('.reserve').exists()).toBe(false)
+  })
+})
+
+describe('lignée', () => {
+  const withLine = (id, caughtIds) =>
+    mountSheet({ id, entries: [capture('a', id)], caughtIds: new Set(caughtIds) })
+
+  it('déplie les trois étages d’une lignée droite', () => {
+    const w = withLine(2, [1, 2])
+    expect(w.findAll('.line-cell')).toHaveLength(3)
+  })
+
+  it('marque l’étape courante', () => {
+    const w = withLine(2, [1, 2])
+    const here = w.findAll('.line-cell').filter((c) => c.classes().includes('here'))
+    expect(here).toHaveLength(1)
+    expect(here[0].text()).toContain('Herbizarre')
+  })
+
+  // Divulguer le nom d'une espèce jamais vue viderait la découverte de son intérêt.
+  // L'assertion porte sur la cellule, pas sur toute la fiche : le bouton d'évolution
+  // nomme déjà la cible, et c'est voulu — on ne peut pas choisir d'évoluer à l'aveugle.
+  it('tait les étapes jamais rencontrées et les rend en silhouette', () => {
+    const w = withLine(2, [1, 2])
+    const unseen = w.findAll('.line-cell').filter((c) => c.classes().includes('unseen'))
+    expect(unseen).toHaveLength(1)
+    expect(unseen[0].text()).not.toContain('Florizarre')
+    expect(unseen[0].text()).toContain('———')
+  })
+
+  it('porte le coût en bonbons sur chaque flèche', () => {
+    const w = withLine(2, [1, 2])
+    const costs = w.findAll('.line-cost').map((c) => c.text())
+    expect(costs).toEqual(['8', '16']) // Bulbizarre → Herbizarre → Florizarre
+  })
+
+  it('range les trois évolutions d’Évoli sur un même étage', () => {
+    const w = withLine(133, [133])
+    expect(w.findAll('.line-cell')).toHaveLength(4)
+    expect(w.findAll('.line-step')).toHaveLength(2)
+    expect(w.findAll('.line-arrow')).toHaveLength(1)
+  })
+
+  // Une lignée d'une seule case n'apprend rien.
+  it('se tait pour une famille solitaire', () => {
+    expect(withLine(95, [95]).find('.line').exists()).toBe(false)
+  })
+
+  it('se tait sur une espèce jamais capturée', () => {
+    const w = mountSheet({ id: 2, entries: null, caughtIds: new Set([1]) })
+    expect(w.find('.line').exists()).toBe(false)
   })
 })
 
