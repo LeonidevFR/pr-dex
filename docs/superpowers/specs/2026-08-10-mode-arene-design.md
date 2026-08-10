@@ -77,7 +77,7 @@ pseudonyme devient nécessaire.
   n'y aurait plus de pari.
 - **Perdant : exemplaire détruit.** Espèce et bonbons conservés.
 - **Vainqueur : exemplaire intact**, plus un **pli d'arène**, des pokédollars et des
-  points de saison — tous trois au palier de la **mise couverte**, c'est-à-dire le plus
+  points de saison — tous trois au palier de **l'enjeu du duel**, c'est-à-dire le plus
   petit des deux engagements (§ 4).
 - **Un défi ouvert sans preneur sous 24 h** est résolu contre la maison.
 - **Deux duels par semaine maximum contre la même personne.**
@@ -214,35 +214,58 @@ accepte un jour de montrer quelque chose de la mise adverse.
 
 ## 4 · Économie
 
-### Gains par duel — sur la mise couverte
+### Gains par duel — sur l'enjeu du duel
 
 **On ne gagne pas plus que ce que l'adversaire a engagé.** Le palier retenu est le **plus
 petit des deux** — la règle du poker : celui qui pose 100 face à quelqu'un qui n'en pose
 que 10 ne peut repartir qu'avec 10.
 
-| Mise couverte | Pokédollars | Points | Pli |
+> **Nommage.** Le terme interne est *mise couverte*. Côté interface et guide du joueur, on
+> dit **« l'enjeu du duel »** — « Enjeu : rare ». La règle ne s'énonce jamais, elle
+> s'affiche.
+
+| Enjeu (le plus petit des deux engagements) | Pokédollars | Points | Pli |
 |---|---|---|---|
 | Commun | 50 | 5 | 1 pli commun |
 | Peu commun | 100 | 10 | 1 pli peu commun |
 | Rare | 250 | 25 | 1 pli rare |
 | Légendaire | 600 | 60 | 1 pli légendaire |
 
+Exemples, parce que la règle se comprend mieux ainsi qu'en définition :
+
+| Toi | L'adversaire | Enjeu | Le vainqueur gagne |
+|---|---|---|---|
+| Rare | Rare | **Rare** | 250 $, 25 pts, 1 pli rare |
+| Rare | Commun | **Commun** | 50 $, 5 pts, 1 pli commun |
+| Commun | Légendaire | **Commun** | 50 $, 5 pts, 1 pli commun |
+| Peu commun | Rare | **Peu commun** | 100 $, 10 pts, 1 pli peu commun |
+
+Battre un rare ne rapporte donc pas 250 $ : il faut que **les deux** aient engagé un rare.
+
 | Autre situation | Gains |
 |---|---|
 | Défaite contre un humain | rien, et l'exemplaire engagé est détruit |
-| Victoire contre la maison | pokédollars du palier **de sa propre mise**, moitié tarif |
 | Défaite contre la maison | rien, et l'exemplaire est conservé |
+
+Contre la maison, en pokédollars seulement, au palier de **sa propre** mise, moitié tarif :
+
+| Sa mise contre la maison | Pokédollars |
+|---|---|
+| Commun | 25 |
+| Peu commun | 50 |
+| Rare | 125 |
+| Légendaire | 300 |
 
 Les **niveaux ne s'y lisent pas** : ils ne se gagnent que contre un humain, selon le
 barème du § 3.
 
-**Pourquoi la mise couverte plutôt qu'un gain fixe** (§ 8 pour les alternatives écartées).
+**Pourquoi l'enjeu plutôt qu'un gain fixe** (§ 8 pour les alternatives écartées).
 Un gain identique quelle que soit la mise rend l'engagement d'un rare irrationnel : une
 victoire vaudrait 1 pli et 100 pokédollars, quand exposer un légendaire à 10 % de perte
 coûte infiniment plus. Engager pas cher dominerait mathématiquement, quel que soit le
 poids de la rareté au combat, et l'arène finirait en ligue de communs.
 
-La mise couverte supprime les deux stratégies dégénérées d'un seul mouvement :
+L'enjeu supprime les deux stratégies dégénérées d'un seul mouvement :
 
 - **Écraser un Roucool avec un légendaire** ne rapporte qu'un pli commun, pour avoir exposé
   sa pièce maîtresse. Le bullying ne paye pas.
@@ -253,21 +276,35 @@ La mise couverte supprime les deux stratégies dégénérées d'un seul mouvemen
 - **Rare contre rare** devient le duel le plus rentable du jeu.
 
 **Lisibilité.** La règle n'a pas à être comprise pour être jouée : l'interface annonce le
-lot **au moment de la révélation** (« mise couverte : rare — 1 pli rare, 250 pokédollars,
+lot **au moment de la révélation** (« Enjeu : rare — 1 pli rare, 250 pokédollars,
 25 points »), et le résumé de combat le rappelle. On voit le résultat, on ne lit pas une
 formule.
 
-Rythme attendu : 5 duels/semaine, une victoire sur deux, mises majoritairement peu
-communes → **~250 pokédollars et ~25 points par semaine**, soit **~2 200 pokédollars et
-~215 points par saison** de deux mois. Les prix de la boutique sont calés là-dessus.
+### Le rare est le point d'équilibre naturel de l'arène
+
+Engager un rare **s'autofinance** : on en perd un une fois sur deux, et on gagne un **pli
+rare** l'autre fois. Le stock de rares est donc à peu près neutre, et on encaisse 250
+pokédollars au passage. Au rythme réel observé (~3 rares tirés par semaine, § 7), c'est
+parfaitement tenable — donc **tout le monde engagera des rares**, et il faut calibrer
+dessus plutôt que sur une hypothèse timide.
+
+Rythme attendu en régime stable : 5 duels/semaine, une victoire sur deux, enjeu rare →
+**~625 pokédollars et ~62 points par semaine**, soit **~5 400 pokédollars et ~540 points
+par saison** de deux mois. Les prix de la boutique sont calés là-dessus.
+
+**Conséquence assumée : les légendaires ne descendront jamais dans l'arène.** Personne
+n'en tire assez (~1 par saison) pour encaisser d'en perdre un sur deux. Ils resteront des
+trophées plutôt que des combattants. Si on veut les voir se battre un jour, il faudra une
+occasion dédiée — un événement de fin de saison — pas un réglage de cette table.
 
 ### Deux compteurs, deux durées de vie
 
 - **Points de classement** — mesurent la saison, **remis à zéro** à chaque nouvelle.
 - **Pokédollars** — portefeuille qui **ne se remet jamais à zéro**.
 
-C'est cette asymétrie qui rend la thésaurisation possible : économiser deux saisons pour
-un légendaire est une stratégie, alors qu'un portefeuille remis à zéro la rendrait absurde.
+C'est cette asymétrie qui rend la thésaurisation possible : économiser près de trois
+saisons pour un légendaire inédit est une stratégie, alors qu'un portefeuille remis à zéro
+la rendrait absurde.
 
 ### Boutique
 
@@ -276,13 +313,13 @@ l'animation et la surprise. Un pli acheté est une ligne `catches` de source `bo
 
 | Article | Normal | Inédit garanti (×2,5) |
 |---|---|---|
-| Pli Gen 1 commun | 250 | 625 |
-| Pli Gen 1 peu commun | 500 | 1 250 |
-| Pli Gen 1 rare | 1 200 | 3 000 |
-| Pli Gen 2 commun | 500 | 1 250 |
-| Pli Gen 2 peu commun | 1 000 | 2 500 |
-| Pli Gen 2 rare | 2 400 | 6 000 |
-| Pli légendaire Gen 1 | 3 000 | 7 500 |
+| Pli Gen 1 commun | 500 | 1 250 |
+| Pli Gen 1 peu commun | 1 000 | 2 500 |
+| Pli Gen 1 rare | 2 500 | 6 250 |
+| Pli Gen 2 commun | 1 000 | 2 500 |
+| Pli Gen 2 peu commun | 2 000 | 5 000 |
+| Pli Gen 2 rare | 5 000 | 12 500 |
+| Pli légendaire Gen 1 | 6 000 | 15 000 |
 
 **L'« inédit garanti » tire uniquement parmi les espèces non possédées.** Il existe parce
 que l'objectif de la boutique est de *compléter* : un pli rare tire au hasard parmi 46
@@ -290,8 +327,8 @@ espèces, donc quand il en manque trois, on paye pour un doublon neuf fois sur d
 on approche de la fin, plus la boutique devient inefficace là où elle est le plus utile.
 C'est un filtre sur le pool à l'achat, pas une mécanique de plus.
 
-Repères sur une saison (~2 200) : un rare Gen 1 inédit ou un légendaire = **1,4 saison** ;
-un rare Gen 2 inédit = **2,7 saisons** ; le légendaire inédit = **3,4 saisons**, dernier
+Repères sur une saison (~5 400) : un rare Gen 1 inédit ou un légendaire = **~1,1 saison** ;
+un rare Gen 2 inédit = **~2,3 saisons** ; le légendaire inédit = **~2,8 saisons**, dernier
 objectif du jeu.
 
 ### Saison
@@ -307,18 +344,37 @@ Fin de saison :
 
 | Rang | Pokédollars | Autre |
 |---|---|---|
-| 1ᵉʳ | 1 000 | **Badge permanent** « Vainqueur de la saison N » |
-| 2ᵉ | 500 | — |
-| 3ᵉ | 250 | — |
+| 1ᵉʳ | 2 500 | **Badge permanent** « Vainqueur de la saison N » |
+| 2ᵉ | 1 250 | — |
+| 3ᵉ | 600 | — |
 
 Le podium plutôt que le seul vainqueur : à 4-5 joueurs, presque tout le monde touche
 quelque chose, et le meilleur ne creuse pas un écart matériel saison après saison. Le
 badge reste la vraie récompense.
 
-**Badges dessinés en SVG dans le projet, générés à partir du numéro de saison** — forme
-et palette dérivées. Aucun asset à produire, aucune question de droits sur de l'imagerie
-Nintendo, un badge distinct garanti pour la saison 12 comme pour la 1. Le projet fabrique
-déjà ses effets à la main (rayons rotatifs, lasers multicolores) : c'est le même registre.
+**Les badges sont les vrais badges d'arène**, repris de
+[SteGriff/pokemon-badges](https://github.com/SteGriff/pokemon-badges) — 40 badges
+vectoriels de Kanto à Unova, **licence CC BY 3.0** (Stephen Griffiths, 2011, d'après
+Bulbapedia). La seule obligation est de créditer ; l'attribution ira dans le guide du
+joueur et dans le README.
+
+**La région du badge suit la génération** : les 8 badges de **Kanto** tant que le jeu est
+en Gen 1 — soit 16 mois de saisons — puis **Johto** à l'ouverture de la Gen 2. C'est un
+alignement qu'aucun badge généré n'aurait donné.
+
+**Travail d'intégration à prévoir**, ce n'est pas un import direct : le dépôt contient
+**5 fichiers, un par région**, chacun étant une page A4 Inkscape portant les 8 badges
+(144 Ko pour Kanto, identifiants générés du type `linearGradient4173`). Il faut découper
+en 8 SVG individuels, recadrer les `viewBox`, purger les métadonnées Inkscape, optimiser,
+puis **verser les fichiers dans le dépôt** — pas de récupération distante à l'exécution.
+Compter une petite heure.
+
+**Réserve, posée sans dramatiser** : la CC BY couvre la recréation de l'auteur, pas les
+dessins de Nintendo en dessous. Le projet sert déjà des sprites Nintendo depuis
+`PokeAPI/sprites` sur chaque écran — même classe de risque, pas une de plus, pour un outil
+interne. Repli si on veut s'en affranchir un jour : des badges **dessinés en SVG dans le
+projet et générés à partir du numéro de saison**, dans le registre des effets déjà
+fabriqués à la main (rayons rotatifs, lasers multicolores).
 
 ### Gen 2
 
