@@ -77,7 +77,8 @@ pseudonyme devient nécessaire.
   n'y aurait plus de pari.
 - **Perdant : exemplaire détruit.** Espèce et bonbons conservés.
 - **Vainqueur : exemplaire intact**, plus un **pli d'arène**, des pokédollars et des
-  points de saison.
+  points de saison — tous trois au palier de la **mise couverte**, c'est-à-dire le plus
+  petit des deux engagements (§ 4).
 - **Un défi ouvert sans preneur sous 24 h** est résolu contre la maison.
 - **Deux duels par semaine maximum contre la même personne.**
 
@@ -91,10 +92,19 @@ La maison n'est pas un joueur : elle ne possède rien. Si elle détruisait un ex
 un Pokémon disparaîtrait sans contrepartie ; si elle payait un pli, il en apparaîtrait un
 depuis rien. Un duel contre la maison est donc **symbolique** :
 
-- des **pokédollars uniquement**, moitié moins que contre un humain ;
-- **aucun pli**, **aucun point de classement**, **aucun gain de niveau**, **aucun risque** ;
-- l'adversaire artificiel est **de force honnête**, jamais plus facile — sinon le mode se
-  jouerait entièrement en solo.
+- des **pokédollars uniquement**, moitié moins que contre un humain, au palier de sa
+  propre mise ;
+- **aucun pli**, **aucun point de classement**, **aucun gain de niveau**, **aucun risque**.
+
+**Comment la maison choisit son combattant.** Elle **tire dans une distribution
+plausible** : une espèce au hasard dans le pool du palier de ta propre mise, à un niveau
+tiré entre 1 et le niveau médian des exemplaires réellement engagés dans l'arène ces
+trente derniers jours, avec sa forme du jour normale.
+
+Un 50/50 systématique a été écarté : si l'issue ne dépend plus de ce qu'on engage, on
+engage n'importe quoi et le duel contre la maison n'apprend rien. Une distribution
+plausible conserve la seule chose qui compte — que le choix de la mise ait des
+conséquences — sans jamais rendre la maison plus facile que l'équipe.
 
 L'absence de gain de niveau n'est pas un détail : sans elle, on monterait un champion
 sans jamais rien risquer, et le niveau cesserait de mesurer ce qu'on a osé.
@@ -204,25 +214,52 @@ accepte un jour de montrer quelque chose de la mise adverse.
 
 ## 4 · Économie
 
-### Gains par duel — identiques quelle que soit la mise
+### Gains par duel — sur la mise couverte
 
-| Situation | Pokédollars | Points | Pli |
+**On ne gagne pas plus que ce que l'adversaire a engagé.** Le palier retenu est le **plus
+petit des deux** — la règle du poker : celui qui pose 100 face à quelqu'un qui n'en pose
+que 10 ne peut repartir qu'avec 10.
+
+| Mise couverte | Pokédollars | Points | Pli |
 |---|---|---|---|
-| Victoire contre un humain | 100 | 10 | 1 |
-| Défaite contre un humain | 0 | 0 | — |
-| Victoire contre la maison | 50 | 0 | — |
-| Défaite contre la maison | 0 | 0 | — |
+| Commun | 50 | 5 | 1 pli commun |
+| Peu commun | 100 | 10 | 1 pli peu commun |
+| Rare | 250 | 25 | 1 pli rare |
+| Légendaire | 600 | 60 | 1 pli légendaire |
+
+| Autre situation | Gains |
+|---|---|
+| Défaite contre un humain | rien, et l'exemplaire engagé est détruit |
+| Victoire contre la maison | pokédollars du palier **de sa propre mise**, moitié tarif |
+| Défaite contre la maison | rien, et l'exemplaire est conservé |
 
 Les **niveaux ne s'y lisent pas** : ils ne se gagnent que contre un humain, selon le
 barème du § 3.
 
-Le gain fixe est un **choix assumé** contre deux alternatives testées et écartées
-(§ 8). Sa conséquence connue : puisque le gain ne dépend pas du risque, seul le poids
-de la rareté dans le combat empêche d'engager systématiquement pas cher. **L'équilibre
-du mode vit dans la formule de combat, pas dans la table des gains.**
+**Pourquoi la mise couverte plutôt qu'un gain fixe** (§ 8 pour les alternatives écartées).
+Un gain identique quelle que soit la mise rend l'engagement d'un rare irrationnel : une
+victoire vaudrait 1 pli et 100 pokédollars, quand exposer un légendaire à 10 % de perte
+coûte infiniment plus. Engager pas cher dominerait mathématiquement, quel que soit le
+poids de la rareté au combat, et l'arène finirait en ligue de communs.
 
-Rythme attendu : 5 duels/semaine, une victoire sur deux → **250 pokédollars et 25 points
-par semaine**, soit **~2 200 pokédollars et ~215 points par saison** de deux mois.
+La mise couverte supprime les deux stratégies dégénérées d'un seul mouvement :
+
+- **Écraser un Roucool avec un légendaire** ne rapporte qu'un pli commun, pour avoir exposé
+  sa pièce maîtresse. Le bullying ne paye pas.
+- **Venir en Roucool pour tenter l'exploit** ne rapporte qu'un pli commun aussi — même
+  quand on renverse un légendaire. Le barème de niveaux à +5 reste atteignable, mais au
+  prix de neuf Roucool perdus et de dix crédits dépensés : une trajectoire d'outsider
+  viable, jamais dominante.
+- **Rare contre rare** devient le duel le plus rentable du jeu.
+
+**Lisibilité.** La règle n'a pas à être comprise pour être jouée : l'interface annonce le
+lot **au moment de la révélation** (« mise couverte : rare — 1 pli rare, 250 pokédollars,
+25 points »), et le résumé de combat le rappelle. On voit le résultat, on ne lit pas une
+formule.
+
+Rythme attendu : 5 duels/semaine, une victoire sur deux, mises majoritairement peu
+communes → **~250 pokédollars et ~25 points par semaine**, soit **~2 200 pokédollars et
+~215 points par saison** de deux mois. Les prix de la boutique sont calés là-dessus.
 
 ### Deux compteurs, deux durées de vie
 
@@ -333,6 +370,7 @@ cœur. L'information cachée intéressante est celle de l'adversaire.
 | `arena_duels` | Les deux camps, les deux mises, l'état (ouvert / résolu / maison), le vainqueur, et les puissances conservées pour le résumé |
 | `arena_wallet` | Portefeuille persistant |
 | `arena_season_points` | Score par saison, remis à zéro |
+| `arena_seasons` | Saisons closes et leur podium — **les points repartent à zéro, les badges sont permanents** : sans cette table, un badge gagné n'aurait plus aucun référent après la remise à zéro |
 | `species_stats` | Stats de base, générée par le même script que `species-info.json` |
 | `profiles.pseudo` | Seule donnée personnelle lue par les autres |
 
@@ -361,6 +399,22 @@ Une ligne `catches` avec `source = 'arene'` (ou `'boutique'`) et l'identifiant d
 de l'achat comme `external_id`, tirée par `drawFrom` sur sa propre clé, aux cotes de tout
 le monde. Rituel, animation, compteur, bonbons : **aucune ligne du front à changer**. Le
 découplage par source fait en juillet paye ici exactement ce pour quoi il a été fait.
+
+### Ce qui, en revanche, touche bien le front
+
+Le pli entrant est gratuit ; **la sortie ne l'est pas.** Deux états nouveaux doivent
+entrer dans `useDex` :
+
+- **l'immobilisation** d'un exemplaire engagé dans un défi en cours — ni évolution, ni
+  second engagement ;
+- **la destruction** d'un exemplaire perdu.
+
+Les deux se comportent comme `consumedKeys` (l'exemplaire sort du stock, l'espèce reste
+au dex), mais leur source de vérité est une **table d'arène**, pas `state` — qui est
+modifiable par le joueur. `useDex` reçoit donc une entrée de plus, et `availableEntries`,
+`copyCount` et `canEvolve` s'en servent. Ce n'est pas énorme, mais ce n'est pas rien :
+le cœur du jeu, resté intact à la bascule Supabase comme au découpage par source, bouge
+cette fois.
 
 ### RLS
 
@@ -424,10 +478,13 @@ devient le coup le plus payant du jeu.
 **Récompense indexée sur la mise adverse** — le miroir : chacun engage petit en espérant
 que l'autre engage gros.
 
-**Récompense sur la « mise couverte » (règle du poker)** — mathématiquement le meilleur
-équilibre, écarté pour sa lisibilité : la règle ne se comprend pas en une phrase.
-**Retenu à la place : gain fixe**, avec la conséquence assumée que l'équilibre repose
-entièrement sur la formule de combat.
+**Gain fixe, identique quelle que soit la mise** — retenu un temps pour sa simplicité,
+puis écarté à la relecture. Il rend l'engagement d'un rare irrationnel (une victoire vaut
+1 pli, exposer un légendaire coûte bien plus), et il rendait le barème de niveaux
+pathologique : venir en Roucool devenait doublement payant — peu à perdre, et +5 niveaux
+les fois où l'exploit tombe. **Retenu à la place : la mise couverte** (§ 4), qui corrige
+les deux d'un seul mouvement, sa lisibilité étant traitée par l'interface plutôt que par
+la règle.
 
 **Arènes séparées par palier** — supprimait la décision qui rend le duel intéressant :
 ne pas savoir ce que l'autre engage.
