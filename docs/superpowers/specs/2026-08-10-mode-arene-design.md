@@ -124,7 +124,7 @@ puissance = stats de base × coefficient de rareté × niveau × forme du jour
 | Facteur | Valeurs | Rôle |
 |---|---|---|
 | Stats de base | 195 à 680 selon l'espèce | La colonne vertébrale |
-| Rareté | c ×1,00 · u ×1,06 · r ×1,15 · l ×1,25 | Appuie là où les stats ne suffisent pas |
+| Rareté | c ×1,00 · u ×1,06 · r ×1,15 · **l ×1,45** | Appuie là où les stats ne suffisent pas — et le légendaire en a besoin : son pool (580-680) chevauche le haut du pool rare (jusqu'à 600) |
 | Niveau | ×1,00 à ×1,45 (niv. 1 à 10, +5 %/niveau) | Le seul facteur qui se mérite |
 | Forme du jour | ×0,90 · ×0,95 · ×1,00 · ×1,05 · ×1,10 | Fait hésiter, ne décide jamais |
 
@@ -139,10 +139,16 @@ volontairement léger parce que **la mesure montre que les stats portent déjà 
 | Rare | 46 | 288 | 458 | 600 |
 | Légendaire | 5 | 580 | 604 | 680 |
 
-Le doubler compterait la rareté deux fois. En revanche **peu commun et rare se
-chevauchent lourdement** (un peu commun monte à 555, un rare démarre à 288 — Canarticho,
-rare, 377, est plus faible que Rattatac, peu commun, 413) : c'est cette frontière-là que
-le coefficient appuie.
+Le doubler partout compterait la rareté deux fois. Deux frontières font exception, et ce
+sont elles que le coefficient appuie :
+
+- **peu commun / rare se chevauchent lourdement** — un peu commun monte à 555, un rare
+  démarre à 288, et Canarticho (rare, 377) est plus faible que Rattatac (peu commun, 413) ;
+- **rare / légendaire se chevauchent aussi** — le pool légendaire va de 580 à 680 quand le
+  pool rare monte à 600. À un coefficient de 1,25, un légendaire frais ne battait le
+  meilleur rare que **54 %** du temps : le palier ne se sentait pas. À **1,45** il le bat
+  64 % du temps et écrase un rare moyen à 80 %, sans devenir intouchable — le bornage à
+  90 % continue de garantir sa mortalité.
 
 ### Issue
 
@@ -304,22 +310,20 @@ Rythme attendu en régime stable : 5 duels/semaine, une victoire sur deux, enjeu
 **~625 pokédollars et ~62 points par semaine**, soit **~5 400 pokédollars et ~540 points
 par saison** de deux mois. Les prix de la boutique sont calés là-dessus.
 
-**Vérifié en simulation** (2026-08-11, prototype du lot 1, moyenne sur 40 saisons, terrain
-symétrique où les deux camps jouent la même politique et font monter leur champion) :
+**Ce chiffre n'est pas encore démontré, et le piège mérite d'être consigné.** Une première
+simulation (2026-08-11) donnait 5 406 pokédollars par saison en rare, avec 22 plis gagnés
+pour 22 exemplaires perdus, et concluait à l'autofinancement. **C'était une tautologie de
+son modèle** : les deux camps y jouaient le même palier avec la même dynamique, donc le
+taux de victoire valait 50 % par construction et l'égalité plis/pertes se vérifiait à
+l'identique pour les quatre paliers (écart mesuré : 0,006 en rare, 0,010 en commun, 0,014
+en peu commun, 0,012 en légendaire). Elle montrait aussi un revenu croissant strictement
+avec la mise — 1 111 / 2 230 / 5 469 / 13 035 — parce que le seul frein réel, **on ne peut
+engager que ce qu'on possède**, n'y était modélisé nulle part.
 
-| Politique | Pokédollars/saison | Victoires | Plis gagnés / exemplaires perdus |
-|---|---|---|---|
-| Toujours commun | 1 059 | 48 % | 21 / 23 |
-| Toujours peu commun | 2 270 | 52 % | 23 / 21 |
-| **Toujours rare** | **5 406** | 49 % | **22 / 22** |
-| Toujours légendaire | 13 095 | 50 % | 22 / 22 |
-| Maison seule (quart de tarif) | 1 158 | 42 % | — |
-
-L'autofinancement du rare est confirmé au sens strict — 22 plis gagnés pour 22 exemplaires
-perdus — et les 5 400 annoncés tombent à 6 près. **Attention au piège de modèle** : une
-première version faisait jouer au joueur des exemplaires toujours neufs face à des
-adversaires vétérans, ce qui écrasait tous les taux à 43 % et faisait conclure à tort que
-le rare ne s'autofinançait pas. Toute modification du terrain adverse change ce tableau.
+La simulation a été refaite en **ligue de cinq joueurs**, chacun avec sa réserve alimentée
+par son travail et sa politique de mise, le terrain adverse devenant émergent au lieu
+d'être supposé. Les chiffres qu'elle produit remplacent ceux-ci et sont la seule base
+légitime pour calibrer les prix de la boutique.
 
 **Conséquence assumée : les légendaires ne descendront jamais dans l'arène.** Personne
 n'en tire assez (~1 par saison) pour encaisser d'en perdre un sur deux. Ils resteront des

@@ -19,7 +19,7 @@
 - **Commits :** un commit par tâche, message en français, préfixe `feat:` / `test:` / `chore:`.
 - **Branche :** `feature/poke-arena-battle` (PR #10, en draft). **Ne pas pousser** sans demande explicite. Si un `push` est demandé, préfixer par `GS_REVIEW_BYPASS=1` (ce dépôt n'utilise pas `gs-review-and-fix`).
 - **Constantes de la spec, à reprendre telles quelles :**
-  - Coefficients de rareté : `c 1.00 · u 1.06 · r 1.15 · l 1.25`
+  - Coefficients de rareté : `c 1.00 · u 1.06 · r 1.15 · l 1.45` — le légendaire est appuyé parce que son pool de stats (580-680) chevauche le haut du pool rare (jusqu'à 600), donc les stats seules ne séparent pas ces deux paliers
   - Niveaux : 1 à 10, facteur `1 + 0,05 × (niveau − 1)`, soit `1,00` à `1,45`
   - Formes : `0,90 · 0,95 · 1,00 · 1,05 · 1,10`
   - Probabilité : rapport des puissances **au cube**, bornée à **[0,10 ; 0,90]**
@@ -242,10 +242,16 @@ describe('coefficients de rareté', () => {
     expect(TIER_POWER.l).toBeGreaterThan(TIER_POWER.r)
   })
 
-  // La mesure des stats par palier (spec § 3) montre que les stats portent déjà l'écart de
-  // rareté : un coefficient lourd le compterait deux fois.
-  it('reste léger — au plus 25 % d’écart entre commun et légendaire', () => {
-    expect(TIER_POWER.l / TIER_POWER.c).toBeLessThanOrEqual(1.25)
+  // Léger sur les trois premiers paliers, parce que les stats portent déjà l'écart de rareté
+  // (spec § 3) et qu'un coefficient lourd le compterait deux fois. Le légendaire est
+  // l'exception mesurée : son pool (580 à 680) chevauche le haut du pool rare (jusqu'à 600),
+  // donc les stats seules ne séparent pas ces deux paliers-là.
+  it('reste léger sur les trois premiers paliers', () => {
+    expect(TIER_POWER.r / TIER_POWER.c).toBeLessThanOrEqual(1.15)
+  })
+
+  it('appuie franchement le palier légendaire, que les stats ne séparent pas du rare', () => {
+    expect(TIER_POWER.l).toBe(1.45)
   })
 })
 
@@ -323,11 +329,18 @@ import { DEX } from './species.js'
 import { STATS } from './species-stats.js'
 
 /**
- * Le palier ne fait que nuancer : la mesure des stats par palier (spec § 3) montre que la
- * rareté est déjà largement portée par les stats elles-mêmes. Le coefficient appuie surtout
- * la frontière peu commun / rare, où les deux paliers se chevauchent lourdement.
+ * Le palier ne fait que nuancer sur les trois premiers : la mesure des stats par palier
+ * (spec § 3) montre que la rareté est déjà largement portée par les stats elles-mêmes, et un
+ * coefficient lourd la compterait deux fois. Le coefficient appuie la frontière peu commun /
+ * rare, où les deux paliers se chevauchent lourdement.
+ *
+ * Le légendaire est l'exception, et elle est mesurée : son pool va de 580 à 680 quand le pool
+ * rare monte à 600 — les stats seules ne séparent donc pas ces deux paliers. À 1,25, un
+ * légendaire frais ne battait le meilleur rare que 54 % du temps ; à 1,45 il le bat 64 % du
+ * temps et écrase un rare moyen à 80 %, sans jamais devenir intouchable puisque le bornage à
+ * 90 % continue de garantir sa mortalité.
  */
-export const TIER_POWER = { c: 1.00, u: 1.06, r: 1.15, l: 1.25 }
+export const TIER_POWER = { c: 1.00, u: 1.06, r: 1.15, l: 1.45 }
 
 export const LEVEL_MAX = 10
 
@@ -1007,9 +1020,13 @@ git commit -m "feat: constantes économiques de l'arène — enjeu, gains, bouti
 
 ---
 
-### Task 8: Simulation d'équilibrage
+### Task 8: Simulation d'équilibrage — ligue de cinq joueurs avec réserve
 
-C'est la raison d'être du lot. La spec (§ 7) exige quatre acquis **démontrés, pas supposés**. Le script est importable pour que le test les assère, et exécutable à la main pour lire les distributions quand on veut régler une constante.
+C'est la raison d'être du lot. La spec (§ 7) exige quatre acquis **démontrés, pas supposés**.
+
+**Une première version de cette tâche a été écrite, livrée, puis rejetée en revue** — sa leçon est le cœur de ce qui suit. Elle faisait s'affronter le joueur et un adversaire jouant *le même palier* avec *la même dynamique*. Le taux de victoire valait donc 50 % **par construction**, et l'acquis « le rare s'autofinance » se vérifiait à l'identique pour les quatre paliers : il ne démontrait rien. Pire, le revenu croissait strictement avec la mise (1 111 / 2 230 / 5 469 / 13 035 pokédollars) parce que le seul frein réel — **on ne peut engager que ce qu'on possède** — n'était modélisé nulle part.
+
+La correction est structurelle : on simule **cinq joueurs** (la taille réelle de l'équipe), chacun avec sa **réserve** alimentée par son travail et sa **politique de mise**. Le terrain adverse devient alors *émergent* au lieu d'être supposé, et la contrainte de stock fait son travail toute seule — un joueur qui voudrait n'engager que des légendaires n'en tire qu'un par saison et retombe de lui-même sur le rare.
 
 **Files:**
 - Create: `scripts/simulate-arena.mjs`
@@ -1017,9 +1034,11 @@ C'est la raison d'être du lot. La spec (§ 7) exige quatre acquis **démontrés
 - Modify: `package.json` (ajout d'un script npm)
 
 **Interfaces:**
-- Consumes: `formOf`, `resolveDuel` depuis `shared/battle.js` ; `coveredTier`, `REWARD`, `HOUSE_REWARD` depuis `shared/arena-economy.js` ; `POOL`, `DEX` depuis `shared/species.js`.
-- Produces: `simulateSeason({ policy, weeks, seed }) => { dollars, points, plis, lost, duels, winRate }` et `simulateLegendaryLife({ weeks, seed }) => Number` (nombre de semaines survécues), exportés depuis `scripts/simulate-arena.mjs`.
-- `policy` est l'une des chaînes `'commun'`, `'peu-commun'`, `'rare'`, `'legendaire'`, `'maison'`.
+- Consumes: `formOf`, `resolveDuel` depuis `shared/battle.js` ; `coveredTier`, `REWARD`, `HOUSE_REWARD`, `TIER_ORDER` depuis `shared/arena-economy.js` ; `POOL`, `DEX` depuis `shared/species.js` ; `drawFrom`, `fnv1a` depuis `shared/draw.js`.
+- Produces, exportés depuis `scripts/simulate-arena.mjs` :
+  - `POLICIES: { prudent, rare, audacieux }` — plafond de palier de chaque politique
+  - `simulateLeague({ weeks, seed, policies }) => Array<{ policy, dollars, points, plis, lost, duels, wins, stakes: { c, u, r, l }, fallbacks, stock: { c, u, r, l } }>` — un élément par joueur, dans l'ordre de `policies`
+  - `simulateLegendaryLife({ weeks, seed }) => Number` — semaines survécues par un légendaire engagé chaque semaine
 
 - [ ] **Step 1: Écrire les tests qui échouent**
 
@@ -1027,55 +1046,56 @@ Créer `shared/arena-balance.test.js` :
 
 ```js
 import { describe, it, expect } from 'vitest'
-import { simulateSeason, simulateLegendaryLife } from '../scripts/simulate-arena.mjs'
+import { simulateLeague, simulateLegendaryLife } from '../scripts/simulate-arena.mjs'
 
-// Une saison : deux mois, ~8,7 semaines, 5 crédits par semaine ouvrée.
+// Une saison : deux mois, ~8,7 semaines, 5 duels par semaine ouvrée.
 const SAISON = 8.7
-const RUNS = 40
+const RUNS = 30
+const POLICIES = ['prudent', 'rare', 'audacieux', 'rare', 'maison']
 
-/** Moyenne sur plusieurs saisons : une saison isolée varie trop pour un seuil stable. */
-function moyenne(policy) {
+/** Moyenne d'un joueur sur plusieurs ligues : une saison isolée varie trop pour un seuil stable. */
+function moyenne(index) {
   const runs = Array.from({ length: RUNS }, (_, i) =>
-    simulateSeason({ policy, weeks: SAISON, seed: `eq-${i}` }))
+    simulateLeague({ weeks: SAISON, seed: `eq-${i}`, policies: POLICIES })[index])
   const moy = (f) => runs.reduce((a, r) => a + f(r), 0) / RUNS
   return {
     dollars: moy((r) => r.dollars), points: moy((r) => r.points),
-    plis: moy((r) => r.plis), lost: moy((r) => r.lost),
-    duels: moy((r) => r.duels), winRate: moy((r) => r.winRate),
+    plis: moy((r) => r.plis), lost: moy((r) => r.lost), duels: moy((r) => r.duels),
+    fallbacks: moy((r) => r.fallbacks), stakesL: moy((r) => r.stakes.l),
+    stockR: moy((r) => r.stock.r), winRate: moy((r) => r.wins / r.duels),
   }
 }
 
+const PRUDENT = 0
+const RARE = 1
+const AUDACIEUX = 2
+const MAISON = 4
+
 describe('équilibrage de l’arène', () => {
-  // Acquis 1 de la spec : aucune stratégie de mise dominante. Engager petit doit perdre.
-  // Mesuré : ~1 060 $ en commun contre ~5 400 $ en rare.
-  it('rapporte bien moins en engageant toujours un commun qu’un rare', () => {
-    const commun = moyenne('commun')
-    const rare = moyenne('rare')
-    expect(commun.dollars).toBeLessThan(rare.dollars / 2)
-    expect(commun.points).toBeLessThan(rare.points / 2)
+  // Acquis 1 de la spec : aucune stratégie de mise dominante. La version précédente de cette
+  // simulation concluait l'inverse — engager gros rapportait toujours plus — parce qu'elle
+  // ignorait le stock. Avec une réserve réelle, la politique la plus ambitieuse ne trouve
+  // presque jamais de légendaire à engager et retombe sur le rare d'elle-même.
+  it('rend la politique la plus ambitieuse indiscernable de la politique rare', () => {
+    const audacieux = moyenne(AUDACIEUX)
+    const rare = moyenne(RARE)
+    expect(audacieux.stakesL).toBeLessThan(5)
+    expect(Math.abs(audacieux.dollars - rare.dollars) / rare.dollars).toBeLessThan(0.25)
   })
 
-  // Acquis 2 : le rare s'autofinance — on en perd un sur deux, on gagne un pli rare l'autre
-  // fois. C'est ce qui en fait le point d'équilibre naturel plutôt qu'un pari.
-  it('laisse le stock de rares stable pour qui n’engage que des rares', () => {
-    const r = moyenne('rare')
-    expect(Math.abs(r.plis - r.lost) / r.duels).toBeLessThan(0.10)
+  it('fait perdre bien plus à qui n’engage que des communs', () => {
+    expect(moyenne(PRUDENT).dollars).toBeLessThan(moyenne(RARE).dollars / 2)
+    expect(moyenne(PRUDENT).points).toBeLessThan(moyenne(RARE).points / 2)
   })
 
-  it('donne une victoire sur deux quand les deux camps engagent le même palier', () => {
-    for (const policy of ['commun', 'peu-commun', 'rare', 'legendaire']) {
-      expect(moyenne(policy).winRate).toBeGreaterThan(0.42)
-      expect(moyenne(policy).winRate).toBeLessThan(0.58)
-    }
-  })
-
-  // Le légendaire est la politique la plus RENTABLE (~13 000 $, deux fois et demie le rare),
-  // et rien dans la table des gains ne l'en empêche. Ce qui l'interdit est le stock : il
-  // coûte une vingtaine de légendaires par saison quand on en tire environ un.
-  it('rend la politique légendaire rentable mais inabordable', () => {
-    const l = moyenne('legendaire')
-    expect(l.dollars).toBeGreaterThan(moyenne('rare').dollars)
-    expect(l.lost).toBeGreaterThan(10)
+  // Acquis 2 : le rare est un point d'équilibre tenable — un joueur qui n'engage que des
+  // rares ne vide pas sa réserve. Contrairement à la version précédente, ce test PEUT
+  // échouer : le stock est réellement compté, et une politique intenable se traduirait par
+  // des replis massifs sur un palier inférieur.
+  it('laisse la politique rare soutenable — la réserve ne se vide pas', () => {
+    const r = moyenne(RARE)
+    expect(r.fallbacks / r.duels).toBeLessThan(0.15)
+    expect(r.stockR).toBeGreaterThan(0)
   })
 
   // Acquis 3 : un légendaire descendu chaque semaine finit détruit. Le bornage à 90 % suffit
@@ -1083,28 +1103,33 @@ describe('équilibrage de l’arène', () => {
   it('détruit un légendaire engagé chaque semaine en quelques mois', () => {
     const vies = Array.from({ length: 200 }, (_, i) =>
       simulateLegendaryLife({ weeks: 52, seed: `vie-${i}` }))
-    const survivants = vies.filter((v) => v >= 52).length
-    expect(survivants / vies.length).toBeLessThan(0.10)
+    expect(vies.filter((v) => v >= 52).length / vies.length).toBeLessThan(0.02)
     const mediane = vies.slice().sort((a, b) => a - b)[Math.floor(vies.length / 2)]
-    expect(mediane).toBeLessThan(30)
+    expect(mediane).toBeLessThan(15)
   })
 
-  // Acquis 4 : la boutique reste hors de portée du seul farming contre la maison. Mesuré à
-  // ~21 % du jeu humain avec le quart de tarif — c'était ~96 % au demi-tarif initial.
+  // Acquis 4 : la boutique reste hors de portée du seul farming contre la maison.
   it('rapporte moins de la moitié en n’affrontant que la maison', () => {
-    const maison = moyenne('maison')
-    const humain = moyenne('rare')
-    expect(maison.dollars).toBeLessThan(humain.dollars / 2)
+    const maison = moyenne(MAISON)
+    expect(maison.dollars).toBeLessThan(moyenne(RARE).dollars / 2)
     expect(maison.points).toBe(0)
     expect(maison.plis).toBe(0)
     expect(maison.lost).toBe(0)
   })
 
-  // Les prix de la boutique sont calés sur ce chiffre (spec § 4) : s'il dérive, ce sont les
-  // prix qu'il faut reprendre, pas ce seuil.
-  it('place une saison de jeu humain autour de 5 400 pokédollars', () => {
-    expect(moyenne('rare').dollars).toBeGreaterThan(4500)
-    expect(moyenne('rare').dollars).toBeLessThan(6500)
+  // Contrôle de symétrie du moteur, et rien de plus : sur toute la ligue, les victoires et
+  // les défaites doivent s'équilibrer puisque chaque duel produit exactement l'une et
+  // l'autre. Un écart signalerait un biais gauche/droite dans `resolveDuel`.
+  it('équilibre victoires et défaites sur l’ensemble de la ligue', () => {
+    const ligue = simulateLeague({ weeks: SAISON, seed: 'symetrie', policies: POLICIES })
+    const humains = ligue.filter((j) => j.policy !== 'maison')
+    const wins = humains.reduce((a, j) => a + j.wins, 0)
+    const lost = humains.reduce((a, j) => a + j.lost, 0)
+    expect(wins).toBe(lost)
+  })
+
+  it('refuse une politique inconnue au lieu de retomber silencieusement sur une autre', () => {
+    expect(() => simulateLeague({ weeks: 1, seed: 'x', policies: ['nawak'] })).toThrow(/nawak/)
   })
 })
 ```
@@ -1120,120 +1145,239 @@ Créer `scripts/simulate-arena.mjs` :
 
 ```js
 import { POOL, DEX } from '../shared/species.js'
-import { fnv1a } from '../shared/draw.js'
+import { drawFrom, fnv1a } from '../shared/draw.js'
 import { formOf, resolveDuel } from '../shared/battle.js'
-import { coveredTier, REWARD, HOUSE_REWARD } from '../shared/arena-economy.js'
+import { coveredTier, REWARD, HOUSE_REWARD, TIER_ORDER } from '../shared/arena-economy.js'
 
 const DUELS_PER_WEEK = 5
-const POLICY_TIER = { commun: 'c', 'peu-commun': 'u', rare: 'r', legendaire: 'l' }
 
-/** Espèce tirée dans le pool d'un palier, de façon reproductible depuis un seed. */
-const pickSpecies = (tier, seed) => POOL[tier][fnv1a(seed) % POOL[tier].length]
+/** Rythme réel observé dans l'équipe : ~5 PR mergées par jour ouvré, donc ~25 plis par semaine. */
+const PLIS_PER_WEEK = 25
 
 /**
- * Le terrain adverse joue la MÊME politique que le joueur, et son champion monte en niveau
- * comme le sien. C'est la seule façon de mesurer un taux de victoire non biaisé : une
- * première version faisait jouer au joueur des exemplaires toujours neufs face à des
- * vétérans, ce qui écrasait tous les taux à 43 % et faisait conclure à tort que le rare ne
- * s'autofinançait pas.
- *
- * Chaque camp remplace son exemplaire détruit par un frais de niveau 1 — ce que fait un
- * vrai joueur, qui repart de sa réserve.
+ * Plafond de palier de chaque politique. Un joueur engage le plus haut palier autorisé
+ * qu'il possède encore — c'est ce plafond, croisé avec sa réserve réelle, qui distingue les
+ * politiques entre elles. `audacieux` ne diffère de `rare` que les rares fois où un
+ * légendaire est effectivement en réserve.
  */
-export function simulateSeason({ policy, weeks, seed }) {
-  const duels = Math.round(weeks * DUELS_PER_WEEK)
-  const mien = POLICY_TIER[policy] ?? 'r'
-  let dollars = 0
-  let points = 0
-  let plis = 0
-  let lost = 0
-  let wins = 0
+export const POLICIES = { prudent: 'c', rare: 'r', audacieux: 'l' }
 
-  let moi = { species: pickSpecies(mien, `${seed}:m0`), level: 1 }
-  let lui = { species: pickSpecies(mien, `${seed}:a0`), level: 1 }
+const emptyStock = () => ({ c: [], u: [], r: [], l: [] })
 
-  for (let i = 0; i < duels; i++) {
-    const s = `${seed}:${i}`
-    const gauche = { ...moi, form: formOf(`${s}:moi`, 'jour') }
-    const droite = { ...lui, form: formOf(`${s}:adv`, 'jour') }
-
-    if (policy === 'maison') {
-      // Contre la maison, rien n'est détruit ni créé : seulement des pokédollars, au quart
-      // du tarif humain et au palier de sa propre mise. Aucun point, donc une saison entière
-      // en solo ne fait pas monter au classement — par construction.
-      if (resolveDuel({ left: gauche, right: droite, seed: s }).winner === 'left') {
-        dollars += HOUSE_REWARD[mien]
-        wins++
-      }
-      lui = { species: pickSpecies(mien, `${s}:adv`), level: 1 + (fnv1a(`${s}:niveau`) % 4) }
-      continue
-    }
-
-    const enjeu = coveredTier(DEX[moi.species].tier, DEX[lui.species].tier)
-    const issue = resolveDuel({ left: gauche, right: droite, seed: s })
-
-    if (issue.winner === 'left') {
-      dollars += REWARD[enjeu].dollars
-      points += REWARD[enjeu].points
-      plis++
-      wins++
-      moi = { ...moi, level: issue.levelAfter }
-      lui = { species: pickSpecies(mien, `${s}:adv`), level: 1 }
-    } else {
-      lost++
-      moi = { species: pickSpecies(mien, `${s}:moi`), level: 1 }
-      lui = { ...lui, level: issue.levelAfter }
-    }
+/** Les plis tirés du travail, aux cotes de tout le monde — c'est ce qui alimente la réserve. */
+function collectWeek(stock, seed) {
+  for (let i = 0; i < PLIS_PER_WEEK; i++) {
+    const { species } = drawFrom(`${seed}:${i}`)
+    stock[DEX[species].tier].push({ species, level: 1 })
   }
+}
 
-  return { dollars, points, plis, lost, duels, winRate: wins / duels }
+/** Un pli gagné en arène entre en réserve comme n'importe quelle capture. */
+function addPli(stock, tier, seed) {
+  const pool = POOL[tier]
+  stock[tier].push({ species: pool[fnv1a(seed) % pool.length], level: 1 })
 }
 
 /**
- * Le terrain ordinaire vu par un légendaire qui descend dans l'arène : majoritairement du
- * peu commun et du rare, à des niveaux bas — la plupart des exemplaires sont frais, les
- * vétérans sont rares parce que les niveaux se gagnent lentement.
+ * L'exemplaire engagé : le plus haut palier autorisé par la politique et effectivement
+ * possédé, et dans ce palier le plus vétéran — un joueur envoie son champion. Rend aussi
+ * `fallback`, vrai quand le palier visé était vide : c'est la trace mesurable qu'une
+ * politique n'est pas soutenable.
  */
-const ORDINARY_FIELD = ['u', 'u', 'r', 'r', 'c']
-const ordinaryTier = (seed) => ORDINARY_FIELD[fnv1a(`${seed}:terrain`) % ORDINARY_FIELD.length]
-const ordinaryLevel = (seed) => 1 + (fnv1a(`${seed}:niveau`) % 3)
+function pickStake(stock, policy) {
+  const plafond = TIER_ORDER.indexOf(POLICIES[policy])
+  for (let i = plafond; i >= 0; i--) {
+    const tier = TIER_ORDER[i]
+    if (!stock[tier].length) continue
+    let best = 0
+    for (let k = 1; k < stock[tier].length; k++) {
+      if (stock[tier][k].level > stock[tier][best].level) best = k
+    }
+    return { tier, index: best, fallback: i < plafond }
+  }
+  return null
+}
+
+function newPlayer(policy) {
+  if (policy !== 'maison' && !(policy in POLICIES)) {
+    throw new Error(`politique inconnue : ${policy}`)
+  }
+  return {
+    policy, stock: emptyStock(), dollars: 0, points: 0, plis: 0, lost: 0,
+    duels: 0, wins: 0, fallbacks: 0, stakes: { c: 0, u: 0, r: 0, l: 0 },
+  }
+}
+
+/** L'adversaire de la maison : plausible, jamais plus faible, et sans rien à perdre. */
+function houseSide(tier, seed) {
+  const pool = POOL[tier]
+  return {
+    species: pool[fnv1a(`${seed}:maison`) % pool.length],
+    level: 1 + (fnv1a(`${seed}:niveau`) % 4),
+    form: formOf(`${seed}:maison`, 'jour'),
+  }
+}
 
 /**
- * Un légendaire descendu une fois par semaine face à ce terrain. Rend le nombre de semaines
- * survécues. Le bornage à 90 % garantit qu'il finit par tomber — et comme un légendaire
- * frais (725 de puissance) dépasse à peine un bon rare (690), il tombe même assez vite.
+ * Une ligue : cinq joueurs, chacun avec sa réserve et sa politique. Chaque jour ouvré, les
+ * joueurs sont appariés par rotation et celui qui reste affronte la maison — la rotation
+ * fait que tout le monde y passe à son tour.
+ *
+ * Le terrain adverse est ainsi ÉMERGENT : personne ne décide de ce que les autres engagent,
+ * ça découle de leurs politiques et de ce qu'ils possèdent. C'est ce qui manquait à la
+ * version précédente, où l'adversaire était le miroir du joueur et rendait tout équilibrage
+ * vrai par construction.
  */
+export function simulateLeague({ weeks, seed, policies }) {
+  const players = policies.map(newPlayer)
+  const jours = Math.round(weeks * DUELS_PER_WEEK)
+
+  for (let j = 0; j < jours; j++) {
+    if (j % DUELS_PER_WEEK === 0) {
+      const semaine = j / DUELS_PER_WEEK
+      players.forEach((p, i) => collectWeek(p.stock, `${seed}:tirage:${i}:${semaine}`))
+    }
+
+    const ordre = players.map((_, i) => (i + j) % players.length)
+    for (let k = 0; k + 1 < players.length; k += 2) {
+      duelHumain(players[ordre[k]], players[ordre[k + 1]], `${seed}:${j}:${k}`)
+    }
+    duelMaison(players[ordre[players.length - 1]], `${seed}:${j}:maison`)
+  }
+
+  return players.map((p) => ({
+    policy: p.policy, dollars: p.dollars, points: p.points, plis: p.plis, lost: p.lost,
+    duels: p.duels, wins: p.wins, fallbacks: p.fallbacks, stakes: p.stakes,
+    stock: Object.fromEntries(TIER_ORDER.map((t) => [t, p.stock[t].length])),
+  }))
+}
+
+function duelHumain(a, b, seed) {
+  if (a.policy === 'maison' || b.policy === 'maison') {
+    // Un joueur qui ne veut que la maison ne relève jamais de défi : son adversaire du jour
+    // se rabat sur la maison lui aussi, plutôt que de jouer un duel fantôme.
+    duelMaison(a.policy === 'maison' ? b : a, `${seed}:report`)
+    return
+  }
+  const ea = pickStake(a.stock, a.policy)
+  const eb = pickStake(b.stock, b.policy)
+  if (!ea || !eb) return
+
+  const ga = a.stock[ea.tier][ea.index]
+  const gb = b.stock[eb.tier][eb.index]
+  const issue = resolveDuel({
+    left: { ...ga, form: formOf(`${seed}:a`, 'jour') },
+    right: { ...gb, form: formOf(`${seed}:b`, 'jour') },
+    seed,
+  })
+  const enjeu = coveredTier(ea.tier, eb.tier)
+
+  for (const [j, e] of [[a, ea], [b, eb]]) {
+    j.duels++
+    j.stakes[e.tier]++
+    if (e.fallback) j.fallbacks++
+  }
+
+  const [vainqueur, ev, gv, perdant, ep] = issue.winner === 'left'
+    ? [a, ea, ga, b, eb]
+    : [b, eb, gb, a, ea]
+
+  gv.level = issue.levelAfter
+  vainqueur.wins++
+  vainqueur.dollars += REWARD[enjeu].dollars
+  vainqueur.points += REWARD[enjeu].points
+  vainqueur.plis++
+  addPli(vainqueur.stock, enjeu, `${seed}:pli`)
+
+  perdant.lost++
+  perdant.stock[ep.tier].splice(ep.index, 1)
+}
+
+/**
+ * Contre la maison : des pokédollars au quart du tarif humain, et rien d'autre. Aucun pli,
+ * aucun point, AUCUN GAIN DE NIVEAU (spec § 2) et aucun risque — la maison ne possède rien,
+ * elle ne peut donc ni détruire ni créer un exemplaire. Un joueur qui ne fait que ça ne se
+ * construit jamais de champion : c'est voulu.
+ */
+function duelMaison(j, seed) {
+  const e = pickStake(j.stock, j.policy === 'maison' ? 'rare' : j.policy)
+  if (!e) return
+  const mien = j.stock[e.tier][e.index]
+
+  j.duels++
+  j.stakes[e.tier]++
+  if (e.fallback) j.fallbacks++
+
+  const issue = resolveDuel({
+    left: { ...mien, form: formOf(`${seed}:moi`, 'jour') },
+    right: houseSide(e.tier, seed),
+    seed,
+  })
+  if (issue.winner === 'left') {
+    j.wins++
+    j.dollars += HOUSE_REWARD[e.tier]
+  }
+}
+
+/**
+ * Un légendaire descendu une fois par semaine face au terrain ordinaire — majoritairement du
+ * peu commun et du rare, à des niveaux bas. Rend le nombre de semaines survécues : le
+ * bornage à 90 % garantit qu'il finit par tomber, quelle que soit sa force.
+ */
+const ORDINARY_FIELD = ['u', 'u', 'r', 'r', 'c']
+
 export function simulateLegendaryLife({ weeks, seed }) {
   let level = 1
+  const species = POOL.l[fnv1a(`${seed}:mon-legendaire`) % POOL.l.length]
   for (let w = 0; w < weeks; w++) {
     const s = `${seed}:${w}`
-    const moi = { species: pickSpecies('l', `${seed}:mon-legendaire`), level, form: formOf(s, 'jour') }
-    const lui = {
-      species: pickSpecies(ordinaryTier(s), `${s}:lui`),
-      level: ordinaryLevel(s),
-      form: formOf(`${s}:adv`, 'jour'),
-    }
-    const issue = resolveDuel({ left: moi, right: lui, seed: s })
+    const tier = ORDINARY_FIELD[fnv1a(`${s}:terrain`) % ORDINARY_FIELD.length]
+    const pool = POOL[tier]
+    const issue = resolveDuel({
+      left: { species, level, form: formOf(s, 'jour') },
+      right: {
+        species: pool[fnv1a(`${s}:lui`) % pool.length],
+        level: 1 + (fnv1a(`${s}:niveau`) % 3),
+        form: formOf(`${s}:adv`, 'jour'),
+      },
+      seed: s,
+    })
     if (issue.winner === 'right') return w
     level = issue.levelAfter
   }
   return weeks
 }
 
+const quantile = (tri, q) => tri[Math.min(tri.length - 1, Math.floor(tri.length * q))]
+
 function main() {
   const SAISON = 8.7
-  console.log('Une saison de deux mois, 5 duels par semaine ouvrée.\n')
-  for (const policy of ['commun', 'peu-commun', 'rare', 'legendaire', 'maison']) {
-    const r = simulateSeason({ policy, weeks: SAISON, seed: `cli-${policy}` })
+  const RUNS = 30
+  const POLICIES_CLI = ['prudent', 'rare', 'audacieux', 'rare', 'maison']
+
+  console.log(`Ligue de ${POLICIES_CLI.length} joueurs, ${RUNS} saisons de deux mois simulées.\n`)
+  console.log('politique     médiane   p10      p90    victoires  replis  mises légendaires')
+
+  const ligues = Array.from({ length: RUNS }, (_, i) =>
+    simulateLeague({ weeks: SAISON, seed: `cli-${i}`, policies: POLICIES_CLI }))
+
+  POLICIES_CLI.forEach((policy, index) => {
+    const joueurs = ligues.map((l) => l[index])
+    const tri = joueurs.map((j) => j.dollars).sort((a, b) => a - b)
+    const moy = (f) => joueurs.reduce((a, j) => a + f(j), 0) / joueurs.length
     console.log(
-      `${policy.padEnd(12)} ${String(r.dollars).padStart(6)} $  ${String(r.points).padStart(4)} pts  ` +
-      `${r.plis} plis gagnés  ${r.lost} exemplaires perdus  ${(r.winRate * 100).toFixed(0)} % de victoires`,
+      `${(policy + ' #' + index).padEnd(14)}${String(quantile(tri, 0.5)).padStart(6)} $` +
+      `${String(quantile(tri, 0.1)).padStart(8)} $${String(quantile(tri, 0.9)).padStart(8)} $` +
+      `${(moy((j) => j.wins / j.duels) * 100).toFixed(0).padStart(9)} %` +
+      `${moy((j) => j.fallbacks).toFixed(1).padStart(8)}` +
+      `${moy((j) => j.stakes.l).toFixed(1).padStart(12)}`,
     )
-  }
+  })
 
   const vies = Array.from({ length: 200 }, (_, i) => simulateLegendaryLife({ weeks: 52, seed: `cli-vie-${i}` }))
-  const mediane = vies.slice().sort((a, b) => a - b)[Math.floor(vies.length / 2)]
-  console.log(`\nLégendaire engagé chaque semaine : ${mediane} semaines de survie médiane, ` +
+  const tri = vies.slice().sort((a, b) => a - b)
+  console.log(`\nLégendaire engagé chaque semaine : médiane ${quantile(tri, 0.5)} semaines ` +
+    `(p10 ${quantile(tri, 0.1)}, p90 ${quantile(tri, 0.9)}), ` +
     `${vies.filter((v) => v >= 52).length}/200 tiennent un an.`)
 }
 
@@ -1245,7 +1389,7 @@ if (import.meta.url === `file://${process.argv[1]}`) main()
 Run: `npx vitest run shared/arena-balance.test.js`
 Expected: PASS
 
-**Si un test échoue, c'est le résultat attendu du lot, pas un bug à contourner.** Ne pas ajuster les seuils du test pour les faire passer : noter l'écart, et remonter la constante fautive pour arbitrage avant d'aller plus loin. C'est exactement ce que ce lot sert à découvrir.
+**Si un test échoue, c'est le résultat attendu du lot, pas un bug à contourner.** N'ajuste jamais un seuil de test ni une constante d'une tâche antérieure pour le faire passer : note l'écart — quel test, quelle valeur mesurée contre quelle valeur attendue — et remonte-le pour arbitrage. La version précédente de cette tâche passait tous ses tests et ne démontrait rien ; un test rouge est plus utile qu'un test vert pour de mauvaises raisons.
 
 - [ ] **Step 5: Ajouter le script npm**
 
@@ -1258,18 +1402,18 @@ Dans `package.json`, à la suite de `"gen:species-info"` :
 - [ ] **Step 6: Lire les distributions**
 
 Run: `npm run simulate:arena`
-Expected: un tableau des cinq politiques et la survie médiane d'un légendaire. Consigner ces chiffres dans le compte rendu de fin de lot.
+Expected: un tableau par politique avec médiane, p10, p90, taux de victoire, replis et mises légendaires, puis la distribution de survie d'un légendaire. **Recopie cette sortie intégralement dans ton rapport** — c'est le livrable principal de la tâche.
 
 - [ ] **Step 7: Lancer toute la suite**
 
 Run: `npm test`
-Expected: PASS — aucun test existant cassé par l'ajout du champ `stats`.
+Expected: PASS — aucun test existant cassé.
 
 - [ ] **Step 8: Commit**
 
 ```bash
 git add scripts/simulate-arena.mjs shared/arena-balance.test.js package.json
-git commit -m "feat: simulation d'équilibrage de l'arène et test des quatre acquis de la spec"
+git commit -m "feat: simulation d'équilibrage en ligue de cinq joueurs, avec réserve et contrainte de stock"
 ```
 
 ---
