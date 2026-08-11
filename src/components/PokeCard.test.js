@@ -91,6 +91,21 @@ describe('inclinaison et retournement', () => {
     expect(mountCard({ provenance, flipped: true }).find('.pkc').classes()).toContain('is-flipped')
   })
 
+  /**
+   * `backface-visibility` ne cache la face cachée qu'à l'œil. Sans `aria-hidden`, un lecteur
+   * d'écran annoncerait l'espèce alors que la carte est encore retournée — la révélation
+   * n'existerait que pour les voyants.
+   */
+  it('cache la face qui n’est pas tournée vers le joueur, aux lecteurs d’écran aussi', () => {
+    const face = mountCard({ provenance })
+    expect(face.find('.pkc-front').attributes('aria-hidden')).toBeUndefined()
+    expect(face.find('.pkc-back').attributes('aria-hidden')).toBe('true')
+
+    const dos = mountCard({ provenance, flipped: true })
+    expect(dos.find('.pkc-front').attributes('aria-hidden')).toBe('true')
+    expect(dos.find('.pkc-back').attributes('aria-hidden')).toBeUndefined()
+  })
+
   // Le retournement est décidé par le parent : le rituel doit pouvoir le refuser tant que la
   // séquence n'y est pas, et la fiche d'espèce n'en veut pas du tout.
   it('émet « flip » au clic, sans se retourner de sa propre initiative', async () => {

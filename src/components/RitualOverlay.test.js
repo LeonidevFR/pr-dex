@@ -41,10 +41,20 @@ afterEach(() => vi.useRealTimers())
 // Les tests qui portent sur l'entaille elle-même n'utilisent pas cet assistant, exprès.
 const ouvrir = async (w) => {
   await w.find('.packet').trigger('click')
-  vi.advanceTimersByTime(760)
+  vi.advanceTimersByTime(1180)
   await w.vm.$nextTick()
   return w
 }
+
+// Retourner la carte est un geste distinct de l'ouverture : c'est tout l'intérêt du changement.
+const retourner = async (w) => {
+  await w.findComponent({ name: 'PokeCard' }).vm.$emit('flip')
+  await w.vm.$nextTick()
+  return w
+}
+
+// Révéler, c'est ouvrir le pli PUIS retourner la carte — le geste appartient au joueur.
+const reveler = async (w) => retourner(await ouvrir(w))
 
 describe('pli scellé', () => {
   it('porte le libellé de la capture et la référence donnée par sa source', () => {
@@ -88,21 +98,56 @@ describe('ouverture', () => {
     expect(w.emitted('claim')[0]).toEqual(['github:a3f8c21e9b4d'])
   })
 
-  it('passe par la silhouette avant la révélation', async () => {
+  // Ce que la silhouette faisait — retenir l'information — la carte le fait mieux : elle est
+  // là, tenue à l'envers, et c'est le joueur qui décide quand elle se retourne.
+  it('sort la carte dos visible, et ne divulgue rien', async () => {
     const w = mountRitual()
     await ouvrir(w)
-    expect(w.find('.reveal').classes()).toContain('silhouette')
-    expect(w.find('img').classes()).toContain('silh')
+    expect(w.findComponent({ name: 'PokeCard' }).props('flipped')).toBe(true)
     expect(w.find('.reveal-name').exists()).toBe(false)
+    // La face avant reste dans le DOM — il faut bien la retourner. Elle est cachée aux
+    // lecteurs d'écran, sans quoi la révélation ne vaudrait que pour les voyants.
+    expect(w.find('.pkc-front').attributes('aria-hidden')).toBe('true')
   })
 
-  it('révèle après le délai', async () => {
+  it('révèle au clic sur la carte, sans attendre', async () => {
+    const w = mountRitual()
+    await reveler(w)
+    expect(w.findComponent({ name: 'PokeCard' }).props('flipped')).toBe(false)
+    expect(w.find('.reveal-name').text()).toBe('Pikachu')
+  })
+
+  // Le filet, pour qui a posé son téléphone. Pas pour qui attend.
+  it('se retourne seule au bout de quatre secondes', async () => {
     const w = mountRitual()
     await ouvrir(w)
-    vi.advanceTimersByTime(2200)
+
+    vi.advanceTimersByTime(3999)
     await w.vm.$nextTick()
-    expect(w.find('.reveal').classes()).toContain('revealed')
+    expect(w.find('.reveal-name').exists()).toBe(false)
+
+    vi.advanceTimersByTime(1)
+    await w.vm.$nextTick()
     expect(w.find('.reveal-name').text()).toBe('Pikachu')
+  })
+
+  // Sans annulation, le minuteur rejouerait la révélation par-dessus une carte déjà retournée.
+  it('annule le retournement automatique quand le joueur a cliqué', async () => {
+    const w = mountRitual()
+    await reveler(w)
+    vi.advanceTimersByTime(5000)
+    await w.vm.$nextTick()
+    expect(w.findAll('.reveal-name')).toHaveLength(1)
+  })
+
+  it('annonce le décompte tant que la carte attend', async () => {
+    const w = mountRitual()
+    await ouvrir(w)
+    expect(w.find('.reveal-hint').text()).toContain('Cliquer pour retourner')
+
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('flip')
+    await w.vm.$nextTick()
+    expect(w.find('.reveal-hint').exists()).toBe(false)
   })
 })
 
@@ -156,17 +201,14 @@ describe('échelle d’intensité', () => {
     const w = mountRitual({ entry: entryOf({ species: 144 }) })
     await ouvrir(w)
     expect(w.find('.ritual').classes()).toContain('leg')
-    vi.advanceTimersByTime(2800)
-    await w.vm.$nextTick()
+    await retourner(w)
     expect(w.find('.reveal-banner').text()).toContain('Légendaire')
   })
 
   it('déclenche la salve de particules sur un rare ou un légendaire, même sans chromatique', async () => {
     const burst = async (species) => {
       const w = mountRitual({ entry: entryOf({ species }) })
-      await ouvrir(w)
-      vi.advanceTimersByTime(2800)
-      await w.vm.$nextTick()
+      await reveler(w)
       return w.findAll('.spark').length
     }
     expect(await burst(20)).toBe(0)   // peu commun : pas de salve
@@ -176,48 +218,38 @@ describe('échelle d’intensité', () => {
 
   it('garde une durée proche entre paliers — l’écart passe par l’intensité', async () => {
     const w = mountRitual({ entry: entryOf({ species: 19 }) })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
-    expect(w.find('.reveal').classes()).toContain('revealed')
+    await reveler(w)
+    expect(w.find('.reveal-name').exists()).toBe(true)
 
     const l = mountRitual({ entry: entryOf({ species: 144 }) })
-    await ouvrir(l)
-    vi.advanceTimersByTime(2800)
-    await l.vm.$nextTick()
-    expect(l.find('.reveal').classes()).toContain('revealed')
+    await reveler(l)
+    expect(l.find('.reveal-name').exists()).toBe(true)
   })
 })
 
 describe('chromatique', () => {
-  it('teinte l’attente et fait scintiller la révélation', async () => {
+  it('marque la carte, et fait scintiller la révélation', async () => {
     const w = mountRitual({ entry: entryOf({ shiny: true }) })
     await ouvrir(w)
-    expect(w.find('.dev-note').text()).toContain('scintille')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    // Le chromatique se voit sur la carte elle-même, dès qu'elle est là — plus besoin d'une
+    // ligne de texte pour teaser l'attente, puisqu'il n'y a plus d'attente subie.
+    expect(w.find('.pkc').classes()).toContain('is-shiny')
+
+    await retourner(w)
     expect(w.find('.reveal-banner').text()).toContain('Chromatique')
     expect(w.findAll('.spark')).toHaveLength(16)
-    expect(w.find('img').attributes('src')).toContain('/shiny/')
+    expect(w.find('.pkc-art img').attributes('src')).toContain('/shiny/')
   })
 
   it('prime le chromatique sur le légendaire dans le bandeau', async () => {
     const w = mountRitual({ entry: entryOf({ species: 144, shiny: true }) })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2800)
-    await w.vm.$nextTick()
+    await reveler(w)
     expect(w.find('.reveal-banner').text()).toContain('Chromatique')
   })
 })
 
 describe('espèce jamais rencontrée', () => {
-  const reveal = async (props) => {
-    const w = mountRitual(props)
-    await ouvrir(w)
-    vi.advanceTimersByTime(2800) // couvre aussi la tenue plus longue du légendaire
-    await w.vm.$nextTick()
-    return w
-  }
+  const reveal = async (props) => reveler(mountRitual(props))
 
   it('marque la révélation d’une espèce nouvelle', async () => {
     const w = await reveal({ isNew: true })
@@ -236,11 +268,11 @@ describe('espèce jamais rencontrée', () => {
     expect(w.find('.new-chip').exists()).toBe(false)
   })
 
-  it('ne divulgue rien avant la révélation — le pli scellé et la silhouette restent muets', async () => {
+  it('ne divulgue rien avant le retournement — le pli scellé et le dos restent muets', async () => {
     const w = mountRitual({ isNew: true })
     expect(w.text()).not.toContain('Nouveau')
     await ouvrir(w)
-    expect(w.find('.reveal').classes()).toContain('silhouette')
+    expect(w.findComponent({ name: 'PokeCard' }).props('flipped')).toBe(true)
     expect(w.text()).not.toContain('Nouveau')
   })
 
@@ -255,35 +287,27 @@ describe('espèce jamais rencontrée', () => {
 describe('suite de la file', () => {
   it('propose le retour quand c’est le dernier', async () => {
     const w = mountRitual({ remaining: 1 })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     expect(w.find('.next-btn').text()).toBe('Retour à la planche')
     expect(w.findAll('button.queue-note')).toHaveLength(0)
   })
 
   it('décompte les plis restants après celui-ci', async () => {
     const w = mountRitual({ remaining: 3 })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     expect(w.find('.next-btn').text()).toContain('2 restants')
   })
 
   it('accorde le singulier à un seul pli restant', async () => {
     const w = mountRitual({ remaining: 2 })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     expect(w.find('.next-btn').text()).toContain('1 restant')
     expect(w.find('.next-btn').text()).not.toContain('restants')
   })
 
   it('émet next et skip-all', async () => {
     const w = mountRitual({ remaining: 3 })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     await w.find('.next-btn').trigger('click')
     expect(w.emitted('next')).toBeTruthy()
     await w.find('button.queue-note').trigger('click')
@@ -299,9 +323,7 @@ describe('fermeture anticipée', () => {
 
   it('permet de revenir à la planche pendant la révélation, sans avoir tout ouvert', async () => {
     const w = mountRitual({ remaining: 3 })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     await w.find('.ritual-close').trigger('click')
     expect(w.emitted('close')).toBeTruthy()
   })
@@ -327,9 +349,7 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
       setup: () => ({ col, entry, remaining }),
       template: `<RitualOverlay :entry="entry" :remaining="remaining" @claim="col.claim" />`,
     })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
 
     // 3 en attente au départ : celui-ci + 2 → le libellé doit annoncer 2
     expect(w.find('.next-btn').text()).toContain('2 restants')
@@ -349,9 +369,7 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
       setup: () => ({ col, entry, isNew }),
       template: `<RitualOverlay :entry="entry" :remaining="1" :is-new="isNew" @claim="col.claim" />`,
     })
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
 
     expect(col.dex.isNewSpecies(25)).toBe(false) // le claim l'a déjà inscrite
     expect(w.find('.new-chip').exists()).toBe(true)
@@ -385,26 +403,28 @@ describe('focus clavier', () => {
 
   it('pose le focus sur le bouton suivant une fois révélé', async () => {
     const w = mountAttached()
-    await ouvrir(w)
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     await w.vm.$nextTick()
     expect(document.activeElement).toBe(w.find('.next-btn').element)
   })
 
-  // L'attente fait partie du rituel : rien à focaliser, donc Espace n'a rien à activer.
-  it('ne focalise rien pendant la silhouette', async () => {
+  /**
+   * Renversement par rapport à l'ancienne silhouette, qui ne focalisait rien parce qu'elle
+   * imposait une attente : la carte, elle, porte l'action. Sans focus, on réserverait le
+   * retournement à la souris.
+   */
+  it('pose le focus sur la carte, qui porte désormais l’action', async () => {
     const w = mountAttached()
     await ouvrir(w)
     await w.vm.$nextTick()
-    expect(w.find('.reveal').classes()).toContain('silhouette')
-    expect(document.activeElement).toBe(document.body)
+    expect(document.activeElement).toBe(w.find('.pkc').element)
   })
 })
 
 describe('entaille du sceau', () => {
   // Ces trois tests portent sur l'entaille elle-même : ils cliquent à la main, sans l'assistant.
-  it('entaille le pli avant de le déchirer', async () => {
+  // L'entaille court, le bandeau part, puis le reste du pli cède : la carte n'entre qu'après.
+  it('entaille le pli, puis le déchire, puis sort la carte', async () => {
     const w = mountRitual()
     await w.find('.packet').trigger('click')
     expect(w.find('.packet').classes()).toContain('cutting')
@@ -412,8 +432,13 @@ describe('entaille du sceau', () => {
 
     vi.advanceTimersByTime(760)
     await w.vm.$nextTick()
+    expect(w.find('.packet').exists()).toBe(true)   // il se déchire encore
+    expect(w.find('.reveal').exists()).toBe(false)
+
+    vi.advanceTimersByTime(420)
+    await w.vm.$nextTick()
     expect(w.find('.packet').exists()).toBe(false)
-    expect(w.find('.reveal').exists()).toBe(true)
+    expect(w.find('.pkc').exists()).toBe(true)
   })
 
   // Le sceau ne se brise qu'une fois : re-cliquer pendant l'entaille relancerait la séquence,

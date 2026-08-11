@@ -86,7 +86,10 @@ function onLeave() {
     @pointermove="onMove" @pointerleave="onLeave"
     @click="emit('flip')" @keyup.enter="emit('flip')"
   >
-    <div class="pkc-face pkc-front">
+    <!-- Les deux faces coexistent pour que le retournement soit une vraie rotation. Mais
+         `backface-visibility` ne cache qu'à l'œil : sans `aria-hidden`, un lecteur d'écran
+         annoncerait l'espèce avant que la carte ne soit retournée, ce qui vend la mèche. -->
+    <div class="pkc-face pkc-front" :aria-hidden="flipped ? 'true' : null">
       <div class="pkc-bg"></div>
       <div class="pkc-frame"></div>
       <span class="pkc-corner tl"></span><span class="pkc-corner tr"></span>
@@ -115,7 +118,7 @@ function onLeave() {
 
     <!-- Le dos, c'est le sachet ouvert, et l'étiquette de spécimen collée dessus. C'est ce
          qui donne une raison de retourner la carte : elle dit d'où elle vient. -->
-    <div v-if="provenance" class="pkc-face pkc-back">
+    <div v-if="provenance" class="pkc-face pkc-back" :aria-hidden="flipped ? null : 'true'">
       <div class="pkc-back-head">
         <span class="pkc-mark">PR·DEX</span>
         <span class="pkc-torn">ouvert</span>

@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR, RAY_PALETTE, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import { fnv1a } from '../../shared/draw.js'
-import { spriteUrl } from '../lib/sprites.js'
+import PokeCard from './PokeCard.vue'
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -61,7 +61,7 @@ function rayLayerStyle(layer) {
   }
 }
 
-const stage = ref('sealed') // sealed → cutting → silhouette → revealed
+const stage = ref('sealed') // sealed → cutting → awaiting → revealed
 const timers = []
 
 const species = computed(() => DEX[props.entry.species])
@@ -70,6 +70,12 @@ const intensity = computed(() => INTENSITY[tier.value])
 // Le flash + la salve de particules ne sont pas réservés au chromatique : un rare ou un
 // légendaire doit taper aussi fort, à chaque tirage — pas seulement le premier de sa vie.
 const big = computed(() => props.entry.shiny || tier.value === 'r' || tier.value === 'l')
+
+const sparks = Array.from({ length: 16 }, (_, i) => ({
+  left: (fnv1a('sx' + i) % 100) + '%',
+  top: (fnv1a('sy' + i) % 100) + '%',
+  animationDelay: ((fnv1a('sd' + i) % 160) / 100) + 's',
+}))
 
 const style = computed(() => ({
   '--tier': TIER_VAR[tier.value],
@@ -81,12 +87,6 @@ const style = computed(() => ({
         '--rayspeed': intensity.value.rayspeed,
       }
     : {}),
-}))
-
-const sparks = Array.from({ length: 16 }, (_, i) => ({
-  left: (fnv1a('sx' + i) % 100) + '%',
-  top: (fnv1a('sy' + i) % 100) + '%',
-  animationDelay: ((fnv1a('sd' + i) % 160) / 100) + 's',
 }))
 
 /**
@@ -115,6 +115,17 @@ const TORN = (() => {
   return `polygon(${points.join(',')},100% 100%,0 100%)`
 })()
 
+// Le pli cède, puis la carte entre — dos visible.
+const CARD_AT = 1180
+
+/**
+ * Le filet, pour qui a posé son téléphone — pas pour qui attend. L'ancienne silhouette tenait
+ * 2,2 s (2,8 s en légendaire) sans que le joueur puisse rien y faire ; ici il retourne quand
+ * il veut, et l'automatique n'intervient que s'il ne fait rien.
+ */
+const AUTO_REVEAL_MS = 4000
+let autoTimer = null
+
 function tear() {
   stage.value = 'cutting'
   // Émis avant que l'écriture ne soit confirmée : la révélation est une animation, pas une
@@ -123,24 +134,37 @@ function tear() {
   // voulu : ne pas avaler l'échec en gardant la révélation silencieuse sur son sort réel.
   emit('claim', props.entry.key)
   timers.push(setTimeout(() => {
-    stage.value = 'silhouette'
-    const hold = tier.value === 'l' ? 2800 : 2200
-    timers.push(setTimeout(() => { stage.value = 'revealed' }, hold))
-  }, CUT_MS))
+    stage.value = 'awaiting'
+    autoTimer = setTimeout(reveal, AUTO_REVEAL_MS)
+  }, CARD_AT))
 }
 
-onUnmounted(() => timers.forEach(clearTimeout))
+function reveal() {
+  // Le clic du joueur et le minuteur mènent tous deux ici : sans ce garde, celui qui reste
+  // rejouerait la révélation par-dessus une carte déjà retournée.
+  if (stage.value !== 'awaiting') return
+  clearTimeout(autoTimer)
+  stage.value = 'revealed'
+}
+
+onUnmounted(() => {
+  timers.forEach(clearTimeout)
+  clearTimeout(autoTimer)
+})
 
 const packetEl = ref(null)
 const nextEl = ref(null)
+const cardEl = ref(null)
 
 /**
  * Le focus part sur l'action principale de l'étape courante, et Espace agit alors nativement.
  * Cela corrige au passage un vrai trou d'accessibilité : sans ça, le focus reste sur le bouton
  * « Ouvrir » de TheRail, DERRIÈRE l'overlay.
  *
- * L'étape `silhouette` ne focalise rien, volontairement : l'attente fait partie du rituel et
- * ne doit pas pouvoir être escamotée d'un Espace pressé trop tôt.
+ * L'étape `awaiting` focalise la carte. C'est un renversement par rapport à l'ancienne
+ * silhouette, qui ne focalisait rien parce qu'elle imposait une attente : la carte, elle,
+ * porte l'action — la retourner. La laisser hors du focus reviendrait à réserver le geste
+ * à la souris.
  *
  * Le focus initial passe par `onMounted` plutôt que par un `watch` en `immediate` : ce dernier
  * s'exécute pendant le `setup`, avant que la référence de template ne soit renseignée.
@@ -148,6 +172,7 @@ const nextEl = ref(null)
 onMounted(() => packetEl.value?.focus())
 watch(stage, async (s) => {
   await nextTick()
+  if (s === 'awaiting') cardEl.value?.$el?.focus()
   if (s === 'revealed') nextEl.value?.focus()
 })
 </script>
@@ -186,15 +211,26 @@ watch(stage, async (s) => {
           v-for="layer in rayLayers" :key="layer.key" class="ray-layer"
           :style="rayLayerStyle(layer)"
         ></div>
-        <div v-if="stage === 'silhouette'" class="dev-ring"></div>
         <div v-if="stage === 'revealed'" class="flash"></div>
-        <img
-          :class="{ silh: stage === 'silhouette' }" :src="spriteUrl(entry.species, entry.shiny)"
-          :alt="species.name" @error="$event.target.dataset.broken = '1'"
-        >
+        <div class="pkc-stage">
+          <PokeCard
+            ref="cardEl"
+            :species-id="entry.species" :tier="tier" :shiny="entry.shiny"
+            :provenance="{ ref: entry.ref, label: entry.label, date: entry.date }"
+            :flipped="stage === 'awaiting'" scene="night"
+            @flip="reveal"
+          />
+        </div>
         <div v-if="big && stage === 'revealed'" class="burst">
           <span v-for="(s, i) in sparks" :key="i" class="spark" :style="s"></span>
         </div>
+      </div>
+
+      <!-- Le décompte rend l'automatique prévisible : on voit le temps venir, donc on choisit
+           de le devancer ou de le laisser filer. Sans lui, le retournement seul surprendrait. -->
+      <div v-if="stage === 'awaiting'" class="reveal-hint">
+        <span>Cliquer pour retourner</span>
+        <span class="hint-bar"><i></i></span>
       </div>
 
       <div v-if="stage === 'silhouette'" class="dev-note mono">
