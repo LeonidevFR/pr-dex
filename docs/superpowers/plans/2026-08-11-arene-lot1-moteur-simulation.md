@@ -300,10 +300,11 @@ describe('power', () => {
     }
   })
 
-  it('classe Électhor au-dessus de toutes les autres espèces fraîches', () => {
-    const electhor = power({ species: 145 })
-    const autres = Object.keys(STATS).map(Number).filter((id) => id !== 145)
-    for (const id of autres) expect(power({ species: id })).toBeLessThan(electhor)
+  // Mewtwo est le plafond de la planche : 680 de stats et le coefficient légendaire.
+  it('classe Mewtwo au-dessus de toutes les autres espèces fraîches', () => {
+    const mewtwo = power({ species: 150 })
+    const autres = Object.keys(STATS).map(Number).filter((id) => id !== 150)
+    for (const id of autres) expect(power({ species: id })).toBeLessThan(mewtwo)
   })
 })
 ```
