@@ -741,4 +741,263 @@ $$;
 revoke execute on function public.arena_engage(text, boolean) from public;
 grant execute on function public.arena_engage(text, boolean) to authenticated;
 
+-- Points de classement, table du § 4. Ils suivent exactement le dixième des pokédollars, mais
+-- la relation est écrite en toutes lettres plutôt que dérivée : c'est une coïncidence de
+-- barème, pas une règle du jeu, et le jour où l'un des deux bouge on ne veut pas que l'autre
+-- suive en silence.
+create or replace function public.arena_reward_points(tier text)
+returns int language sql immutable strict as $$
+  select case tier when 'c' then 5 when 'u' then 10 when 'r' then 25 when 'l' then 60 end
+$$;
+
+-- La saison à laquelle se rattachent les points d'un duel. Deux mois, sur des bornes de
+-- calendrier FIXES — du 1ᵉʳ d'un mois impair au dernier jour du suivant (§ 4) — pour que
+-- personne n'ait de saison personnelle et que le classement compare bien la même période pour
+-- tout le monde. `(mois + 1) / 2` en division entière donne 1 pour janvier-février, 2 pour
+-- mars-avril, et ainsi de suite.
+--
+-- En heure de Paris, pour la même raison que `arena_week_start` : une frontière de saison est
+-- un instant, et un duel joué le 31 août à 23 h à Paris appartient à la saison qui s'achève,
+-- pas à celle qui commence deux heures plus tard en UTC.
+create or replace function public.arena_season(at timestamptz)
+returns text language sql immutable strict as $$
+  select to_char(timezone('Europe/Paris', arena_season.at), 'YYYY') || '-S'
+         || (((extract(month from timezone('Europe/Paris', arena_season.at)) :: int) + 1)
+             / 2) :: text
+$$;
+
+-- Relever un défi : la fonction qui justifie tout le lot.
+--
+-- L'ORDRE DES OPÉRATIONS N'EST PAS NÉGOCIABLE, et le verrou vient en premier. Toute
+-- vérification faite avant lui porterait sur un état déjà périmé : deux acceptations
+-- concurrentes du même défi liraient toutes deux « ouvert », résoudraient toutes deux, et
+-- DÉTRUIRAIENT DEUX EXEMPLAIRES pour un seul duel — un Pokémon disparu du monde sans
+-- contrepartie. C'est exactement la classe de bug qui a produit dans ce projet une double
+-- dépense de bonbons (cf. NOTES.md), dont la conclusion était qu'il fallait une opération
+-- atomique. La voici. `scripts/arena-concurrency.test.js` la met à l'épreuve avec deux
+-- connexions distinctes, et vérifie qu'en retirant ce `for update` le test rougit.
+--
+-- `security definer` parce que c'est, avec `arena_engage`, l'unique écrivain des tables
+-- d'arène : aucun joueur n'a de droit d'écriture, donc tout ce qui s'écrit passe par ici et
+-- par les règles écrites ici. `set search_path = public` pour qu'un schéma placé devant par un
+-- appelant ne puisse pas substituer sa propre `catches`.
+--
+-- L'appelant vient de `auth.uid()` et JAMAIS d'un paramètre : un identifiant passé en argument
+-- est ce que le client prétend être, et laisserait n'importe qui relever un défi avec les
+-- Pokémon d'autrui — ou s'attribuer la victoire d'un duel joué par un autre.
+create or replace function public.arena_accept(p_duel_id bigint, p_entry_key text)
+returns bigint
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_duel record;
+  v_species int;
+  v_tier text;
+  v_level int;
+  v_destroyed timestamptz;
+  v_foe_species int;
+  v_foe_tier text;
+  v_foe_level int;
+  v_stake text;
+  v_out record;
+  v_winner uuid;
+  v_winner_key text;
+  v_loser uuid;
+  v_loser_key text;
+  v_day text := to_char(now() at time zone 'Europe/Paris', 'YYYY-MM-DD');
+begin
+  if v_uid is null then
+    raise exception 'arene : appel non authentifié';
+  end if;
+
+  -- 1. LE VERROU, avant toute vérification. `for update` bloque la seconde transaction jusqu'à
+  -- la fin de la première ; elle relit alors la ligne dans son état COMMITTÉ le plus récent,
+  -- y voit `status = 'resolved'` et échoue proprement à l'étape suivante. Sans lui, les deux
+  -- liraient « ouvert » en même temps.
+  select * into v_duel from public.arena_duels d where d.id = p_duel_id for update;
+
+  if v_duel.id is null then
+    raise exception 'arene : défi introuvable (%)', p_duel_id;
+  end if;
+
+  -- 2. Le défi est-il encore à prendre ? C'est la vérification que le verrou rend fiable :
+  -- posée après lui, elle porte sur l'état réel et non sur une lecture d'il y a un instant.
+  if v_duel.status <> 'open' then
+    raise exception 'arene : ce défi n''est plus ouvert';
+  end if;
+
+  -- 3. On ne joue pas contre soi-même : ni la destruction, ni le pli, ni les points n'auraient
+  -- de sens, et le plafond hebdomadaire par paire deviendrait contournable.
+  if v_duel.challenger_id = v_uid then
+    raise exception 'arene : on ne relève pas son propre défi';
+  end if;
+
+  -- Sérialise les acceptations d'un même preneur, pour la même raison que dans `arena_engage`
+  -- et sans conflit avec le verrou ci-dessus : les crédits et le plafond par paire sont DÉDUITS
+  -- des duels enregistrés, donc deux acceptations simultanées de DEUX défis différents par le
+  -- même joueur liraient toutes deux le solde d'avant. Pris après le verrou de ligne, jamais
+  -- avant : l'ordre est le même pour tout le monde, donc aucun interblocage.
+  perform pg_advisory_xact_lock(hashtextextended(v_uid :: text, 0));
+
+  -- 4. La propriété se lit dans `catches`, seule source de vérité sur ce qu'un joueur possède.
+  -- `user_id` fait partie de la condition : sans lui, on vérifierait que la clé existe et non
+  -- qu'elle est à l'appelant.
+  select c.species into v_species
+  from public.catches c
+  where c.user_id = v_uid and c.source || ':' || c.external_id = p_entry_key;
+
+  if v_species is null then
+    raise exception 'arene : exemplaire non possédé (%)', p_entry_key;
+  end if;
+
+  select e.level, e.destroyed_at into v_level, v_destroyed
+  from public.arena_exemplars e
+  where e.user_id = v_uid and e.entry_key = p_entry_key;
+  v_level := coalesce(v_level, 1);
+
+  if v_destroyed is not null then
+    raise exception 'arene : exemplaire détruit (%)', p_entry_key;
+  end if;
+
+  -- Un exemplaire déjà posé sur un autre défi ouvert serait misé deux fois pour n'en perdre
+  -- qu'un. Le duel qu'on relève ne compte pas : il appartient au challenger, pas à nous.
+  if exists (
+    select 1 from public.arena_duels d
+    where d.status = 'open'
+      and ((d.challenger_id = v_uid and d.challenger_key = p_entry_key)
+        or (d.opponent_id = v_uid and d.opponent_key = p_entry_key))
+  ) then
+    raise exception 'arene : exemplaire déjà engagé (%)', p_entry_key;
+  end if;
+
+  -- 5. Vérifié APRÈS la propriété : « tu n'as plus de crédit » sur un exemplaire qu'on ne
+  -- possède pas serait un diagnostic faux, et enverrait le joueur attendre demain pour rien.
+  if public.arena_credits(v_uid) <= 0 then
+    raise exception 'arene : aucun crédit d''engagement disponible cette semaine';
+  end if;
+
+  -- 6. Deux duels par semaine et par paire (§ 2). Le compte porte sur les duels DÉJÀ joués
+  -- entre ces deux joueurs cette semaine — celui qu'on est en train de relever n'a pas encore
+  -- d'opponent_id, il ne peut donc pas se compter lui-même. Même convention de semaine que les
+  -- crédits, `arena_week_start`, pour que les deux limites ne se décalent jamais l'une de
+  -- l'autre.
+  if (
+    select count(*) from public.arena_duels d
+    where ((d.challenger_id = v_uid and d.opponent_id = v_duel.challenger_id)
+        or (d.challenger_id = v_duel.challenger_id and d.opponent_id = v_uid))
+      and d.created_at >= (public.arena_week_start(now()) :: timestamp
+                           at time zone 'Europe/Paris')
+  ) >= 2 then
+    raise exception 'arene : deux duels par semaine maximum contre le même joueur';
+  end if;
+
+  -- Le palier des deux camps. Celui du challenger se relit de son espèce, elle-même relue de
+  -- sa capture : la mise n'est jamais recopiée dans le duel autrement que comme `stake_tier`,
+  -- qui portera l'ENJEU et non l'engagement.
+  select c.species into v_foe_species
+  from public.catches c
+  where c.user_id = v_duel.challenger_id
+    and c.source || ':' || c.external_id = v_duel.challenger_key;
+
+  if v_foe_species is null then
+    raise exception 'arene : le défi porte un exemplaire introuvable (%)', v_duel.challenger_key;
+  end if;
+
+  select coalesce(e.level, 1) into v_foe_level
+  from public.arena_exemplars e
+  where e.user_id = v_duel.challenger_id and e.entry_key = v_duel.challenger_key;
+  v_foe_level := coalesce(v_foe_level, 1);
+
+  select s.tier into v_tier from public.species_stats s where s.species = v_species;
+  select s.tier into v_foe_tier from public.species_stats s where s.species = v_foe_species;
+  if v_tier is null or v_foe_tier is null then
+    raise exception 'arene : espèce inconnue (% ou %)', v_species, v_foe_species;
+  end if;
+
+  -- 7. La résolution, et rien d'autre : le moteur est `arena_resolve`, on ne recalcule rien
+  -- ici. Le challenger est le camp `left` — mais `arena_resolve` confronte le tirage au camp
+  -- canoniquement premier, donc l'issue ne dépend pas de cet ordre. La graine est
+  -- l'identifiant du duel, dérivé d'une clé d'identité : stable une fois écrite, elle laisse
+  -- le client rejouer le combat et retomber sur le même vainqueur.
+  select * into v_out from public.arena_resolve(
+    v_duel.challenger_key, v_foe_species, v_foe_level,
+    p_entry_key, v_species, v_level,
+    v_day, 'duel:' || v_duel.id);
+
+  -- L'enjeu : le plus PETIT des deux engagements. Battre un rare ne rapporte 250 que si les
+  -- DEUX ont engagé un rare.
+  v_stake := public.arena_covered_tier(v_tier, v_foe_tier);
+
+  if v_out.winner = 'left' then
+    v_winner := v_duel.challenger_id;
+    v_winner_key := v_duel.challenger_key;
+    v_loser := v_uid;
+    v_loser_key := p_entry_key;
+  else
+    v_winner := v_uid;
+    v_winner_key := p_entry_key;
+    v_loser := v_duel.challenger_id;
+    v_loser_key := v_duel.challenger_key;
+  end if;
+
+  -- 8. Les écritures. Toutes dans la même transaction que le verrou : ou bien elles arrivent
+  -- ensemble, ou bien aucune n'arrive.
+
+  -- L'exemplaire du perdant est détruit. Espèce et bonbons sont conservés — c'est l'exemplaire
+  -- qui meurt, avec le niveau qu'on avait mis à le monter, et c'est là tout l'enjeu du mode.
+  insert into public.arena_exemplars (user_id, entry_key, destroyed_at)
+  values (v_loser, v_loser_key, now())
+  on conflict (user_id, entry_key) do update set destroyed_at = excluded.destroyed_at;
+
+  -- Le niveau du vainqueur vient de `arena_resolve`, plafond de 10 compris : un seul calcul du
+  -- rapport de puissance sert au combat et au barème, aucune seconde formule.
+  insert into public.arena_exemplars (user_id, entry_key, level, wins)
+  values (v_winner, v_winner_key, v_out.level_after, 1)
+  on conflict (user_id, entry_key) do update
+    set level = excluded.level, wins = arena_exemplars.wins + 1;
+
+  -- Pokédollars, points et pli : au vainqueur SEULEMENT, et tous trois au palier de l'enjeu.
+  -- Le perdant ne reçoit rien — un lot de consolation rendrait la défaite indolore alors
+  -- qu'elle vient de coûter un Pokémon.
+  insert into public.arena_wallet (user_id, pokedollars)
+  values (v_winner, public.arena_reward_dollars(v_stake))
+  on conflict (user_id) do update
+    set pokedollars = arena_wallet.pokedollars + excluded.pokedollars;
+
+  insert into public.arena_season_points (user_id, season, points)
+  values (v_winner, public.arena_season(now()), public.arena_reward_points(v_stake))
+  on conflict (user_id, season) do update
+    set points = arena_season_points.points + excluded.points;
+
+  -- Un pli DÛ, pas encore une capture : le lot 2d le matérialisera en ligne `catches` de
+  -- source `arene`. La dette et son règlement sont deux moments distincts, et une panne entre
+  -- les deux ne doit pas faire disparaître le dû.
+  insert into public.arena_packs (user_id, tier, duel_id) values (v_winner, v_stake, v_duel.id);
+
+  -- Les deux puissances, la probabilité et le tirage sont CONSERVÉS. Ce n'est pas de la
+  -- traçabilité de confort : une issue probabiliste sans explication passe pour arbitraire,
+  -- surtout quand elle vient de détruire un Pokémon. Le résumé de combat les rejoue, et
+  -- n'importe qui peut refaire le calcul.
+  update public.arena_duels set
+    opponent_id = v_uid,
+    opponent_key = p_entry_key,
+    status = 'resolved',
+    winner_id = v_winner,
+    stake_tier = v_stake,
+    challenger_power = v_out.left_power,
+    opponent_power = v_out.right_power,
+    probability = v_out.probability,
+    roll = v_out.roll,
+    resolved_at = now()
+  where id = v_duel.id;
+
+  return v_duel.id;
+end;
+$$;
+
+-- `public` inclut les visiteurs anonymes, et Postgres accorde `execute` à `public` par défaut
+-- sur toute fonction créée : sans ce `revoke`, la fonction serait appelable sans compte.
+revoke execute on function public.arena_accept(bigint, text) from public;
+grant execute on function public.arena_accept(bigint, text) to authenticated;
+
 commit;
