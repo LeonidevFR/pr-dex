@@ -11,6 +11,12 @@ export async function withDb(fn) {
   const client = new pg.Client({ connectionString: LOCAL_DB_URL })
   await client.connect()
   try {
+    // La pile locale sert les flottants avec `extra_float_digits = 0`, c'est-à-dire arrondis à
+    // 15 chiffres significatifs : un `double precision` y perd ses derniers bits avant même
+    // d'arriver au test. Les tests de parité du combat comparent bit à bit ce que rend le SQL
+    // et ce que rend JavaScript — sans ce réglage, ils échoueraient sur le transport et non
+    // sur le calcul. `3` demande la représentation la plus courte qui relit à l'identique.
+    await client.query('set extra_float_digits = 3')
     return await fn(client)
   } finally {
     await client.end()

@@ -218,4 +218,66 @@ returns double precision language sql immutable strict as $$
   select (array[0.90, 0.95, 1.00, 1.05, 1.10] :: double precision[])[idx + 1]
 $$;
 
+-- Le palier est une propriété de la planche, au même titre que le total des stats : il vit
+-- donc dans la même table, peuplée par le même passage du générateur, plutôt que dans une
+-- table `species` séparée qu'il faudrait joindre partout et tenir synchronisée à part.
+--
+-- Ni valeur par défaut ni `not null` rétroactif à négocier : la colonne est ajoutée alors que
+-- la table vient d'être créée dans cette même transaction et qu'elle est encore vide — le
+-- seed la remplit juste après. Un défaut serait un palier faux pour toute espèce que le seed
+-- oublierait, là où `not null` sans défaut fait échouer l'insertion bruyamment.
+alter table public.species_stats
+  add column tier text not null check (tier in ('c', 'u', 'r', 'l'));
+
+-- Coefficients de rareté. Légers sur les trois premiers paliers, parce que les stats portent
+-- déjà l'écart et qu'un coefficient lourd le compterait deux fois ; marqué sur le légendaire,
+-- dont le pool (580-680) chevauche le haut du pool rare (jusqu'à 600) — les stats seules ne
+-- séparent pas ces deux paliers-là.
+create or replace function public.arena_tier_power(tier text)
+returns double precision language sql immutable strict as $$
+  select case tier when 'c' then 1.00 when 'u' then 1.06
+                   when 'r' then 1.15 when 'l' then 1.45 end :: double precision
+$$;
+
+-- `0.05` est explicitement en `double precision` : laissé en `numeric`, Postgres calculerait
+-- `0.05 * 6` en décimal exact (1,30) là où JavaScript rend 1,3000000000000003. Les deux
+-- puissances divergeraient dès le niveau 7, et avec elles la probabilité du duel.
+create or replace function public.arena_level_factor(level int)
+returns double precision language sql immutable strict as $$
+  select 1 + 0.05 :: double precision * (level - 1)
+$$;
+
+-- `stable` et non `immutable` : la puissance dépend d'une table. Même ordre de multiplication
+-- que `power()` de `shared/battle.js` — en flottant, `(a * b) * c` et `a * (b * c)` ne donnent
+-- pas toujours le même dernier bit.
+--
+-- Espèce inconnue : aucune ligne, donc `null`, et non un zéro silencieux. Un zéro se
+-- propagerait jusqu'à la probabilité et rendrait un duel plausible et faux ; `null` remonte.
+create or replace function public.arena_power(species int, level int, form_idx int)
+returns double precision language sql stable strict as $$
+  select s.stats * public.arena_tier_power(s.tier)
+       * public.arena_level_factor(level) * public.arena_form_factor(form_idx)
+  from public.species_stats s
+  where s.species = arena_power.species
+$$;
+
+-- Élévation au cube et non rapport direct : un rapport direct laisserait un Rattata battre
+-- Électhor près d'une fois sur trois, ce que l'écart de stats ne justifie pas. Le bornage à
+-- [0,10 ; 0,90] garantit qu'aucun duel n'est gagné d'avance et que tout légendaire descendu
+-- régulièrement finit par tomber.
+--
+-- Seul endroit du combat où SQL et JavaScript ne peuvent PAS coïncider au dernier bit : `^`
+-- appelle le `pow()` de la glibc, correctement arrondi, là où le `**` de V8 s'en écarte d'un
+-- ulp sur certaines entrées. Mesuré sur les 151 espèces × 6 niveaux × 5 formes : `a ^ 3`
+-- s'écarte du JavaScript sur 7,6 % des duels, `a * a * a` sur 20,8 % — d'où `^`, et non la
+-- multiplication répétée qui paraîtrait pourtant plus « exacte ». L'écart relatif plafonne à
+-- 4,3e-16, soit deux ulp : il ne peut changer un vainqueur que si le tirage tombe dans cette
+-- fenêtre, une fois sur 1e15 environ. Le test de parité tolère donc 12 décimales ici, et
+-- seulement ici — partout ailleurs l'égalité est stricte.
+create or replace function public.arena_win_probability(a double precision, b double precision)
+returns double precision language sql immutable strict as $$
+  select least(0.90 :: double precision,
+               greatest(0.10 :: double precision, a ^ 3 / (a ^ 3 + b ^ 3)))
+$$;
+
 commit;

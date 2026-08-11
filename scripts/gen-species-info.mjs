@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises'
-import { SPECIES } from '../shared/species.js'
+import { SPECIES, DEX } from '../shared/species.js'
 
 const API = 'https://pokeapi.co/api/v2'
 const OUT = new URL('../shared/species-info.json', import.meta.url)
@@ -50,6 +50,25 @@ export function pickFlavor(entries) {
 
 /** Total des six stats de base — la colonne vertébrale de la puissance en arène. */
 export const statTotal = (stats) => stats.reduce((sum, s) => sum + s.base_stat, 0)
+
+/**
+ * Le seed complet, à partir du seul total des stats par espèce. Le palier ne vient pas de
+ * PokéAPI mais de `DEX` : c'est une donnée du jeu, pas une donnée du Pokémon. D'où le mode
+ * `--seed-only` plus bas — régénérer le seed pour un champ purement local n'a aucune raison
+ * de rappeler l'API 320 fois.
+ */
+export function seedSql(statsById) {
+  const rows = Object.entries(statsById).map(([id, stats]) => {
+    // Échec bruyant : une espèce sans palier ferait échouer l'insertion en base bien plus
+    // loin, sur une contrainte, sans dire laquelle des 151 lignes est en cause.
+    const tier = DEX[id]?.tier
+    if (!tier) throw new Error(`palier manquant pour l'id ${id}`)
+    return `  (${id}, ${stats}, '${tier}')`
+  })
+  return `${SEED_HEADER}\ninsert into public.species_stats (species, stats, tier) values\n` +
+    `${rows.join(',\n')}\non conflict (species) do update set ` +
+    'stats = excluded.stats, tier = excluded.tier;\n'
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -118,13 +137,26 @@ async function main() {
   // La même donnée en SQL, générée par le même passage : la fonction de combat du lot 2b la
   // lit en base, le moteur JavaScript la lit en module. Deux copies produites d'un seul
   // fichier source ne peuvent pas diverger sans qu'on le voie dans le même diff.
-  const rowsSql = Object.entries(statsOut).map(([id, v]) => `  (${id}, ${v})`).join(',\n')
-  await writeFile(OUT_STATS_SQL, `${SEED_HEADER}\ninsert into public.species_stats (species, stats) values\n${rowsSql}\non conflict (species) do update set stats = excluded.stats;\n`)
+  await writeFile(OUT_STATS_SQL, seedSql(statsOut))
 
   console.log(`\n${Object.keys(out).length} espèces écrites dans shared/species-info.json, ` +
     'shared/species-stats.js et supabase/seed.sql')
 }
 
+/**
+ * Régénère le seul `supabase/seed.sql`, à partir des totaux déjà collectés dans
+ * `shared/species-stats.js`. Sert quand on ajoute au seed une donnée qui n'est pas dans
+ * PokéAPI — le palier, par exemple : rappeler l'API 320 fois pour la réécrire à l'identique
+ * coûterait dix minutes et risquerait de faire bouger des textes sans rapport avec le
+ * changement en cours.
+ */
+async function seedOnly() {
+  const { STATS } = await import('../shared/species-stats.js')
+  await writeFile(OUT_STATS_SQL, seedSql(STATS))
+  console.log(`${Object.keys(STATS).length} espèces écrites dans supabase/seed.sql`)
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((e) => { console.error(e); process.exit(1) })
+  const run = process.argv.includes('--seed-only') ? seedOnly : main
+  run().catch((e) => { console.error(e); process.exit(1) })
 }
