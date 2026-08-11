@@ -417,6 +417,25 @@ const TABLES = [
   'arena_exemplars', 'arena_duels', 'arena_wallet', 'arena_season_points', 'arena_seasons',
 ]
 
+/**
+ * Exécute `fn` sous le rôle `authenticated`, dans une transaction annulée à la fin.
+ *
+ * La transaction explicite n'est pas décorative : `set local` ne vaut que pour la durée d'une
+ * transaction, et sans elle le rôle est silencieusement ignoré — les requêtes passent alors
+ * en propriétaire de table, RLS contournée, et un test censé prouver qu'une écriture est
+ * refusée réussirait l'écriture tout en passant au vert. Le `rollback` garantit en prime
+ * qu'un test ne laisse jamais de ligne derrière lui.
+ */
+const commeAuthentifie = (fn) => withDb(async (c) => {
+  await c.query('begin')
+  try {
+    await c.query('set local role authenticated')
+    return await fn(c)
+  } finally {
+    await c.query('rollback')
+  }
+})
+
 describe.skipIf(!disponible)('tables de l’arène', () => {
   it('existent toutes, avec RLS activé', async () => {
     const rows = await withDb((c) => c.query(`
@@ -440,12 +459,11 @@ describe.skipIf(!disponible)('tables de l’arène', () => {
   })
 
   it('refusent l’écriture d’un utilisateur authentifié, table par table', async () => {
-    await withDb(async (c) => {
-      await c.query('set local role authenticated')
-      for (const t of TABLES) {
-        await expect(c.query(`insert into public.${t} default values`)).rejects.toThrow()
-      }
-    })
+    for (const t of TABLES) {
+      await expect(
+        commeAuthentifie((c) => c.query(`insert into public.${t} default values`)),
+      ).rejects.toThrow()
+    }
   })
 
   it('interdisent un niveau hors des bornes du jeu', async () => {
