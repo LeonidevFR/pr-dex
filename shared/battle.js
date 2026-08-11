@@ -33,3 +33,20 @@ export const levelFactor = (level) => 1 + 0.05 * (level - 1)
 export function power({ species, level = 1, form = NORMAL_FORM }) {
   return STATS[species] * TIER_POWER[DEX[species].tier] * levelFactor(level) * form.factor
 }
+
+/**
+ * Le bornage fait à lui seul trois choses : aucun combat n'est gagné d'avance, l'exploit
+ * existe sans règle dédiée, et tout légendaire descendu régulièrement finit par tomber
+ * (espérance de vie ≈ 10 duels). C'est le curseur principal de l'équilibrage du mode.
+ */
+export const P_FLOOR = 0.10
+export const P_CEIL = 0.90
+
+/**
+ * Élévation au cube et non rapport direct : un rapport direct laisserait un Rattata battre
+ * Électhor près d'une fois sur trois, ce que l'écart de stats ne justifie pas.
+ */
+export function winProbability(a, b) {
+  const brut = a ** 3 / (a ** 3 + b ** 3)
+  return Math.min(P_CEIL, Math.max(P_FLOOR, brut))
+}

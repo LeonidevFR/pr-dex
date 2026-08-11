@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { TIER_POWER, LEVEL_MAX, FORMS, NORMAL_FORM, levelFactor, power, formOf } from './battle.js'
+import {
+  TIER_POWER, LEVEL_MAX, FORMS, NORMAL_FORM, levelFactor, power, formOf,
+  P_FLOOR, P_CEIL, winProbability,
+} from './battle.js'
 import { DEX } from './species.js'
 import { STATS } from './species-stats.js'
 
@@ -109,5 +112,60 @@ describe('formOf', () => {
       expect(counts[f.slug] / n).toBeGreaterThan(0.17)
       expect(counts[f.slug] / n).toBeLessThan(0.23)
     }
+  })
+})
+
+describe('winProbability', () => {
+  it('donne une chance sur deux à puissances égales', () => {
+    expect(winProbability(400, 400)).toBe(0.5)
+  })
+
+  it('est symétrique — les deux probabilités somment à 1 hors bornage', () => {
+    expect(winProbability(355, 614) + winProbability(614, 355)).toBeCloseTo(1, 10)
+  })
+
+  it('borne les deux extrêmes', () => {
+    expect(winProbability(1, 10_000)).toBe(0.10)
+    expect(winProbability(10_000, 1)).toBe(0.90)
+  })
+
+  // Un rapport direct laisserait un Rattata battre Électhor près d'une fois sur trois.
+  // L'élévation au cube est ce qui rend l'écart de stats réellement décisif.
+  it('amplifie l’écart au lieu de suivre le rapport brut', () => {
+    expect(winProbability(300, 600)).toBeLessThan(300 / 900)
+  })
+})
+
+describe('probabilités de référence de la spec', () => {
+  const forte = FORMS[FORMS.length - 1]
+  const duel = (gauche, droite) => winProbability(power(gauche), power(droite))
+
+  it('Rattata contre Électhor tombe sur la borne basse', () => {
+    expect(duel({ species: 19 }, { species: 145 })).toBe(0.10)
+  })
+
+  it('Salamèche contre Dracaufeu, tous deux frais : 16 %', () => {
+    expect(duel({ species: 4 }, { species: 6 })).toBeCloseTo(0.162, 3)
+  })
+
+  it('Salamèche niveau 10 contre Dracaufeu frais : 37 %', () => {
+    expect(duel({ species: 4, level: 10 }, { species: 6 })).toBeCloseTo(0.371, 3)
+  })
+
+  it('Roucool niveau 10 contre Dracaufeu frais : 17 %', () => {
+    expect(duel({ species: 16, level: 10 }, { species: 6 })).toBeCloseTo(0.172, 3)
+  })
+
+  // Canarticho est rare et Rattatac peu commun, mais Rattatac a de meilleures stats :
+  // le coefficient de rareté rattrape presque l'écart sans le renverser.
+  it('Canarticho contre Rattatac, tous deux frais : 49 %', () => {
+    expect(duel({ species: 83 }, { species: 20 })).toBeCloseTo(0.493, 3)
+  })
+
+  it('la forme du jour déplace l’issue sans la décider', () => {
+    const neutre = duel({ species: 6 }, { species: 6 })
+    const avantage = duel({ species: 6, form: forte }, { species: 6 })
+    expect(avantage).toBeGreaterThan(neutre)
+    expect(avantage).toBeLessThan(0.65)
   })
 })
