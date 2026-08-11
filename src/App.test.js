@@ -67,12 +67,12 @@ describe('évolution', () => {
     const w = await mountApp()
 
     await cellOf(w, CHENIPAN).trigger('click')
-    expect(w.find('.evo-btn').exists()).toBe(true)
+    expect(w.find('.evo-btn:not(.arena-send)').exists()).toBe(true)
 
     // Deux clics sur le même bouton : le premier ouvre le sélecteur d'exemplaire, le second
     // confirme. Chenipan n'a qu'un exemplaire disponible, donc il est pré-coché.
-    await w.find('.evo-btn').trigger('click')
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     await flushPromises()
 
     expect(w.find('.evostage').exists()).toBe(true)
