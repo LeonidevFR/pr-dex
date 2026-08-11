@@ -138,8 +138,8 @@ describe('winProbability', () => {
   })
 
   it('borne les deux extrêmes', () => {
-    expect(winProbability(1, 10_000)).toBe(0.10)
-    expect(winProbability(10_000, 1)).toBe(0.90)
+    expect(winProbability(1, 10_000)).toBe(0.05)
+    expect(winProbability(10_000, 1)).toBe(0.95)
   })
 
   // Un rapport direct laisserait un Rattata battre Électhor près d'une fois sur trois.
@@ -154,7 +154,7 @@ describe('probabilités de référence de la spec', () => {
   const duel = (gauche, droite) => winProbability(power(gauche), power(droite))
 
   it('Rattata contre Électhor tombe sur la borne basse', () => {
-    expect(duel({ species: 19 }, { species: 145 })).toBe(0.10)
+    expect(duel({ species: 19 }, { species: 145 })).toBe(0.05)
   })
 
   it('Salamèche contre Dracaufeu, tous deux frais : 16 %', () => {

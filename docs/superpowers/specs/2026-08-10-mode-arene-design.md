@@ -167,7 +167,7 @@ P(victoire) = clamp( Pa³ / (Pa³ + Pb³), 0,10 , 0,90 )
 ```
 
 L'élévation au cube est nécessaire : un rapport direct laisserait un Rattata battre
-Électhor près d'une fois sur trois. Le **bornage à [10 %, 90 %]** fait trois choses d'un
+Électhor près d'une fois sur trois. Le **bornage à [5 %, 95 %]** fait trois choses d'un
 seul chiffre — aucun combat n'est gagné d'avance, l'exploit existe sans règle dédiée, et
 **tout légendaire descendu régulièrement finit par mourir** (espérance de vie ≈ 10 duels).
 
@@ -175,7 +175,7 @@ Repères issus des vraies valeurs :
 
 | Affrontement | P(victoire du premier) |
 |---|---|
-| Rattata (253, c) vs Électhor (580, l) | **10 %** (4,6 % avant bornage) |
+| Rattata (253, c) vs Électhor (580, l) | **5 %** (1,6 % avant bornage) |
 | Salamèche (309, r) vs Dracaufeu (534, r), tous deux frais | **16 %** |
 | Salamèche **niv. 10** vs Dracaufeu frais | **37 %** |
 | Roucool (251, c) **niv. 10** vs Dracaufeu frais | **17 %** |

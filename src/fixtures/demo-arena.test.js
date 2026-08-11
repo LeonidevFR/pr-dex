@@ -33,8 +33,8 @@ describe('arène en mode démo', () => {
     const duel = await arena.readDuel(await arena.engage(cle, true))
     expect(duel.status).toBe('computer')
     expect(duel.challenger_species).toBe(DEX[duel.challenger_species].id)
-    expect(Number(duel.probability)).toBeGreaterThanOrEqual(0.10)
-    expect(Number(duel.probability)).toBeLessThanOrEqual(0.90)
+    expect(Number(duel.probability)).toBeGreaterThanOrEqual(0.05)
+    expect(Number(duel.probability)).toBeLessThanOrEqual(0.95)
   })
 
   it('consomme un engagement à chaque duel', async () => {

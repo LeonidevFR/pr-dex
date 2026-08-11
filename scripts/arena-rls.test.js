@@ -119,7 +119,9 @@ describe.skipIf(!disponible)('isolation entre deux joueurs', () => {
   it('rend les pseudonymes de tout le monde', async () => {
     const rows = await withDb((c) =>
       commeUtilisateur(c, ALICE, 'select pseudo from public.arena_players order by pseudo'))
-    expect(rows.map((r) => r.pseudo)).toEqual(['alice', 'bob'])
+    // Une liste exacte serait fragile : d'autres fichiers de tests créent leurs propres
+    // joueurs, et ce qu'on vérifie ici est qu'on voit ceux des AUTRES, pas qu'on soit seuls.
+    expect(rows.map((r) => r.pseudo)).toEqual(expect.arrayContaining(['alice', 'bob']))
   })
 
   // La vue traverse RLS à dessein : on publie les espèces d'autrui. Ce qu'elle ne doit pas

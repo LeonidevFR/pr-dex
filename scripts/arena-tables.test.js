@@ -78,8 +78,12 @@ describe.skipIf(!disponible)('tables de l’arène', () => {
   // qui aboutit — liste vide, mais sans erreur — face à une écriture qui lève, c'est la
   // signature d'une policy qui filtre ; deux erreurs identiques seraient celle de droits
   // manquants, et les tests d'isolation à venir mesureraient autre chose que RLS.
+  //
+  // Restreint aux tables scopées au joueur : `arena_season_points` et `arena_seasons` sont
+  // publiques par décision de conception — le classement est du prestige, et il ne dit rien du
+  // volume de travail de personne, contrairement au nombre d'exemplaires possédés.
   it('sont lisibles par un utilisateur authentifié, qui n’y voit rien', async () => {
-    for (const t of TABLES) {
+    for (const t of ['arena_exemplars', 'arena_duels', 'arena_wallet']) {
       const rows = await commeAuthentifie((c) => c.query(`select * from public.${t}`)
         .then((r) => r.rows))
       expect(rows).toEqual([])

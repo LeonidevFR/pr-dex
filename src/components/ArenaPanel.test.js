@@ -23,7 +23,7 @@ describe('ArenaPanel', () => {
     expect(w.text()).toContain('3')
     expect(w.text()).toContain('engagements')
     expect(w.text()).toContain('250')
-    expect(w.text()).toContain('pokédollars')
+    expect(w.text()).toContain('₽')
   })
 
   // Faire disparaître la liste donnait un écran qui semblait cassé alors qu'il appliquait une
@@ -130,7 +130,7 @@ describe('ArenaPanel', () => {
     expect(w.text()).not.toContain('comme au poker')
     await w.findAll('.btn-ghost').find((b) => b.text().includes('Comment ça marche')).trigger('click')
     expect(w.text()).toContain('comme au poker')
-    expect(w.text()).toContain('une chance sur dix')
+    expect(w.text()).toContain('une chance sur vingt')
   })
 
   // À cinquante exemplaires ouverts, une liste à plat devient illisible : une vignette par

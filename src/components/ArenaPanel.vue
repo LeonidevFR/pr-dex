@@ -113,8 +113,8 @@ function take(duelId) {
             <div class="arena-unit">engagement{{ credits > 1 ? 's' : '' }}</div>
           </div>
           <div>
-            <div class="arena-big">{{ pokedollars }}</div>
-            <div class="arena-unit">pokédollars</div>
+            <div class="arena-big">{{ pokedollars }} ₽</div>
+            <div class="arena-unit">en caisse</div>
           </div>
           <button class="btn-ghost" style="margin-left:auto" @click="rulesOpen = !rulesOpen">
             {{ rulesOpen ? 'Masquer les règles' : 'Comment ça marche' }}
@@ -155,14 +155,15 @@ function take(duelId) {
             Tu ne peux pas gagner plus que ce que l’adversaire a risqué. S’il engage un commun
             et toi un rare, le duel vaut un commun pour vous deux — comme au poker, on ne
             remporte que la mise que l’autre a couverte. Battre un rare ne vaut
-            {{ REWARD.r.dollars }} pokédollars que si vous en avez engagé un chacun.
+            {{ REWARD.r.dollars }} ₽ que si vous en avez engagé un chacun — un légendaire des
+            deux côtés en vaut {{ REWARD.l.dollars }}.
           </span>
         </div>
         <div class="arena-rule">
           <b>Le hasard</b>
           <span class="muted">
             Un Pokémon plus fort gagne plus souvent, jamais toujours : même face au pire écart
-            possible, le plus faible garde une chance sur dix. Personne n’est intouchable, et un
+            possible, le plus faible garde une chance sur vingt. Personne n’est intouchable, et un
             légendaire descendu chaque semaine finit toujours par tomber.
           </span>
         </div>

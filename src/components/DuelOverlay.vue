@@ -128,8 +128,8 @@ const breakdown = (s) => [
           <div class="eyebrow sect-h"><span>Ce que tu remportes</span></div>
           <div class="arena-reward">
             <div>
-              <span class="v">{{ reward.dollars }}</span>
-              <span class="arena-unit">pokédollars</span>
+              <span class="v">{{ reward.dollars }} ₽</span>
+              <span class="arena-unit">gagnés</span>
             </div>
             <div v-if="reward.points">
               <span class="v">{{ reward.points }}</span>
@@ -192,7 +192,7 @@ const breakdown = (s) => [
           </div>
           <p class="muted" style="margin-top:8px">
             Le tirage décide : sous {{ myOdds }} %, tu l’emportais. Aucun duel n’est joué
-            d’avance — même face au pire écart possible, le plus faible garde une chance sur dix.
+            d’avance — même face au pire écart possible, le plus faible garde une chance sur vingt.
           </p>
         </div>
 

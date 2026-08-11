@@ -143,6 +143,6 @@ describe('DuelOverlay', () => {
 
   it('rappelle qu’aucun duel n’est gagné d’avance', async () => {
     const w = await revele(monter())
-    expect(w.text()).toContain('une chance sur dix')
+    expect(w.text()).toContain('une chance sur vingt')
   })
 })

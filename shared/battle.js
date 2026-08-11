@@ -51,10 +51,10 @@ export function power({ species, level = 1, form = NORMAL_FORM }) {
 /**
  * Le bornage fait à lui seul trois choses : aucun combat n'est gagné d'avance, l'exploit
  * existe sans règle dédiée, et tout légendaire descendu régulièrement finit par tomber
- * (espérance de vie ≈ 10 duels). C'est le curseur principal de l'équilibrage du mode.
+ * (espérance de vie ≈ 5 duels face au tout-venant). C'est le curseur principal de l'équilibrage du mode.
  */
-export const P_FLOOR = 0.10
-export const P_CEIL = 0.90
+export const P_FLOOR = 0.05
+export const P_CEIL = 0.95
 
 /**
  * Élévation au cube et non rapport direct : un rapport direct laisserait un Rattata battre

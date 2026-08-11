@@ -282,7 +282,7 @@ $$;
 
 -- Élévation au cube et non rapport direct : un rapport direct laisserait un Rattata battre
 -- Électhor près d'une fois sur trois, ce que l'écart de stats ne justifie pas. Le bornage à
--- [0,10 ; 0,90] garantit qu'aucun duel n'est gagné d'avance et que tout légendaire descendu
+-- [0,05 ; 0,95] garantit qu'aucun duel n'est gagné d'avance et que tout légendaire descendu
 -- régulièrement finit par tomber.
 --
 -- Seul endroit du combat où SQL et JavaScript ne peuvent PAS coïncider au dernier bit : `^`
@@ -295,8 +295,8 @@ $$;
 -- seulement ici — partout ailleurs l'égalité est stricte.
 create or replace function public.arena_win_probability(a double precision, b double precision)
 returns double precision language sql immutable strict as $$
-  select least(0.90 :: double precision,
-               greatest(0.10 :: double precision, a ^ 3 / (a ^ 3 + b ^ 3)))
+  select least(0.95 :: double precision,
+               greatest(0.05 :: double precision, a ^ 3 / (a ^ 3 + b ^ 3)))
 $$;
 
 -- Seuils croissants sur le rapport ADVERSAIRE / SOI, et jamais l'inverse. Écraser plus faible
@@ -1139,6 +1139,91 @@ $$;
 -- le jeu ne justifie qu'on déclenche soi-même la péremption des défis des autres.
 revoke execute on function public.arena_resolve_expired(interval) from public;
 grant execute on function public.arena_resolve_expired(interval) to service_role;
+
+
+-- Le classement de la saison, pseudonyme compris.
+--
+-- Une vue plutôt qu'une jointure côté client : le front n'a pas à connaître la façon dont on
+-- rattache un score à un nom, et surtout la vue traverse RLS de manière contrôlée — elle
+-- n'expose que ce que la spec § 5 autorise à publier, un pseudonyme et des points. Jamais la
+-- taille d'une collection, qui serait un compteur de PR mergées.
+create or replace view public.arena_leaderboard as
+  select p.season,
+         p.user_id,
+         pr.pseudo,
+         p.points,
+         rank() over (partition by p.season order by p.points desc) as rank
+  from public.arena_season_points p
+  join public.profiles pr on pr.user_id = p.user_id;
+
+grant select on public.arena_leaderboard to authenticated;
+
+
+-- Clôture les saisons terminées : podium consigné, récompenses versées.
+--
+-- Automatique et rétroactive plutôt que déclenchée à une date précise : le travail planifié
+-- peut manquer un passage, la machine peut dormir une semaine, et une clôture qui n'aurait lieu
+-- qu'à l'instant exact du basculement finirait par ne jamais avoir lieu. On ferme donc toute
+-- saison qui a des points, qui n'est plus la saison courante, et qui n'a pas déjà son podium.
+--
+-- Les pokédollars du podium sont modestes et partagés à dessein (spec § 4) : à cinq joueurs,
+-- presque tout le monde touche quelque chose, et le meilleur ne creuse pas un écart matériel
+-- saison après saison. Le badge est la vraie récompense.
+create or replace function public.arena_close_finished_seasons()
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_season text;
+  v_podium int[] := array[1000, 500, 250];
+  v_rang int;
+  v_user uuid;
+  v_n int := 0;
+begin
+  for v_season in
+    select distinct p.season from public.arena_season_points p
+    where p.season <> public.arena_season(now())
+      and not exists (select 1 from public.arena_seasons s where s.season = p.season)
+    order by 1
+  loop
+    -- `row_number` et non `rank` : deux joueurs à égalité ne peuvent pas occuper tous deux la
+    -- première marche d'un podium qui n'en a qu'une. Le classement affiché les montre à
+    -- égalité ; la récompense, elle, doit être attribuable.
+    with c as (
+      select user_id, row_number() over (order by points desc, user_id) as rank
+      from public.arena_season_points where season = v_season
+    )
+    insert into public.arena_seasons (season, first_id, second_id, third_id)
+    select v_season,
+           (select user_id from c where rank = 1),
+           (select user_id from c where rank = 2),
+           (select user_id from c where rank = 3);
+
+    for v_rang in 1 .. 3 loop
+      select user_id into v_user from (
+        select user_id, row_number() over (order by points desc, user_id) as rank
+        from public.arena_season_points where season = v_season
+      ) c where c.rank = v_rang;
+
+      if v_user is not null then
+        insert into public.arena_wallet (user_id, pokedollars)
+        values (v_user, v_podium[v_rang])
+        on conflict (user_id) do update
+          set pokedollars = arena_wallet.pokedollars + excluded.pokedollars;
+      end if;
+    end loop;
+
+    v_n := v_n + 1;
+  end loop;
+
+  return v_n;
+end;
+$$;
+
+revoke execute on function public.arena_close_finished_seasons() from public;
+grant execute on function public.arena_close_finished_seasons() to service_role;
 
 
 commit;
