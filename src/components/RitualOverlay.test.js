@@ -37,6 +37,15 @@ beforeEach(() => {
 })
 afterEach(() => vi.useRealTimers())
 
+// Ouvrir un pli, c'est le cliquer puis laisser l'entaille courir : le pli ne cède qu'après.
+// Les tests qui portent sur l'entaille elle-même n'utilisent pas cet assistant, exprès.
+const ouvrir = async (w) => {
+  await w.find('.packet').trigger('click')
+  vi.advanceTimersByTime(760)
+  await w.vm.$nextTick()
+  return w
+}
+
 describe('pli scellé', () => {
   it('porte le libellé de la capture et la référence donnée par sa source', () => {
     const w = mountRitual()
@@ -75,13 +84,13 @@ describe('pli scellé', () => {
 describe('ouverture', () => {
   it('réclame la capture dès que le sceau est brisé', async () => {
     const w = mountRitual()
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     expect(w.emitted('claim')[0]).toEqual(['github:a3f8c21e9b4d'])
   })
 
   it('passe par la silhouette avant la révélation', async () => {
     const w = mountRitual()
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     expect(w.find('.reveal').classes()).toContain('silhouette')
     expect(w.find('img').classes()).toContain('silh')
     expect(w.find('.reveal-name').exists()).toBe(false)
@@ -89,7 +98,7 @@ describe('ouverture', () => {
 
   it('révèle après le délai', async () => {
     const w = mountRitual()
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
     expect(w.find('.reveal').classes()).toContain('revealed')
@@ -101,7 +110,7 @@ describe('échelle d’intensité', () => {
   it('affiche le nombre de rayons attendu par palier', async () => {
     const layerCount = async (species) => {
       const w = mountRitual({ entry: entryOf({ species }) })
-      await w.find('.packet').trigger('click')
+      await ouvrir(w)
       return w.findAll('.ray-layer').length
     }
     expect(await layerCount(19)).toBe(3)   // commun (Rattata)
@@ -112,7 +121,7 @@ describe('échelle d’intensité', () => {
 
   it('garde la couleur unique du palier pour commun et peu commun', async () => {
     const w = mountRitual({ entry: entryOf({ species: 20 }) }) // peu commun
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     const layers = w.findAll('.ray-layer')
     expect(layers).toHaveLength(4)
     for (const layer of layers) {
@@ -123,7 +132,7 @@ describe('échelle d’intensité', () => {
   it('cycle sur la palette multicolore pour rare et légendaire', async () => {
     const palette = ['#e63946', '#457b9d', '#f4d35e', '#5c7a52', '#9b5de5']
     const w = mountRitual({ entry: entryOf({ species: 144 }) }) // légendaire, 6 couches
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     const layers = w.findAll('.ray-layer')
     expect(layers).toHaveLength(6)
     layers.forEach((layer, i) => {
@@ -134,7 +143,7 @@ describe('échelle d’intensité', () => {
   it('monte le halo avec le palier', async () => {
     const glow = async (species) => {
       const w = mountRitual({ entry: entryOf({ species }) })
-      await w.find('.packet').trigger('click')
+      await ouvrir(w)
       return w.find('.ritual').attributes('style')
     }
     expect(await glow(19)).toContain('--glow: 8px')    // commun
@@ -145,7 +154,7 @@ describe('échelle d’intensité', () => {
 
   it('marque la scène légendaire', async () => {
     const w = mountRitual({ entry: entryOf({ species: 144 }) })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     expect(w.find('.ritual').classes()).toContain('leg')
     vi.advanceTimersByTime(2800)
     await w.vm.$nextTick()
@@ -155,7 +164,7 @@ describe('échelle d’intensité', () => {
   it('déclenche la salve de particules sur un rare ou un légendaire, même sans chromatique', async () => {
     const burst = async (species) => {
       const w = mountRitual({ entry: entryOf({ species }) })
-      await w.find('.packet').trigger('click')
+      await ouvrir(w)
       vi.advanceTimersByTime(2800)
       await w.vm.$nextTick()
       return w.findAll('.spark').length
@@ -167,13 +176,13 @@ describe('échelle d’intensité', () => {
 
   it('garde une durée proche entre paliers — l’écart passe par l’intensité', async () => {
     const w = mountRitual({ entry: entryOf({ species: 19 }) })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
     expect(w.find('.reveal').classes()).toContain('revealed')
 
     const l = mountRitual({ entry: entryOf({ species: 144 }) })
-    await l.find('.packet').trigger('click')
+    await ouvrir(l)
     vi.advanceTimersByTime(2800)
     await l.vm.$nextTick()
     expect(l.find('.reveal').classes()).toContain('revealed')
@@ -183,7 +192,7 @@ describe('échelle d’intensité', () => {
 describe('chromatique', () => {
   it('teinte l’attente et fait scintiller la révélation', async () => {
     const w = mountRitual({ entry: entryOf({ shiny: true }) })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     expect(w.find('.dev-note').text()).toContain('scintille')
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
@@ -194,7 +203,7 @@ describe('chromatique', () => {
 
   it('prime le chromatique sur le légendaire dans le bandeau', async () => {
     const w = mountRitual({ entry: entryOf({ species: 144, shiny: true }) })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2800)
     await w.vm.$nextTick()
     expect(w.find('.reveal-banner').text()).toContain('Chromatique')
@@ -204,7 +213,7 @@ describe('chromatique', () => {
 describe('espèce jamais rencontrée', () => {
   const reveal = async (props) => {
     const w = mountRitual(props)
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2800) // couvre aussi la tenue plus longue du légendaire
     await w.vm.$nextTick()
     return w
@@ -230,7 +239,7 @@ describe('espèce jamais rencontrée', () => {
   it('ne divulgue rien avant la révélation — le pli scellé et la silhouette restent muets', async () => {
     const w = mountRitual({ isNew: true })
     expect(w.text()).not.toContain('Nouveau')
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     expect(w.find('.reveal').classes()).toContain('silhouette')
     expect(w.text()).not.toContain('Nouveau')
   })
@@ -246,7 +255,7 @@ describe('espèce jamais rencontrée', () => {
 describe('suite de la file', () => {
   it('propose le retour quand c’est le dernier', async () => {
     const w = mountRitual({ remaining: 1 })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
     expect(w.find('.next-btn').text()).toBe('Retour à la planche')
@@ -255,7 +264,7 @@ describe('suite de la file', () => {
 
   it('décompte les plis restants après celui-ci', async () => {
     const w = mountRitual({ remaining: 3 })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
     expect(w.find('.next-btn').text()).toContain('2 restants')
@@ -263,7 +272,7 @@ describe('suite de la file', () => {
 
   it('accorde le singulier à un seul pli restant', async () => {
     const w = mountRitual({ remaining: 2 })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
     expect(w.find('.next-btn').text()).toContain('1 restant')
@@ -272,7 +281,7 @@ describe('suite de la file', () => {
 
   it('émet next et skip-all', async () => {
     const w = mountRitual({ remaining: 3 })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
     await w.find('.next-btn').trigger('click')
@@ -290,7 +299,7 @@ describe('fermeture anticipée', () => {
 
   it('permet de revenir à la planche pendant la révélation, sans avoir tout ouvert', async () => {
     const w = mountRitual({ remaining: 3 })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
     await w.find('.ritual-close').trigger('click')
@@ -318,7 +327,7 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
       setup: () => ({ col, entry, remaining }),
       template: `<RitualOverlay :entry="entry" :remaining="remaining" @claim="col.claim" />`,
     })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
 
@@ -340,7 +349,7 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
       setup: () => ({ col, entry, isNew }),
       template: `<RitualOverlay :entry="entry" :remaining="1" :is-new="isNew" @claim="col.claim" />`,
     })
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
 
@@ -376,7 +385,7 @@ describe('focus clavier', () => {
 
   it('pose le focus sur le bouton suivant une fois révélé', async () => {
     const w = mountAttached()
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     vi.advanceTimersByTime(2200)
     await w.vm.$nextTick()
     await w.vm.$nextTick()
@@ -386,10 +395,40 @@ describe('focus clavier', () => {
   // L'attente fait partie du rituel : rien à focaliser, donc Espace n'a rien à activer.
   it('ne focalise rien pendant la silhouette', async () => {
     const w = mountAttached()
-    await w.find('.packet').trigger('click')
+    await ouvrir(w)
     await w.vm.$nextTick()
     expect(w.find('.reveal').classes()).toContain('silhouette')
     expect(document.activeElement).toBe(document.body)
+  })
+})
+
+describe('entaille du sceau', () => {
+  // Ces trois tests portent sur l'entaille elle-même : ils cliquent à la main, sans l'assistant.
+  it('entaille le pli avant de le déchirer', async () => {
+    const w = mountRitual()
+    await w.find('.packet').trigger('click')
+    expect(w.find('.packet').classes()).toContain('cutting')
+    expect(w.find('.reveal').exists()).toBe(false)
+
+    vi.advanceTimersByTime(760)
+    await w.vm.$nextTick()
+    expect(w.find('.packet').exists()).toBe(false)
+    expect(w.find('.reveal').exists()).toBe(true)
+  })
+
+  // Le sceau ne se brise qu'une fois : re-cliquer pendant l'entaille relancerait la séquence,
+  // et réclamerait la capture une seconde fois.
+  it('ne se laisse pas rouvrir pendant qu’il s’ouvre', async () => {
+    const w = mountRitual()
+    await w.find('.packet').trigger('click')
+    await w.find('.packet').trigger('click')
+    expect(w.emitted('claim')).toHaveLength(1)
+  })
+
+  it('inscrit la capture dès le sceau brisé, sans attendre que le pli cède', async () => {
+    const w = mountRitual()
+    await w.find('.packet').trigger('click')
+    expect(w.emitted('claim')).toHaveLength(1)
   })
 })
 
@@ -400,7 +439,7 @@ describe('vitesse des rayons', () => {
   it('ne descend jamais sous dix secondes par tour, quel que soit le palier', async () => {
     for (const species of [16, 25, 6, 151]) {
       const w = mountRitual({ entry: entryOf({ species }) })
-      await w.find('.packet').trigger('click')
+      await ouvrir(w)
       const secondes = Number(/--rayspeed:\s*([\d.]+)s/.exec(w.find('.ritual').attributes('style'))[1])
       expect(secondes).toBeGreaterThanOrEqual(10)
     }

@@ -61,8 +61,8 @@ function rayLayerStyle(layer) {
   }
 }
 
-const stage = ref('sealed') // sealed → silhouette → revealed
-let timer = null
+const stage = ref('sealed') // sealed → cutting → silhouette → revealed
+const timers = []
 
 const species = computed(() => DEX[props.entry.species])
 const tier = computed(() => species.value.tier)
@@ -89,18 +89,47 @@ const sparks = Array.from({ length: 16 }, (_, i) => ({
   animationDelay: ((fnv1a('sd' + i) % 160) / 100) + 's',
 }))
 
+/**
+ * L'entaille court sur la pliure du haut (0,42 s), puis le bandeau se soulève et part
+ * (0,34 s) : le pli n'a pas cédé avant. C'est ce qui donne son épaisseur au geste — on
+ * ouvre quelque chose, on ne fait pas disparaître un rectangle.
+ */
+const CUT_MS = 760
+
+/**
+ * Le bord laissé par la coupe. Une dentelure parfaitement régulière se lit comme un cranté
+ * de machine, pas comme un pli ouvert à la main : les profondeurs et les décalages sont donc
+ * inégaux. Mais en suite fixe, jamais tirés au hasard — deux ouvertures doivent produire le
+ * même bord, sinon le pli n'est plus un objet, il est une variation.
+ */
+const TORN = (() => {
+  const profondeurs = [8, 5.5, 9, 6.5, 7.5, 5, 8.5, 6]
+  const decalages = [0, 0.9, -0.6, 1.2, -0.4, 0.7, -1, 0.5]
+  const dents = 26
+  const points = []
+  for (let i = 0; i <= dents; i++) {
+    const brut = (i / dents) * 100 + (i > 0 && i < dents ? decalages[i % decalages.length] : 0)
+    const x = Math.min(Math.max(brut, 0), 100).toFixed(2)
+    points.push(`${x}% ${i % 2 ? profondeurs[i % profondeurs.length] : 0}px`)
+  }
+  return `polygon(${points.join(',')},100% 100%,0 100%)`
+})()
+
 function tear() {
-  stage.value = 'silhouette'
+  stage.value = 'cutting'
   // Émis avant que l'écriture ne soit confirmée : la révélation est une animation, pas une
   // preuve d'écriture. Si `claim` échoue, `state.claimed` n'est jamais mis à jour et le pli
   // reste dans `pending` — il réapparaît à la prochaine ouverture. C'est le comportement
   // voulu : ne pas avaler l'échec en gardant la révélation silencieuse sur son sort réel.
   emit('claim', props.entry.key)
-  const hold = tier.value === 'l' ? 2800 : 2200
-  timer = setTimeout(() => { stage.value = 'revealed' }, hold)
+  timers.push(setTimeout(() => {
+    stage.value = 'silhouette'
+    const hold = tier.value === 'l' ? 2800 : 2200
+    timers.push(setTimeout(() => { stage.value = 'revealed' }, hold))
+  }, CUT_MS))
 }
 
-onUnmounted(() => clearTimeout(timer))
+onUnmounted(() => timers.forEach(clearTimeout))
 
 const packetEl = ref(null)
 const nextEl = ref(null)
@@ -130,21 +159,25 @@ watch(stage, async (s) => {
       @click="$emit('close')"
     >✕</button>
 
-    <template v-if="stage === 'sealed'">
+    <template v-if="stage === 'sealed' || stage === 'cutting'">
       <div class="stack">
         <div v-if="remaining > 2" class="ghost-pkt g1"></div>
         <div v-if="remaining > 1" class="ghost-pkt g2"></div>
-        <button ref="packetEl" class="packet" @click="tear">
-          <div class="pkt-head"><span class="pkt-kicker">Pli scellé · {{ entry.date }}</span></div>
-          <div class="pkt-body">
+        <button
+          ref="packetEl" class="packet" :class="{ cutting: stage === 'cutting' }"
+          :disabled="stage === 'cutting'" @click="tear"
+        >
+          <span class="pkt-flap"><span class="pkt-kicker">Pli scellé · {{ entry.date }}</span></span>
+          <span class="pkt-cut"></span>
+          <div class="pkt-body" :style="stage === 'cutting' ? { clipPath: TORN } : null">
             <div class="pkt-seal">✳</div>
             <div class="pkt-title">{{ entry.label }}</div>
             <div v-if="entry.ref" class="pkt-pr mono">{{ entry.ref }}</div>
+            <div class="pkt-foot">Briser le sceau</div>
           </div>
-          <div class="pkt-foot">Briser le sceau</div>
         </button>
       </div>
-      <div class="queue-note">{{ remaining > 1 ? remaining + ' plis en attente' : 'dernier pli' }}</div>
+      <div v-if="stage === 'sealed'" class="queue-note">{{ remaining > 1 ? remaining + ' plis en attente' : 'dernier pli' }}</div>
     </template>
 
     <template v-else>
