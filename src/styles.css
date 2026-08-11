@@ -77,7 +77,11 @@
   .gear:disabled{cursor:default}
   /* La rotation est sur le glyphe (span), pas sur le bouton entier : sinon la pastille
      d'erreur, positionnée dans un coin du bouton, tournait avec tout le bloc. */
-  .gear.sync span.spinning{color:var(--herb);display:inline-block;animation:spin .8s linear infinite}
+  /* Le glyphe ⟳ tournait de travers : la boîte du span fait la hauteur de la ligne de texte,
+     donc son centre — le pivot de la rotation — tombait à côté du centre du dessin. Un SVG
+     carré et symétrique cale le pivot sur le centre de l'anneau. */
+  .gear.sync span:not(.err-dot){display:inline-flex;line-height:0}
+  .gear.sync span.spinning{color:var(--herb);animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .err-dot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--stamp);box-shadow:0 0 0 1.5px var(--paper)}
   .filter-toggle.active{border-color:var(--herb);color:var(--herb)}
