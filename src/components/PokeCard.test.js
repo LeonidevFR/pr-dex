@@ -47,3 +47,31 @@ describe('face avant', () => {
     expect(mountCard({ tier: 'l' }).find('.pkc-wax').exists()).toBe(true)
   })
 })
+
+const provenance = {
+  ref: 'moi/atlas#142 · a3f8c21',
+  label: 'fix: race condition sur la file de synchronisation',
+  date: '2026-02-03',
+}
+
+describe('dos', () => {
+  it('porte la provenance de l’exemplaire', () => {
+    const w = mountCard({ provenance })
+    expect(w.find('.pkc-lab-ref').text()).toBe('moi/atlas#142 · a3f8c21')
+    expect(w.find('.pkc-lab-title').text()).toBe('fix: race condition sur la file de synchronisation')
+    expect(w.find('.pkc-lab-date').text()).toBe('2026-02-03')
+  })
+
+  // Une source peut n'avoir aucune référence courte à donner — le pli scellé gère déjà ce cas,
+  // et le dos ne doit pas afficher une ligne vide à sa place.
+  it('se passe de la ligne de référence quand la source n’en fournit pas', () => {
+    const w = mountCard({ provenance: { ...provenance, ref: null } })
+    expect(w.find('.pkc-lab-ref').exists()).toBe(false)
+    expect(w.find('.pkc-lab-title').exists()).toBe(true)
+  })
+
+  // La fiche d'espèce montre une espèce, pas un exemplaire daté : elle n'a pas de dos.
+  it('n’a pas de dos quand aucune provenance n’est donnée', () => {
+    expect(mountCard().find('.pkc-back').exists()).toBe(false)
+  })
+})

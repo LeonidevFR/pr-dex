@@ -13,6 +13,12 @@ const props = defineProps({
    * scène nocturne se contente de pousser la dorure et le halo.
    */
   scene: { type: String, default: 'day' },
+  /**
+   * Ce qui a produit l'exemplaire : `{ ref, label, date }`. Absente sur la fiche d'espèce,
+   * où l'on consulte une espèce et non un exemplaire daté — la carte n'y a alors pas de dos.
+   * `ref` peut manquer : toutes les sources ne fournissent pas de référence courte.
+   */
+  provenance: { type: Object, default: null },
 })
 
 const species = computed(() => DEX[props.speciesId])
@@ -52,6 +58,22 @@ const pad = (n) => String(n).padStart(3, '0')
         <span class="pkc-name">{{ species.name }}{{ shiny ? ' ✦' : '' }}</span>
         <span class="pkc-tier">{{ TIER_LABEL[tier] }}</span>
       </div>
+    </div>
+
+    <!-- Le dos, c'est le sachet ouvert, et l'étiquette de spécimen collée dessus. C'est ce
+         qui donne une raison de retourner la carte : elle dit d'où elle vient. -->
+    <div v-if="provenance" class="pkc-face pkc-back">
+      <div class="pkc-back-head">
+        <span class="pkc-mark">PR·DEX</span>
+        <span class="pkc-torn">ouvert</span>
+      </div>
+      <div class="pkc-lab">
+        <span class="pkc-lab-eyebrow">Provenance</span>
+        <span v-if="provenance.ref" class="pkc-lab-ref mono">{{ provenance.ref }}</span>
+        <span class="pkc-lab-title">{{ provenance.label }}</span>
+        <span class="pkc-lab-date mono">{{ provenance.date }}</span>
+      </div>
+      <span class="pkc-back-foot">Une PR mergée · un tirage</span>
     </div>
   </div>
 </template>
