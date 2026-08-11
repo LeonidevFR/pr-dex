@@ -79,6 +79,12 @@ describe('power', () => {
     }
   })
 
+  // Sans ce garde-fou, une espèce inconnue produit un `NaN` que `levelGain` traduit en gain
+  // maximal, parce que toutes ses comparaisons avec `NaN` sont fausses.
+  it('refuse une espèce inconnue au lieu de propager un NaN', () => {
+    expect(() => power({ species: 9999 })).toThrow(/9999/)
+  })
+
   // Mewtwo est le plafond de la planche : 680 de stats et le coefficient légendaire.
   it('classe Mewtwo au-dessus de toutes les autres espèces fraîches', () => {
     const mewtwo = power({ species: 150 })

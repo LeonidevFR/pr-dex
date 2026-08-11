@@ -1,6 +1,6 @@
 import { POOL, DEX } from '../shared/species.js'
 import { drawFrom, fnv1a } from '../shared/draw.js'
-import { formOf, resolveDuel } from '../shared/battle.js'
+import { formOf, resolveDuel, NORMAL_FORM } from '../shared/battle.js'
 import { coveredTier, REWARD, COMPUTER_REWARD, TIER_ORDER } from '../shared/arena-economy.js'
 
 const DUELS_PER_WEEK = 5
@@ -62,13 +62,17 @@ function newPlayer(policy) {
   }
 }
 
-/** L'adversaire de l'ordinateur : plausible, jamais plus faible, et sans rien à perdre. */
+/**
+ * L'adversaire de l'ordinateur : une espèce tirée uniformément dans le pool du palier engagé
+ * — donc parfois plus faible, parfois plus forte —, un niveau bas, et la forme du jour
+ * NORMALE (spec § 2) : l'ordinateur ne bénéficie ni ne souffre de l'aléa des formes.
+ */
 function computerSide(tier, seed) {
   const pool = POOL[tier]
   return {
     species: pool[fnv1a(`${seed}:ordinateur`) % pool.length],
     level: 1 + (fnv1a(`${seed}:niveau`) % 4),
-    form: formOf(`${seed}:ordinateur`, 'jour'),
+    form: NORMAL_FORM,
   }
 }
 

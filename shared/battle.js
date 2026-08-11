@@ -38,6 +38,9 @@ export const formOf = (key, day) => FORMS[fnv1a(`${key}:forme:${day}`) % FORMS.l
 export const levelFactor = (level) => 1 + 0.05 * (level - 1)
 
 export function power({ species, level = 1, form = NORMAL_FORM }) {
+  // Échec bruyant : un `NaN` remonterait jusqu'à `levelGain`, où toutes les comparaisons
+  // avec `NaN` sont fausses — il y rendrait donc 5, le gain maximal.
+  if (!DEX[species] || !STATS[species]) throw new Error(`espèce inconnue : ${species}`)
   return STATS[species] * TIER_POWER[DEX[species].tier] * levelFactor(level) * form.factor
 }
 

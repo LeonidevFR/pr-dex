@@ -73,7 +73,11 @@ async function main() {
     // est beaucoup plus difficile à repérer qu'un script qui refuse de finir.
     if (!types.length || types.some((t) => !t.name)) throw new Error(`types manquants pour l'id ${id}`)
     if (!text) throw new Error(`texte français manquant pour l'id ${id}`)
-    if (!stats) throw new Error(`stats manquantes pour l'id ${id}`)
+    // Le total, lui, ne trahit rien : cinq statistiques sur six donnent une somme plausible
+    // et fausse, qui fausserait silencieusement toute la puissance en arène.
+    if (mon.stats.length !== 6) {
+      throw new Error(`${mon.stats.length} statistiques au lieu de 6 pour l'id ${id}`)
+    }
 
     out[id] = { types, text }
     statsOut[id] = stats
@@ -93,7 +97,8 @@ async function main() {
   const statsBody = Object.entries(statsOut).map(([id, v]) => `  ${id}: ${v},`).join('\n')
   await writeFile(OUT_STATS, `/** Total des stats de base par espèce — généré par scripts/gen-species-info.mjs. */\nexport const STATS = {\n${statsBody}\n}\n`)
 
-  console.log(`\n${Object.keys(out).length} espèces écrites dans shared/species-info.json`)
+  console.log(`\n${Object.keys(out).length} espèces écrites dans shared/species-info.json ` +
+    'et shared/species-stats.js')
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
