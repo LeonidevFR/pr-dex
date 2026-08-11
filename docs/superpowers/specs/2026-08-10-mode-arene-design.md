@@ -162,7 +162,8 @@ Repères issus des vraies valeurs :
 | Rattata (253, c) vs Électhor (580, l) | **10 %** (4,6 % avant bornage) |
 | Salamèche (309, r) vs Dracaufeu (534, r), tous deux frais | **16 %** |
 | Salamèche **niv. 10** vs Dracaufeu frais | **37 %** |
-| Roucool (251, c) **niv. 10** vs Dracaufeu frais | **18 %** |
+| Roucool (251, c) **niv. 10** vs Dracaufeu frais | **17 %** |
+| Canarticho (377, **r**) vs Rattatac (413, **u**), tous deux frais | **49 %** — le coefficient de rareté rattrape presque l'écart de stats, sans le renverser |
 
 ### Niveaux
 
@@ -247,14 +248,20 @@ Battre un rare ne rapporte donc pas 250 $ : il faut que **les deux** aient engag
 | Défaite contre un humain | rien, et l'exemplaire engagé est détruit |
 | Défaite contre la maison | rien, et l'exemplaire est conservé |
 
-Contre la maison, en pokédollars seulement, au palier de **sa propre** mise, moitié tarif :
+Contre la maison, en pokédollars seulement, au palier de **sa propre** mise, **au quart** du
+tarif humain :
 
 | Sa mise contre la maison | Pokédollars |
 |---|---|
-| Commun | 25 |
-| Peu commun | 50 |
-| Rare | 125 |
-| Légendaire | 300 |
+| Commun | 12 |
+| Peu commun | 25 |
+| Rare | 62 |
+| Légendaire | 150 |
+
+**Le quart et non la moitié — mesuré, pas supposé.** À demi-tarif, la simulation donne
+2 750 pokédollars par saison en ne farmant que l'IA, **sans jamais rien risquer**, contre
+5 406 en duels réels : l'option sûre rapportait 96 % de l'option risquée en terrain mixte.
+Au quart, elle retombe à 1 158, soit 21 % — l'entraînement rémunéré qu'elle doit être.
 
 Les **niveaux ne s'y lisent pas** : ils ne se gagnent que contre un humain, selon le
 barème du § 3.
@@ -268,7 +275,12 @@ poids de la rareté au combat, et l'arène finirait en ligue de communs.
 L'enjeu supprime les deux stratégies dégénérées d'un seul mouvement :
 
 - **Écraser un Roucool avec un légendaire** ne rapporte qu'un pli commun, pour avoir exposé
-  sa pièce maîtresse. Le bullying ne paye pas.
+  sa pièce maîtresse. Mais attention à la formulation : contre un terrain ordinaire, un
+  légendaire prend l'enjeu *rare* en gagnant deux fois sur trois, et la simulation le classe
+  **politique la plus rentable du jeu** (~13 000 pokédollars par saison, deux fois et demie
+  le rare). Ce qui l'interdit n'est pas la récompense, c'est **le stock** : elle coûte une
+  vingtaine de légendaires par saison, quand on en tire environ un. Elle est
+  **inabordable, pas non rentable** — la nuance compte le jour où quelqu'un en accumulera.
 - **Venir en Roucool pour tenter l'exploit** ne rapporte qu'un pli commun aussi — même
   quand on renverse un légendaire. Le barème de niveaux à +5 reste atteignable, mais au
   prix de neuf Roucool perdus et de dix crédits dépensés : une trajectoire d'outsider
@@ -291,6 +303,23 @@ dessus plutôt que sur une hypothèse timide.
 Rythme attendu en régime stable : 5 duels/semaine, une victoire sur deux, enjeu rare →
 **~625 pokédollars et ~62 points par semaine**, soit **~5 400 pokédollars et ~540 points
 par saison** de deux mois. Les prix de la boutique sont calés là-dessus.
+
+**Vérifié en simulation** (2026-08-11, prototype du lot 1, moyenne sur 40 saisons, terrain
+symétrique où les deux camps jouent la même politique et font monter leur champion) :
+
+| Politique | Pokédollars/saison | Victoires | Plis gagnés / exemplaires perdus |
+|---|---|---|---|
+| Toujours commun | 1 059 | 48 % | 21 / 23 |
+| Toujours peu commun | 2 270 | 52 % | 23 / 21 |
+| **Toujours rare** | **5 406** | 49 % | **22 / 22** |
+| Toujours légendaire | 13 095 | 50 % | 22 / 22 |
+| Maison seule (quart de tarif) | 1 158 | 42 % | — |
+
+L'autofinancement du rare est confirmé au sens strict — 22 plis gagnés pour 22 exemplaires
+perdus — et les 5 400 annoncés tombent à 6 près. **Attention au piège de modèle** : une
+première version faisait jouer au joueur des exemplaires toujours neufs face à des
+adversaires vétérans, ce qui écrasait tous les taux à 43 % et faisait conclure à tort que
+le rare ne s'autofinançait pas. Toute modification du terrain adverse change ce tableau.
 
 **Conséquence assumée : les légendaires ne descendront jamais dans l'arène.** Personne
 n'en tire assez (~1 par saison) pour encaisser d'en perdre un sur deux. Ils resteront des
