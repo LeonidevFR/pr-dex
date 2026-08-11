@@ -499,9 +499,34 @@
   .reveal-note b{color:var(--ochre);font-weight:500}
   .next-btn{border:1.5px solid rgba(240,231,212,.35);background:transparent;color:#f0e7d4;font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 24px;cursor:pointer;animation:fadeUp .5s ease-out .75s both}
   .next-btn:hover{border-color:#f0e7d4}
-  .burst{position:absolute;inset:0;pointer-events:none}
-  .spark{position:absolute;width:4px;height:4px;background:#ffe9a8;border-radius:50%;box-shadow:0 0 6px #ffd766;animation:spark 1.6s ease-out infinite}
-  @keyframes spark{0%{transform:scale(0);opacity:0}30%{transform:scale(2.6);opacity:1}100%{transform:scale(0);opacity:0}}
+  /* Les anciennes particules tournaient en boucle, dispersées au hasard, et ignoraient le
+     palier. Celles-ci partent une fois, du centre, en nombre dicté par la rareté. */
+  .fx-spark{position:absolute;left:50%;top:50%;margin:-2.5px 0 0 -2.5px;width:5px;height:5px;
+    border-radius:50%;pointer-events:none;z-index:5;
+    background:#ffe9a8;box-shadow:0 0 8px 2px rgba(255,215,102,.9);
+    animation:fxSpark var(--sd,1.1s) cubic-bezier(.15,.7,.3,1) forwards}
+  @keyframes fxSpark{
+    0%{transform:translate(0,0) scale(0);opacity:0}
+    12%{opacity:1;transform:translate(calc(var(--dx) * .18),calc(var(--dy) * .18)) scale(1.6)}
+    100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+  .fx-ring{position:absolute;left:50%;top:50%;margin:-75px 0 0 -75px;width:150px;height:150px;
+    border-radius:50%;pointer-events:none;z-index:4;
+    border:2px solid rgba(255,214,140,.75);animation:fxRing .95s cubic-bezier(.1,.7,.3,1) both}
+  @keyframes fxRing{0%{transform:scale(.3);opacity:.85}100%{transform:scale(3.6);opacity:0}}
+  .ritual.shaking{animation:fxShake .42s cubic-bezier(.36,.07,.19,.97)}
+  @keyframes fxShake{
+    10%,90%{transform:translate(calc(var(--shake) * -1px),0)}
+    30%,70%{transform:translate(calc(var(--shake) * 2px),calc(var(--shake) * -1px))}
+    50%{transform:translate(calc(var(--shake) * -2px),calc(var(--shake) * 1px))}}
+
+  /* La secousse d'écran est un vrai sujet vestibulaire, pas une coquetterie : elle saute la
+     première quand le système demande moins de mouvement. */
+  @media (prefers-reduced-motion:reduce){
+    .fx-spark,.fx-ring{display:none}
+    .ritual.shaking{animation:none}
+    .hint-bar i{animation-duration:.01s}
+    .reveal .pkc-stage{animation:none}
+  }
 
   /* ───────── évolution ───────── */
   .evostage{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:radial-gradient(ellipse 70% 60% at 50% 45%, #241d15, #14100b 80%)}

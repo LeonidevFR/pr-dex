@@ -205,15 +205,18 @@ describe('échelle d’intensité', () => {
     expect(w.find('.reveal-banner').text()).toContain('Légendaire')
   })
 
-  it('déclenche la salve de particules sur un rare ou un légendaire, même sans chromatique', async () => {
+  // La salve n'est plus un interrupteur « gros palier ou non » : elle est graduée. Le détail
+  // du barème est vérifié par la suite « fanfare » ; ici on tient juste l'ordre des paliers.
+  it('gradue la salve selon le palier au lieu de l’allumer d’un coup', async () => {
     const burst = async (species) => {
       const w = mountRitual({ entry: entryOf({ species }) })
       await reveler(w)
-      return w.findAll('.spark').length
+      return w.findAll('.fx-spark').length
     }
-    expect(await burst(20)).toBe(0)   // peu commun : pas de salve
-    expect(await burst(1)).toBe(16)   // rare
-    expect(await burst(144)).toBe(16) // légendaire
+    expect(await burst(19)).toBe(0)                            // commun : rien
+    expect(await burst(20)).toBeGreaterThan(0)                 // peu commun : un peu
+    expect(await burst(1)).toBeGreaterThan(await burst(20))    // rare : davantage
+    expect(await burst(144)).toBeGreaterThan(await burst(1))   // légendaire : le maximum
   })
 
   it('garde une durée proche entre paliers — l’écart passe par l’intensité', async () => {
@@ -237,7 +240,9 @@ describe('chromatique', () => {
 
     await retourner(w)
     expect(w.find('.reveal-banner').text()).toContain('Chromatique')
-    expect(w.findAll('.spark')).toHaveLength(16)
+    // Pikachu est commun : sans traitement particulier, un chromatique commun serait muet.
+    // Il relève le plancher de la fanfare, sinon on tairait la seule chose rare du tirage.
+    expect(w.findAll('.fx-spark').length).toBeGreaterThan(0)
     expect(w.find('.pkc-art img').attributes('src')).toContain('/shiny/')
   })
 
@@ -454,6 +459,63 @@ describe('entaille du sceau', () => {
     const w = mountRitual()
     await w.find('.packet').trigger('click')
     expect(w.emitted('claim')).toHaveLength(1)
+  })
+})
+
+describe('fanfare', () => {
+  const auRetournement = async (species) => reveler(mountRitual({ entry: entryOf({ species }) }))
+
+  /**
+   * Un commun ne déclenche rien. C'est ce silence qui donne sa valeur au reste : si chaque
+   * tirage explose, l'explosion du légendaire ne veut plus rien dire — et on ouvre ces plis
+   * quelques centaines de fois par an.
+   */
+  it('reste muette sur un commun', async () => {
+    const w = await auRetournement(19)
+    expect(w.findAll('.fx-spark')).toHaveLength(0)
+    expect(w.findAll('.fx-ring')).toHaveLength(0)
+    expect(w.find('.flash').exists()).toBe(false)
+    expect(w.find('.ritual').classes()).not.toContain('shaking')
+  })
+
+  it('monte avec le palier', async () => {
+    const peuCommun = await auRetournement(20)
+    const rare = await auRetournement(1)
+    const legendaire = await auRetournement(144)
+
+    const etincelles = (w) => w.findAll('.fx-spark').length
+    expect(etincelles(peuCommun)).toBeGreaterThan(0)
+    expect(etincelles(rare)).toBeGreaterThan(etincelles(peuCommun))
+    expect(etincelles(legendaire)).toBeGreaterThan(etincelles(rare))
+
+    // Les ondes et la secousse sont réservées au haut de l'échelle : elles ne se diluent pas.
+    expect(peuCommun.findAll('.fx-ring')).toHaveLength(0)
+    expect(legendaire.findAll('.fx-ring').length).toBeGreaterThan(rare.findAll('.fx-ring').length)
+    expect(peuCommun.find('.ritual').classes()).not.toContain('shaking')
+    expect(legendaire.find('.ritual').classes()).toContain('shaking')
+  })
+
+  // La récompense appartient au moment où l'information arrive, pas à celui où le pli cède.
+  it('ne part qu’au retournement, et une seule fois', async () => {
+    const w = mountRitual({ entry: entryOf({ species: 1 }) })
+    await ouvrir(w)
+    expect(w.findAll('.fx-spark')).toHaveLength(0)
+
+    await retourner(w)
+    const salve = w.findAll('.fx-spark').length
+    expect(salve).toBeGreaterThan(0)
+
+    vi.advanceTimersByTime(5000)
+    await w.vm.$nextTick()
+    expect(w.findAll('.fx-spark')).toHaveLength(salve)
+  })
+
+  // Deux tirages du même palier doivent produire la même salve : c'est un décor, pas un tirage.
+  it('place ses étincelles de façon déterministe', async () => {
+    const a = await auRetournement(144)
+    const b = await auRetournement(144)
+    const positions = (w) => w.findAll('.fx-spark').map((s) => s.attributes('style'))
+    expect(positions(a)).toEqual(positions(b))
   })
 })
 

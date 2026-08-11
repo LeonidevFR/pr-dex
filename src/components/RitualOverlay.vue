@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR, RAY_PALETTE, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
-import { fnv1a } from '../../shared/draw.js'
 import PokeCard from './PokeCard.vue'
 
 const props = defineProps({
@@ -23,10 +22,10 @@ const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
  * rapide lit « ça stroboscope ». L'écart entre paliers se joue donc en dessous.
  */
 const INTENSITY = {
-  c: { rayop: 0.10, glow: '8px', flashscale: 2.4, rayspeed: '26s' },
-  u: { rayop: 0.18, glow: '16px', flashscale: 3.2, rayspeed: '22s' },
-  r: { rayop: 0.42, glow: '38px', flashscale: 5.2, rayspeed: '18s' },
-  l: { rayop: 0.65, glow: '66px', flashscale: 7.5, rayspeed: '14s' },
+  c: { rayop: 0.10, glow: '8px', rayspeed: '26s' },
+  u: { rayop: 0.18, glow: '16px', rayspeed: '22s' },
+  r: { rayop: 0.42, glow: '38px', rayspeed: '18s' },
+  l: { rayop: 0.65, glow: '66px', rayspeed: '14s' },
 }
 
 const RAY_LAYER_COUNT = { c: 3, u: 4, r: 5, l: 6 }
@@ -67,15 +66,60 @@ const timers = []
 const species = computed(() => DEX[props.entry.species])
 const tier = computed(() => species.value.tier)
 const intensity = computed(() => INTENSITY[tier.value])
-// Le flash + la salve de particules ne sont pas réservés au chromatique : un rare ou un
-// légendaire doit taper aussi fort, à chaque tirage — pas seulement le premier de sa vie.
-const big = computed(() => props.entry.shiny || tier.value === 'r' || tier.value === 'l')
 
-const sparks = Array.from({ length: 16 }, (_, i) => ({
-  left: (fnv1a('sx' + i) % 100) + '%',
-  top: (fnv1a('sy' + i) % 100) + '%',
-  animationDelay: ((fnv1a('sd' + i) % 160) / 100) + 's',
-}))
+/**
+ * La fanfare EST le palier.
+ *
+ * Un collègue voulait des explosions partout ; il a raison sur les deux pour cent de tirages
+ * qui les méritent, et tort sur les autres. Si chaque commun explose, l'explosion du
+ * légendaire ne signifie plus rien — on détruit le signal qu'on cherchait à amplifier. Et ces
+ * plis s'ouvrent quelques centaines de fois par an, sans possibilité de les sauter : ce qui
+ * est jouissif au troisième tirage est une taxe au cinquantième.
+ *
+ * Donc : on ne monte pas le plancher, on monte le plafond. Un commun ne reçoit rien du tout.
+ */
+const FANFARE = {
+  c: { flash: 0, sparks: 0, rings: 0, shake: 0 },
+  u: { flash: 1.6, sparks: 7, rings: 0, shake: 0 },
+  r: { flash: 4.2, sparks: 20, rings: 1, shake: 1.6 },
+  l: { flash: 6.5, sparks: 34, rings: 3, shake: 3 },
+}
+// Dosage retenu après essais sur maquette. Il module la courbe, il ne l'aplatit jamais :
+// un commun reste muet quel que soit le réglage.
+const PUNCH = 1.7
+
+/**
+ * Un chromatique sort environ une fois sur cent vingt-huit, quel que soit le palier. Le laisser
+ * muet parce qu'il est tombé sur un commun reviendrait à taire la seule chose vraiment rare de
+ * la soirée. Il relève donc le plancher de la fanfare au niveau du rare — sans jamais dépasser
+ * ce que son palier vaut déjà, si celui-ci est plus haut.
+ */
+const fanfare = computed(() => {
+  const palier = props.entry.shiny && (tier.value === 'c' || tier.value === 'u') ? 'r' : tier.value
+  return FANFARE[palier]
+})
+const loud = computed(() => stage.value === 'revealed' && fanfare.value.flash > 0)
+
+// Positions dérivées de l'index, jamais tirées au hasard : deux tirages du même palier
+// produisent la même salve. C'est un décor, il n'a pas à varier.
+const fxSparks = computed(() => {
+  const n = Math.round(fanfare.value.sparks * PUNCH)
+  return Array.from({ length: n }, (_, i) => {
+    const angle = (i / n) * Math.PI * 2 + (i % 3) * 0.21
+    const distance = 120 + (i % 5) * 46
+    return {
+      '--dx': (Math.cos(angle) * distance).toFixed(1) + 'px',
+      '--dy': (Math.sin(angle) * distance).toFixed(1) + 'px',
+      '--sd': (0.85 + (i % 4) * 0.22).toFixed(2) + 's',
+    }
+  })
+})
+
+const fxRings = computed(() =>
+  Array.from({ length: Math.round(fanfare.value.rings * PUNCH) }, (_, i) => ({
+    animationDelay: i * 0.17 + 's',
+  })),
+)
 
 const style = computed(() => ({
   '--tier': TIER_VAR[tier.value],
@@ -83,7 +127,10 @@ const style = computed(() => ({
     ? {
         '--rayop': intensity.value.rayop,
         '--glow': intensity.value.glow,
-        '--flashscale': intensity.value.flashscale,
+        // Le flash n'obéit plus à `INTENSITY` mais à la fanfare : c'est elle qui dose la
+        // récompense, et elle est nulle en commun là où `INTENSITY` gardait un flash.
+        '--flashscale': (fanfare.value.flash * PUNCH).toFixed(2),
+        '--shake': (fanfare.value.shake * PUNCH).toFixed(2),
         '--rayspeed': intensity.value.rayspeed,
       }
     : {}),
@@ -178,7 +225,11 @@ watch(stage, async (s) => {
 </script>
 
 <template>
-  <div class="ritual" :class="{ opened: stage !== 'sealed', leg: stage !== 'sealed' && tier === 'l' }" :style="style">
+  <div
+    class="ritual"
+    :class="{ opened: stage !== 'sealed', leg: stage !== 'sealed' && tier === 'l', shaking: loud && fanfare.shake > 0 }"
+    :style="style"
+  >
     <button
       class="x ritual-close" aria-label="Revenir à la planche, garder les plis restants pour plus tard"
       @click="$emit('close')"
@@ -211,7 +262,8 @@ watch(stage, async (s) => {
           v-for="layer in rayLayers" :key="layer.key" class="ray-layer"
           :style="rayLayerStyle(layer)"
         ></div>
-        <div v-if="stage === 'revealed'" class="flash"></div>
+        <div v-if="loud" class="flash"></div>
+        <span v-for="(r, i) in (loud ? fxRings : [])" :key="'r' + i" class="fx-ring" :style="r"></span>
         <div class="pkc-stage">
           <PokeCard
             ref="cardEl"
@@ -221,9 +273,7 @@ watch(stage, async (s) => {
             @flip="reveal"
           />
         </div>
-        <div v-if="big && stage === 'revealed'" class="burst">
-          <span v-for="(s, i) in sparks" :key="i" class="spark" :style="s"></span>
-        </div>
+        <span v-for="(s, i) in (loud ? fxSparks : [])" :key="'s' + i" class="fx-spark" :style="s"></span>
       </div>
 
       <!-- Le décompte rend l'automatique prévisible : on voit le temps venir, donc on choisit
