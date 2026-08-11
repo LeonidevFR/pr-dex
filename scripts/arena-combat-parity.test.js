@@ -187,7 +187,9 @@ describe.skipIf(!disponible)('parité de la résolution d’un duel', () => {
       // Le tirage ne dépend que de `fnv1a` : égalité stricte, pas de tolérance à accorder.
       expect(Number(obtenus[i].roll)).toBe(attendus[i].roll)
     }
-  })
+    // 200 appels séquentiels : au-delà du délai par défaut de 5 s dès que la machine est
+    // chargée par les autres fichiers de test qui tournent en parallèle.
+  }, 60_000)
 
   it('désigne le même vainqueur quel que soit l’ordre des deux camps', async () => {
     // L'anti-symétrie est la propriété qui permet au client de rejouer un duel que le serveur
@@ -212,7 +214,10 @@ describe.skipIf(!disponible)('parité de la résolution d’un duel', () => {
       return ko
     })
     expect(desaccords).toEqual([])
-  })
+    // 120 itérations × 2 appels séquentiels : le délai par défaut de 5 s ne suffit pas, et un
+    // test qui expire ne dit rien de l'anti-symétrie qu'il est censé vérifier. Même délai que
+    // le test en masse du même fichier, pour la même raison.
+  }, 60_000)
 
   it('plafonne le niveau à dix même sur un exploit à cinq niveaux', async () => {
     const obtenu = await withDb(async (c) => {
