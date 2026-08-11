@@ -200,4 +200,22 @@ create view public.arena_public_dex as
 grant select on public.arena_players, public.arena_open_challenges, public.arena_public_dex
   to authenticated;
 
+-- La forme du jour se calcule des deux côtés et ne se stocke jamais : le client l'affiche
+-- avant qu'on engage son Pokémon, le serveur la recalcule pour résoudre le duel. La chaîne
+-- hachée est un CONTRAT — `${key}:forme:${day}` — répliquée caractère pour caractère depuis
+-- `formOf` de `shared/battle.js` ; un deux-points de différence donnerait une autre forme
+-- pour le même exemplaire. `scripts/arena-combat-parity.test.js` le vérifie.
+create or replace function public.arena_form_index(entry_key text, day text)
+returns int language sql immutable strict as $$
+  select (public.fnv1a(entry_key || ':forme:' || day) % 5) :: int
+$$;
+
+-- Cinq états, du plus faible au plus fort, dans l'ordre de `FORMS`. `double precision` et non
+-- `numeric` : le moteur JavaScript calcule en IEEE 754, et un écart au dernier bit suffirait à
+-- changer le vainqueur d'un duel serré — donc quel Pokémon est détruit.
+create or replace function public.arena_form_factor(idx int)
+returns double precision language sql immutable strict as $$
+  select (array[0.90, 0.95, 1.00, 1.05, 1.10] :: double precision[])[idx + 1]
+$$;
+
 commit;
