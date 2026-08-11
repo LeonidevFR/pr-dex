@@ -113,10 +113,13 @@ export function simulateLeague({ weeks, seed, policies }) {
 }
 
 function duelHumain(a, b, seed) {
+  // Un joueur qui ne relève jamais de défi renvoie son adversaire du jour vers la maison —
+  // et va s'y entraîner lui aussi. Sans cette seconde ligne il ne jouerait qu'un jour sur
+  // cinq, et l'acquis « la maison ne suffit pas » se vérifierait sur un écart de cadence
+  // au lieu d'un écart de revenus.
   if (a.policy === 'maison' || b.policy === 'maison') {
-    // Un joueur qui ne veut que la maison ne relève jamais de défi : son adversaire du jour
-    // se rabat sur la maison lui aussi, plutôt que de jouer un duel fantôme.
-    duelMaison(a.policy === 'maison' ? b : a, `${seed}:report`)
+    duelMaison(a, `${seed}:a`)
+    duelMaison(b, `${seed}:b`)
     return
   }
   const ea = pickStake(a.stock, a.policy)

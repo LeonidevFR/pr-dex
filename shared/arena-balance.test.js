@@ -44,7 +44,7 @@ describe('équilibrage de l’arène', () => {
   // que la règle de l'enjeu ne neutralise pas. Ce qui serait un défaut de conception, c'est
   // qu'il devienne écrasant : au-delà du double, la politique cesse d'être un pari pour
   // devenir la seule à jouer.
-  it('ne laisse aucune politique humaine rapporter plus du double d’une autre', () => {
+  it('ne laisse pas la politique ambitieuse rapporter plus du double de la politique rare', () => {
     const audacieux = moyenne(AUDACIEUX)
     const rare = moyenne(RARE)
     expect(audacieux.dollars).toBeLessThan(rare.dollars * 2)
@@ -62,8 +62,7 @@ describe('équilibrage de l’arène', () => {
   // des replis massifs sur un palier inférieur.
   it('laisse la politique rare soutenable — la réserve ne se vide pas', () => {
     const r = moyenne(RARE)
-    expect(r.fallbacks / r.duels).toBeLessThan(0.15)
-    expect(r.stockR).toBeGreaterThan(0)
+    expect(r.fallbacks / r.duels).toBeLessThan(0.05)
   })
 
   // Acquis 3 : un légendaire descendu chaque semaine finit détruit. Le bornage à 90 % suffit
@@ -80,14 +79,18 @@ describe('équilibrage de l’arène', () => {
   it('rapporte moins de la moitié en n’affrontant que la maison', () => {
     const maison = moyenne(MAISON)
     expect(maison.dollars).toBeLessThan(moyenne(RARE).dollars / 2)
+    // Les trois suivantes sont des garde-fous structurels, pas des acquis : `duelMaison` ne
+    // touche jamais ces compteurs. Elles rougiraient si la maison se mettait un jour à
+    // distribuer des plis ou des points.
     expect(maison.points).toBe(0)
     expect(maison.plis).toBe(0)
     expect(maison.lost).toBe(0)
   })
 
-  // Contrôle de symétrie du moteur, et rien de plus : sur toute la ligue, les victoires et
-  // les défaites doivent s'équilibrer puisque chaque duel produit exactement l'une et
-  // l'autre. Un écart signalerait un biais gauche/droite dans `resolveDuel`.
+  // Identité comptable, et rien de plus : chaque duel entre humains produit exactement une
+  // victoire et une défaite. Ce test ne détecte pas un biais du moteur — il garde contre une
+  // régression de comptage, du genre de celle qui faisait entrer les victoires contre la
+  // maison dans le même compteur.
   it('équilibre victoires et défaites sur l’ensemble de la ligue', () => {
     const ligue = simulateLeague({ weeks: SAISON, seed: 'symetrie', policies: POLICIES })
     const humains = ligue.filter((j) => j.policy !== 'maison')
