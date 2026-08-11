@@ -100,7 +100,11 @@ onMounted(async () => {
   if (new URLSearchParams(location.search).has('demo')) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
     githubLogin.value = 'démo'
-    await collection.load(loadDemoClient())
+    const client = loadDemoClient()
+    userId.value = 'demo-moi'
+    arena = useArena(client, collection.dex.claimed)
+    await collection.load(client)
+    await arena.load()
     connected.value = true
   }
 })

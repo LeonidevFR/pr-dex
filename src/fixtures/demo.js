@@ -1,5 +1,8 @@
 import { fnv1a, drawFrom } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
+import { DEX } from '../../shared/species.js'
+import { FORMS, formOf, power, resolveDuel } from '../../shared/battle.js'
+import { REWARD, coveredTier } from '../../shared/arena-economy.js'
 
 const FAKE_PRS = [
   ['fix: race condition à l\'upload de fichiers', 'moi/atlas', 142, '2026-02-03'],
@@ -159,5 +162,111 @@ export function loadDemoClient() {
     writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'demo' } },
     // Rien à déclencher en démo : pas de vraie Action, pas de vrai repo derrière.
     triggerCatch: async () => {},
+    ...demoArena(catches),
+  }
+}
+
+/**
+ * L'arène en mémoire, avec le VRAI moteur de combat — `resolveDuel` est le même module que
+ * celui dont la parité avec le SQL est prouvée. La démo n'imite donc pas les duels, elle les
+ * joue : ce qu'on voit sans compte est exactement ce qui se produirait avec.
+ *
+ * Ce qu'elle ne reproduit pas, et ne peut pas : la concurrence, l'atomicité et les policies —
+ * tout ce qui n'existe que parce qu'il y a plusieurs joueurs et une base.
+ */
+export function demoArena(catches) {
+  const RIVAUX = [
+    { id: 'demo-bob', pseudo: 'bob', species: 130, level: 6 },
+    { id: 'demo-ada', pseudo: 'ada', species: 59, level: 2 },
+  ]
+  const JOUR = '2026-08-11'
+  const MOI = 'demo-moi'
+
+  let credits = 3
+  let pokedollars = 250
+  let seq = 100
+  const levels = new Map()
+  const destroyed = new Set()
+  const duels = new Map()
+  const challenges = RIVAUX.map((r, i) => ({
+    id: i + 1, challenger_id: r.id, pseudo: r.pseudo, created_at: JOUR, rival: r,
+  }))
+
+  const especeDe = (key) => catches.find((c) => entryKey(c.source, c.external_id) === key)?.species
+
+  const cote = (key, species, level) => ({
+    key, species, level, form: formOf(key, JOUR),
+  })
+
+  /** Écrit le duel résolu sous la forme exacte que rend la base, pour que l'écran ne voie aucune différence. */
+  function enregistrer(id, moi, lui, out, statut, adversaireId) {
+    const gagne = out.winner === 'left'
+    duels.set(id, {
+      id,
+      challenger_id: MOI,
+      challenger_key: moi.key,
+      opponent_id: adversaireId,
+      opponent_key: lui.key,
+      status: statut,
+      winner_id: gagne ? MOI : adversaireId,
+      stake_tier: coveredTier(DEX[moi.species].tier, DEX[lui.species].tier),
+      challenger_species: moi.species,
+      opponent_species: lui.species,
+      challenger_level: moi.level,
+      opponent_level: lui.level,
+      challenger_form: FORMS.indexOf(moi.form),
+      opponent_form: FORMS.indexOf(lui.form),
+      challenger_power: power(moi),
+      opponent_power: power(lui),
+      probability: out.probability,
+      roll: out.roll,
+      resolved_at: JOUR,
+    })
+    if (gagne) {
+      levels.set(moi.key, out.levelAfter)
+      pokedollars += statut === 'computer'
+        ? Math.round(REWARD[duels.get(id).stake_tier].dollars / 5)
+        : REWARD[duels.get(id).stake_tier].dollars
+    } else if (statut !== 'computer') {
+      destroyed.add(moi.key)
+    }
+    return duels.get(id)
+  }
+
+  function jouer(key, adversaire, statut, adversaireId) {
+    credits = Math.max(0, credits - 1)
+    const id = ++seq
+    const moi = cote(key, especeDe(key), levels.get(key) ?? 1)
+    const lui = cote(`${statut}:${id}`, adversaire.species, adversaire.level)
+    const out = resolveDuel({ left: moi, right: lui, seed: `demo:${id}` })
+    return enregistrer(id, moi, lui, out, statut, adversaireId)
+  }
+
+  return {
+    readArena: async () => ({
+      credits,
+      pokedollars,
+      exemplars: [...levels].map(([entry_key, level]) => ({
+        entry_key, level, wins: level - 1, destroyed_at: null,
+      })).concat([...destroyed].map((entry_key) => ({
+        entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: JOUR,
+      }))),
+    }),
+    readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
+    readDuel: async (id) => duels.get(id),
+    engage: async (key, vsComputer) => jouer(
+      key,
+      vsComputer
+        ? { species: 20, level: 2 }
+        : { species: 12, level: 1 },
+      vsComputer ? 'computer' : 'resolved',
+      vsComputer ? null : 'demo-fantome',
+    ).id,
+    accept: async (duelId, key) => {
+      const defi = challenges.find((c) => c.id === duelId)
+      const duel = jouer(key, defi.rival, 'resolved', defi.challenger_id)
+      challenges.splice(challenges.indexOf(defi), 1)
+      return duel.id
+    },
   }
 }
