@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
@@ -19,19 +19,72 @@ const props = defineProps({
    * `ref` peut manquer : toutes les sources ne fournissent pas de référence courte.
    */
   provenance: { type: Object, default: null },
+  /**
+   * Le retournement appartient au parent, jamais à la carte : le rituel doit pouvoir le
+   * refuser tant que la séquence n'y est pas, et la fiche d'espèce n'en veut pas du tout.
+   */
+  flipped: { type: Boolean, default: false },
+  /**
+   * Sur mobile il n'y a pas de survol. L'inclinaison est un bonus de bureau : la carte doit
+   * rester entière sans elle. On ne réclame pas pour autant l'accès aux capteurs de
+   * mouvement — demander une permission système pour un effet décoratif est disproportionné.
+   */
+  tiltable: { type: Boolean, default: true },
 })
+
+const emit = defineEmits(['flip'])
 
 const species = computed(() => DEX[props.speciesId])
 // Le cachet de cire scelle ce qui vaut d'être scellé : au-dessus, il ne signifierait plus rien.
 const sealed = computed(() => props.tier === 'r' || props.tier === 'l')
 
 const pad = (n) => String(n).padStart(3, '0')
+
+// `null` tant que le pointeur n'a pas touché la carte : elle reste alors strictement à plat,
+// et aucune variable d'inclinaison n'est écrite — c'est ce que vérifie le mode non inclinable.
+const tilt = ref(null)
+
+const style = computed(() => ({
+  '--tier': TIER_VAR[props.tier],
+  ...(tilt.value
+    ? {
+        '--px': tilt.value.px,
+        '--py': tilt.value.py,
+        '--rx': tilt.value.rx + 'deg',
+        '--ry': tilt.value.ry + 'deg',
+      }
+    : {}),
+}))
+
+const clamp = (v) => Math.min(Math.max(v, 0), 1)
+
+function onMove(e) {
+  if (!props.tiltable) return
+  const r = e.currentTarget.getBoundingClientRect()
+  const px = clamp((e.clientX - r.left) / r.width)
+  const py = clamp((e.clientY - r.top) / r.height)
+  // La position sert deux fois : au relief, et au déplacement du balayage de lumière — c'est
+  // ce couplage qui fait lire « une surface éclairée » plutôt que « une image qui bouge ».
+  tilt.value = {
+    px: Number(px.toFixed(3)),
+    py: Number(py.toFixed(3)),
+    rx: Number(((0.5 - py) * 24).toFixed(2)),
+    ry: Number(((px - 0.5) * 28).toFixed(2)),
+  }
+}
+
+function onLeave() {
+  if (!props.tiltable) return
+  tilt.value = { px: 0.5, py: 0.5, rx: 0, ry: 0 }
+}
 </script>
 
 <template>
   <div
-    class="pkc" :class="[`scene-${scene}`, { 'is-shiny': shiny }]"
-    :data-tier="tier" :style="{ '--tier': TIER_VAR[tier] }"
+    class="pkc" :class="[`scene-${scene}`, { 'is-shiny': shiny, 'is-flipped': flipped, 'is-live': tilt }]"
+    :data-tier="tier" :style="style" tabindex="0"
+    @pointermove="onMove" @pointerleave="onLeave"
+    @click="emit('flip')" @keyup.enter="emit('flip')"
   >
     <div class="pkc-face pkc-front">
       <div class="pkc-bg"></div>

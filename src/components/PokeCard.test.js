@@ -75,3 +75,63 @@ describe('dos', () => {
     expect(mountCard().find('.pkc-back').exists()).toBe(false)
   })
 })
+
+// La taille de la carte vient du CSS, absent des tests : on la fige pour rendre l'inclinaison
+// calculable. Et `clientX` est en lecture seule sur les MouseEvent de jsdom, donc l'événement
+// est construit plutôt que passé à `trigger()`, qui essaierait de l'affecter après coup.
+const pointeSur = async (w, clientX, clientY) => {
+  const el = w.find('.pkc').element
+  el.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 400 })
+  el.dispatchEvent(new MouseEvent('pointermove', { clientX, clientY, bubbles: true }))
+  await w.vm.$nextTick()
+}
+
+describe('inclinaison et retournement', () => {
+  it('montre le dos quand on le lui demande', () => {
+    expect(mountCard({ provenance, flipped: true }).find('.pkc').classes()).toContain('is-flipped')
+  })
+
+  // Le retournement est décidé par le parent : le rituel doit pouvoir le refuser tant que la
+  // séquence n'y est pas, et la fiche d'espèce n'en veut pas du tout.
+  it('émet « flip » au clic, sans se retourner de sa propre initiative', async () => {
+    const w = mountCard({ provenance })
+    await w.find('.pkc').trigger('click')
+    expect(w.emitted('flip')).toHaveLength(1)
+    expect(w.find('.pkc').classes()).not.toContain('is-flipped')
+  })
+
+  it('se retourne aussi au clavier', async () => {
+    const w = mountCard({ provenance })
+    expect(w.find('.pkc').attributes('tabindex')).toBe('0')
+    await w.find('.pkc').trigger('keyup.enter')
+    expect(w.emitted('flip')).toHaveLength(1)
+  })
+
+  // La position du pointeur sert deux fois : au relief, et au déplacement du balayage de lumière.
+  it('traduit la position du pointeur en inclinaison', async () => {
+    const w = mountCard()
+    await pointeSur(w, 200, 0)
+    const style = w.find('.pkc').attributes('style')
+    expect(style).toContain('--px: 1')
+    expect(style).toContain('--py: 0')
+    expect(style).toContain('--ry: 14deg')
+    expect(style).toContain('--rx: 12deg')
+  })
+
+  it('revient à plat quand le pointeur s’en va', async () => {
+    const w = mountCard()
+    await pointeSur(w, 200, 0)
+    await w.find('.pkc').trigger('pointerleave')
+    const style = w.find('.pkc').attributes('style')
+    expect(style).toContain('--rx: 0deg')
+    expect(style).toContain('--ry: 0deg')
+  })
+
+  // Sur mobile il n'y a pas de survol : la carte doit rester entière sans l'inclinaison, et
+  // on ne demande pas de permission de mouvement pour un effet décoratif.
+  it('ignore le pointeur quand l’inclinaison est désactivée', async () => {
+    const w = mountCard({ tiltable: false })
+    await pointeSur(w, 200, 0)
+    expect(w.find('.pkc').attributes('style') ?? '').not.toContain('--rx')
+  })
+})

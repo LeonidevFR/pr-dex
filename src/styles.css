@@ -277,7 +277,17 @@
      Une seule matière pour les deux surfaces où la carte apparaît ; `scene-night` ne change
      que l'éclairage. Le palier, lui, se lit dans le carton — sa teinte, son fond imprimé, et
      ce que la lumière y trouve à accrocher quand on incline. */
-  .pkc{position:relative;width:266px;height:372px}
+  /* L'inclinaison est une manipulation directe — elle doit coller au pointeur, d'où la
+     transition très courte de `is-live`. Le retournement, lui, est un geste : il prend son
+     temps. Les deux passent par le même `transform`, donc par la même propriété. */
+  .pkc{position:relative;width:266px;height:372px;cursor:pointer;transform-style:preserve-3d;
+    transform:rotateX(var(--rx,0deg)) rotateY(calc(var(--ry,0deg) + var(--pkc-flip,0deg)));
+    transition:transform .62s cubic-bezier(.2,.8,.2,1)}
+  .pkc.is-live{transition:transform .08s linear}
+  .pkc.is-flipped{--pkc-flip:180deg}
+  .pkc:focus-visible{outline:2px solid var(--stamp);outline-offset:4px}
+  /* La perspective appartient au contenant : c'est lui qui décide de la profondeur de scène. */
+  .pkc-stage{perspective:900px}
   .pkc-face{position:absolute;inset:0;overflow:hidden;display:flex;flex-direction:column;
     background:linear-gradient(168deg,var(--plate-hi),var(--plate) 40%,var(--paper-lo));
     border:1px solid var(--rule-hi);
@@ -397,6 +407,11 @@
     display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .pkc-lab-date{font-size:9px;color:var(--ink-3);padding-top:2px;border-top:1px solid var(--rule)}
   .pkc-back-foot{font-family:var(--f-label);font-size:8px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);text-align:center}
+
+  @media (prefers-reduced-motion:reduce){
+    .pkc,.pkc.is-live{transition:none}
+    .pkc-iris{transition:none}
+  }
 
   /* ───────── rituel ───────── */
   .ritual{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;overflow:hidden;
