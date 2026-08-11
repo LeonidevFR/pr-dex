@@ -86,11 +86,20 @@ export function levelGain(mine, theirs) {
 const roll = (seed) => fnv1a(`${seed}:issue`) / 2 ** 32
 
 /**
- * Ordre canonique du duel, dérivé du seul contenu des deux exemplaires. Deux exemplaires
- * strictement identiques restent départagés par la place des arguments, mais rien ne permet
- * alors de les distinguer : l'issue reste la même à un renommage près.
+ * Ordre canonique du duel, dérivé du seul contenu des deux exemplaires. La clé d'exemplaire
+ * (`source:external_id`, voir `entry.js`) vient en tête parce qu'elle est la seule des quatre
+ * composantes à être unique : espèce, niveau et forme laissent ex æquo deux exemplaires
+ * jumeaux — ce qui arrive dès que deux joueurs engagent la même espèce au même niveau, avec
+ * la même forme du jour une fois sur cinq — et le vainqueur redevient alors fonction de la
+ * place des arguments.
+ *
+ * La RPC du lot 2 DOIT toujours fournir `key` pour les deux camps. Sans elle, le champ est
+ * absent, la clé retombe sur les trois critères historiques et les jumeaux sont de nouveau
+ * départagés par l'ordre d'appel. Le champ reste optionnel parce que la simulation, qui ne
+ * manipule pas d'exemplaires réels, n'en a pas.
  */
-const cleDeTri = ({ species, level = 1, form = NORMAL_FORM }) => `${species}:${level}:${form.slug}`
+const cleDeTri = ({ key = '', species, level = 1, form = NORMAL_FORM }) =>
+  `${key}:${species}:${level}:${form.slug}`
 
 export function resolveDuel({ left, right, seed }) {
   const pg = power(left)

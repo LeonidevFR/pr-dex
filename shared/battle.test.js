@@ -280,6 +280,19 @@ describe('resolveDuel', () => {
     }
   })
 
+  // Deux exemplaires jumeaux — même espèce, même niveau, même forme — ne sont distingués
+  // que par leur clé. Sans elle ils retombent ex æquo et l'ordre des arguments décide.
+  it('reste indépendant de l’ordre pour deux exemplaires jumeaux distingués par leur clé', () => {
+    for (let i = 0; i < 500; i++) {
+      const seed = `jumeaux-${i}`
+      const a = { species: 6, level: 3, key: 'github:aaa' }
+      const b = { species: 6, level: 3, key: 'github:bbb' }
+      const gauche = resolveDuel({ left: a, right: b, seed })
+      const droite = resolveDuel({ left: b, right: a, seed })
+      expect(gauche.winner === 'left').toBe(droite.winner === 'right')
+    }
+  })
+
   it('applique la forme passée en argument', () => {
     const forte = FORMS[FORMS.length - 1]
     const r = resolveDuel({
