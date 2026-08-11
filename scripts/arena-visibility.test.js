@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { withDb, dbAvailable } from './db-test-helper.mjs'
 
 const disponible = await dbAvailable()
@@ -71,5 +71,63 @@ describe.skipIf(!disponible)('ce qu’un adversaire a le droit de voir', () => {
     `))
     expect(rows.map((r) => r.table_name))
       .toEqual(['arena_open_challenges', 'arena_players', 'arena_public_dex'])
+  })
+})
+
+/**
+ * Le secret de la mise protège le pari contre l'adversaire, pas contre soi-même : l'exemplaire
+ * engagé est immobilisé tant que le défi tient, et son propriétaire doit pouvoir dire lequel.
+ */
+describe.skipIf(!disponible)('son propre défi ouvert', () => {
+  const MOI = 'fa000000-0000-0000-0000-000000000001'
+  const AUTRE = 'fb000000-0000-0000-0000-000000000002'
+
+  const commeUtilisateur = (uid, sql) => withDb(async (c) => {
+    await c.query('begin')
+    try {
+      await c.query('set local role authenticated')
+      await c.query(`set local request.jwt.claims = '{"sub":"${uid}","role":"authenticated"}'`)
+      return (await c.query(sql)).rows
+    } finally {
+      await c.query('rollback')
+    }
+  })
+
+  let id
+  beforeAll(async () => {
+    await withDb(async (c) => {
+      for (const [u, mail] of [[MOI, 'moi-open'], [AUTRE, 'autre-open']]) {
+        await c.query(`
+          insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
+                                  email_confirmed_at, created_at, updated_at)
+          values ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+                  $2 || '@test.local', '', now(), now(), now())
+          on conflict (id) do nothing
+        `, [u, mail])
+      }
+      const r = await c.query(`
+        insert into public.arena_duels (challenger_id, challenger_key, status)
+        values ($1, 'github:secret-1', 'open') returning id
+      `, [MOI])
+      id = r.rows[0].id
+    })
+  })
+
+  it('laisse son auteur lire sa propre mise', async () => {
+    const rows = await commeUtilisateur(MOI,
+      `select challenger_key from public.arena_duels where id = ${id}`)
+    expect(rows).toEqual([{ challenger_key: 'github:secret-1' }])
+  })
+
+  it('la cache toujours à l’adversaire', async () => {
+    const rows = await commeUtilisateur(AUTRE,
+      `select challenger_key from public.arena_duels where id = ${id}`)
+    expect(rows).toEqual([])
+  })
+
+  it('le laisse néanmoins voir le défi dans la liste, sans la mise', async () => {
+    const rows = await commeUtilisateur(AUTRE,
+      `select id from public.arena_open_challenges where id = ${id}`)
+    expect(rows).toEqual([{ id: String(id) === id ? id : Number(id) }])
   })
 })

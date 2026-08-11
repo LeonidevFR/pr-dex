@@ -136,6 +136,13 @@ create policy "arena_duels_select_resolved_own" on public.arena_duels
     status <> 'open' and (auth.uid() = challenger_id or auth.uid() = opponent_id)
   );
 
+-- Son propre défi ouvert, en revanche, reste lisible par celui qui l'a posé — sa mise comprise.
+-- Le secret de la mise protège le pari contre l'ADVERSAIRE, pas contre soi-même : l'exemplaire
+-- engagé est immobilisé tant que le défi tient, et son propriétaire doit pouvoir savoir lequel
+-- il a mis en jeu. Sans cette policy, il verrait un Pokémon bloqué sans pouvoir dire pourquoi.
+create policy "arena_duels_select_own_open" on public.arena_duels
+  for select using (status = 'open' and auth.uid() = challenger_id);
+
 -- Droits explicites plutôt que privilèges par défaut. La lecture doit être accordée pour que
 -- RLS ait quelque chose à filtrer : sans `grant`, un joueur est refusé au niveau des droits
 -- et la policy n'est jamais évaluée — ce qui rendrait les tests d'isolation trompeurs et,

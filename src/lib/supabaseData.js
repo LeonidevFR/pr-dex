@@ -77,5 +77,57 @@ export function createSupabaseClient(userId) {
     return { blobSha: data[0].version }
   }
 
-  return { checkAccess, readCatches, readState, writeState, triggerCatch }
+  /**
+   * L'état d'arène du joueur, en une fois : son solde de crédits, son portefeuille, et les
+   * niveaux de ses exemplaires. Trois lectures parce que ce sont trois tables — mais un seul
+   * aller-retour utile côté ressenti, elles partent ensemble.
+   */
+  async function readArena() {
+    const [credits, wallet, exemplars] = await Promise.all([
+      query(() => supabase.rpc('arena_credits', { uid: userId })),
+      query(() => supabase.from('arena_wallet').select('pokedollars').eq('user_id', userId).maybeSingle()),
+      query(() => supabase.from('arena_exemplars').select('entry_key, level, wins, destroyed_at').eq('user_id', userId)),
+    ])
+    return {
+      credits: credits ?? 0,
+      pokedollars: wallet?.pokedollars ?? 0,
+      exemplars: exemplars ?? [],
+    }
+  }
+
+  /**
+   * Les défis ouverts, sans leur mise — la vue ne l'expose pas, et c'est tout le sel du mode :
+   * on choisit qui l'on affronte, jamais ce que l'on affronte.
+   */
+  async function readOpenChallenges() {
+    return query(() =>
+      supabase
+        .from('arena_open_challenges')
+        .select('id, challenger_id, pseudo, created_at')
+        .order('created_at', { ascending: true }),
+    )
+  }
+
+  /** Un duel résolu, avec de quoi rejouer le combat plutôt que d'avoir à croire son résultat. */
+  async function readDuel(id) {
+    return query(() =>
+      supabase
+        .from('arena_duels')
+        .select('id, challenger_id, challenger_key, opponent_id, opponent_key, status, winner_id, ' +
+                'stake_tier, challenger_power, opponent_power, probability, roll, resolved_at')
+        .eq('id', id)
+        .single(),
+    )
+  }
+
+  const engage = (entryKey, vsComputer = false) =>
+    query(() => supabase.rpc('arena_engage', { p_entry_key: entryKey, p_vs_computer: vsComputer }))
+
+  const accept = (duelId, entryKey) =>
+    query(() => supabase.rpc('arena_accept', { p_duel_id: duelId, p_entry_key: entryKey }))
+
+  return {
+    checkAccess, readCatches, readState, writeState, triggerCatch,
+    readArena, readOpenChallenges, readDuel, engage, accept,
+  }
 }
