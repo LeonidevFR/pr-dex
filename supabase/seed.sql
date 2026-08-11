@@ -1,4 +1,14 @@
 -- Généré par scripts/gen-species-info.mjs — ne pas éditer à la main.
+
+-- Droits que la production possède déjà sur les tables antérieures à l'arène : l'application
+-- y lit `catches` et `state` tous les jours. La base locale ne les a pas, faute de privilèges
+-- par défaut équivalents — sans eux, les tests d'isolation constateraient un refus de droit
+-- au lieu du filtrage RLS qu'ils prétendent vérifier.
+--
+-- Rejouer ces `grant` en production est sans effet : ils y sont déjà.
+grant select on public.profiles, public.identities, public.catches, public.state to authenticated;
+grant update on public.identities, public.state to authenticated;
+
 insert into public.species_stats (species, stats) values
   (1, 318),
   (2, 405),

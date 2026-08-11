@@ -136,4 +136,15 @@ create policy "arena_duels_select_resolved_own" on public.arena_duels
     status <> 'open' and (auth.uid() = challenger_id or auth.uid() = opponent_id)
   );
 
+-- Droits explicites plutôt que privilèges par défaut. La lecture doit être accordée pour que
+-- RLS ait quelque chose à filtrer : sans `grant`, un joueur est refusé au niveau des droits
+-- et la policy n'est jamais évaluée — ce qui rendrait les tests d'isolation trompeurs et,
+-- en production, le front incapable de lire l'arène.
+--
+-- Aucun `insert`, `update` ni `delete` n'est accordé à quiconque : l'unique écrivain de ces
+-- tables sera la fonction `security definer` du lot 2b, qui s'exécute sous son propre droit.
+grant select on public.species_stats, public.arena_exemplars, public.arena_duels,
+                public.arena_wallet, public.arena_season_points, public.arena_seasons
+  to authenticated;
+
 commit;

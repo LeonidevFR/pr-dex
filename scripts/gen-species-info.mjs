@@ -14,6 +14,23 @@ const OUT_STATS_SQL = new URL('../supabase/seed.sql', import.meta.url)
 const VERSION_PREFERENCE = ['firered', 'leafgreen']
 
 /**
+ * En-tête du seed, réécrit à l'identique à chaque régénération. Il vit ici et non dans le
+ * fichier produit, sinon la première régénération l'effacerait en silence — et la base locale
+ * repartirait sans ces droits, avec des tests d'isolation redevenus trompeurs.
+ */
+const SEED_HEADER = `-- Généré par scripts/gen-species-info.mjs — ne pas éditer à la main.
+
+-- Droits que la production possède déjà sur les tables antérieures à l'arène : l'application
+-- y lit \`catches\` et \`state\` tous les jours. La base locale ne les a pas, faute de privilèges
+-- par défaut équivalents — sans eux, les tests d'isolation constateraient un refus de droit
+-- au lieu du filtrage RLS qu'ils prétendent vérifier.
+--
+-- Rejouer ces \`grant\` en production est sans effet : ils y sont déjà.
+grant select on public.profiles, public.identities, public.catches, public.state to authenticated;
+grant update on public.identities, public.state to authenticated;
+`
+
+/**
  * PokeAPI conserve la mise en page de la boîte de dialogue du jeu dans ces textes.
  * Le trait d'union conditionnel (U+00AD) est SUPPRIMÉ et non remplacé par une espace :
  * il coupait un mot au bord de la boîte, le remplacer scinderait le mot en deux.
@@ -102,7 +119,7 @@ async function main() {
   // lit en base, le moteur JavaScript la lit en module. Deux copies produites d'un seul
   // fichier source ne peuvent pas diverger sans qu'on le voie dans le même diff.
   const rowsSql = Object.entries(statsOut).map(([id, v]) => `  (${id}, ${v})`).join(',\n')
-  await writeFile(OUT_STATS_SQL, `-- Généré par scripts/gen-species-info.mjs — ne pas éditer à la main.\ninsert into public.species_stats (species, stats) values\n${rowsSql}\non conflict (species) do update set stats = excluded.stats;\n`)
+  await writeFile(OUT_STATS_SQL, `${SEED_HEADER}\ninsert into public.species_stats (species, stats) values\n${rowsSql}\non conflict (species) do update set stats = excluded.stats;\n`)
 
   console.log(`\n${Object.keys(out).length} espèces écrites dans shared/species-info.json, ` +
     'shared/species-stats.js et supabase/seed.sql')
