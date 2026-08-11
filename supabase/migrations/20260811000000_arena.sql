@@ -147,4 +147,39 @@ grant select on public.species_stats, public.arena_exemplars, public.arena_duels
                 public.arena_wallet, public.arena_season_points, public.arena_seasons
   to authenticated;
 
+-- La seule donnée personnelle qu'un adversaire lira. `unique` parce qu'un pseudo qu'on peut
+-- usurper ne sert à rien dans une arène où l'on choisit qui l'on affronte.
+alter table public.profiles add column pseudo text unique;
+
+-- Les vues appartiennent au propriétaire du schéma et s'exécutent sous ses droits : elles
+-- traversent donc RLS. C'est voulu, et c'est pour ça qu'elles n'exposent QUE des colonnes
+-- dont la publication a été tranchée dans la spec § 5.
+create view public.arena_players as
+  select user_id, pseudo from public.profiles where pseudo is not null;
+
+-- `left join` et non `join` : le pseudonyme est facultatif, le défi ne l'est pas. Une jointure
+-- interne ferait disparaître de la liste le défi d'un joueur sans pseudo — ou dont la ligne
+-- `profiles` manquerait — alors que ce défi existe bel et bien et que sa mise est déjà
+-- immobilisée. Le défi resterait ouvert sans que personne puisse le relever. Un `pseudo` nul
+-- est un problème d'affichage, que le front résout par un libellé de repli ; un défi absent
+-- est un problème de jeu, que rien ne rattrape.
+create view public.arena_open_challenges as
+  select d.id, d.challenger_id, p.pseudo, d.created_at
+  from public.arena_duels d
+  left join public.profiles p on p.user_id = d.challenger_id
+  where d.status = 'open';
+
+-- Quelles espèces, jamais combien d'exemplaires : le `distinct` n'est pas une optimisation,
+-- c'est la règle produit. Le nombre d'espèces plafonne à 151 et sature vite ; le nombre
+-- d'exemplaires, lui, ne plafonne jamais — c'est un compteur brut de pull requests mergées,
+-- et le publier dans une entreprise revient à publier un classement de productivité.
+create view public.arena_public_dex as
+  select distinct user_id, species from public.catches;
+
+-- Même piège que sur les tables : sans `grant` explicite, `authenticated` n'a aucun privilège
+-- par défaut sur ce schéma et le joueur est refusé au niveau des droits — la vue ne servirait
+-- à rien. Les trois vues sont couvertes.
+grant select on public.arena_players, public.arena_open_challenges, public.arena_public_dex
+  to authenticated;
+
 commit;
