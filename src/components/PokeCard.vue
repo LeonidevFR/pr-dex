@@ -20,8 +20,9 @@ const props = defineProps({
    */
   provenance: { type: Object, default: null },
   /**
-   * Le retournement appartient au parent, jamais à la carte : le rituel doit pouvoir le
-   * refuser tant que la séquence n'y est pas, et la fiche d'espèce n'en veut pas du tout.
+   * Le retournement appartient au parent, jamais à la carte. Elle se contente d'émettre
+   * `activate` quand on la sollicite ; ce que ça veut dire dépend de l'écran — le rituel y
+   * lit « retourne-toi », la fiche d'espèce « montre le sprite en grand ».
    */
   flipped: { type: Boolean, default: false },
   /**
@@ -32,7 +33,7 @@ const props = defineProps({
   tiltable: { type: Boolean, default: true },
 })
 
-const emit = defineEmits(['flip'])
+const emit = defineEmits(['activate'])
 
 const species = computed(() => DEX[props.speciesId])
 // Le cachet de cire scelle ce qui vaut d'être scellé : au-dessus, il ne signifierait plus rien.
@@ -84,7 +85,7 @@ function onLeave() {
     class="pkc" :class="[`scene-${scene}`, { 'is-shiny': shiny, 'is-flipped': flipped, 'is-live': tilt }]"
     :data-tier="tier" :style="style" tabindex="0"
     @pointermove="onMove" @pointerleave="onLeave"
-    @click="emit('flip')" @keyup.enter="emit('flip')"
+    @click="emit('activate')" @keyup.enter="emit('activate')"
   >
     <!-- Les deux faces coexistent pour que le retournement soit une vraie rotation. Mais
          `backface-visibility` ne cache qu'à l'œil : sans `aria-hidden`, un lecteur d'écran

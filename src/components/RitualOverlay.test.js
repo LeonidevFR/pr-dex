@@ -48,7 +48,7 @@ const ouvrir = async (w) => {
 
 // Retourner la carte est un geste distinct de l'ouverture : c'est tout l'intérêt du changement.
 const retourner = async (w) => {
-  await w.findComponent({ name: 'PokeCard' }).vm.$emit('flip')
+  await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
   await w.vm.$nextTick()
   return w
 }
@@ -145,7 +145,7 @@ describe('ouverture', () => {
     await ouvrir(w)
     expect(w.find('.reveal-hint').text()).toContain('Cliquer pour retourner')
 
-    await w.findComponent({ name: 'PokeCard' }).vm.$emit('flip')
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
     await w.vm.$nextTick()
     expect(w.find('.reveal-hint').exists()).toBe(false)
   })

@@ -270,7 +270,7 @@ watch(stage, async (s) => {
             :species-id="entry.species" :tier="tier" :shiny="entry.shiny"
             :provenance="{ ref: entry.ref, label: entry.label, date: entry.date }"
             :flipped="stage === 'awaiting'" scene="night"
-            @flip="reveal"
+            @activate="reveal"
           />
         </div>
         <span v-for="(s, i) in (loud ? fxSparks : [])" :key="'s' + i" class="fx-spark" :style="s"></span>

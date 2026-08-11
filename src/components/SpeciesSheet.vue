@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
+import PokeCard from './PokeCard.vue'
 import SPECIES_INFO from '../../shared/species-info.json'
 
 const props = defineProps({
@@ -78,12 +79,16 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
     <div class="panel" :style="{ '--tier': TIER_VAR[species.tier] }">
       <div class="panel-top">
         <button class="x" @click="$emit('close')">✕</button>
-        <div
-          class="panel-art" :class="{ ghost: !caught, zoomable: caught }"
-          :tabindex="caught ? 0 : -1" :role="caught ? 'button' : null"
-          :aria-label="caught ? 'Voir le sprite en plus grand' : null"
-          @click="caught && (zoomed = true)" @keyup.enter="caught && (zoomed = true)"
-        >
+        <!-- Capturée, l'espèce se montre sous la forme où on l'a gagnée : sa carte, posée à
+             plat. Non capturée, elle reste la planche vide en dessin préparatoire — il n'y a
+             pas d'exemplaire, donc pas de carte. -->
+        <div v-if="caught" class="pkc-stage panel-card">
+          <PokeCard
+            :species-id="id" :tier="species.tier" :shiny="shiny" scene="day"
+            @activate="zoomed = true"
+          />
+        </div>
+        <div v-else class="panel-art ghost" :tabindex="-1">
           <img :src="spriteUrl(id, shiny)" :alt="species.name" @error="$event.target.dataset.broken = '1'">
         </div>
         <div>

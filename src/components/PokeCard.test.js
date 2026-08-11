@@ -106,20 +106,20 @@ describe('inclinaison et retournement', () => {
     expect(dos.find('.pkc-back').attributes('aria-hidden')).toBeUndefined()
   })
 
-  // Le retournement est décidé par le parent : le rituel doit pouvoir le refuser tant que la
-  // séquence n'y est pas, et la fiche d'espèce n'en veut pas du tout.
-  it('émet « flip » au clic, sans se retourner de sa propre initiative', async () => {
+  // La carte signale qu'on l'a activée ; ce que ça veut dire appartient au parent. Le rituel
+  // y voit « retourne-toi », la fiche d'espèce « montre le sprite en grand ».
+  it('émet « activate » au clic, sans se retourner de sa propre initiative', async () => {
     const w = mountCard({ provenance })
     await w.find('.pkc').trigger('click')
-    expect(w.emitted('flip')).toHaveLength(1)
+    expect(w.emitted('activate')).toHaveLength(1)
     expect(w.find('.pkc').classes()).not.toContain('is-flipped')
   })
 
-  it('se retourne aussi au clavier', async () => {
+  it('s’active aussi au clavier', async () => {
     const w = mountCard({ provenance })
     expect(w.find('.pkc').attributes('tabindex')).toBe('0')
     await w.find('.pkc').trigger('keyup.enter')
-    expect(w.emitted('flip')).toHaveLength(1)
+    expect(w.emitted('activate')).toHaveLength(1)
   })
 
   // La position du pointeur sert deux fois : au relief, et au déplacement du balayage de lumière.
