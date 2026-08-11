@@ -273,6 +273,105 @@
   .press{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
   .press span{width:16px;height:20px;background:var(--plate);border:1px solid var(--rule-hi);display:grid;place-items:center;font-family:var(--f-data);font-size:8px;color:var(--ink-3)}
 
+  /* ───────── carte ─────────
+     Une seule matière pour les deux surfaces où la carte apparaît ; `scene-night` ne change
+     que l'éclairage. Le palier, lui, se lit dans le carton — sa teinte, son fond imprimé, et
+     ce que la lumière y trouve à accrocher quand on incline. */
+  .pkc{position:relative;width:266px;height:372px}
+  .pkc-face{position:absolute;inset:0;overflow:hidden;display:flex;flex-direction:column;
+    background:linear-gradient(168deg,var(--plate-hi),var(--plate) 40%,var(--paper-lo));
+    border:1px solid var(--rule-hi);
+    box-shadow:0 12px 30px rgba(64,50,30,.26),inset 0 0 0 4px rgba(255,255,255,.34)}
+  .pkc.scene-night .pkc-face{box-shadow:0 0 var(--pkc-halo,14px) rgba(255,214,140,.55),0 18px 40px rgba(0,0,0,.6),inset 0 0 0 4px rgba(255,255,255,.28)}
+  .pkc-bg,.pkc-frame,.pkc-sheen,.pkc-iris{position:absolute;inset:0;pointer-events:none}
+  .pkc-corner{position:absolute;width:16px;height:16px;border:1px solid transparent;opacity:0;z-index:3;pointer-events:none}
+  .pkc-corner.tl{top:13px;left:13px;border-right:0;border-bottom:0}
+  .pkc-corner.tr{top:13px;right:13px;border-left:0;border-bottom:0}
+  .pkc-corner.bl{bottom:13px;left:13px;border-right:0;border-top:0}
+  .pkc-corner.br{bottom:13px;right:13px;border-left:0;border-top:0}
+  .pkc-top{display:flex;justify-content:space-between;padding:13px 15px 0;position:relative;z-index:4}
+  .pkc-no{font-size:10px;letter-spacing:.04em;color:var(--ink)}
+  .pkc-art{flex:1;display:grid;place-items:center;position:relative;z-index:4}
+  .pkc-art img{width:140px;height:140px;object-fit:contain}
+  .pkc.scene-night .pkc-art img{filter:drop-shadow(0 0 var(--pkc-halo,10px) rgba(255,222,160,.5))}
+  .pkc-rule{height:1px;margin:0 15px;position:relative;z-index:4;opacity:.55;
+    background:linear-gradient(90deg,transparent,var(--tier),transparent)}
+  .pkc-bot{padding:10px 15px 14px;display:flex;flex-direction:column;gap:5px;position:relative;z-index:4}
+  .pkc-name{font-family:var(--f-display);font-size:20px;font-weight:600;line-height:1;color:var(--ink)}
+  .pkc-tier{font-family:var(--f-label);font-size:8.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--tier)}
+  .pkc-wax{position:absolute;right:17px;bottom:52px;width:34px;height:34px;border-radius:50%;z-index:4;
+    background:radial-gradient(circle at 36% 32%,#c0503f,#8e3025 62%,#6d2119);
+    box-shadow:0 1px 3px rgba(60,20,12,.5),inset 0 -2px 4px rgba(0,0,0,.3);
+    display:grid;place-items:center;transform:rotate(-8deg);
+    font-family:var(--f-display);font-size:9px;font-weight:600;color:rgba(255,230,215,.85)}
+
+  /* le halo de la scène nocturne croît avec le palier */
+  .pkc[data-tier="c"]{--pkc-halo:8px}
+  .pkc[data-tier="u"]{--pkc-halo:14px}
+  .pkc[data-tier="r"]{--pkc-halo:34px}
+  .pkc[data-tier="l"]{--pkc-halo:60px}
+
+  /* Le balayage porte toujours un côté sombre AVANT le point brillant : une bande claire
+     seule se lit comme un autocollant collé sur le carton, pas comme du métal éclairé. */
+
+  /* commun — papier pâle, pas un gramme de métal */
+  .pkc[data-tier="c"] .pkc-frame{inset:9px;border:1px solid var(--t-c);opacity:.4}
+  .pkc[data-tier="c"] .pkc-sheen{z-index:5;mix-blend-mode:soft-light;opacity:calc(.3 * var(--pkc-light,1));
+    background-image:linear-gradient(102deg,transparent 34%,rgba(120,104,78,.1) 44%,rgba(255,255,255,.5) 50%,rgba(120,104,78,.08) 56%,transparent 66%);
+    background-size:340% 100%;background-position:calc((1 - var(--px,.5))*100%) 0}
+
+  /* peu commun — trame pointillée imprimée, filet vert double */
+  .pkc[data-tier="u"] .pkc-bg{z-index:1;opacity:.55;
+    background-image:radial-gradient(circle at 50% 50%,rgba(92,110,80,.42) .9px,transparent 1.4px),
+                     radial-gradient(circle at 50% 50%,rgba(108,94,70,.28) .7px,transparent 1.2px);
+    background-size:7px 7px,7px 7px;background-position:0 0,3.5px 3.5px;
+    -webkit-mask-image:radial-gradient(ellipse 66% 54% at 50% 45%,#000 22%,transparent 80%);
+    mask-image:radial-gradient(ellipse 66% 54% at 50% 45%,#000 22%,transparent 80%)}
+  .pkc[data-tier="u"] .pkc-frame{inset:9px;border:1px solid var(--t-u);opacity:.62;
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 0 4px rgba(92,122,82,.3)}
+  .pkc[data-tier="u"] .pkc-sheen{z-index:5;mix-blend-mode:soft-light;opacity:calc(.42 * var(--pkc-light,1));
+    background-image:linear-gradient(102deg,transparent 34%,rgba(96,92,84,.14) 44%,rgba(255,255,255,.62) 49.4%,rgba(226,230,222,.6) 50%,rgba(255,255,255,.5) 50.8%,rgba(96,92,84,.1) 57%,transparent 67%);
+    background-size:340% 100%;background-position:calc((1 - var(--px,.5))*100%) 0}
+
+  /* rare — le carton lui-même vire à l'ocre. Aucun motif : c'est la matière qui parle, et
+     elle se reconnaît à la vignette sans qu'on ait à lire l'étiquette. */
+  .pkc[data-tier="r"] .pkc-face{background:linear-gradient(168deg,#f4e6c4,#ecd9ad 45%,#dfc890);border-color:#a8813f}
+  .pkc[data-tier="r"] .pkc-frame{inset:9px;border:1px solid rgba(184,134,43,.8);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 0 1px rgba(120,90,30,.14)}
+  .pkc[data-tier="r"] .pkc-corner{border-color:rgba(184,134,43,.85);opacity:.9}
+  .pkc[data-tier="r"] .pkc-sheen{z-index:5;mix-blend-mode:soft-light;opacity:calc(.5 * var(--pkc-light,1));
+    background-image:linear-gradient(102deg,transparent 32%,rgba(112,84,34,.2) 42%,rgba(255,246,222,.62) 48.6%,rgba(226,190,120,.7) 50%,rgba(255,246,222,.45) 51.6%,rgba(112,84,34,.14) 59%,transparent 68%);
+    background-size:340% 100%;background-position:calc((1 - var(--px,.5))*100%) 0}
+
+  /* légendaire — carton profond, gravure guillochée sur toute la carte */
+  .pkc[data-tier="l"] .pkc-face{background:linear-gradient(168deg,#fbf0d2,#f2e2b4 45%,#e4d09b);border-color:#a8813f}
+  .pkc[data-tier="l"] .pkc-bg{z-index:1;opacity:.42;
+    background-image:repeating-conic-gradient(from 0deg at 50% 46%,rgba(184,134,43,.3) 0 2deg,transparent 2deg 8deg),
+                     radial-gradient(circle at 50% 46%,rgba(255,240,205,.7),transparent 62%)}
+  .pkc[data-tier="l"] .pkc-frame{inset:9px;border:1.5px solid rgba(184,134,43,.85);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.65),inset 0 0 0 4px rgba(184,134,43,.22),0 0 0 1px rgba(120,90,30,.18)}
+  .pkc[data-tier="l"] .pkc-corner{border-color:rgba(184,134,43,.9);border-width:1.5px;opacity:1;width:22px;height:22px}
+  .pkc[data-tier="l"] .pkc-sheen{z-index:5;mix-blend-mode:soft-light;opacity:calc(.62 * var(--pkc-light,1));
+    background-image:linear-gradient(102deg,transparent 31%,rgba(112,84,34,.22) 41%,rgba(255,248,228,.68) 48.2%,rgba(232,196,124,.8) 50%,rgba(255,248,228,.5) 52%,rgba(112,84,34,.16) 60%,transparent 69%),
+                     linear-gradient(102deg,transparent 64%,rgba(255,240,198,.3) 68%,transparent 73%);
+    background-size:340% 100%,340% 100%;
+    background-position:calc((1 - var(--px,.5))*100%) 0,calc((1 - var(--px,.5))*100%) 0}
+
+  /* la scène nocturne pousse la dorure — la matière, elle, ne bouge pas d'un cran */
+  .pkc.scene-night[data-tier="c"]{--pkc-light:1.5}
+  .pkc.scene-night[data-tier="u"]{--pkc-light:1.6}
+  .pkc.scene-night[data-tier="r"]{--pkc-light:1.75}
+  .pkc.scene-night[data-tier="l"]{--pkc-light:1.9}
+
+  /* Irisation réservée au chromatique, quel que soit le palier : quand ça irise, c'est que
+     l'exemplaire est de ceux qu'on ne reverra pas. Le brillant reste une information. */
+  .pkc-iris{z-index:6;mix-blend-mode:color-burn;opacity:0;transition:opacity .5s ease;
+    background-image:repeating-linear-gradient(112deg,#d94f6a 0%,#d99a3f 9%,#3fbf95 18%,#4a86d9 27%,#8f5bc4 36%,#d94f6a 45%);
+    background-size:300% 300%;
+    background-position:calc(var(--px,.5)*100%) calc(var(--py,.5)*100%)}
+  .pkc.is-shiny .pkc-iris{opacity:calc(.3 * var(--pkc-iris,1))}
+  .pkc.scene-night.is-shiny{--pkc-iris:1.5}
+
   /* ───────── rituel ───────── */
   .ritual{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;overflow:hidden;
     background:var(--paper);
