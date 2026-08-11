@@ -1,5 +1,6 @@
 import { DEX } from './species.js'
 import { STATS } from './species-stats.js'
+import { fnv1a } from './draw.js'
 
 /**
  * Le palier ne fait que nuancer : la mesure des stats par palier (spec § 3) montre que la
@@ -19,6 +20,13 @@ export const FORMS = [
 ]
 
 export const NORMAL_FORM = FORMS.find((f) => f.factor === 1)
+
+/**
+ * Calculée, jamais stockée : une fonction pure de la clé d'exemplaire et du jour, sur le
+ * modèle du tirage. Aucune table, aucune écriture, impossible à retirer en rafraîchissant
+ * la page, et le serveur comme le client arrivent au même résultat sans se parler.
+ */
+export const formOf = (key, day) => FORMS[fnv1a(`${key}:forme:${day}`) % FORMS.length]
 
 export const levelFactor = (level) => 1 + 0.05 * (level - 1)
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { TIER_POWER, LEVEL_MAX, FORMS, NORMAL_FORM, levelFactor, power } from './battle.js'
+import { TIER_POWER, LEVEL_MAX, FORMS, NORMAL_FORM, levelFactor, power, formOf } from './battle.js'
 import { DEX } from './species.js'
 import { STATS } from './species-stats.js'
 
@@ -75,5 +75,39 @@ describe('power', () => {
     const mewtwo = power({ species: 150 })
     const autres = Object.keys(STATS).map(Number).filter((id) => id !== 150)
     for (const id of autres) expect(power({ species: id })).toBeLessThan(mewtwo)
+  })
+})
+
+describe('formOf', () => {
+  it('rend toujours une forme de la liste', () => {
+    expect(FORMS).toContain(formOf('github:abc123', '2026-08-11'))
+  })
+
+  it('est stable pour une même clé et un même jour', () => {
+    expect(formOf('github:abc123', '2026-08-11')).toBe(formOf('github:abc123', '2026-08-11'))
+  })
+
+  it('change d’un jour à l’autre', () => {
+    const jours = ['2026-08-11', '2026-08-12', '2026-08-13', '2026-08-14', '2026-08-15']
+    const vues = new Set(jours.map((j) => formOf('github:abc123', j).slug))
+    expect(vues.size).toBeGreaterThan(1)
+  })
+
+  it('ne donne pas la même forme à deux exemplaires le même jour', () => {
+    const cles = Array.from({ length: 200 }, (_, i) => `github:sha${i}`)
+    const vues = new Set(cles.map((k) => formOf(k, '2026-08-11').slug))
+    expect(vues.size).toBe(FORMS.length)
+  })
+
+  // `fnv1a` est un hachage 32 bits : un `% 5` sur une entrée mal dispersée s'effondrerait
+  // sur une ou deux formes. Le tirage a déjà connu ce défaut (cf. NOTES.md), on le vérifie.
+  it('répartit les cinq formes à peu près également sur 50 000 clés', () => {
+    const counts = Object.fromEntries(FORMS.map((f) => [f.slug, 0]))
+    const n = 50_000
+    for (let i = 0; i < n; i++) counts[formOf(`github:sha${i}`, '2026-08-11').slug]++
+    for (const f of FORMS) {
+      expect(counts[f.slug] / n).toBeGreaterThan(0.17)
+      expect(counts[f.slug] / n).toBeLessThan(0.23)
+    }
   })
 })
