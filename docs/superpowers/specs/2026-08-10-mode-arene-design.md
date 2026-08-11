@@ -559,6 +559,12 @@ Quatre acquis à **démontrer**, pas à supposer :
 3. **Un légendaire descendu chaque semaine finit détruit** en quelques mois.
 4. **La boutique reste hors de portée du seul farming contre l'ordinateur.**
 
+**Ce que l'acquis 1 vaut exactement.** Il est mesuré, et le test peut échouer — il a
+d'ailleurs rougi tant que l'appariement de la ligue était défectueux. Mais il garde à un
+**facteur 2** : les trois politiques ambitieuses mesurées se tiennent à 4 % les unes des
+autres, là où le test n'interdit qu'un écart du simple au double. Un déséquilibre modéré
+passerait donc sous le radar. À resserrer si le mode se joue un jour à plus de cinq.
+
 ### Une donnée qui change les ordres de grandeur
 
 Le rythme réel observé est de **~5 PR mergées par jour et par personne**, soit ~25 plis
