@@ -181,6 +181,38 @@ describe.skipIf(!disponible)('relever un défi', () => {
   // Les deux puissances, la probabilité et le tirage sont CONSERVÉS : c'est ce qui rend le
   // résumé de combat vérifiable plutôt que croyable, à quelqu'un qui vient de perdre un
   // Pokémon.
+  /**
+   * Le résumé de combat doit montrer le Pokémon de l'adversaire, or la collection d'autrui n'est
+   * pas lisible — RLS le garantit. L'espèce, le niveau et la forme des deux camps sont donc figés
+   * dans le duel à la résolution.
+   *
+   * Et le croisement compte : dans `arena_accept`, l'appelant est le PRENEUR, pas le challengeur.
+   * Une inversion ici afficherait à chacun le Pokémon de l'autre, sans jamais lever d'erreur.
+   */
+  it('fige l’espèce et le niveau de chaque camp du bon côté', async () => {
+    const { duel } = await enTransaction((c) => duelComplet(c))
+    const attendu = await enTransaction(async (c) => {
+      const d = await c.query(
+        `select c.species from public.catches c
+         where c.user_id = $1 and c.source || ':' || c.external_id = $2`,
+        [DEFIEUR, duel.challenger_key])
+      const p = await c.query(
+        `select c.species from public.catches c
+         where c.user_id = $1 and c.source || ':' || c.external_id = $2`,
+        [PRENEUR, duel.opponent_key])
+      return { defieur: d.rows[0]?.species, preneur: p.rows[0]?.species }
+    })
+
+    expect(duel.challenger_species).toBe(attendu.defieur)
+    expect(duel.opponent_species).toBe(attendu.preneur)
+    expect(duel.challenger_level).toBeGreaterThanOrEqual(1)
+    expect(duel.opponent_level).toBeGreaterThanOrEqual(1)
+    expect(duel.challenger_form).toBeGreaterThanOrEqual(0)
+    expect(duel.challenger_form).toBeLessThanOrEqual(4)
+    expect(duel.opponent_form).toBeGreaterThanOrEqual(0)
+    expect(duel.opponent_form).toBeLessThanOrEqual(4)
+  })
+
   it('résout le duel et conserve les deux puissances, la probabilité et le tirage', async () => {
     const { duel } = await enTransaction((c) => duelComplet(c))
     expect(duel.status).toBe('resolved')

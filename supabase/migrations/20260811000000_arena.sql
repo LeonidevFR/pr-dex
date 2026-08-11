@@ -73,6 +73,18 @@ create table public.arena_duels (
   stake_tier text check (stake_tier in ('c', 'u', 'r', 'l')),
   challenger_power numeric,
   opponent_power numeric,
+  -- L'espèce, le niveau et la forme des deux camps, figés à la résolution.
+  --
+  -- Ce n'est pas une duplication de `catches` : c'est un instantané de ce qui s'est joué. Le
+  -- résumé de combat doit pouvoir montrer le Pokémon de l'adversaire, or la collection d'autrui
+  -- n'est pas lisible — RLS le garantit, et c'est bien ainsi. Sans ces colonnes, un joueur
+  -- verrait qu'il a perdu sans jamais savoir contre quoi.
+  challenger_species int,
+  opponent_species int,
+  challenger_level int,
+  opponent_level int,
+  challenger_form int,
+  opponent_form int,
   probability numeric,
   roll numeric,
   created_at timestamptz not null default now(),
@@ -723,6 +735,12 @@ begin
     winner_id = case when v_out.winner = 'left' then v_uid end,
     challenger_power = v_out.left_power,
     opponent_power = v_out.right_power,
+    challenger_species = v_species,
+    opponent_species = v_foe.foe_species,
+    challenger_level = v_level,
+    opponent_level = v_foe.foe_level,
+    challenger_form = public.arena_form_index(p_entry_key, v_day),
+    opponent_form = public.arena_form_index(v_foe_key, v_day),
     probability = v_out.probability,
     roll = v_out.roll,
     resolved_at = now()
@@ -993,6 +1011,15 @@ begin
     stake_tier = v_stake,
     challenger_power = v_out.left_power,
     opponent_power = v_out.right_power,
+    -- Attention aux noms : ici `v_foe_*` désigne le CHALLENGER — l'adversaire de celui qui
+    -- relève — et `v_species`/`v_level` l'exemplaire de l'appelant. L'inverse des deux autres
+    -- écrivains, où l'appelant EST le challenger.
+    challenger_species = v_foe_species,
+    opponent_species = v_species,
+    challenger_level = v_foe_level,
+    opponent_level = v_level,
+    challenger_form = public.arena_form_index(v_duel.challenger_key, v_day),
+    opponent_form = public.arena_form_index(p_entry_key, v_day),
     probability = v_out.probability,
     roll = v_out.roll,
     resolved_at = now()
@@ -1083,6 +1110,12 @@ begin
       winner_id = case when v_out.winner = 'left' then v_duel.challenger_id end,
       challenger_power = v_out.left_power,
       opponent_power = v_out.right_power,
+      challenger_species = v_species,
+      opponent_species = v_foe.foe_species,
+      challenger_level = v_level,
+      opponent_level = v_foe.foe_level,
+      challenger_form = public.arena_form_index(v_duel.challenger_key, v_day),
+      opponent_form = public.arena_form_index(v_foe_key, v_day),
       probability = v_out.probability,
       roll = v_out.roll,
       resolved_at = now()
