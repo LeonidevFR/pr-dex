@@ -141,7 +141,8 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         </div>
         <p class="muted">
           <template v-if="arenaCredits">
-            L’envoyer au duel le met en jeu pour de bon : s’il perd, il est détruit.
+            Ouvre l’arène avec cet exemplaire retenu : tu choisiras ensuite de poster un défi,
+            d’affronter l’ordinateur ou de relever celui d’un autre.
           </template>
           <template v-else>
             Aucun engagement disponible — il en revient un par jour ouvré.
@@ -149,7 +150,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         </p>
         <div class="front-actions" style="margin-top:12px">
           <button class="evo-btn arena-send" :disabled="!arenaCredits" @click="$emit('engage', available[0].key)">
-            Envoyer à l’arène
+            Choisir pour l’arène
           </button>
         </div>
       </div>

@@ -31,6 +31,7 @@ const evoAnim = ref(null)
 const settingsOpen = ref(false)
 const arenaOpen = ref(false)
 const arenaBusy = ref(false)
+const arenaPreselect = ref(null)
 const duelShown = ref(null)
 const userId = ref('')
 let arena = null
@@ -98,13 +99,18 @@ async function playArena(fn) {
 const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComputer))
 
 /**
- * Depuis la fiche, on poste un défi — c'est le geste par défaut, l'ordinateur reste un choix de
- * l'écran d'arène. La fiche se referme et l'arène s'ouvre : sans ça le clic n'a aucun effet
- * visible, puisqu'un défi posté ne produit pas de duel.
+ * Depuis la fiche, on ne s'engage pas : on choisit. Le bouton ouvre l'arène avec ce Pokémon
+ * déjà retenu, et c'est là qu'on décide de poster un défi, d'affronter l'ordinateur ou de
+ * relever celui d'un autre.
+ *
+ * Il postait un défi directement, et c'était une faute : le geste engageait un Pokémon pour de
+ * bon avant que le joueur ait vu ses options, et l'écran qui s'ouvrait n'avait plus aucun
+ * bouton à offrir puisque tout était déjà joué.
  */
 function onEngageFromSheet(key) {
   selected.value = null
-  return playArena(() => arena.engage(key, false))
+  arenaPreselect.value = key
+  arenaOpen.value = true
 }
 const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
 
@@ -278,7 +284,8 @@ useKeyboardNav({
         :challenges="arena.challenges.value" :engageable="arena.engageable.value"
         :my-open="arena.myOpen.value" :level-of="arena.levelOf"
         :form-of-key="arena.formOfKey" :busy="arenaBusy"
-        @close="arenaOpen = false" @engage="onEngage" @accept="onAccept"
+        :preselect="arenaPreselect"
+        @close="arenaOpen = false; arenaPreselect = null" @engage="onEngage" @accept="onAccept"
       />
     </transition>
 

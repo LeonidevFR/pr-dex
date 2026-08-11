@@ -213,3 +213,23 @@ describe('forme du jour', () => {
     )
   })
 })
+
+// Venir depuis la fiche, c'est arriver avec un Pokémon déjà en tête : l'obliger à le retrouver
+// dans la grille qu'il vient de quitter serait absurde.
+describe('arrivée depuis la fiche d’une espèce', () => {
+  it('retient d’emblée le Pokémon présélectionné', () => {
+    const w = monter({ preselect: 'github:b' })
+    expect(w.find('.arena-bar').exists()).toBe(true)
+    expect(w.find('.arena-bar').text()).toContain('Pikachu')
+  })
+
+  it('laisse alors toutes les options ouvertes', () => {
+    const w = monter({
+      preselect: 'github:b',
+      challenges: [{ id: 7, pseudo: 'bob', created_at: 'x' }],
+    })
+    expect(w.find('.btn-solid').text()).toContain('Poster un défi')
+    expect(w.findAll('.btn-ghost').some((b) => b.text().includes('ordinateur'))).toBe(true)
+    expect(w.find('.evo-btn').attributes('disabled')).toBeUndefined()
+  })
+})

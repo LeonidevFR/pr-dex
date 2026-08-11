@@ -443,9 +443,12 @@ describe('envoi à l’arène depuis la fiche', () => {
     expect(w.emitted('engage')[0]).toEqual(['github:a'])
   })
 
-  it('dit ce qu’on risque avant d’envoyer', () => {
+  // Le bouton choisit, il n'engage pas : engager depuis la fiche mettait un Pokémon en jeu
+  // avant que le joueur ait vu ses options, et l'arène s'ouvrait alors sans rien à décider.
+  it('annonce qu’il ouvre l’arène plutôt qu’il n’engage', () => {
     const w = mountSheet({ id: 6, entries: dispo, available: dispo, arenaCredits: 2 })
-    expect(w.text()).toContain('s’il perd, il est détruit')
+    expect(w.text()).toContain('Ouvre l’arène avec cet exemplaire retenu')
+    expect(w.find('.arena-send').text()).toBe('Choisir pour l’arène')
   })
 
   it('empêche l’envoi sans engagement disponible, et explique pourquoi', () => {

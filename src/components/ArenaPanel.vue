@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { REWARD } from '../../shared/arena-economy.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -13,6 +13,7 @@ const props = defineProps({
   levelOf: { type: Function, required: true },
   formOfKey: { type: Function, required: true },
   busy: { type: Boolean, default: false },
+  preselect: { type: String, default: null },
 })
 const emit = defineEmits(['close', 'engage', 'accept'])
 
@@ -25,6 +26,13 @@ const rulesOpen = ref(false)
  * naturel est « je veux envoyer un Dracaufeu », pas « je veux envoyer ce Dracaufeu-là ».
  */
 const picking = ref(null)
+
+/**
+ * Venir depuis la fiche d'une espèce, c'est arriver avec un Pokémon déjà en tête : on le
+ * retient d'emblée plutôt que d'obliger à le retrouver dans la grille qu'on vient de quitter.
+ */
+watch(() => props.preselect, (key) => { if (key) { chosen.value = key; picking.value = null } },
+  { immediate: true })
 
 /**
  * Sans engagement disponible on peut encore regarder, mais plus miser. La liste reste affichée
