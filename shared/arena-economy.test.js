@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   TIER_ORDER, coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER,
-  SEASON_PODIUM, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS,
+  SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP,
+  CHALLENGE_EXPIRY_HOURS,
 } from './arena-economy.js'
 
 describe('coveredTier', () => {
@@ -62,12 +63,16 @@ describe('boutique', () => {
     }
   })
 
-  // ~5 400 pokédollars par saison (spec § 4) : le dernier objectif du jeu doit demander
-  // près de trois saisons, sans quoi il n'y a plus rien à viser passé six mois.
-  it('place le légendaire inédit à environ trois saisons d’économies', () => {
+  // Le dernier objectif du jeu doit rester à plusieurs saisons de distance, sans quoi il n'y
+  // a plus rien à viser passé six mois — mais pas au point d'être hors d'atteinte.
+  it('place le légendaire inédit entre trois et quatre saisons d’économies', () => {
     const legendaire = SHOP.find((a) => a.fresh && a.tier === 'l')
-    expect(legendaire.price / 5400).toBeGreaterThan(2.5)
-    expect(legendaire.price / 5400).toBeLessThan(3.2)
+    expect(legendaire.price / SEASON_INCOME).toBeGreaterThan(3)
+    expect(legendaire.price / SEASON_INCOME).toBeLessThan(4)
+  })
+
+  it('ne produit que des prix entiers, inédit garanti compris', () => {
+    for (const article of SHOP) expect(Number.isInteger(article.price)).toBe(true)
   })
 })
 
@@ -77,6 +82,6 @@ describe('plafonds de jeu', () => {
     expect(CREDIT_CAP).toBe(5)
     expect(PAIR_WEEKLY_CAP).toBe(2)
     expect(CHALLENGE_EXPIRY_HOURS).toBe(24)
-    expect(SEASON_PODIUM).toEqual([2500, 1250, 600])
+    expect(SEASON_PODIUM).toEqual([1000, 500, 250])
   })
 })

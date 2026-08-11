@@ -25,14 +25,28 @@ export const COMPUTER_REWARD = { c: 12, u: 25, r: 62, l: 150 }
 
 export const FRESH_MULTIPLIER = 2.5
 
+/**
+ * Le revenu d'une saison en politique rare, tel que la simulation le MESURE — pas
+ * l'hypothèse de 5 400 sur laquelle la première version des prix était calée, et qui
+ * n'avait jamais été confrontée à une ligue où le terrain adverse est émergent. C'est donc
+ * cette constante, et elle seule, qui doit bouger le jour où la simulation évolue : les prix
+ * en dérivent, jamais l'inverse.
+ */
+export const SEASON_INCOME = 3000
+
+/**
+ * Le pli légendaire est ancré à 1,5 saison, et tout le reste s'échelonne sous lui. Les prix
+ * dérivés (×2,5 pour l'inédit) tombent tous sur des entiers, condition d'un affichage sans
+ * décimale et d'une comparaison exacte avec le portefeuille.
+ */
 const BASE_PRICES = [
-  { gen: 1, tier: 'c', price: 500 },
-  { gen: 1, tier: 'u', price: 1000 },
-  { gen: 1, tier: 'r', price: 2500 },
-  { gen: 2, tier: 'c', price: 1000 },
-  { gen: 2, tier: 'u', price: 2000 },
-  { gen: 2, tier: 'r', price: 5000 },
-  { gen: 1, tier: 'l', price: 6000 },
+  { gen: 1, tier: 'c', price: 250 },
+  { gen: 1, tier: 'u', price: 500 },
+  { gen: 1, tier: 'r', price: 1200 },
+  { gen: 2, tier: 'c', price: 500 },
+  { gen: 2, tier: 'u', price: 1000 },
+  { gen: 2, tier: 'r', price: 2400 },
+  { gen: 1, tier: 'l', price: 4500 },
 ]
 
 /**
@@ -45,7 +59,13 @@ export const SHOP = BASE_PRICES.flatMap(({ gen, tier, price }) => [
   { slug: `gen${gen}-${tier}-inedit`, gen, tier, fresh: true, price: price * FRESH_MULTIPLIER },
 ])
 
-export const SEASON_PODIUM = [2500, 1250, 600]
+/**
+ * « De quoi fêter, pas de quoi dominer » (spec § 4). Le podium précédent avait été calé sur
+ * une saison supposée à 5 400 : à 2 500, le vainqueur empochait 83 % d'une saison entière
+ * de jeu en une seule remise, ce qui creusait un écart matériel saison après saison. Ramené
+ * à un tiers de saison pour le premier, ces prix se lisent sur SEASON_INCOME.
+ */
+export const SEASON_PODIUM = [1000, 500, 250]
 
 export const CREDIT_PER_WORKING_DAY = 1
 export const CREDIT_CAP = 5

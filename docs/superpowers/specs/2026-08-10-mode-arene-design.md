@@ -335,7 +335,7 @@ occasion dédiée — un événement de fin de saison — pas un réglage de cet
 - **Points de classement** — mesurent la saison, **remis à zéro** à chaque nouvelle.
 - **Pokédollars** — portefeuille qui **ne se remet jamais à zéro**.
 
-C'est cette asymétrie qui rend la thésaurisation possible : économiser près de trois
+C'est cette asymétrie qui rend la thésaurisation possible : économiser près de quatre
 saisons pour un légendaire inédit est une stratégie, alors qu'un portefeuille remis à zéro
 la rendrait absurde.
 
@@ -346,13 +346,17 @@ l'animation et la surprise. Un pli acheté est une ligne `catches` de source `bo
 
 | Article | Normal | Inédit garanti (×2,5) |
 |---|---|---|
-| Pli Gen 1 commun | 500 | 1 250 |
-| Pli Gen 1 peu commun | 1 000 | 2 500 |
-| Pli Gen 1 rare | 2 500 | 6 250 |
-| Pli Gen 2 commun | 1 000 | 2 500 |
-| Pli Gen 2 peu commun | 2 000 | 5 000 |
-| Pli Gen 2 rare | 5 000 | 12 500 |
-| Pli légendaire Gen 1 | 6 000 | 15 000 |
+| Pli Gen 1 commun | 250 | 625 |
+| Pli Gen 1 peu commun | 500 | 1 250 |
+| Pli Gen 1 rare | 1 200 | 3 000 |
+| Pli Gen 2 commun | 500 | 1 250 |
+| Pli Gen 2 peu commun | 1 000 | 2 500 |
+| Pli Gen 2 rare | 2 400 | 6 000 |
+| Pli légendaire Gen 1 | 4 500 | 11 250 |
+
+Ces prix sont calés sur le revenu **mesuré** par la simulation en ligue — **~3 000
+pokédollars par saison** en politique rare (`SEASON_INCOME`, `shared/arena-economy.js`) —
+et non sur les ~5 400 supposés plus haut. Le pli légendaire est l'ancre : **1,5 saison**.
 
 **L'« inédit garanti » tire uniquement parmi les espèces non possédées.** Il existe parce
 que l'objectif de la boutique est de *compléter* : un pli rare tire au hasard parmi 46
@@ -360,9 +364,9 @@ espèces, donc quand il en manque trois, on paye pour un doublon neuf fois sur d
 on approche de la fin, plus la boutique devient inefficace là où elle est le plus utile.
 C'est un filtre sur le pool à l'achat, pas une mécanique de plus.
 
-Repères sur une saison (~5 400) : un rare Gen 1 inédit ou un légendaire = **~1,1 saison** ;
-un rare Gen 2 inédit = **~2,3 saisons** ; le légendaire inédit = **~2,8 saisons**, dernier
-objectif du jeu.
+Repères sur une saison (~3 000) : un rare Gen 1 inédit = **1 saison** ; un légendaire =
+**1,5 saison** ; un rare Gen 2 inédit = **2 saisons** ; le légendaire inédit =
+**3,75 saisons**, dernier objectif du jeu.
 
 ### Saison
 
@@ -370,20 +374,25 @@ objectif du jeu.
 impair et se clôt le dernier jour du mois suivant), pour qu'aucun joueur n'ait de saison
 personnelle et que le classement compare bien la même période pour tout le monde.
 
-Le légendaire n'a besoin d'aucune règle de calendrier : à ~1,4 saison d'économies, il
+Le légendaire n'a besoin d'aucune règle de calendrier : à 1,5 saison d'économies, il
 devient trimestriel de lui-même.
 
 Fin de saison :
 
 | Rang | Pokédollars | Autre |
 |---|---|---|
-| 1ᵉʳ | 2 500 | **Badge permanent** « Vainqueur de la saison N » |
-| 2ᵉ | 1 250 | — |
-| 3ᵉ | 600 | — |
+| 1ᵉʳ | 1 000 | **Badge permanent** « Vainqueur de la saison N » |
+| 2ᵉ | 500 | — |
+| 3ᵉ | 250 | — |
 
 Le podium plutôt que le seul vainqueur : à 4-5 joueurs, presque tout le monde touche
 quelque chose, et le meilleur ne creuse pas un écart matériel saison après saison. Le
 badge reste la vraie récompense.
+
+Ces montants ont été divisés par deux et demi : calés sur une saison supposée à 5 400, ils
+donnaient au vainqueur 83 % d'une saison entière — de quoi dominer, précisément ce que ce
+paragraphe dit refuser. À un tiers de saison, la remise reste une fête sans peser sur la
+course à la boutique.
 
 **Les badges sont les vrais badges d'arène**, repris de
 [SteGriff/pokemon-badges](https://github.com/SteGriff/pokemon-badges) — 40 badges
