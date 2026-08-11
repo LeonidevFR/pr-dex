@@ -394,4 +394,59 @@ language sql stable strict as $$
   from i
 $$;
 
+-- Le lundi de la semaine de `at`, en heure de Paris.
+--
+-- Le fuseau n'est pas une coquetterie d'affichage : « remise à zéro le dimanche à 23h59 » ne
+-- désigne aucun instant tant qu'on n'a pas dit 23h59 où, et l'équipe est à Paris. Un
+-- `date_trunc('week', at)` laissé en UTC ferait basculer la semaine deux heures trop tard de
+-- mars à octobre, une heure trop tard le reste de l'année — c'est-à-dire au mauvais moment
+-- toute l'année, et d'un décalage qui change en cours de route.
+--
+-- `immutable` est ici exact et non optimiste : `timezone(text, timestamptz)` et le
+-- `date_trunc` sur un `timestamp` nu ne dépendent ni de la transaction ni du `TimeZone` de la
+-- session, seulement de leurs arguments.
+create or replace function public.arena_week_start(at timestamptz)
+returns date language sql immutable strict as $$
+  select date_trunc('week', at at time zone 'Europe/Paris') :: date
+$$;
+
+-- Crédits d'engagement restants, entre 0 et 5.
+--
+-- Déduits, jamais stockés. Un compteur en table finit toujours par diverger de ce qu'il
+-- prétend décrire : un duel annulé, une transaction interrompue, un correctif appliqué à la
+-- main, et le chiffre ment sans que personne ne s'en aperçoive. Une soustraction recalculée à
+-- chaque appel ne le peut pas — elle ne dérive que du calendrier et des duels réellement
+-- enregistrés, deux choses qu'on peut relire.
+--
+-- Acquis : un crédit par jour ouvré écoulé depuis le lundi. Le jour en cours compte dès son
+-- premier instant, sinon un joueur devrait attendre minuit pour dépenser le crédit du jour.
+-- `least(5, isodow)` suffit à dire les deux règles à la fois : lundi 1 … vendredi 5, puis le
+-- week-end reste à 5 puisqu'il n'ouvre aucun crédit et que le plafond est atteint. Pas besoin
+-- de dérouler la semaine jour par jour pour compter ce que la position dans la semaine dit
+-- déjà.
+--
+-- Dépensé : tout duel de la semaine où `uid` figure, qu'il ait posté le défi ou qu'il l'ait
+-- relevé — la spec ne distingue pas les deux, et le statut du duel n'entre pas en compte :
+-- c'est l'engagement qui coûte, pas son issue.
+--
+-- La borne haute `created_at <= at` fait de la fonction une lecture d'un instant donné et non
+-- de « maintenant » : interrogée sur un lundi passé, elle ne se laisse pas amputer par des
+-- duels qui n'avaient pas encore eu lieu. Sans elle, les tests d'un solde daté seraient à la
+-- merci de l'historique postérieur.
+create or replace function public.arena_credits(uid uuid, at timestamptz default now())
+returns int language sql stable as $$
+  select greatest(0,
+    least(5, extract(isodow from at at time zone 'Europe/Paris') :: int)
+    - (
+      select count(*) :: int
+      from public.arena_duels d
+      where (d.challenger_id = arena_credits.uid or d.opponent_id = arena_credits.uid)
+        -- Le lundi est une date parisienne : la reconvertir en instant dans ce même fuseau,
+        -- et non par le cast implicite qui utiliserait le `TimeZone` de la session.
+        and d.created_at >= (public.arena_week_start(arena_credits.at) :: timestamp
+                             at time zone 'Europe/Paris')
+        and d.created_at <= arena_credits.at
+    ))
+$$;
+
 commit;
