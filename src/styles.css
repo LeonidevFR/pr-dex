@@ -355,7 +355,7 @@
 
   /* rare — le carton lui-même vire à l'ocre. Aucun motif : c'est la matière qui parle, et
      elle se reconnaît à la vignette sans qu'on ait à lire l'étiquette. */
-  .pkc[data-tier="r"] .pkc-face{background:linear-gradient(168deg,#f4e6c4,#ecd9ad 45%,#dfc890);border-color:#a8813f}
+  .pkc[data-tier="r"] .pkc-front{background:linear-gradient(168deg,#f4e6c4,#ecd9ad 45%,#dfc890);border-color:#a8813f}
   .pkc[data-tier="r"] .pkc-frame{inset:9px;border:1px solid rgba(184,134,43,.8);
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 0 1px rgba(120,90,30,.14)}
   .pkc[data-tier="r"] .pkc-corner{border-color:rgba(184,134,43,.85);opacity:.9}
@@ -364,7 +364,7 @@
     background-size:340% 100%;background-position:calc((1 - var(--px,.5))*100%) 0}
 
   /* légendaire — carton profond, gravure guillochée sur toute la carte */
-  .pkc[data-tier="l"] .pkc-face{background:linear-gradient(168deg,#fbf0d2,#f2e2b4 45%,#e4d09b);border-color:#a8813f}
+  .pkc[data-tier="l"] .pkc-front{background:linear-gradient(168deg,#fbf0d2,#f2e2b4 45%,#e4d09b);border-color:#a8813f}
   .pkc[data-tier="l"] .pkc-bg{z-index:1;opacity:.42;
     background-image:repeating-conic-gradient(from 0deg at 50% 46%,rgba(184,134,43,.3) 0 2deg,transparent 2deg 8deg),
                      radial-gradient(circle at 50% 46%,rgba(255,240,205,.7),transparent 62%)}
@@ -378,6 +378,9 @@
     background-position:calc((1 - var(--px,.5))*100%) 0,calc((1 - var(--px,.5))*100%) 0}
 
   /* la scène nocturne pousse la dorure — la matière, elle, ne bouge pas d'un cran */
+  /* Tant que la carte est retournée, son halo reste neutre : un légendaire qui rayonne à
+     soixante pixels annonce la couleur avant qu'on ait retourné quoi que ce soit. */
+  .reveal.awaiting .pkc{--pkc-halo:10px}
   .pkc.scene-night[data-tier="c"]{--pkc-light:1.5}
   .pkc.scene-night[data-tier="u"]{--pkc-light:1.6}
   .pkc.scene-night[data-tier="r"]{--pkc-light:1.75}
@@ -462,6 +465,14 @@
     border-bottom:1px dashed var(--rule)}
   .packet.cutting .pkt-flap{animation:flapOff .34s ease-in .42s both}
   @keyframes flapOff{to{transform:translateY(-18px) rotate(-1.8deg);opacity:0}}
+  /* La bande qui comble la dentelure tant que la lame n'est pas passée. Elle se rétracte vers
+     la droite, exactement au rythme du trait de coupe : à gauche de la lame le papier est
+     ouvert, à droite il est encore intact. C'est ce décalage qui fait lire « ça coupe »
+     plutôt que « c'était déjà coupé ». */
+  .pkt-seam{position:absolute;left:0;top:35px;height:19px;width:100%;z-index:1;pointer-events:none;
+    background:var(--plate);transform-origin:right center}
+  .packet.cutting .pkt-seam{animation:coutureOuverte .42s cubic-bezier(.35,0,.2,1) both}
+  @keyframes coutureOuverte{from{transform:scaleX(1)}to{transform:scaleX(0)}}
   .pkt-cut{position:absolute;left:0;top:35px;height:2px;width:100%;z-index:3;pointer-events:none;
     transform:scaleX(0);transform-origin:left center;opacity:0;
     background:linear-gradient(90deg,rgba(255,244,214,0),rgba(255,246,222,.9) 55%,#fffdf4 100%)}
@@ -493,7 +504,8 @@
     100%{transform:translateY(52px) rotate(2.2deg);opacity:0}}
 
   @media (prefers-reduced-motion:reduce){
-    .packet.cutting .pkt-body,.packet.cutting .pkt-flap,.packet.cutting .pkt-cut{animation-duration:.01s}
+    .packet.cutting .pkt-body,.packet.cutting .pkt-flap,
+    .packet.cutting .pkt-cut,.packet.cutting .pkt-seam{animation-duration:.01s}
   }
   .queue-note{font-family:var(--f-data);font-size:11px;color:var(--ink-3);letter-spacing:.04em}
 

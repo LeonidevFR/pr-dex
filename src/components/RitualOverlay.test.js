@@ -151,10 +151,51 @@ describe('ouverture', () => {
   })
 })
 
-describe('échelle d’intensité', () => {
-  const sceneDe = async (species) => {
+/**
+ * Le défaut le plus vicieux de la première version : la scène prenait les couleurs du palier
+ * dès la déchirure. On lisait donc la réponse dans les rayons — et dans le fond, et dans le
+ * halo de la carte — avant même d'avoir retourné quoi que ce soit. Le geste ne servait plus
+ * à rien, et l'attente non plus.
+ */
+describe('la scène ne vend pas la mèche', () => {
+  const decorAvantRetournement = async (species) => {
     const w = mountRitual({ entry: entryOf({ species }) })
     await ouvrir(w)
+    const ritual = w.find('.ritual')
+    return { style: ritual.attributes('style'), classes: ritual.classes() }
+  }
+
+  it('affiche le même décor pour un commun et pour un légendaire, dos visible', async () => {
+    const commun = await decorAvantRetournement(19)
+    const legendaire = await decorAvantRetournement(144)
+
+    const decor = (s) => (s.match(/--ray[^;]*;|--wedge[^;]*;|--glow[^;]*;/g) ?? []).join('')
+    expect(decor(legendaire.style)).toBe(decor(commun.style))
+  })
+
+  it('ne marque pas la scène légendaire avant la révélation', async () => {
+    const legendaire = await decorAvantRetournement(144)
+    expect(legendaire.classes).not.toContain('leg')
+  })
+
+  it('ne prend les couleurs du palier qu’une fois la carte retournée', async () => {
+    const w = mountRitual({ entry: entryOf({ species: 144 }) })
+    await ouvrir(w)
+    const avant = w.find('.ritual').attributes('style')
+
+    await retourner(w)
+    const apres = w.find('.ritual').attributes('style')
+    expect(apres).not.toBe(avant)
+    expect(apres).toContain('--glow: 60px')
+    expect(w.find('.ritual').classes()).toContain('leg')
+  })
+})
+
+describe('échelle d’intensité', () => {
+  // Mesuré APRÈS le retournement : avant, la scène est volontairement neutre.
+  const sceneDe = async (species) => {
+    const w = mountRitual({ entry: entryOf({ species }) })
+    await reveler(w)
     return w.find('.ritual').attributes('style')
   }
 
@@ -189,11 +230,10 @@ describe('échelle d’intensité', () => {
     expect(await sceneDe(144)).toContain('--glow: 60px')  // légendaire
   })
 
-  it('marque la scène légendaire', async () => {
+  it('marque la scène légendaire une fois révélée', async () => {
     const w = mountRitual({ entry: entryOf({ species: 144 }) })
-    await ouvrir(w)
+    await reveler(w)
     expect(w.find('.ritual').classes()).toContain('leg')
-    await retourner(w)
     expect(w.find('.reveal-banner').text()).toContain('Légendaire')
   })
 

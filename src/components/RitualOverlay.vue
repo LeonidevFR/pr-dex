@@ -36,7 +36,14 @@ const timers = []
 
 const species = computed(() => DEX[props.entry.species])
 const tier = computed(() => species.value.tier)
-const scene = computed(() => SCENE[tier.value])
+/**
+ * Tant que la carte est retournée, la scène ne doit RIEN dire du palier — sinon on lit la
+ * réponse dans les rayons avant de retourner la carte, et le geste ne sert plus à rien.
+ * Elle reste donc neutre, et ne prend les couleurs du palier qu'à la révélation. Le flash
+ * couvre la bascule.
+ */
+const NEUTRE = { ray: 'rgba(150,138,118,.45)', rayop: 0.16, wedge: '12deg', rayspeed: '24s', glow: '10px' }
+const scene = computed(() => (stage.value === 'revealed' ? SCENE[tier.value] : NEUTRE))
 
 /**
  * La fanfare EST le palier.
@@ -202,7 +209,7 @@ watch(stage, async (s) => {
 <template>
   <div
     class="ritual"
-    :class="{ opened: stage !== 'sealed', leg: stage !== 'sealed' && tier === 'l', shaking: loud && fanfare.shake > 0 }"
+    :class="{ opened: stage !== 'sealed', leg: stage === 'revealed' && tier === 'l', shaking: loud && fanfare.shake > 0 }"
     :style="style"
   >
     <button
@@ -222,6 +229,10 @@ watch(stage, async (s) => {
           :disabled="stage === 'cutting'" @click="tear"
         >
           <span class="pkt-flap"><span class="pkt-kicker">Pli scellé · {{ entry.date }}</span></span>
+          <!-- Le papier est découpé d'un coup, mais la lame met 0,42 s à traverser. Cette
+               bande comble la dentelure DEVANT la lame et se rétracte avec elle : sans elle,
+               on voit les dents apparaître avant que la coupe ne les ait faites. -->
+          <span class="pkt-seam"></span>
           <span class="pkt-cut"></span>
           <div class="pkt-body" :style="stage === 'cutting' ? { clipPath: TORN } : null">
             <div class="pkt-seal">✳</div>
