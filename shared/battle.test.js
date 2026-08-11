@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   TIER_POWER, LEVEL_MAX, FORMS, NORMAL_FORM, levelFactor, power, formOf,
-  P_FLOOR, P_CEIL, winProbability,
+  P_FLOOR, P_CEIL, winProbability, levelGain,
 } from './battle.js'
 import { DEX } from './species.js'
 import { STATS } from './species-stats.js'
@@ -167,5 +167,41 @@ describe('probabilités de référence de la spec', () => {
     const avantage = duel({ species: 6, form: forte }, { species: 6 })
     expect(avantage).toBeGreaterThan(neutre)
     expect(avantage).toBeLessThan(0.65)
+  })
+})
+
+describe('levelGain', () => {
+  it('n’accorde rien pour un adversaire nettement plus faible', () => {
+    expect(levelGain(1000, 500)).toBe(0)
+    expect(levelGain(1000, 740)).toBe(0)
+  })
+
+  it('accorde un niveau pour un adversaire comparable', () => {
+    expect(levelGain(1000, 750)).toBe(1)
+    expect(levelGain(1000, 1000)).toBe(1)
+    expect(levelGain(1000, 1090)).toBe(1)
+  })
+
+  it('accorde deux niveaux au-delà de 1,10×', () => {
+    expect(levelGain(1000, 1100)).toBe(2)
+    expect(levelGain(1000, 1490)).toBe(2)
+  })
+
+  it('accorde trois niveaux au-delà de 1,50×', () => {
+    expect(levelGain(1000, 1500)).toBe(3)
+    expect(levelGain(1000, 1990)).toBe(3)
+  })
+
+  it('accorde cinq niveaux pour un adversaire deux fois plus puissant', () => {
+    expect(levelGain(1000, 2000)).toBe(5)
+    expect(levelGain(1000, 9000)).toBe(5)
+  })
+
+  // Un légendaire écrase tout mais ne progresse plus : face au tout-venant de l'arène il
+  // est très au-dessus de 1,33× l'adversaire, donc sous le seuil des 0,75× inverses.
+  it('ne fait pas progresser un légendaire contre le tout-venant', () => {
+    const electhor = power({ species: 145 })
+    const rattatac = power({ species: 20 })
+    expect(levelGain(electhor, rattatac)).toBe(0)
   })
 })

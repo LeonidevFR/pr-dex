@@ -50,3 +50,16 @@ export function winProbability(a, b) {
   const brut = a ** 3 / (a ** 3 + b ** 3)
   return Math.min(P_CEIL, Math.max(P_FLOOR, brut))
 }
+
+/**
+ * Seuils croissants sur le rapport adversaire / soi. Écraser un adversaire faible ne fait
+ * jamais progresser : c'est ce qui rend le farming des petits joueurs stérile, sans qu'une
+ * règle ait besoin de l'interdire.
+ */
+const LEVEL_GAIN_STEPS = [[0.75, 0], [1.10, 1], [1.50, 2], [2.00, 3]]
+
+export function levelGain(mine, theirs) {
+  const rapport = theirs / mine
+  for (const [seuil, gain] of LEVEL_GAIN_STEPS) if (rapport < seuil) return gain
+  return 5
+}
