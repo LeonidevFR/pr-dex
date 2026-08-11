@@ -1000,4 +1000,105 @@ $$;
 revoke execute on function public.arena_accept(bigint, text) from public;
 grant execute on function public.arena_accept(bigint, text) to authenticated;
 
+-- Un défi que personne ne relève sous 24 h se résout contre l'ordinateur.
+--
+-- Ce n'est pas une règle de jeu, c'est un garde-fou : tant que le défi reste ouvert,
+-- l'exemplaire engagé est immobilisé — il ne peut ni évoluer ni servir ailleurs. Sans
+-- péremption, un défi que personne ne relève gèlerait un Pokémon indéfiniment, et son
+-- propriétaire aurait dépensé un crédit pour rien.
+--
+-- Aucun crédit n'est reconsommé : il l'a été à l'engagement. Et comme partout ailleurs,
+-- l'ordinateur ne détruit ni ne crée : le challengeur récupère son exemplaire intact et, s'il
+-- l'emporte, des pokédollars au cinquième du tarif humain — ni point, ni pli, ni niveau.
+create or replace function public.arena_resolve_expired(older_than interval default interval '24 hours')
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_duel record;
+  v_foe record;
+  v_out record;
+  v_seed text;
+  v_foe_key text;
+  v_stake text;
+  v_species int;
+  v_level int;
+  v_tier text;
+  v_day text;
+  v_n int := 0;
+begin
+  -- `for update skip locked` : deux passages concurrents du travail planifié ne doivent pas
+  -- résoudre deux fois le même défi. Celui qui arrive second saute simplement les lignes que
+  -- l'autre tient déjà, plutôt que d'attendre puis de rejouer sur un état périmé.
+  for v_duel in
+    select * from public.arena_duels
+    where status = 'open' and created_at < now() - older_than
+    for update skip locked
+  loop
+    select c.species, coalesce(e.level, 1), s.tier
+      into v_species, v_level, v_tier
+    from public.catches c
+    join public.species_stats s on s.species = c.species
+    left join public.arena_exemplars e
+      on e.user_id = v_duel.challenger_id and e.entry_key = v_duel.challenger_key
+    where c.user_id = v_duel.challenger_id
+      and c.source || ':' || c.external_id = v_duel.challenger_key;
+
+    -- Un exemplaire introuvable ne doit pas bloquer le travail planifié pour tous les autres :
+    -- le défi est refermé sans gain, et l'exemplaire libéré.
+    if v_species is null then
+      update public.arena_duels
+        set status = 'computer', resolved_at = now()
+        where id = v_duel.id;
+      v_n := v_n + 1;
+      continue;
+    end if;
+
+    v_day := to_char((now() at time zone 'Europe/Paris') :: date, 'YYYY-MM-DD');
+    v_seed := 'duel:' || v_duel.id;
+    v_foe_key := 'ordinateur:' || v_duel.id;
+
+    select * into v_foe from public.arena_computer_pick(v_seed, public.arena_field_level_cap());
+
+    select * into v_out from public.arena_resolve(
+      v_duel.challenger_key, v_species, v_level,
+      v_foe_key, v_foe.foe_species, v_foe.foe_level,
+      v_day, v_seed);
+
+    v_stake := public.arena_covered_tier(v_tier, v_foe.foe_tier);
+
+    update public.arena_duels set
+      status = 'computer',
+      opponent_key = v_foe_key,
+      stake_tier = v_stake,
+      winner_id = case when v_out.winner = 'left' then v_duel.challenger_id end,
+      challenger_power = v_out.left_power,
+      opponent_power = v_out.right_power,
+      probability = v_out.probability,
+      roll = v_out.roll,
+      resolved_at = now()
+    where id = v_duel.id;
+
+    if v_out.winner = 'left' then
+      insert into public.arena_wallet (user_id, pokedollars)
+      values (v_duel.challenger_id, public.arena_reward_dollars(v_stake) / 5)
+      on conflict (user_id) do update
+        set pokedollars = arena_wallet.pokedollars + excluded.pokedollars;
+    end if;
+
+    v_n := v_n + 1;
+  end loop;
+
+  return v_n;
+end;
+$$;
+
+-- Appelée par le travail planifié avec la clé `service_role`, jamais par un joueur : rien dans
+-- le jeu ne justifie qu'on déclenche soi-même la péremption des défis des autres.
+revoke execute on function public.arena_resolve_expired(interval) from public;
+grant execute on function public.arena_resolve_expired(interval) to service_role;
+
+
 commit;

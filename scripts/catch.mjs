@@ -84,6 +84,23 @@ export function packRows(packs) {
   })
 }
 
+/**
+ * Résout les défis que personne n'a relevés depuis 24 h.
+ *
+ * L'arène n'a pas son propre planificateur : elle se greffe sur celui qui existe déjà. C'est
+ * suffisant — un défi posté en fin de journée expire le lendemain matin, et un retard d'une
+ * heure sur une péremption de vingt-quatre n'a aucune conséquence.
+ */
+export async function resolveExpiredDuels(supabaseUrl, serviceKey, fetchFn = fetch) {
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/rpc/arena_resolve_expired`, {
+    method: 'POST',
+    headers: sbHeaders(serviceKey),
+    body: '{}',
+  })
+  if (!res.ok) throw new Error(`arena_resolve_expired a répondu ${res.status}`)
+  return res.json()
+}
+
 /** Les plis gagnés que personne n'a encore matérialisés en captures. */
 export async function fetchOwedPacks(supabaseUrl, serviceKey, fetchFn = fetch) {
   const res = await fetchFn(
@@ -197,6 +214,11 @@ export async function main() {
     }
     console.log(`${identity.source}/${identity.handle} : ${rows.length} nouvelle(s) capture(s).`)
   }
+
+  // La péremption AVANT la matérialisation : un défi qui expire à ce passage-ci peut produire
+  // un pli, et on préfère le donner tout de suite plutôt qu'au passage suivant.
+  const expires = await resolveExpiredDuels(supabaseUrl, serviceKey)
+  if (expires) console.log(`arène : ${expires} défi(s) périmé(s) résolu(s) contre l'ordinateur.`)
 
   // Les plis d'arène après les captures de travail, et dans le même run : l'arène n'a pas
   // besoin de son propre déclencheur, elle profite de celui qui existe déjà — y compris du

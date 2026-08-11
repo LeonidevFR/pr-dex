@@ -97,9 +97,14 @@ describe('main', () => {
     const githubQueue = [...github]
     const inserted = []
     const claimed = []
+    const expired = []
     const fn = vi.fn(async (url, init = {}) => {
       if (url.includes('/rest/v1/identities')) {
         return { ok: true, status: 200, json: async () => identities, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/rpc/arena_resolve_expired')) {
+        expired.push(url)
+        return { ok: true, status: 200, json: async () => 0, headers: new Headers() }
       }
       if (url.includes('/rest/v1/arena_packs') && (!init.method || init.method === 'GET')) {
         return { ok: true, status: 200, json: async () => packs, headers: new Headers() }
@@ -127,6 +132,7 @@ describe('main', () => {
     })
     fn.inserted = inserted
     fn.claimed = claimed
+    fn.expired = expired
     return fn
   }
 
@@ -355,6 +361,18 @@ describe('main', () => {
 
     expect(fetchMock.claimed).toEqual([])
   })
+
+  // La péremption se greffe sur le run qui existe déjà : l'arène n'a pas besoin de son propre
+  // planificateur, et un retard d'une heure sur un délai de vingt-quatre n'a aucun effet.
+  it('résout les défis périmés à chaque passage', async () => {
+    const fetchMock = makeFetch({ identities: [identity('u1')], github: [searchPage([])] })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    expect(fetchMock.expired).toHaveLength(1)
+  })
+
 })
 
 describe('packRows', () => {
