@@ -63,6 +63,19 @@ const caught = computed(() => (props.entries?.length ?? 0) > 0)
 const shiny = computed(() => props.entries?.some((e) => e.shiny) ?? false)
 // Rien à voir en grand sur une silhouette non capturée.
 const zoomed = ref(false)
+const zoomFlipped = ref(false)
+
+/**
+ * Le dos de la carte en grand porte la capture la plus récente. Une espèce peut avoir
+ * plusieurs exemplaires ; en montrer un seul est un choix assumé — le journal, juste en
+ * dessous, les liste tous. Une évolution n'a pas de PR d'origine, d'où le repli sur la
+ * capture la plus récente qui en soit une.
+ */
+const lastProvenance = computed(() => {
+  const captures = (props.entries ?? []).filter((e) => e.label)
+  const derniere = captures[captures.length - 1]
+  return derniere ? { ref: derniere.ref ?? null, label: derniere.label, date: derniere.date } : null
+})
 const targets = computed(() => {
   const to = species.value.to
   return to === null ? [] : Array.isArray(to) ? to : [to]
@@ -245,9 +258,16 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
       </div>
     </div>
 
-    <div v-if="zoomed" class="zoom-scrim" @click="zoomed = false">
-      <div class="zoom-art" :style="{ '--tier': TIER_VAR[species.tier] }">
-        <img :src="spriteUrl(id, shiny)" :alt="species.name">
+    <!-- En grand, c'est la carte — pas le sprite seul. On y retrouve l'exemplaire tel qu'on
+         l'a gagné, dos compris : la provenance vient de la capture la plus récente. -->
+    <div v-if="zoomed" class="zoom-scrim" @click="zoomed = false; zoomFlipped = false">
+      <div class="pkc-stage zoom-card" @click.stop>
+        <PokeCard
+          :species-id="id" :tier="species.tier" :shiny="shiny" scene="day"
+          :provenance="lastProvenance" :flipped="zoomFlipped"
+          @activate="zoomFlipped = !zoomFlipped"
+        />
+        <span class="zoom-hint">{{ zoomFlipped ? 'Cliquer pour revenir à la face' : 'Cliquer pour voir le dos' }}</span>
       </div>
     </div>
   </div>

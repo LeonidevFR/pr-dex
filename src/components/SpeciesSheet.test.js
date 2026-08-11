@@ -54,18 +54,42 @@ describe('la carte de la fiche', () => {
   })
 })
 
-describe('zoom du sprite', () => {
-  it('n’a rien à zoomer sur une silhouette non capturée', () => {
+describe('la carte en grand', () => {
+  it('n’a rien à agrandir sur une silhouette non capturée', () => {
     const w = mountSheet({ id: 4 })
-    expect(w.find('.panel-art').classes()).not.toContain('zoomable')
+    expect(w.findComponent({ name: 'PokeCard' }).exists()).toBe(false)
+    expect(w.find('.panel-art').classes()).toContain('ghost')
   })
 
-  it('ouvre le sprite en grand quand on active la carte', async () => {
+  it('ouvre la carte en grand quand on active celle de la fiche', async () => {
     const w = mountSheet({ id: 25, entries: [capture('a', 25)] })
     expect(w.find('.zoom-scrim').exists()).toBe(false)
     await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
-    expect(w.find('.zoom-scrim').exists()).toBe(true)
-    expect(w.find('.zoom-art img').attributes('src')).toContain('/25.png')
+    expect(w.find('.zoom-card').exists()).toBe(true)
+  })
+
+  // C'est bien la carte qu'on agrandit, dos compris — pas le sprite dans un cadre.
+  it('donne un dos à la carte agrandie, avec la provenance de la dernière capture', async () => {
+    const w = mountSheet({
+      id: 25,
+      entries: [capture('a', 25), capture('b', 25, { label: 'feat: dernière', date: '2026-03-09' })],
+    })
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+    const grande = w.findAll('.zoom-card')[0].findComponent({ name: 'PokeCard' })
+    expect(grande.props('provenance')).toMatchObject({ label: 'feat: dernière', date: '2026-03-09' })
+  })
+
+  it('se retourne au clic, et revient', async () => {
+    const w = mountSheet({ id: 25, entries: [capture('a', 25)] })
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+    const grande = () => w.findAll('.zoom-card')[0].findComponent({ name: 'PokeCard' })
+    expect(grande().props('flipped')).toBe(false)
+
+    await grande().vm.$emit('activate')
+    expect(grande().props('flipped')).toBe(true)
+
+    await grande().vm.$emit('activate')
+    expect(grande().props('flipped')).toBe(false)
   })
 
   it('se referme au clic sur le fond', async () => {

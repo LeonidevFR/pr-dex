@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { DEX, TIER_LABEL, TIER_VAR, RAY_PALETTE, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
+import { DEX, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import PokeCard from './PokeCard.vue'
 
 const props = defineProps({
@@ -12,52 +12,23 @@ const props = defineProps({
 const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
 
 /**
- * Quatre crans, durée quasi constante : le rituel se rejoue ~300 fois par an. L'écart
- * entre un commun et un légendaire passe par l'intensité (rayons, halo, flash), pas par
- * une attente plus longue — sinon on cherche à le sauter au bout d'une semaine.
+ * La scène du rituel, portée telle qu'elle a été validée en maquette.
  *
- * La vitesse de rotation ne fait PAS partie de ces leviers. Elle l'a été : un rare tournait
- * en 3,2 s et un légendaire en 1,8 s, ce qui produisait un clignotement franchement pénible
- * sur la seule scène qu'on ne peut pas éviter. Un tour lent lit « ça rayonne » ; un tour
- * rapide lit « ça stroboscope ». L'écart entre paliers se joue donc en dessous.
+ * Un seul disque de rayons, masqué en anneau, sur un fond noir plein avec vignette. Il y a
+ * eu ici un système à trois à six couches coniques colorées, tournant à des vitesses
+ * décorrélées : plus riche sur le papier, mais masqué au centre et plafonné à 0,10 d'opacité
+ * en commun, donc invisible en pratique. Un disque unique et franc se lit.
+ *
+ * La vitesse n'est PAS un levier d'intensité. Elle l'a été — 3,2 s en rare, 1,8 s en
+ * légendaire — ce qui produisait un clignotement pénible sur la seule scène du jeu qu'on ne
+ * peut ni sauter ni désactiver. Un tour lent lit « ça rayonne » ; un tour rapide stroboscope.
+ * L'écart entre paliers se joue donc sur l'opacité, la finesse des rayons et le halo.
  */
-const INTENSITY = {
-  c: { rayop: 0.10, glow: '8px', rayspeed: '26s' },
-  u: { rayop: 0.18, glow: '16px', rayspeed: '22s' },
-  r: { rayop: 0.42, glow: '38px', rayspeed: '18s' },
-  l: { rayop: 0.65, glow: '66px', rayspeed: '14s' },
-}
-
-const RAY_LAYER_COUNT = { c: 3, u: 4, r: 5, l: 6 }
-const MULTICOLOR_TIERS = new Set(['r', 'l'])
-// Vitesses et pas de wedge décorrélés de l'index pour éviter que les couches se superposent
-// à l'identique (lisible comme "un seul disque plus épais" plutôt que plusieurs rayons).
-const SPEED_MULTIPLIERS = [1, 0.8, 1.3, 0.65, 1.15, 0.9]
-
-const rayLayers = computed(() => {
-  const count = RAY_LAYER_COUNT[tier.value]
-  const multicolor = MULTICOLOR_TIERS.has(tier.value)
-  const baseColor = TIER_VAR[tier.value]
-  return Array.from({ length: count }, (_, i) => ({
-    key: i,
-    color: multicolor ? RAY_PALETTE[i % RAY_PALETTE.length] : baseColor,
-    direction: i % 2 === 0 ? 'normal' : 'reverse',
-    speedMultiplier: SPEED_MULTIPLIERS[i % SPEED_MULTIPLIERS.length],
-    wedgeDeg: Math.max(20 - i * 2.5, 6),
-    opacityFactor: Math.max(1 - i * 0.12, 0.4),
-    fromDeg: (i * 360) / count,
-  }))
-})
-
-function rayLayerStyle(layer) {
-  return {
-    '--ray-color': layer.color,
-    '--ray-wedge': layer.wedgeDeg + 'deg',
-    '--ray-opacity-factor': layer.opacityFactor,
-    '--ray-from': layer.fromDeg + 'deg',
-    animationDuration: `calc(var(--rayspeed) * ${layer.speedMultiplier}), .8s`,
-    animationDirection: `${layer.direction}, normal`,
-  }
+const SCENE = {
+  c: { ray: 'rgba(160,150,135,.5)',  rayop: 0.18, wedge: '10deg', rayspeed: '26s', glow: '8px'  },
+  u: { ray: 'rgba(120,160,110,.55)', rayop: 0.30, wedge: '10deg', rayspeed: '22s', glow: '16px' },
+  r: { ray: 'rgba(214,120,80,.65)',  rayop: 0.66, wedge: '7deg',  rayspeed: '18s', glow: '38px' },
+  l: { ray: 'rgba(255,196,90,.7)',   rayop: 0.90, wedge: '5deg',  rayspeed: '14s', glow: '60px' },
 }
 
 const stage = ref('sealed') // sealed → cutting → awaiting → revealed
@@ -65,7 +36,7 @@ const timers = []
 
 const species = computed(() => DEX[props.entry.species])
 const tier = computed(() => species.value.tier)
-const intensity = computed(() => INTENSITY[tier.value])
+const scene = computed(() => SCENE[tier.value])
 
 /**
  * La fanfare EST le palier.
@@ -125,13 +96,15 @@ const style = computed(() => ({
   '--tier': TIER_VAR[tier.value],
   ...(stage.value !== 'sealed'
     ? {
-        '--rayop': intensity.value.rayop,
-        '--glow': intensity.value.glow,
-        // Le flash n'obéit plus à `INTENSITY` mais à la fanfare : c'est elle qui dose la
-        // récompense, et elle est nulle en commun là où `INTENSITY` gardait un flash.
+        '--ray': scene.value.ray,
+        '--rayop': scene.value.rayop,
+        '--wedge': scene.value.wedge,
+        '--glow': scene.value.glow,
+        // Le flash n'appartient pas à la scène mais à la fanfare : c'est elle qui dose la
+        // récompense, et elle est nulle en commun là où la scène garde des rayons.
         '--flashscale': (fanfare.value.flash * PUNCH).toFixed(2),
         '--shake': (fanfare.value.shake * PUNCH).toFixed(2),
-        '--rayspeed': intensity.value.rayspeed,
+        '--rayspeed': scene.value.rayspeed,
       }
     : {}),
 }))
@@ -150,9 +123,11 @@ const CUT_MS = 760
  * même bord, sinon le pli n'est plus un objet, il est une variation.
  */
 const TORN = (() => {
-  const profondeurs = [8, 5.5, 9, 6.5, 7.5, 5, 8.5, 6]
+  // Dents franches : sur un pli de 210 px posé devant d'autres plis de la même couleur, une
+  // dentelure de 5 px passe inaperçue. Il faut mordre pour que la coupe se voie.
+  const profondeurs = [13, 8, 15, 10, 12, 7.5, 14, 9]
   const decalages = [0, 0.9, -0.6, 1.2, -0.4, 0.7, -1, 0.5]
-  const dents = 26
+  const dents = 22
   const points = []
   for (let i = 0; i <= dents; i++) {
     const brut = (i / dents) * 100 + (i > 0 && i < dents ? decalages[i % decalages.length] : 0)
@@ -236,7 +211,10 @@ watch(stage, async (s) => {
     >✕</button>
 
     <template v-if="stage === 'sealed' || stage === 'cutting'">
-      <div class="stack">
+      <!-- Les plis restants s'effacent dès qu'on entaille : on sort celui-ci de la pile pour
+           l'ouvrir. Sans ça, on découpe du crème devant d'autres crèmes, et l'entaille est
+           littéralement invisible — c'est le fond sombre qui la rend lisible. -->
+      <div class="stack" :class="{ cutting: stage === 'cutting' }">
         <div v-if="remaining > 2" class="ghost-pkt g1"></div>
         <div v-if="remaining > 1" class="ghost-pkt g2"></div>
         <button
@@ -257,11 +235,10 @@ watch(stage, async (s) => {
     </template>
 
     <template v-else>
+      <div class="rays"></div>
+      <div class="vignette"></div>
+
       <div class="reveal" :class="stage">
-        <div
-          v-for="layer in rayLayers" :key="layer.key" class="ray-layer"
-          :style="rayLayerStyle(layer)"
-        ></div>
         <div v-if="loud" class="flash"></div>
         <span v-for="(r, i) in (loud ? fxRings : [])" :key="'r' + i" class="fx-ring" :style="r"></span>
         <div class="pkc-stage">

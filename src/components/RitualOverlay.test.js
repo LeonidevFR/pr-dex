@@ -152,49 +152,41 @@ describe('ouverture', () => {
 })
 
 describe('échelle d’intensité', () => {
-  it('affiche le nombre de rayons attendu par palier', async () => {
-    const layerCount = async (species) => {
+  const sceneDe = async (species) => {
+    const w = mountRitual({ entry: entryOf({ species }) })
+    await ouvrir(w)
+    return w.find('.ritual').attributes('style')
+  }
+
+  // Un disque unique, dont l'opacité — pas la vitesse — porte l'écart entre paliers.
+  it('n’a qu’un disque de rayons, quel que soit le palier', async () => {
+    for (const species of [19, 20, 1, 144]) {
       const w = mountRitual({ entry: entryOf({ species }) })
       await ouvrir(w)
-      return w.findAll('.ray-layer').length
-    }
-    expect(await layerCount(19)).toBe(3)   // commun (Rattata)
-    expect(await layerCount(20)).toBe(4)   // peu commun (Rattatac)
-    expect(await layerCount(1)).toBe(5)    // rare (Bulbizarre)
-    expect(await layerCount(144)).toBe(6)  // légendaire (Artikodin)
-  })
-
-  it('garde la couleur unique du palier pour commun et peu commun', async () => {
-    const w = mountRitual({ entry: entryOf({ species: 20 }) }) // peu commun
-    await ouvrir(w)
-    const layers = w.findAll('.ray-layer')
-    expect(layers).toHaveLength(4)
-    for (const layer of layers) {
-      expect(layer.attributes('style')).toContain('--ray-color: var(--t-u)')
+      expect(w.findAll('.rays')).toHaveLength(1)
     }
   })
 
-  it('cycle sur la palette multicolore pour rare et légendaire', async () => {
-    const palette = ['#e63946', '#457b9d', '#f4d35e', '#5c7a52', '#9b5de5']
-    const w = mountRitual({ entry: entryOf({ species: 144 }) }) // légendaire, 6 couches
-    await ouvrir(w)
-    const layers = w.findAll('.ray-layer')
-    expect(layers).toHaveLength(6)
-    layers.forEach((layer, i) => {
-      expect(layer.attributes('style')).toContain(`--ray-color: ${palette[i % palette.length]}`)
-    })
+  it('monte l’opacité des rayons avec le palier', async () => {
+    const op = async (species) => Number(/--rayop:\s*([\d.]+)/.exec(await sceneDe(species))[1])
+    expect(await op(19)).toBeLessThan(await op(20))    // commun < peu commun
+    expect(await op(20)).toBeLessThan(await op(1))     // peu commun < rare
+    expect(await op(1)).toBeLessThan(await op(144))    // rare < légendaire
+  })
+
+  // Des rayons plus fins et plus nombreux en haut de l'échelle : c'est ce qui fait « gravure »
+  // plutôt que « gros disque ».
+  it('affine les rayons avec le palier', async () => {
+    const wedge = async (species) => Number(/--wedge:\s*([\d.]+)deg/.exec(await sceneDe(species))[1])
+    expect(await wedge(144)).toBeLessThan(await wedge(1))
+    expect(await wedge(1)).toBeLessThan(await wedge(19))
   })
 
   it('monte le halo avec le palier', async () => {
-    const glow = async (species) => {
-      const w = mountRitual({ entry: entryOf({ species }) })
-      await ouvrir(w)
-      return w.find('.ritual').attributes('style')
-    }
-    expect(await glow(19)).toContain('--glow: 8px')    // commun
-    expect(await glow(20)).toContain('--glow: 16px')   // peu commun
-    expect(await glow(1)).toContain('--glow: 38px')    // rare
-    expect(await glow(144)).toContain('--glow: 66px')  // légendaire
+    expect(await sceneDe(19)).toContain('--glow: 8px')    // commun
+    expect(await sceneDe(20)).toContain('--glow: 16px')   // peu commun
+    expect(await sceneDe(1)).toContain('--glow: 38px')    // rare
+    expect(await sceneDe(144)).toContain('--glow: 60px')  // légendaire
   })
 
   it('marque la scène légendaire', async () => {
@@ -217,16 +209,6 @@ describe('échelle d’intensité', () => {
     expect(await burst(20)).toBeGreaterThan(0)                 // peu commun : un peu
     expect(await burst(1)).toBeGreaterThan(await burst(20))    // rare : davantage
     expect(await burst(144)).toBeGreaterThan(await burst(1))   // légendaire : le maximum
-  })
-
-  it('garde une durée proche entre paliers — l’écart passe par l’intensité', async () => {
-    const w = mountRitual({ entry: entryOf({ species: 19 }) })
-    await reveler(w)
-    expect(w.find('.reveal-name').exists()).toBe(true)
-
-    const l = mountRitual({ entry: entryOf({ species: 144 }) })
-    await reveler(l)
-    expect(l.find('.reveal-name').exists()).toBe(true)
   })
 })
 

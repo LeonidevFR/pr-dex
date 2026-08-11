@@ -190,16 +190,21 @@
 
   .zoom-scrim{
     position:fixed;inset:0;z-index:50;cursor:zoom-out;
-    background:rgba(44,38,32,.72);backdrop-filter:blur(2px);
+    /* Assombri : la carte en grand est du papier clair, elle a besoin d'un fond qui la
+       détache — sur un voile trop pâle, la fiche continue de tirer l'œil derrière. */
+    background:rgba(20,16,12,.84);backdrop-filter:blur(3px);
     display:flex;align-items:center;justify-content:center;padding:20px;
   }
-  .zoom-art{
-    width:min(360px,80vw);height:min(360px,80vw);display:grid;place-items:center;position:relative;
-    background:var(--plate);
-    box-shadow:inset 0 0 0 1px var(--rule),0 0 0 8px var(--paper),0 0 0 9px var(--rule);
+  /* En grand, c'est la carte entière et retournable, pas le sprite dans un cadre. */
+  .zoom-card{display:flex;flex-direction:column;align-items:center;gap:16px;cursor:default}
+  .zoom-card .pkc{width:min(330px,78vw);height:min(462px,109vw)}
+  .zoom-card .pkc-art img{width:172px;height:172px}
+  .zoom-card .pkc-name{font-size:25px}
+  .zoom-card .pkc-lab-title{font-size:14.5px}
+  .zoom-hint{
+    font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.2em;
+    text-transform:uppercase;color:rgba(240,231,212,.6);
   }
-  .zoom-art::before{content:"";position:absolute;inset:18px;border:1px dashed rgba(140,110,72,.3)}
-  .zoom-art img{width:78%;height:78%;object-fit:contain;position:relative}
   .panel-plate{font-family:var(--f-data);font-size:10px;color:var(--ink-3);letter-spacing:.08em}
   .panel-name{font-family:var(--f-display);font-size:28px;font-weight:600;letter-spacing:-.015em;line-height:1.08;margin:5px 0 11px}
   .chip{display:inline-block;font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:4px 9px;border:1px solid var(--tier);color:var(--tier);background:rgba(255,255,255,.25)}
@@ -422,8 +427,12 @@
   .ritual{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;overflow:hidden;
     background:var(--paper);
     background-image:repeating-linear-gradient(0deg, rgba(120,96,64,.032) 0 1px, transparent 1px 4px);}
-  .ritual.opened{background:radial-gradient(ellipse 70% 60% at 50% 45%, #241d15 0%, #14100b 78%)}
-  .ritual.opened.leg{background:radial-gradient(ellipse 75% 65% at 50% 45%, #3a2b12 0%, #120d07 80%)}
+  /* Fond noir plein — pas un dégradé brun. C'est lui qui fait exister la dentelure de la
+     coupe et le halo de la carte : sur du parchemin, l'un et l'autre disparaissent. */
+  .ritual.opened{background:#14100c;background-image:radial-gradient(ellipse 55% 55% at 50% 48%, rgba(80,58,26,.5), transparent 72%)}
+  .ritual.opened.leg{background:#120d07;background-image:radial-gradient(ellipse 60% 58% at 50% 48%, rgba(122,86,26,.55), transparent 74%)}
+  .vignette{position:absolute;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(ellipse 62% 62% at 50% 50%, transparent 40%, rgba(0,0,0,.72) 100%)}
   .ritual-close{z-index:2}
   .ritual.opened .ritual-close{color:#f0e7d4}
   .ritual.opened .ritual-close:hover{color:#fff}
@@ -432,15 +441,21 @@
   .stack .ghost-pkt{position:absolute;inset:0;background:var(--plate);border:1px solid var(--rule-hi);box-shadow:0 10px 24px rgba(44,38,32,.2)}
   .stack .ghost-pkt.g1{transform:translate(9px,10px) rotate(1.6deg)}
   .stack .ghost-pkt.g2{transform:translate(-8px,6px) rotate(-1.4deg)}
+  .stack .ghost-pkt{transition:opacity .28s ease,transform .28s ease}
+  .stack.cutting .ghost-pkt{opacity:0}
+  .stack.cutting .ghost-pkt.g1{transform:translate(20px,22px) rotate(2.4deg)}
+  .stack.cutting .ghost-pkt.g2{transform:translate(-19px,17px) rotate(-2.2deg)}
+  /* Le papier est porté par le bandeau et par le corps, pas par le bouton qui les contient :
+     c'est ce qui permet de DÉCOUPER le corps. Un `clip-path` sur un élément sans fond ne
+     rogne que du texte, et le carton reste un rectangle intact — on voit alors le contenu
+     disparaître sans que le pli ait l'air ouvert. */
   .packet{
-    position:absolute;inset:0;cursor:pointer;border:0;padding:0;
-    background:var(--plate);
+    position:absolute;inset:0;cursor:pointer;border:0;padding:0;background:transparent;
     box-shadow:0 22px 50px rgba(44,38,32,.34);
     display:flex;flex-direction:column;
     transition:transform .2s cubic-bezier(.2,.8,.2,1);
   }
   .packet:hover{transform:translateY(-5px)}
-  .packet::after{content:"";position:absolute;inset:9px;border:1px solid var(--rule);pointer-events:none}
   /* Le bandeau du haut est la partie qu'on découpe : il part, le corps reste. */
   .pkt-flap{display:flex;align-items:center;justify-content:center;height:36px;position:relative;z-index:2;
     background:linear-gradient(180deg,var(--plate-hi),var(--plate));
@@ -455,44 +470,61 @@
   .packet.cutting .pkt-cut{animation:cutRun .42s cubic-bezier(.35,0,.2,1) both}
   @keyframes cutRun{0%{transform:scaleX(0);opacity:1}78%{opacity:1}100%{transform:scaleX(1);opacity:0}}
   .pkt-kicker{font-family:var(--f-label);font-weight:600;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
-  .pkt-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 24px 18px;text-align:center}
+  .pkt-body{
+    flex:1;position:relative;background:var(--plate);
+    display:flex;flex-direction:column;justify-content:center;padding:0 24px 18px;text-align:center;
+  }
+  .pkt-body::after{content:"";position:absolute;inset:9px;border:1px solid var(--rule);pointer-events:none}
+  /* La dentelure est découpée dans du crème, et il y a d'autres plis crème juste derrière :
+     sans ombre portée le long du bord coupé, on ne voit rien du tout. C'est l'ombre qui fait
+     lire « du papier a été enlevé » plutôt que « le texte a bougé ». */
+  .packet.cutting .pkt-body{filter:drop-shadow(0 2px 1px rgba(74,54,30,.55))}
   .pkt-seal{width:64px;height:64px;margin:0 auto 20px;border-radius:50%;background:radial-gradient(circle at 40% 35%, #b8493a, var(--stamp) 70%);box-shadow:0 3px 8px rgba(44,38,32,.4),inset 0 2px 4px rgba(255,255,255,.25),inset 0 -3px 6px rgba(0,0,0,.25);display:grid;place-items:center;color:rgba(255,240,230,.9);font-family:var(--f-data);font-size:19px}
   .pkt-title{font-family:var(--f-display);font-size:18px;font-weight:600;color:var(--ink);line-height:1.32;margin-bottom:10px}
   .pkt-pr{font-family:var(--f-data);font-size:11px;color:var(--ink-3);line-height:1.7}
   .pkt-foot{padding:14px 0 0;text-align:center;font-family:var(--f-label);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3)}
-  /* La déchirure ne part qu'une fois l'entaille finie : elle emporte ce qui reste du pli. */
-  .packet.cutting{animation:tear .42s cubic-bezier(.5,0,.75,0) .76s forwards}
-  @keyframes tear{0%{transform:none}40%{transform:scale(1.05) rotate(-1deg)}100%{transform:scale(1.35) rotate(2deg) translateY(-10px);opacity:0;filter:blur(7px)}}
+  /* L'emballage s'écarte, il ne se dissout pas. L'ancienne déchirure agrandissait le pli en
+     le floutant — ça lit comme une mise au point ratée, pas comme du papier qu'on ouvre. Le
+     bandeau part vers le haut, le corps tombe vers le bas : les deux moitiés se séparent, et
+     la carte monte dans l'espace qu'elles libèrent. */
+  .packet.cutting .pkt-body{animation:corpsTombe .42s cubic-bezier(.45,0,.85,.4) .76s both}
+  @keyframes corpsTombe{
+    0%{transform:none;opacity:1}
+    100%{transform:translateY(52px) rotate(2.2deg);opacity:0}}
 
   @media (prefers-reduced-motion:reduce){
-    .packet.cutting,.packet.cutting .pkt-flap,.packet.cutting .pkt-cut{animation-duration:.01s}
+    .packet.cutting .pkt-body,.packet.cutting .pkt-flap,.packet.cutting .pkt-cut{animation-duration:.01s}
   }
   .queue-note{font-family:var(--f-data);font-size:11px;color:var(--ink-3);letter-spacing:.04em}
 
   /* La scène épouse la carte. Une hauteur fixe ajouterait du vide, et la carte est plus haute
      que le sprite qu'elle remplace : sur un portable, ça la faisait sortir de l'écran. */
-  .reveal{position:relative;display:grid;place-items:center}
+  .reveal{position:relative;z-index:2;display:grid;place-items:center}
   /* Le décompte rend l'automatique prévisible. Une carte qui se retourne toute seule sans
      prévenir vole le geste ; une barre qui se remplit le rend au joueur. */
-  .reveal-hint{display:flex;flex-direction:column;align-items:center;gap:7px;
+  .reveal-hint{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:7px;
     font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.2em;
     text-transform:uppercase;color:#a29172}
   .hint-bar{display:block;width:132px;height:2px;background:rgba(255,235,190,.16)}
   .hint-bar i{display:block;height:100%;width:0;background:rgba(255,214,140,.75);
     animation:countdown 4s linear forwards}
   @keyframes countdown{to{width:100%}}
-  .ray-layer{position:absolute;width:920px;height:920px;pointer-events:none;
-    background:conic-gradient(from var(--ray-from, 0deg), var(--ray-color, var(--tier)) 0deg calc(var(--ray-wedge, 20deg) * .125), transparent calc(var(--ray-wedge, 20deg) * .125) var(--ray-wedge, 20deg));
-    opacity:0;mask-image:radial-gradient(circle,#000 0%,transparent 60%);-webkit-mask-image:radial-gradient(circle,#000 0%,transparent 60%);
+  /* Un disque, masqué en ANNEAU : le masque d'avant partait du centre, donc effaçait les
+     rayons là où la carte les rendrait justement visibles. */
+  .rays{position:absolute;left:50%;top:50%;width:620px;height:620px;margin:-310px 0 0 -310px;
+    pointer-events:none;will-change:transform;opacity:0;
+    background:repeating-conic-gradient(from 0deg, var(--ray) 0 var(--wedge), transparent var(--wedge) calc(var(--wedge) * 4));
+    -webkit-mask-image:radial-gradient(circle,#000 30%,transparent 72%);
+    mask-image:radial-gradient(circle,#000 30%,transparent 72%);
     animation:raysSpin var(--rayspeed) linear infinite, raysIn .8s ease-out forwards}
   @keyframes raysSpin{to{transform:rotate(360deg)}}
-  @keyframes raysIn{to{opacity:calc(var(--rayop) * var(--ray-opacity-factor, 1))}}
+  @keyframes raysIn{to{opacity:var(--rayop)}}
   .flash{position:absolute;width:200px;height:200px;border-radius:50%;background:#fff5e6;animation:flash .55s ease-out forwards}
   @keyframes flash{0%{transform:scale(.15);opacity:.95}100%{transform:scale(var(--flashscale));opacity:0}}
   /* La carte entre comme le sprite entrait : d'un coup, en rebondissant un peu. */
   .reveal .pkc-stage{animation:cardIn .55s cubic-bezier(.18,1.4,.4,1) both}
   @keyframes cardIn{from{opacity:0;transform:scale(.5) translateY(-26px)}to{opacity:1;transform:none}}
-  .reveal-meta{text-align:center;animation:fadeUp .5s ease-out .48s both;color:#f0e7d4}
+  .reveal-meta{position:relative;z-index:2;text-align:center;animation:fadeUp .5s ease-out .48s both;color:#f0e7d4}
   @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   .reveal-banner{font-family:var(--f-label);font-weight:700;font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:var(--ochre);margin-bottom:10px;animation:fadeUp .4s ease-out .3s both}
   .reveal-name{font-family:var(--f-display);font-size:40px;font-weight:700;letter-spacing:-.025em;line-height:1;color:#f6efdf}
@@ -504,7 +536,7 @@
   .reveal-tags .chip.new-chip{border-color:#a8c495;color:#16200f;background:#a8c495}
   .reveal-note{font-family:var(--f-data);font-size:11px;margin-top:17px;color:#a99a7f}
   .reveal-note b{color:var(--ochre);font-weight:500}
-  .next-btn{border:1.5px solid rgba(240,231,212,.35);background:transparent;color:#f0e7d4;font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 24px;cursor:pointer;animation:fadeUp .5s ease-out .75s both}
+  .next-btn{position:relative;z-index:2;border:1.5px solid rgba(240,231,212,.35);background:transparent;color:#f0e7d4;font-family:var(--f-label);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:11px 24px;cursor:pointer;animation:fadeUp .5s ease-out .75s both}
   .next-btn:hover{border-color:#f0e7d4}
   /* Les anciennes particules tournaient en boucle, dispersées au hasard, et ignoraient le
      palier. Celles-ci partent une fois, du centre, en nombre dicté par la rareté. */
@@ -599,13 +631,20 @@
   /* Le rituel occupe tout l'écran et ne défile pas : c'est la carte qui doit tenir dedans,
      avec le nom, les chips et le bouton suivant. Sur un portable, tout ça ne rentre pas à
      la taille de bureau — et une carte tronquée par le haut n'est plus un objet. */
-  @media (max-height:860px){
+  @media (max-height:790px){
     .ritual{gap:18px}
     .reveal .pkc{width:214px;height:300px}
     .reveal .pkc-art img{width:112px;height:112px}
     .reveal .pkc-name{font-size:17px}
     .reveal-name{font-size:32px}
+    /* Le pli rétrécit avec l'écran, et son contenu avec lui : réduire le carton sans réduire
+       le texte fait casser le titre et la date sur deux lignes. */
     .stack{width:210px;height:292px}
+    .pkt-body{padding:0 16px 14px}
+    .pkt-seal{width:52px;height:52px;margin-bottom:14px;font-size:16px}
+    .pkt-title{font-size:15px;margin-bottom:8px}
+    .pkt-pr{font-size:10px;line-height:1.5}
+    .pkt-foot{padding-top:11px}
   }
   @media (max-height:700px){
     .ritual{gap:12px}
@@ -614,4 +653,9 @@
     .reveal-name{font-size:26px}
     .reveal-note{margin-top:10px}
     .stack{width:186px;height:258px}
+    .pkt-body{padding:0 13px 12px}
+    .pkt-seal{width:44px;height:44px;margin-bottom:11px;font-size:14px}
+    .pkt-title{font-size:13.5px}
+    .pkt-flap{height:30px}
+    .pkt-cut{top:29px}
   }
