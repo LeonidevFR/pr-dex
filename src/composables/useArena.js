@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { formOf } from '../../shared/battle.js'
+import { seasonOf } from '../../shared/arena-economy.js'
 
 /**
  * L'état d'arène du joueur et les effets qui le modifient.
@@ -17,6 +18,9 @@ export function useArena(client, claimed) {
   const exemplars = ref([])
   const challenges = ref([])
   const shop = ref([])
+  const leaderboard = ref([])
+  const seasons = ref([])
+  const season = ref(seasonOf())
   const myOpen = ref(null)
   const loading = ref(false)
   const error = ref(null)
@@ -51,10 +55,13 @@ export function useArena(client, claimed) {
     loading.value = true
     error.value = null
     try {
-      const [arena, open, mien, articles] = await Promise.all([
+      const [arena, open, mien, articles, classement, closes] = await Promise.all([
         client.readArena(), client.readOpenChallenges(), client.readMyOpen(), client.readShop(),
+        client.readLeaderboard(season.value), client.readSeasons(),
       ])
       shop.value = articles ?? []
+      leaderboard.value = classement ?? []
+      seasons.value = closes ?? []
       credits.value = arena.credits
       pokedollars.value = arena.pokedollars
       exemplars.value = arena.exemplars
@@ -102,7 +109,7 @@ export function useArena(client, claimed) {
   }
 
   return {
-    credits, pokedollars, exemplars, challenges, shop, myOpen, loading, error,
+    credits, pokedollars, exemplars, challenges, shop, leaderboard, seasons, season, myOpen, loading, error,
     levels, destroyed, engageable, levelOf, formOfKey, load, engage, accept, buy,
   }
 }

@@ -287,3 +287,62 @@ describe('boutique', () => {
     expect(w.text()).toContain('aux mêmes cotes')
   })
 })
+
+/**
+ * Le classement est du prestige, pas de la matière : les points repartent à zéro chaque saison,
+ * et c'est le badge qui reste. D'où deux sources distinctes — le classement en cours vient des
+ * points, les badges des podiums consignés, qu'aucun recalcul ne pourrait retrouver.
+ */
+describe('saison', () => {
+  const classement = [
+    { user_id: 'u-bob', pseudo: 'bob', points: 275, rank: 1 },
+    { user_id: 'u-moi', pseudo: 'moi', points: 120, rank: 2 },
+  ]
+  const closes = [
+    { season: '2026-S3', first_id: 'u-ada', second_id: 'u-moi', third_id: 'u-bob' },
+    { season: '2026-S2', first_id: 'u-bob', second_id: 'u-ada', third_id: 'u-zoe' },
+  ]
+
+  const enSaison = async (props = {}) => {
+    const w = monter({ season: '2026-S4', userId: 'u-moi', ...props })
+    await w.findAll('.filter-chip').find((b) => b.text() === 'Saison').trigger('click')
+    return w
+  }
+
+  it('classe les joueurs et se repère soi-même', async () => {
+    const w = await enSaison({ leaderboard: classement })
+    expect(w.text()).toContain('saison 2026-S4')
+    expect(w.text()).toContain('bob')
+    expect(w.text()).toContain('275 pts')
+    expect(w.find('.mult').text()).toBe('toi')
+  })
+
+  // L'ordinateur ne donne jamais de point : une saison ne se gagne pas en solo, et il faut le
+  // dire là où le classement est vide, sinon l'écran laisse croire à une panne.
+  it('explique un classement vide', async () => {
+    const w = await enSaison({ leaderboard: [] })
+    expect(w.text()).toContain('l’ordinateur n’en donne jamais')
+  })
+
+  it('n’affiche que les podiums où l’on est monté', async () => {
+    const w = await enSaison({ leaderboard: classement, seasons: closes })
+    const badges = w.findAll('.arena-badge')
+    expect(badges).toHaveLength(1)
+    expect(badges[0].text()).toContain('2026-S3')
+  })
+
+  it('donne au badge le rang réellement obtenu', async () => {
+    const w = await enSaison({ seasons: closes })
+    expect(w.find('.arena-badge svg').attributes('aria-label')).toContain('rang 2')
+  })
+
+  it('ne montre aucune section de badges à qui n’en a pas', async () => {
+    const w = await enSaison({ seasons: [{ season: '2026-S2', first_id: 'u-x', second_id: null, third_id: null }] })
+    expect(w.findAll('.arena-badge')).toHaveLength(0)
+  })
+
+  it('rappelle que seuls les badges survivent à la saison', async () => {
+    const w = await enSaison({ leaderboard: classement })
+    expect(w.text()).toContain('c’est le badge qui reste')
+  })
+})

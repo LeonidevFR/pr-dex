@@ -289,7 +289,8 @@ useKeyboardNav({
         :challenges="arena.challenges.value" :engageable="arena.engageable.value"
         :my-open="arena.myOpen.value" :level-of="arena.levelOf"
         :form-of-key="arena.formOfKey" :busy="arenaBusy"
-        :preselect="arenaPreselect" :shop="arena.shop.value"
+        :preselect="arenaPreselect" :shop="arena.shop.value" :leaderboard="arena.leaderboard.value"
+        :seasons="arena.seasons.value" :season="arena.season.value" :user-id="userId"
         @close="arenaOpen = false; arenaPreselect = null" @engage="onEngage" @accept="onAccept" @buy="onBuy"
       />
     </transition>

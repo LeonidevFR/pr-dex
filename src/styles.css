@@ -488,6 +488,9 @@
   .arena-duel-nums .v{font-family:var(--f-display);font-size:26px;font-weight:600;color:var(--ink);line-height:1}
   .arena-duel-nums .v.win{color:var(--ochre)}
 
+  .arena-badges{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px}
+  .arena-badge{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px}
+
   .arena-reward{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
   .arena-reward div{display:flex;flex-direction:column;gap:2px}
   .arena-reward .v{font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--ink);line-height:1}

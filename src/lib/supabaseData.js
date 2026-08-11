@@ -136,6 +136,21 @@ export function createSupabaseClient(userId) {
     )
   }
 
+  /**
+   * Le classement de la saison en cours, et les saisons closes avec leur podium.
+   *
+   * Deux lectures parce que ce sont deux choses : ce qui se joue et ce qui est acquis. Un badge
+   * ne se recalcule pas depuis les points — ceux-ci repartent à zéro à chaque saison, et c'est
+   * précisément pour ça que les podiums sont consignés à part.
+   */
+  const readLeaderboard = (season) =>
+    query(() => supabase.from('arena_leaderboard').select('user_id, pseudo, points, rank')
+      .eq('season', season).order('rank'))
+
+  const readSeasons = () =>
+    query(() => supabase.from('arena_seasons').select('season, first_id, second_id, third_id')
+      .order('season', { ascending: false }))
+
   /** Le catalogue vient de la base, jamais des constantes du front : c'est elle qui débite. */
   const readShop = () =>
     query(() => supabase.from('arena_shop').select('slug, gen, tier, fresh, price').order('price'))
@@ -150,6 +165,6 @@ export function createSupabaseClient(userId) {
 
   return {
     checkAccess, readCatches, readState, writeState, triggerCatch,
-    readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, engage, accept,
+    readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readLeaderboard, readSeasons, engage, accept,
   }
 }

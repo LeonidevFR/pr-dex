@@ -184,6 +184,7 @@ export function demoArena(catches) {
 
   let credits = 5
   let pokedollars = 250
+  let points = 120
   let seq = 100
   const levels = new Map()
   const destroyed = new Set()
@@ -230,9 +231,13 @@ export function demoArena(catches) {
     })
     if (gagne) {
       levels.set(moi.key, out.levelAfter)
-      pokedollars += statut === 'computer'
-        ? Math.round(REWARD[duels.get(id).stake_tier].dollars / 5)
-        : REWARD[duels.get(id).stake_tier].dollars
+      const enjeu = duels.get(id).stake_tier
+      if (statut === 'computer') {
+        pokedollars += Math.round(REWARD[enjeu].dollars / 5)
+      } else {
+        pokedollars += REWARD[enjeu].dollars
+        points += REWARD[enjeu].points
+      }
     } else if (statut !== 'computer') {
       destroyed.add(moi.key)
     }
@@ -259,6 +264,14 @@ export function demoArena(catches) {
       }))),
     }),
     readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
+    readLeaderboard: async () => [
+      { user_id: 'demo-bob', pseudo: 'bob', points: 275, rank: 1 },
+      { user_id: MOI, pseudo: 'toi', points: points, rank: 2 },
+      { user_id: 'demo-ada', pseudo: 'ada', points: 90, rank: 3 },
+    ].sort((a, b) => b.points - a.points).map((l, i) => ({ ...l, rank: i + 1 })),
+    readSeasons: async () => [
+      { season: '2026-S3', first_id: 'demo-ada', second_id: MOI, third_id: 'demo-bob' },
+    ],
     readShop: async () => SHOP.map(({ slug, gen, tier, fresh, price }) => ({ slug, gen, tier, fresh, price })),
     /**
      * En démo l'achat est immédiat : il n'y a pas d'Action pour matérialiser le pli plus tard,

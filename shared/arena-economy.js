@@ -79,3 +79,13 @@ export const CREDIT_PER_WORKING_DAY = 1
 export const CREDIT_CAP = 5
 export const PAIR_WEEKLY_CAP = 2
 export const CHALLENGE_EXPIRY_HOURS = 24
+
+/**
+ * La saison d'une date, au même format que la fonction SQL `arena_season` : deux mois de
+ * calendrier, bornes fixes. Dupliquée ici parce que le front doit savoir quelle saison lire
+ * sans faire un aller-retour pour le demander — et un test de parité l'aligne sur le SQL.
+ */
+export function seasonOf(date = new Date()) {
+  const d = new Date(date)
+  return `${d.getFullYear()}-S${Math.ceil((d.getMonth() + 1) / 2)}`
+}

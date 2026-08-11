@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { REWARD } from '../../shared/arena-economy.js'
 import { spriteUrl } from '../lib/sprites.js'
+import SeasonBadge from './SeasonBadge.vue'
 
 const props = defineProps({
   credits: { type: Number, required: true },
@@ -15,6 +16,10 @@ const props = defineProps({
   busy: { type: Boolean, default: false },
   preselect: { type: String, default: null },
   shop: { type: Array, default: () => [] },
+  leaderboard: { type: Array, default: () => [] },
+  seasons: { type: Array, default: () => [] },
+  season: { type: String, default: '' },
+  userId: { type: String, default: '' },
 })
 const emit = defineEmits(['close', 'engage', 'accept', 'buy'])
 
@@ -23,6 +28,14 @@ const rulesOpen = ref(false)
 
 /** Deux onglets : le panneau porte déjà beaucoup, et acheter n'est pas se battre. */
 const tab = ref('duels')
+
+/** Les saisons closes où ce joueur est monté sur le podium, du plus récent au plus ancien. */
+const mesBadges = computed(() => props.seasons
+  .map((s) => ({
+    season: s.season,
+    rank: [s.first_id, s.second_id, s.third_id].indexOf(props.userId) + 1,
+  }))
+  .filter((b) => b.rank > 0))
 
 const ARTICLE = { c: 'commun', u: 'peu commun', r: 'rare', l: 'légendaire' }
 const nomArticle = (a) =>
@@ -135,6 +148,9 @@ function take(duelId) {
           <button
             class="filter-chip" :class="{ active: tab === 'boutique' }" @click="tab = 'boutique'"
           >Boutique</button>
+          <button
+            class="filter-chip" :class="{ active: tab === 'saison' }" @click="tab = 'saison'"
+          >Saison</button>
         </div>
         <p v-if="!credits" class="muted">
           Tu as joué tous tes engagements. Il en revient <b>un par jour ouvré</b>, et ils
@@ -293,6 +309,37 @@ function take(duelId) {
           </button>
         </div>
       </div>
+      <div v-if="tab === 'saison'" class="sect">
+        <div class="eyebrow sect-h">
+          <span>Classement · saison {{ season }}</span>
+        </div>
+        <p v-if="!leaderboard.length" class="muted">
+          Personne n’a encore marqué cette saison. Les points ne viennent que des duels entre
+          joueurs — l’ordinateur n’en donne jamais.
+        </p>
+        <div v-for="l in leaderboard" :key="l.user_id" class="log-row">
+          <span class="log-sha mono">{{ l.rank }}</span>
+          <span class="log-title">
+            {{ l.pseudo ?? 'Sans nom' }}
+            <b v-if="l.user_id === userId" class="mult">toi</b>
+          </span>
+          <span class="log-date mono">{{ l.points }} pts</span>
+        </div>
+        <p class="muted" style="margin-top:12px">
+          Les points repartent à zéro à chaque saison — c’est le badge qui reste.
+        </p>
+      </div>
+
+      <div v-if="tab === 'saison' && mesBadges.length" class="sect">
+        <div class="eyebrow sect-h"><span>Tes badges</span></div>
+        <div class="arena-badges">
+          <div v-for="b in mesBadges" :key="b.season" class="arena-badge">
+            <SeasonBadge :season="b.season" :rank="b.rank" />
+            <span class="mono muted">{{ b.season }}</span>
+          </div>
+        </div>
+      </div>
+
       <div v-if="tab === 'boutique'" class="sect">
         <div class="eyebrow sect-h"><span>Ce que les pokédollars achètent</span></div>
         <p class="muted" style="margin-bottom:12px">
