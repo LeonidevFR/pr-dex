@@ -343,7 +343,11 @@ describe.skipIf(!disponible)('engager contre l’ordinateur', () => {
         return COMPUTER_REWARD[r.duel.stake_tier]
       })))
     expect(plafond).toBeLessThanOrEqual(COMPUTER_REWARD.r)
-  })
+    // Délai explicite, comme les tests de parité en masse : douze duels complets, et une base
+    // partagée avec les autres fichiers d'arène qui tournent en parallèle. Les cinq secondes
+    // par défaut n'ont jamais mesuré la logique testée ici, seulement la charge de la machine
+    // — un test rouge une fois sur trois selon l'ordonnancement finit par n'être plus lu.
+  }, 60_000)
 
   // Le palier tiré par l'ordinateur ne dépend que du seed du duel : la même graine rend le même
   // adversaire, et aucune graine ne dépend de ce que le joueur a engagé.
@@ -369,7 +373,8 @@ describe.skipIf(!disponible)('engager contre l’ordinateur', () => {
     // Niveaux dans la borne demandée, et espèces bien du palier annoncé.
     for (const t of tirages) expect(t.foe_level).toBeGreaterThanOrEqual(1)
     for (const t of tirages) expect(t.foe_level).toBeLessThanOrEqual(10)
-  })
+    // Deux cents allers-retours en série, même raison qu'au-dessus.
+  }, 60_000)
 })
 
 describe.skipIf(!disponible)('la table des plis', () => {
