@@ -433,8 +433,17 @@ $$;
 -- de « maintenant » : interrogée sur un lundi passé, elle ne se laisse pas amputer par des
 -- duels qui n'avaient pas encore eu lieu. Sans elle, les tests d'un solde daté seraient à la
 -- merci de l'historique postérieur.
+-- `security definer`, et ce n'est pas un confort : sous RLS, un joueur ne voit PAS ses propres
+-- duels ouverts (leur mise est dans la ligne, cf. la policy plus haut). Une lecture en droit
+-- d'appelant compterait donc zéro dépense pour un défi posté, et le front afficherait un
+-- crédit que `arena_engage` refuse ensuite d'honorer — un compteur qui ment, exactement ce que
+-- la déduction plutôt que le stockage cherchait à éviter.
+--
+-- Conséquence assumée : un joueur peut interroger le solde d'un autre. Ce que cela publie est
+-- un entier de 0 à 5 qui ne dit ni la mise, ni l'exemplaire, ni l'issue d'un duel — moins que
+-- le classement de saison, déjà public par conception (§ 5).
 create or replace function public.arena_credits(uid uuid, at timestamptz default now())
-returns int language sql stable as $$
+returns int language sql stable security definer set search_path = public as $$
   select greatest(0,
     least(5, extract(isodow from at at time zone 'Europe/Paris') :: int)
     - (
@@ -448,5 +457,288 @@ returns int language sql stable as $$
         and d.created_at <= arena_credits.at
     ))
 $$;
+
+-- Même raison que pour `arena_engage` : Postgres accorde `execute` à `public` par défaut, et
+-- `public` inclut les visiteurs anonymes. Une fonction `security definer` laissée ouverte à
+-- `public` serait lisible sans compte.
+revoke execute on function public.arena_credits(uuid, timestamptz) from public;
+grant execute on function public.arena_credits(uuid, timestamptz) to authenticated;
+
+-- Les plis dus. Un pli gagné n'est pas encore une capture : il le devient quand le lot 2d le
+-- matérialise en ligne `catches` de source `arene`, tirée par `drawFrom` sur sa propre clé
+-- (spec § 6). D'où `claimed_at` — la dette et son règlement sont deux moments distincts, et
+-- une panne entre les deux ne doit pas faire disparaître le dû.
+--
+-- `duel_id` porte l'origine du pli et sert de garde-fou : un pli sans duel n'aurait aucune
+-- justification relisible. `on delete cascade` parce qu'un duel effacé n'a jamais eu lieu.
+create table public.arena_packs (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  tier text not null check (tier in ('c', 'u', 'r', 'l')),
+  duel_id bigint not null references public.arena_duels (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  claimed_at timestamptz
+);
+
+alter table public.arena_packs enable row level security;
+
+-- Lecture de ses propres plis, et rien d'autre. Aucune policy d'écriture : un joueur qui
+-- pourrait insérer une ligne ici s'offrirait des plis, et un joueur qui pourrait la mettre à
+-- jour rejouerait le sien autant de fois qu'il veut. L'unique écrivain est la fonction
+-- `security definer`, qui s'exécute sous son propre droit et ignore ces policies.
+create policy "arena_packs_select_own" on public.arena_packs
+  for select using (auth.uid() = user_id);
+
+grant select on public.arena_packs to authenticated;
+
+-- Tarif humain en pokédollars, table du § 4. L'ordinateur en paye le CINQUIÈME, dérivé et non
+-- recopié : `shared/arena-economy.js` pose exactement la même relation
+-- (`COMPUTER_REWARD[t] === REWARD[t].dollars / 5`) et son test la vérifie, si bien que les
+-- deux ne peuvent pas diverger en silence. Les quatre tarifs sont multiples de cinq, la
+-- division entière est donc exacte.
+create or replace function public.arena_reward_dollars(tier text)
+returns int language sql immutable strict as $$
+  select case tier when 'c' then 50 when 'u' then 100 when 'r' then 250 when 'l' then 600 end
+$$;
+
+-- « L'enjeu du duel » : le plus PETIT des deux engagements, la règle du poker. C'est elle qui
+-- supprime d'un seul mouvement les deux stratégies dégénérées — écraser un Roucool avec un
+-- légendaire, et venir en Roucool pour tenter l'exploit. Portage de `coveredTier`.
+create or replace function public.arena_covered_tier(a text, b text)
+returns text language sql immutable strict as $$
+  select case when array_position(array['c', 'u', 'r', 'l'], a)
+                <= array_position(array['c', 'u', 'r', 'l'], b)
+              then a else b end
+$$;
+
+-- Plafond de niveau du combattant de l'ordinateur : le niveau MÉDIAN des exemplaires
+-- réellement engagés dans l'arène ces trente derniers jours (spec § 2). Un plafond fixe ferait
+-- de l'ordinateur un adversaire de plus en plus dérisoire à mesure que l'équipe monte ses
+-- champions ; la médiane le fait suivre le terrain sans jamais le dépasser.
+--
+-- Le niveau lu est le niveau ACTUEL de l'exemplaire, pas celui qu'il avait le jour du duel :
+-- l'arène ne conserve pas l'historique des niveaux, et l'approximation ne coûte rien ici — on
+-- cherche l'ordre de grandeur du terrain, pas une valeur exacte.
+--
+-- Aucun duel encore joué rend 1 et non zéro : le premier joueur de l'arène doit trouver un
+-- adversaire, et `arena_power` sur un niveau nul rendrait une puissance négative.
+create or replace function public.arena_field_level_cap()
+returns int language sql stable as $$
+  select greatest(1, least(10,
+    coalesce(percentile_cont(0.5) within group (order by e.level) :: int, 1)))
+  from public.arena_duels d
+  join public.arena_exemplars e
+    on (e.user_id = d.challenger_id and e.entry_key = d.challenger_key)
+    or (e.user_id = d.opponent_id and e.entry_key = d.opponent_key)
+  where d.created_at >= now() - interval '30 days'
+$$;
+
+-- Le combattant de l'ordinateur, tiré d'une graine et de rien d'autre.
+--
+-- La signature EST la garantie : elle ne prend pas la mise du joueur, donc elle ne peut pas en
+-- dépendre. Une version antérieure faisait tirer l'ordinateur dans le pool du palier de la
+-- mise adverse ; les deux paliers étant alors égaux par construction, l'enjeu valait toujours
+-- la mise du joueur et la règle de l'enjeu était inopérante contre l'ordinateur — engager plus
+-- haut payait davantage sans contrepartie, seul endroit du modèle où c'était le cas.
+--
+-- Le terrain ordinaire n'est PAS la distribution des tirages (`WEIGHTS` de `shared/draw.js`,
+-- 45 % de communs) : on tire beaucoup de communs et on n'en engage presque pas — un joueur
+-- envoie son champion, pas son stock. D'où une distribution propre, majoritairement du peu
+-- commun et du rare, conforme au § 2.
+--
+-- Aucun légendaire, et c'est délibéré : le § 4 assume que « les légendaires ne descendront
+-- jamais dans l'arène », personne n'en tirant assez (~1 par saison) pour encaisser d'en perdre
+-- un sur deux. Un ordinateur qui en sortirait ferait payer l'enjeu légendaire — 120 $ — à un
+-- adversaire qui ne risque rien, exactement ce que le cinquième cherche à éviter.
+--
+-- Les trois graines dérivées portent des suffixes distincts : réutiliser la même graine pour
+-- le palier et l'espèce corrélerait les deux tirages, et certaines espèces ne sortiraient
+-- jamais.
+--
+-- `stable` : les pools d'espèces viennent de `species_stats`.
+create or replace function public.arena_computer_pick(seed text, level_cap int)
+returns table (foe_species int, foe_tier text, foe_level int)
+language sql stable strict as $$
+  with t as (
+    select case
+      when public.fnv1a(arena_computer_pick.seed || ':ia-palier') :: double precision
+             / 4294967296 :: double precision < 0.20 then 'c'
+      when public.fnv1a(arena_computer_pick.seed || ':ia-palier') :: double precision
+             / 4294967296 :: double precision < 0.65 then 'u'
+      else 'r' end :: text as tier
+  ),
+  pool as (
+    -- `order by` explicite : sans lui l'ordre d'agrégation dépendrait du plan, et la même
+    -- graine ne rendrait pas toujours la même espèce.
+    select t.tier, array_agg(s.species order by s.species) as ids
+    from t join public.species_stats s on s.tier = t.tier
+    group by t.tier
+  )
+  select pool.ids[(public.fnv1a(arena_computer_pick.seed || ':ia-espece')
+                   % array_length(pool.ids, 1)) :: int + 1],
+         pool.tier,
+         (public.fnv1a(arena_computer_pick.seed || ':ia-niveau')
+          % greatest(1, arena_computer_pick.level_cap)) :: int + 1
+  from pool
+$$;
+
+-- Un exemplaire ne peut figurer que dans UN défi ouvert à la fois. La fonction le vérifie déjà
+-- et rend alors un message clair ; cet index est le filet en dessous : deux appels simultanés
+-- passeraient tous les deux la vérification, et le joueur miserait deux fois le même Pokémon
+-- pour n'en perdre qu'un. Une contrainte structurelle ne se laisse pas contourner par une
+-- fenêtre de concurrence.
+create unique index arena_duels_one_open_per_exemplar
+  on public.arena_duels (challenger_id, challenger_key) where status = 'open';
+
+-- Engager un exemplaire : poster un défi ouvert, ou affronter l'ordinateur tout de suite.
+--
+-- `security definer` parce que c'est l'unique écrivain des tables d'arène : aucun joueur n'a
+-- de droit d'écriture, donc tout ce qui s'écrit passe par ici et par les règles écrites ici.
+-- `set search_path = public` pour qu'un schéma placé devant par un appelant ne puisse pas
+-- substituer sa propre `catches`.
+--
+-- L'appelant vient de `auth.uid()` et JAMAIS d'un paramètre : un identifiant passé en argument
+-- est ce que le client prétend être, et laisserait n'importe qui engager les Pokémon d'autrui.
+create or replace function public.arena_engage(
+  p_entry_key text, p_vs_computer boolean default false)
+returns bigint
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_species int;
+  v_tier text;
+  v_level int;
+  v_destroyed timestamptz;
+  v_duel_id bigint;
+  v_foe_key text;
+  v_stake text;
+  v_foe record;
+  v_out record;
+  v_day text := to_char(now() at time zone 'Europe/Paris', 'YYYY-MM-DD');
+  v_seed text;
+begin
+  if v_uid is null then
+    raise exception 'arene : appel non authentifié';
+  end if;
+
+  -- Sérialise les engagements d'un même joueur pour la durée de la transaction. Les crédits
+  -- sont DÉDUITS des duels déjà enregistrés : deux appels simultanés liraient tous les deux le
+  -- solde d'avant et dépenseraient un crédit qui n'existe qu'une fois — la classe de bug de la
+  -- double dépense de bonbons déjà rencontrée dans ce projet. Le verrou ne gêne personne : il
+  -- ne bloque qu'un joueur contre lui-même.
+  perform pg_advisory_xact_lock(hashtextextended(v_uid :: text, 0));
+
+  -- La propriété se lit dans `catches`, seule source de vérité sur ce qu'un joueur possède.
+  -- `user_id` fait partie de la condition : sans lui, on vérifierait que la clé existe et non
+  -- qu'elle est à l'appelant.
+  select c.species into v_species
+  from public.catches c
+  where c.user_id = v_uid and c.source || ':' || c.external_id = p_entry_key;
+
+  if v_species is null then
+    raise exception 'arene : exemplaire non possédé (%)', p_entry_key;
+  end if;
+
+  -- Aucune ligne `arena_exemplars` pour un exemplaire jamais engagé : c'est le cas NORMAL, et
+  -- il vaut niveau 1, non détruit. On ne crée pas la ligne ici — un engagement ne change rien
+  -- à l'exemplaire tant que le duel n'est pas résolu.
+  select e.level, e.destroyed_at into v_level, v_destroyed
+  from public.arena_exemplars e
+  where e.user_id = v_uid and e.entry_key = p_entry_key;
+  v_level := coalesce(v_level, 1);
+
+  if v_destroyed is not null then
+    raise exception 'arene : exemplaire détruit (%)', p_entry_key;
+  end if;
+
+  -- Les deux camps sont couverts : un exemplaire immobilisé l'est qu'on ait posté le défi ou
+  -- qu'on l'ait relevé. Seuls les duels OUVERTS immobilisent — un duel résolu a rendu son
+  -- exemplaire (ou l'a détruit, et c'est `destroyed_at` qui le dit).
+  if exists (
+    select 1 from public.arena_duels d
+    where d.status = 'open'
+      and ((d.challenger_id = v_uid and d.challenger_key = p_entry_key)
+        or (d.opponent_id = v_uid and d.opponent_key = p_entry_key))
+  ) then
+    raise exception 'arene : exemplaire déjà engagé (%)', p_entry_key;
+  end if;
+
+  -- Vérifié APRÈS la propriété : « tu n'as plus de crédit » sur un exemplaire qu'on ne possède
+  -- pas serait un diagnostic faux, et enverrait le joueur attendre demain pour rien.
+  if public.arena_credits(v_uid) <= 0 then
+    raise exception 'arene : aucun crédit d''engagement disponible cette semaine';
+  end if;
+
+  select s.tier into v_tier from public.species_stats s where s.species = v_species;
+  if v_tier is null then
+    raise exception 'arene : espèce inconnue (%)', v_species;
+  end if;
+
+  if not p_vs_computer then
+    -- Un défi ouvert porte sa mise en base sans la rendre lisible : la policy exclut les duels
+    -- ouverts et la vue `arena_open_challenges` n'expose pas la colonne. On relève à l'aveugle.
+    insert into public.arena_duels (challenger_id, challenger_key, status, stake_tier)
+    values (v_uid, p_entry_key, 'open', v_tier)
+    returning id into v_duel_id;
+    return v_duel_id;
+  end if;
+
+  -- Contre l'ordinateur, RIEN n'est détruit ni créé : il ne possède rien. S'il détruisait un
+  -- exemplaire, un Pokémon disparaîtrait du monde sans contrepartie ; s'il donnait un pli, il
+  -- en apparaîtrait un depuis rien. Il paye des pokédollars, et c'est tout.
+  --
+  -- La ligne est insérée d'abord parce que son identifiant EST la graine du duel : dérivée
+  -- d'une clé d'identité, elle est stable une fois écrite, donc le client peut rejouer le
+  -- combat et retomber sur le même vainqueur — ce que le résumé de combat exige.
+  insert into public.arena_duels (challenger_id, challenger_key, status)
+  values (v_uid, p_entry_key, 'computer')
+  returning id into v_duel_id;
+
+  v_seed := 'duel:' || v_duel_id;
+  v_foe_key := 'ordinateur:' || v_duel_id;
+
+  select * into v_foe from public.arena_computer_pick(v_seed, public.arena_field_level_cap());
+
+  select * into v_out from public.arena_resolve(
+    p_entry_key, v_species, v_level,
+    v_foe_key, v_foe.foe_species, v_foe.foe_level,
+    v_day, v_seed);
+
+  -- L'enjeu, et non la mise du joueur : engager un légendaire contre un terrain de peu communs
+  -- ne rapporte que le peu commun, exactement comme contre un humain.
+  v_stake := public.arena_covered_tier(v_tier, v_foe.foe_tier);
+
+  update public.arena_duels set
+    opponent_key = v_foe_key,
+    stake_tier = v_stake,
+    -- `winner_id` nul sur un duel `computer` signifie que l'ordinateur a gagné : il n'a pas de
+    -- compte, on ne peut donc pas l'y écrire. Le statut lève l'ambiguïté avec un duel en cours.
+    winner_id = case when v_out.winner = 'left' then v_uid end,
+    challenger_power = v_out.left_power,
+    opponent_power = v_out.right_power,
+    probability = v_out.probability,
+    roll = v_out.roll,
+    resolved_at = now()
+  where id = v_duel_id;
+
+  if v_out.winner = 'left' then
+    -- Des pokédollars, au cinquième du tarif humain, et rien d'autre. Ni point de classement,
+    -- ni pli, ni NIVEAU : sans cette dernière exclusion on monterait un champion sans jamais
+    -- rien risquer, et le niveau cesserait de mesurer ce qu'on a osé. C'est pourquoi
+    -- `v_out.level_after` est délibérément ignoré ici.
+    insert into public.arena_wallet (user_id, pokedollars)
+    values (v_uid, public.arena_reward_dollars(v_stake) / 5)
+    on conflict (user_id) do update
+      set pokedollars = arena_wallet.pokedollars + excluded.pokedollars;
+  end if;
+
+  return v_duel_id;
+end;
+$$;
+
+-- `public` inclut les visiteurs anonymes, et Postgres accorde `execute` à `public` par défaut
+-- sur toute fonction créée : sans ce `revoke`, la fonction serait appelable sans compte.
+revoke execute on function public.arena_engage(text, boolean) from public;
+grant execute on function public.arena_engage(text, boolean) to authenticated;
 
 commit;
