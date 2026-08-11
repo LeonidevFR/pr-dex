@@ -1,4 +1,7 @@
-export const TIER_ORDER = ['c', 'u', 'r', 'l']
+// Réexporté depuis species.js, où vit désormais l'ordre des paliers, pour ne casser aucun
+// import existant : l'enjeu d'un duel s'en sert autant que la grille.
+export { TIER_ORDER } from './species.js'
+import { TIER_ORDER } from './species.js'
 
 /**
  * L'« enjeu du duel » : on ne gagne pas plus que ce que l'adversaire a engagé, comme au

@@ -1,7 +1,7 @@
-import { POOL, DEX } from '../shared/species.js'
+import { POOL, DEX, TIER_ORDER } from '../shared/species.js'
 import { drawFrom, fnv1a } from '../shared/draw.js'
 import { formOf, resolveDuel, NORMAL_FORM } from '../shared/battle.js'
-import { coveredTier, REWARD, COMPUTER_REWARD, TIER_ORDER, CREDIT_CAP } from '../shared/arena-economy.js'
+import { coveredTier, REWARD, COMPUTER_REWARD, CREDIT_CAP } from '../shared/arena-economy.js'
 
 /**
  * Un duel coûte un crédit et le plafond hebdomadaire de crédits est de cinq : le nombre de
@@ -21,7 +21,7 @@ const PLIS_PER_WEEK = 25
  */
 export const POLICIES = { prudent: 'c', rare: 'r', audacieux: 'l' }
 
-const emptyStock = () => ({ c: [], u: [], r: [], l: [] })
+const emptyStock = () => Object.fromEntries(TIER_ORDER.map((t) => [t, []]))
 
 /** Les plis tirés du travail, aux cotes de tout le monde — c'est ce qui alimente la réserve. */
 function collectWeek(stock, seed) {
@@ -63,7 +63,8 @@ function newPlayer(policy) {
   }
   return {
     policy, stock: emptyStock(), dollars: 0, points: 0, packs: 0, lost: 0,
-    duels: 0, wins: 0, computerWins: 0, fallbacks: 0, stakes: { c: 0, u: 0, r: 0, l: 0 },
+    duels: 0, wins: 0, computerWins: 0, fallbacks: 0,
+    stakes: Object.fromEntries(TIER_ORDER.map((t) => [t, 0])),
   }
 }
 

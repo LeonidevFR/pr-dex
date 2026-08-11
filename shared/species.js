@@ -150,6 +150,10 @@ for (const s of Object.values(DEX)) {
   POOL[s.tier].push(s.id)
 }
 
+// Du plus commun au plus rare. Sert partout où l'ordre des paliers compte — l'enjeu d'un
+// duel, les filtres de la grille — et pas seulement à l'économie de l'arène, d'où il vient.
+export const TIER_ORDER = ['c', 'u', 'r', 'l']
+
 export const TIER_LABEL = { c: 'Commun', u: 'Peu commun', r: 'Rare', l: 'Légendaire' }
 export const TIER_VAR = { c: 'var(--t-c)', u: 'var(--t-u)', r: 'var(--t-r)', l: 'var(--t-l)' }
 // Rayons laser multicolores (rare/légendaire uniquement) — cycle fixe, partagé entre les deux paliers.

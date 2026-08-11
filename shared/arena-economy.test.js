@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
-  TIER_ORDER, coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER,
+  coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER,
   SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP,
   CHALLENGE_EXPIRY_HOURS,
 } from './arena-economy.js'
+import { TIER_ORDER } from './species.js'
 
 describe('coveredTier', () => {
   it('rend le palier commun quand les deux camps engagent un commun', () => {
