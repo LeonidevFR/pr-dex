@@ -141,3 +141,13 @@ describe('TheRail', () => {
     })
   })
 })
+
+describe('accès à l’arène', () => {
+  it('propose un bouton qui ouvre les duels', async () => {
+    const w = mountRail()
+    const bouton = w.findAll('.gear').find((b) => b.attributes('title') === 'Arène')
+    expect(bouton).toBeDefined()
+    await bouton.trigger('click')
+    expect(w.emitted('arena')).toHaveLength(1)
+  })
+})

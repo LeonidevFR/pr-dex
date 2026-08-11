@@ -6,8 +6,11 @@ import SpeciesSheet from './components/SpeciesSheet.vue'
 import RitualOverlay from './components/RitualOverlay.vue'
 import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import ArenaPanel from './components/ArenaPanel.vue'
+import DuelOverlay from './components/DuelOverlay.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
+import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
@@ -26,6 +29,11 @@ const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
+const arenaOpen = ref(false)
+const arenaBusy = ref(false)
+const duelShown = ref(null)
+const userId = ref('')
+let arena = null
 
 const filters = useTrayFilters()
 
@@ -44,6 +52,8 @@ async function connectSession(s) {
   connectError.value = null
   githubLogin.value = s.user.user_metadata?.user_name ?? ''
   const client = createSupabaseClient(s.user.id)
+  userId.value = s.user.id
+  arena = useArena(client, collection.dex.claimed)
   try {
     await client.checkAccess()
   } catch (e) {
@@ -52,10 +62,32 @@ async function connectSession(s) {
     return
   }
   await collection.load(client)
+  await arena.load()
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
 }
+
+/**
+ * Engager et relever passent par le serveur, qui décide seul. On rouvre ensuite la collection
+ * en même temps que l'arène : un duel gagné peut avoir détruit un exemplaire, et la planche
+ * doit le refléter sans qu'on ait à recharger la page.
+ */
+async function playArena(fn) {
+  arenaBusy.value = true
+  try {
+    duelShown.value = await fn()
+    arenaOpen.value = false
+    await collection.refresh()
+  } catch (e) {
+    connectError.value = e.kind ?? 'server'
+  } finally {
+    arenaBusy.value = false
+  }
+}
+
+const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComputer))
+const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
 
 function disconnect() {
   signOut()
@@ -173,6 +205,7 @@ useKeyboardNav({
       :syncing="collection.loading.value" :sync-error="collection.error.value"
       :filters-open="filters.open.value" :filters-active="filters.active.value"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
+      @arena="arenaOpen = true"
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
@@ -210,6 +243,23 @@ useKeyboardNav({
       <EvolutionOverlay
         v-if="evoAnim" :from="evoAnim.from" :to="evoAnim.to" :shiny="evoAnim.shiny"
         :is-new="evoAnim.isNew" :candies="collection.dex.candies(evoAnim.to)" @done="finishEvo"
+      />
+    </transition>
+
+    <transition name="fade">
+      <ArenaPanel
+        v-if="arenaOpen && arena"
+        :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
+        :challenges="arena.challenges.value" :engageable="arena.engageable.value"
+        :my-open="arena.myOpen.value" :level-of="arena.levelOf" :busy="arenaBusy"
+        @close="arenaOpen = false" @engage="onEngage" @accept="onAccept"
+      />
+    </transition>
+
+    <transition name="fade">
+      <DuelOverlay
+        v-if="duelShown" :duel="duelShown" :user-id="userId"
+        @close="duelShown = null"
       />
     </transition>
 

@@ -9,7 +9,7 @@ const props = defineProps({
   filtersOpen: { type: Boolean, default: false },
   filtersActive: { type: Boolean, default: false },
 })
-const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters'])
+const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'arena'])
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
@@ -95,6 +95,7 @@ onUnmounted(() => clearTimeout(cooldownTimer))
       <button class="gear sync" :title="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
         <span :class="{ spinning: syncing }">⟳</span><span v-if="syncError" class="err-dot"></span>
       </button>
+      <button class="gear" title="Arène" @click="$emit('arena')">⚔</button>
       <button class="gear" title="Réglages" @click="$emit('settings')">⚙</button>
     </div>
   </header>
