@@ -426,7 +426,10 @@
   .arena-pick.on{border-color:var(--ochre);box-shadow:inset 0 0 0 2px var(--ochre);color:var(--ink)}
   .arena-pick.on .lv{color:var(--ochre)}
 
-  .arena-list{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap;max-height:232px;overflow-y:auto;padding-right:4px}
+  /* Pas de défilement propre : le panneau défile déjà, et une fenêtre dans une fenêtre
+     réduisait la grille à quelques rangées tout en donnant deux barres à manœuvrer. La barre
+     d'action étant collée en bas, on peut dérouler la liste entière sans jamais la perdre. */
+  .arena-list{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
 
   .arena-rule{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
   .arena-rule b{color:var(--ink);font-family:var(--f-label);font-size:10px;letter-spacing:.1em;
