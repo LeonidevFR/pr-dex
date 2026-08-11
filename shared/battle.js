@@ -61,8 +61,8 @@ export const P_CEIL = 0.90
  * Électhor près d'une fois sur trois, ce que l'écart de stats ne justifie pas.
  */
 export function winProbability(a, b) {
-  const brut = a ** 3 / (a ** 3 + b ** 3)
-  return Math.min(P_CEIL, Math.max(P_FLOOR, brut))
+  const raw = a ** 3 / (a ** 3 + b ** 3)
+  return Math.min(P_CEIL, Math.max(P_FLOOR, raw))
 }
 
 /**
@@ -73,8 +73,8 @@ export function winProbability(a, b) {
 const LEVEL_GAIN_STEPS = [[0.75, 0], [1.10, 1], [1.50, 2], [2.00, 3]]
 
 export function levelGain(mine, theirs) {
-  const rapport = theirs / mine
-  for (const [seuil, gain] of LEVEL_GAIN_STEPS) if (rapport < seuil) return gain
+  const ratio = theirs / mine
+  for (const [threshold, gain] of LEVEL_GAIN_STEPS) if (ratio < threshold) return gain
   return 5
 }
 
@@ -98,36 +98,36 @@ const roll = (seed) => fnv1a(`${seed}:issue`) / 2 ** 32
  * départagés par l'ordre d'appel. Le champ reste optionnel parce que la simulation, qui ne
  * manipule pas d'exemplaires réels, n'en a pas.
  */
-const cleDeTri = ({ key = '', species, level = 1, form = NORMAL_FORM }) =>
+const sortKey = ({ key = '', species, level = 1, form = NORMAL_FORM }) =>
   `${key}:${species}:${level}:${form.slug}`
 
 export function resolveDuel({ left, right, seed }) {
-  const pg = power(left)
-  const pd = power(right)
-  const probability = winProbability(pg, pd)
-  const tirage = roll(seed)
+  const leftPower = power(left)
+  const rightPower = power(right)
+  const probability = winProbability(leftPower, rightPower)
+  const draw = roll(seed)
 
   // Le tirage est confronté au camp canoniquement premier et non à `left` : sans cela,
   // échanger les deux arguments à seed égal changerait le vainqueur près d'une fois sur
   // trois. Or le serveur résout un duel challenger / preneur et le client le rejoue dans
   // l'ordre qui l'arrange — les deux doivent retomber sur le même exemplaire.
-  const gaucheDabord = cleDeTri(left) <= cleDeTri(right)
-  const premierGagne = gaucheDabord
-    ? tirage < probability
-    : tirage < winProbability(pd, pg)
-  const gaucheGagne = gaucheDabord ? premierGagne : !premierGagne
+  const leftFirst = sortKey(left) <= sortKey(right)
+  const firstWins = leftFirst
+    ? draw < probability
+    : draw < winProbability(rightPower, leftPower)
+  const leftWins = leftFirst ? firstWins : !firstWins
 
-  const vainqueur = gaucheGagne ? left : right
-  const [pv, pp] = gaucheGagne ? [pg, pd] : [pd, pg]
-  const gain = levelGain(pv, pp)
+  const winner = leftWins ? left : right
+  const [winnerPower, loserPower] = leftWins ? [leftPower, rightPower] : [rightPower, leftPower]
+  const gain = levelGain(winnerPower, loserPower)
 
   return {
-    winner: gaucheGagne ? 'left' : 'right',
+    winner: leftWins ? 'left' : 'right',
     probability,
-    roll: tirage,
-    left: { power: pg, level: left.level ?? 1, form: left.form ?? NORMAL_FORM },
-    right: { power: pd, level: right.level ?? 1, form: right.form ?? NORMAL_FORM },
+    roll: draw,
+    left: { power: leftPower, level: left.level ?? 1, form: left.form ?? NORMAL_FORM },
+    right: { power: rightPower, level: right.level ?? 1, form: right.form ?? NORMAL_FORM },
     gain,
-    levelAfter: Math.min(LEVEL_MAX, (vainqueur.level ?? 1) + gain),
+    levelAfter: Math.min(LEVEL_MAX, (winner.level ?? 1) + gain),
   }
 }

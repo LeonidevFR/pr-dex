@@ -13,7 +13,7 @@ function moyenne(index) {
   const moy = (f) => runs.reduce((a, r) => a + f(r), 0) / RUNS
   return {
     dollars: moy((r) => r.dollars), points: moy((r) => r.points),
-    plis: moy((r) => r.plis), lost: moy((r) => r.lost), duels: moy((r) => r.duels),
+    packs: moy((r) => r.packs), lost: moy((r) => r.lost), duels: moy((r) => r.duels),
     fallbacks: moy((r) => r.fallbacks), stakesL: moy((r) => r.stakes.l),
     stockR: moy((r) => r.stock.r), stockL: moy((r) => r.stock.l),
     winRate: moy((r) => r.wins / r.duels),
@@ -83,7 +83,7 @@ describe('équilibrage de l’arène', () => {
     // touche jamais ces compteurs. Elles rougiraient si l'ordinateur se mettait un jour à
     // distribuer des plis ou des points.
     expect(ordinateur.points).toBe(0)
-    expect(ordinateur.plis).toBe(0)
+    expect(ordinateur.packs).toBe(0)
     expect(ordinateur.lost).toBe(0)
   })
 

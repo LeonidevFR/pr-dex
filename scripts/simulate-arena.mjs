@@ -32,7 +32,7 @@ function collectWeek(stock, seed) {
 }
 
 /** Un pli gagné en arène entre en réserve comme n'importe quelle capture. */
-function addPli(stock, tier, seed) {
+function addPack(stock, tier, seed) {
   const pool = POOL[tier]
   stock[tier].push({ species: pool[fnv1a(seed) % pool.length], level: 1 })
 }
@@ -44,15 +44,15 @@ function addPli(stock, tier, seed) {
  * politique n'est pas soutenable.
  */
 function pickStake(stock, policy) {
-  const plafond = TIER_ORDER.indexOf(POLICIES[policy])
-  for (let i = plafond; i >= 0; i--) {
+  const ceiling = TIER_ORDER.indexOf(POLICIES[policy])
+  for (let i = ceiling; i >= 0; i--) {
     const tier = TIER_ORDER[i]
     if (!stock[tier].length) continue
     let best = 0
     for (let k = 1; k < stock[tier].length; k++) {
       if (stock[tier][k].level > stock[tier][best].level) best = k
     }
-    return { tier, index: best, fallback: i < plafond }
+    return { tier, index: best, fallback: i < ceiling }
   }
   return null
 }
@@ -62,7 +62,7 @@ function newPlayer(policy) {
     throw new Error(`politique inconnue : ${policy}`)
   }
   return {
-    policy, stock: emptyStock(), dollars: 0, points: 0, plis: 0, lost: 0,
+    policy, stock: emptyStock(), dollars: 0, points: 0, packs: 0, lost: 0,
     duels: 0, wins: 0, computerWins: 0, fallbacks: 0, stakes: { c: 0, u: 0, r: 0, l: 0 },
   }
 }
@@ -109,12 +109,12 @@ function computerSide(seed) {
  */
 export function simulateLeague({ weeks, seed, policies }) {
   const players = policies.map(newPlayer)
-  const jours = Math.round(weeks * DUELS_PER_WEEK)
+  const days = Math.round(weeks * DUELS_PER_WEEK)
 
-  for (let j = 0; j < jours; j++) {
+  for (let j = 0; j < days; j++) {
     if (j % DUELS_PER_WEEK === 0) {
-      const semaine = j / DUELS_PER_WEEK
-      players.forEach((p, i) => collectWeek(p.stock, `${seed}:tirage:${i}:${semaine}`))
+      const week = j / DUELS_PER_WEEK
+      players.forEach((p, i) => collectWeek(p.stock, `${seed}:tirage:${i}:${week}`))
     }
 
     // Ronde à la Berger : le joueur qui « sort » affronte l'ordinateur, les autres sont
@@ -122,15 +122,15 @@ export function simulateLeague({ weeks, seed, policies }) {
     // exactement une fois — sans quoi un joueur n'affronterait qu'un voisinage fixe, et le
     // classement mesurerait sa position dans le cycle autant que sa politique.
     const n = players.length
-    const repos = j % n
+    const resting = j % n
     for (let k = 1; k * 2 < n; k++) {
-      duelHumain(players[(repos + k) % n], players[(repos - k + n) % n], `${seed}:${j}:${k}`)
+      duelHumain(players[(resting + k) % n], players[(resting - k + n) % n], `${seed}:${j}:${k}`)
     }
-    duelOrdinateur(players[repos], `${seed}:${j}:ordinateur`)
+    duelOrdinateur(players[resting], `${seed}:${j}:ordinateur`)
   }
 
   return players.map((p) => ({
-    policy: p.policy, dollars: p.dollars, points: p.points, plis: p.plis, lost: p.lost,
+    policy: p.policy, dollars: p.dollars, points: p.points, packs: p.packs, lost: p.lost,
     duels: p.duels, wins: p.wins, computerWins: p.computerWins, fallbacks: p.fallbacks,
     stakes: p.stakes,
     stock: Object.fromEntries(TIER_ORDER.map((t) => [t, p.stock[t].length])),
@@ -158,7 +158,7 @@ function duelHumain(a, b, seed) {
     right: { ...gb, form: formOf(`${seed}:b`, 'jour') },
     seed,
   })
-  const enjeu = coveredTier(ea.tier, eb.tier)
+  const stake = coveredTier(ea.tier, eb.tier)
 
   for (const [j, e] of [[a, ea], [b, eb]]) {
     j.duels++
@@ -166,19 +166,19 @@ function duelHumain(a, b, seed) {
     if (e.fallback) j.fallbacks++
   }
 
-  const [vainqueur, gv, perdant, ep] = issue.winner === 'left'
+  const [winner, winnerEntry, loser, loserEntry] = issue.winner === 'left'
     ? [a, ga, b, eb]
     : [b, gb, a, ea]
 
-  gv.level = issue.levelAfter
-  vainqueur.wins++
-  vainqueur.dollars += REWARD[enjeu].dollars
-  vainqueur.points += REWARD[enjeu].points
-  vainqueur.plis++
-  addPli(vainqueur.stock, enjeu, `${seed}:pli`)
+  winnerEntry.level = issue.levelAfter
+  winner.wins++
+  winner.dollars += REWARD[stake].dollars
+  winner.points += REWARD[stake].points
+  winner.packs++
+  addPack(winner.stock, stake, `${seed}:pli`)
 
-  perdant.lost++
-  perdant.stock[ep.tier].splice(ep.index, 1)
+  loser.lost++
+  loser.stock[loserEntry.tier].splice(loserEntry.index, 1)
 }
 
 /**
@@ -191,22 +191,22 @@ function duelHumain(a, b, seed) {
 function duelOrdinateur(j, seed) {
   const e = pickStake(j.stock, j.policy === 'ordinateur' ? 'rare' : j.policy)
   if (!e) return
-  const mien = j.stock[e.tier][e.index]
-  const lui = computerSide(seed)
+  const own = j.stock[e.tier][e.index]
+  const them = computerSide(seed)
 
   j.duels++
   j.stakes[e.tier]++
   if (e.fallback) j.fallbacks++
 
   const issue = resolveDuel({
-    left: { ...mien, form: formOf(`${seed}:moi`, 'jour') },
-    right: lui.side,
+    left: { ...own, form: formOf(`${seed}:moi`, 'jour') },
+    right: them.side,
     seed,
   })
   if (issue.winner === 'left') {
     j.wins++
     j.computerWins++
-    j.dollars += COMPUTER_REWARD[coveredTier(e.tier, lui.tier)]
+    j.dollars += COMPUTER_REWARD[coveredTier(e.tier, them.tier)]
   }
 }
 
@@ -237,7 +237,7 @@ export function simulateLegendaryLife({ weeks, seed }) {
   return weeks
 }
 
-const quantile = (tri, q) => tri[Math.min(tri.length - 1, Math.floor(tri.length * q))]
+const quantile = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))]
 
 function main() {
   const SAISON = 8.7
@@ -251,23 +251,23 @@ function main() {
     simulateLeague({ weeks: SAISON, seed: `cli-${i}`, policies: POLICIES_CLI }))
 
   POLICIES_CLI.forEach((policy, index) => {
-    const joueurs = ligues.map((l) => l[index])
-    const tri = joueurs.map((j) => j.dollars).sort((a, b) => a - b)
-    const moy = (f) => joueurs.reduce((a, j) => a + f(j), 0) / joueurs.length
+    const players = ligues.map((l) => l[index])
+    const sorted = players.map((j) => j.dollars).sort((a, b) => a - b)
+    const avg = (f) => players.reduce((a, j) => a + f(j), 0) / players.length
     console.log(
-      `${(policy + ' #' + index).padEnd(14)}${String(quantile(tri, 0.5)).padStart(6)} $` +
-      `${String(quantile(tri, 0.1)).padStart(8)} $${String(quantile(tri, 0.9)).padStart(8)} $` +
-      `${(moy((j) => j.wins / j.duels) * 100).toFixed(0).padStart(9)} %` +
-      `${moy((j) => j.fallbacks).toFixed(1).padStart(8)}` +
-      `${moy((j) => j.stakes.l).toFixed(1).padStart(12)}`,
+      `${(policy + ' #' + index).padEnd(14)}${String(quantile(sorted, 0.5)).padStart(6)} $` +
+      `${String(quantile(sorted, 0.1)).padStart(8)} $${String(quantile(sorted, 0.9)).padStart(8)} $` +
+      `${(avg((j) => j.wins / j.duels) * 100).toFixed(0).padStart(9)} %` +
+      `${avg((j) => j.fallbacks).toFixed(1).padStart(8)}` +
+      `${avg((j) => j.stakes.l).toFixed(1).padStart(12)}`,
     )
   })
 
-  const vies = Array.from({ length: 200 }, (_, i) => simulateLegendaryLife({ weeks: 52, seed: `cli-vie-${i}` }))
-  const tri = vies.slice().sort((a, b) => a - b)
-  console.log(`\nLégendaire engagé chaque semaine : médiane ${quantile(tri, 0.5)} semaines ` +
-    `(p10 ${quantile(tri, 0.1)}, p90 ${quantile(tri, 0.9)}), ` +
-    `${vies.filter((v) => v >= 52).length}/200 tiennent un an.`)
+  const lives = Array.from({ length: 200 }, (_, i) => simulateLegendaryLife({ weeks: 52, seed: `cli-vie-${i}` }))
+  const sorted = lives.slice().sort((a, b) => a - b)
+  console.log(`\nLégendaire engagé chaque semaine : médiane ${quantile(sorted, 0.5)} semaines ` +
+    `(p10 ${quantile(sorted, 0.1)}, p90 ${quantile(sorted, 0.9)}), ` +
+    `${lives.filter((v) => v >= 52).length}/200 tiennent un an.`)
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main()
