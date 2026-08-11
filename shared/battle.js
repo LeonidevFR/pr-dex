@@ -63,3 +63,32 @@ export function levelGain(mine, theirs) {
   for (const [seuil, gain] of LEVEL_GAIN_STEPS) if (rapport < seuil) return gain
   return 5
 }
+
+/**
+ * Le seul aléa du duel, dérivé du seed comme l'est le tirage. Un duel est donc rejouable :
+ * le client peut recalculer ce que le serveur a écrit, et le résumé de combat n'est pas une
+ * affirmation à croire sur parole.
+ */
+const roll = (seed) => fnv1a(`${seed}:issue`) / 2 ** 32
+
+export function resolveDuel({ left, right, seed }) {
+  const pg = power(left)
+  const pd = power(right)
+  const probability = winProbability(pg, pd)
+  const tirage = roll(seed)
+  const gaucheGagne = tirage < probability
+
+  const [vainqueur, perdant] = gaucheGagne ? [left, right] : [right, left]
+  const [pv, pp] = gaucheGagne ? [pg, pd] : [pd, pg]
+  const gain = levelGain(pv, pp)
+
+  return {
+    winner: gaucheGagne ? 'left' : 'right',
+    probability,
+    roll: tirage,
+    left: { power: pg, level: left.level ?? 1, form: left.form ?? NORMAL_FORM },
+    right: { power: pd, level: right.level ?? 1, form: right.form ?? NORMAL_FORM },
+    gain,
+    levelAfter: Math.min(LEVEL_MAX, (vainqueur.level ?? 1) + gain),
+  }
+}

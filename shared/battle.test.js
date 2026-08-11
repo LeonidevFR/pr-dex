@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   TIER_POWER, LEVEL_MAX, FORMS, NORMAL_FORM, levelFactor, power, formOf,
-  P_FLOOR, P_CEIL, winProbability, levelGain,
+  P_FLOOR, P_CEIL, winProbability, levelGain, resolveDuel,
 } from './battle.js'
 import { DEX } from './species.js'
 import { STATS } from './species-stats.js'
@@ -203,5 +203,64 @@ describe('levelGain', () => {
     const electhor = power({ species: 145 })
     const rattatac = power({ species: 20 })
     expect(levelGain(electhor, rattatac)).toBe(0)
+  })
+})
+
+describe('resolveDuel', () => {
+  const duel = (over = {}) =>
+    resolveDuel({ left: { species: 6 }, right: { species: 6 }, seed: 'duel-1', ...over })
+
+  it('rend le même résultat pour un même seed', () => {
+    expect(duel()).toEqual(duel())
+  })
+
+  it('désigne toujours exactement un vainqueur', () => {
+    for (let i = 0; i < 100; i++) {
+      expect(['left', 'right']).toContain(duel({ seed: `duel-${i}` }).winner)
+    }
+  })
+
+  it('conserve les puissances des deux camps pour le résumé de combat', () => {
+    const r = duel()
+    expect(r.left.power).toBeCloseTo(power({ species: 6 }), 6)
+    expect(r.right.power).toBeCloseTo(power({ species: 6 }), 6)
+    expect(r.probability).toBe(0.5)
+    expect(r.roll).toBeGreaterThanOrEqual(0)
+    expect(r.roll).toBeLessThan(1)
+  })
+
+  it('fait gagner le favori à peu près à la fréquence annoncée', () => {
+    const n = 20_000
+    let gauche = 0
+    for (let i = 0; i < n; i++) {
+      if (resolveDuel({
+        left: { species: 4 }, right: { species: 6 }, seed: `duel-${i}`,
+      }).winner === 'left') gauche++
+    }
+    expect(gauche / n).toBeCloseTo(0.162, 2)
+  })
+
+  it('accorde le gain de niveau au seul vainqueur, borné au niveau maximal', () => {
+    const r = resolveDuel({
+      left: { species: 16, level: 9 }, right: { species: 16, level: 9 }, seed: 'duel-1',
+    })
+    expect(r.gain).toBe(1)
+    expect(r.levelAfter).toBe(LEVEL_MAX)
+  })
+
+  it('ne dépasse jamais le niveau maximal, même sur un exploit', () => {
+    const r = resolveDuel({
+      left: { species: 16, level: 10 }, right: { species: 145, level: 10 }, seed: 'exploit',
+    })
+    expect(r.levelAfter).toBeLessThanOrEqual(LEVEL_MAX)
+  })
+
+  it('applique la forme passée en argument', () => {
+    const forte = FORMS[FORMS.length - 1]
+    const r = resolveDuel({
+      left: { species: 6, form: forte }, right: { species: 6 }, seed: 'duel-1',
+    })
+    expect(r.probability).toBeGreaterThan(0.5)
+    expect(r.left.form).toBe(forte)
   })
 })
