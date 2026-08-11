@@ -9,6 +9,29 @@ Une source choisit **quel acte vaut un tirage** ; elle ne choisit pas ce que vau
 tirage. Les paliers de rareté et les chances de chromatique sont les mêmes partout, sans
 quoi ce ne serait plus un jeu commun mais plusieurs jeux qui partagent une planche.
 
+## L'ouverture
+
+On entaille le haut du pli, il cède, et une **carte** en sort — dos visible. On la retourne
+quand on veut ; si on ne fait rien, elle se retourne seule au bout de quatre secondes.
+
+La carte est un objet, pas une vignette. Son carton dit la rareté : papier pâle en commun,
+trame pointillée en peu commun, carton teinté ocre en rare, carton profond guilloché en
+légendaire. On l'incline au pointeur et la lumière balaie la dorure. Son dos porte la
+provenance — la PR qui l'a produite, son titre, sa date.
+
+La fanfare du retournement suit le même barème : **rien du tout en commun**, quelques
+étincelles en peu commun, une onde et une secousse en rare, tout en légendaire. Un
+chromatique relève ce plancher au niveau du rare, quel que soit son palier. C'est le silence
+du commun qui donne sa valeur au reste : ces plis s'ouvrent quelques centaines de fois par
+an, et un plancher bruyant rendrait le plafond insignifiant.
+
+La même carte se retrouve sur la fiche de l'espèce, à plat et en lumière du jour. C'est le
+même objet — une carte qui changerait d'identité entre l'écran où on la gagne et celui où on
+la retrouve ne se posséderait pas.
+
+Tout ce qui bouge respecte `prefers-reduced-motion` : étincelles, ondes et secousse d'écran
+disparaissent, l'entaille et le retournement deviennent instantanés.
+
 Aucun serveur applicatif : le jeu s'appuie sur l'API GitHub et sur Supabase (Postgres +
 Auth + une fonction Edge pour le bouton de sync), en base de données et fournisseur de
 connexion — voir « Architecture » plus bas.
