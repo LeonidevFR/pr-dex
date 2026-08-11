@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
+import { REWARD } from '../../shared/arena-economy.js'
 import { spriteUrl } from '../lib/sprites.js'
 
 const props = defineProps({
@@ -14,21 +15,39 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'engage', 'accept'])
 
-/** L'exemplaire retenu pour la prochaine mise — rien n'est engagé tant qu'on n'a pas confirmé. */
 const chosen = ref(null)
-
-const canPlay = computed(() => props.credits > 0 && props.engageable.length > 0)
+const rulesOpen = ref(false)
 
 /**
- * Les défis des autres. Le sien n'est pas relevable — on ne peut pas se battre contre soi-même —
- * et il est déjà rappelé à part, avec sa mise, que l'on est seul à voir.
+ * Sans engagement disponible on peut encore regarder, mais plus miser. La liste reste affichée
+ * à dessein : la faire disparaître donnait un écran qui semblait cassé alors qu'il appliquait
+ * simplement une règle.
  */
+const canPlay = computed(() => props.credits > 0)
+
 const others = computed(() => props.challenges.filter((c) => c.id !== props.myOpen?.id))
 
-const tierOf = (key) => DEX[props.engageable.find((e) => e.key === key)?.species]?.tier ?? 'c'
+const found = (key) => props.engageable.find((e) => e.key === key)
+const tierOf = (key) => DEX[found(key)?.species]?.tier ?? 'c'
+const nameOf = (key) => DEX[found(key)?.species]?.name ?? '—'
 
-const nameOf = (key) => DEX[props.engageable.find((e) => e.key === key)?.species]?.name ?? '—'
-
+/**
+ * Les doublons d'une même espèce sont regroupés : à cinquante exemplaires ouverts, une liste à
+ * plat devient illisible et l'on ne voit plus ce qu'on possède. On propose le plus aguerri de
+ * chaque espèce — c'est celui qu'on engage en pratique — en annonçant combien attendent
+ * derrière lui.
+ */
+const bySpecies = computed(() => {
+  const map = new Map()
+  for (const e of props.engageable) {
+    const cur = map.get(e.species)
+    if (!cur) map.set(e.species, { best: e, count: 1 })
+    else if (props.levelOf(e.key) > props.levelOf(cur.best.key)) map.set(e.species, { best: e, count: cur.count + 1 })
+    else map.set(e.species, { best: cur.best, count: cur.count + 1 })
+  }
+  return [...map.values()].sort((a, b) =>
+    props.levelOf(b.best.key) - props.levelOf(a.best.key) || a.best.species - b.best.species)
+})
 
 function play(vsComputer) {
   if (!chosen.value) return
@@ -45,8 +64,8 @@ function take(duelId) {
 
 <template>
   <div class="scrim" @click.self="$emit('close')">
-    <div class="panel" style="width:min(620px,100%)">
-      <div class="panel-top" style="align-items:flex-start;padding-bottom:20px">
+    <div class="panel" style="width:min(680px,100%)">
+      <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
         <button class="x" @click="$emit('close')">✕</button>
         <div>
           <span class="panel-plate mono">ARÈNE</span>
@@ -55,35 +74,96 @@ function take(duelId) {
       </div>
 
       <div class="sect">
-        <div class="eyebrow sect-h">
-          <span>{{ credits }} engagement{{ credits > 1 ? 's' : '' }} disponible{{ credits > 1 ? 's' : '' }}</span>
-          <span class="mono">{{ pokedollars }} ₽</span>
+        <div class="arena-head">
+          <div>
+            <div class="arena-big" :class="{ spent: !credits }">{{ credits }}</div>
+            <div class="arena-unit">engagement{{ credits > 1 ? 's' : '' }}</div>
+          </div>
+          <div>
+            <div class="arena-big">{{ pokedollars }}</div>
+            <div class="arena-unit">pokédollars</div>
+          </div>
+          <button class="btn-ghost" style="margin-left:auto" @click="rulesOpen = !rulesOpen">
+            {{ rulesOpen ? 'Masquer les règles' : 'Comment ça marche' }}
+          </button>
         </div>
         <p v-if="!credits" class="muted">
-          Un engagement par jour ouvré, cumulable jusqu’à cinq. Reviens demain.
+          Tu as joué tous tes engagements. Il en revient <b>un par jour ouvré</b>, et ils
+          s’accumulent jusqu’à cinq — reviens demain.
         </p>
+      </div>
+
+      <div v-if="rulesOpen" class="sect">
+        <div class="arena-rule">
+          <b>Engager</b>
+          <span class="muted">
+            Tu mets un Pokémon en jeu sans savoir ce que l’autre engagera : vous découvrez vos
+            deux choix en même temps. C’est tout l’intérêt — sinon le second ajusterait toujours
+            juste ce qu’il faut pour gagner.
+          </span>
+        </div>
+        <div class="arena-rule">
+          <b>Perdre</b>
+          <span class="muted">
+            Le perdant perd son Pokémon, définitivement. L’espèce reste acquise à ta planche :
+            c’est l’exemplaire qui disparaît, pas ce que tu as déjà découvert.
+          </span>
+        </div>
+        <div class="arena-rule">
+          <b>Gagner</b>
+          <span class="muted">
+            Tu gardes le tien, il monte d’un niveau ou plus, et tu remportes des pokédollars,
+            des points de saison et un pli à ouvrir.
+          </span>
+        </div>
+        <div class="arena-rule">
+          <b>Combien</b>
+          <span class="muted">
+            Tu ne peux pas gagner plus que ce que l’adversaire a risqué. S’il engage un commun
+            et toi un rare, le duel vaut un commun pour vous deux — comme au poker, on ne
+            remporte que la mise que l’autre a couverte. Battre un rare ne vaut
+            {{ REWARD.r.dollars }} pokédollars que si vous en avez engagé un chacun.
+          </span>
+        </div>
+        <div class="arena-rule">
+          <b>Le hasard</b>
+          <span class="muted">
+            Un Pokémon plus fort gagne plus souvent, jamais toujours : même face au pire écart
+            possible, le plus faible garde une chance sur dix. Personne n’est intouchable, et un
+            légendaire descendu chaque semaine finit toujours par tomber.
+          </span>
+        </div>
       </div>
 
       <div v-if="myOpen" class="sect">
         <div class="eyebrow sect-h"><span>Ton défi en cours</span></div>
         <div class="repo-ptr">
           <span class="dot"></span>
-          {{ DEX[myOpen.species]?.name }} t’attend sur la table — personne d’autre ne voit ce que tu as engagé.
+          {{ DEX[myOpen.species]?.name }} est sur la table. Personne ne voit lequel tu as engagé —
+          et s’il reste sans preneur, l’ordinateur le relèvera demain.
         </div>
       </div>
 
-      <div v-if="canPlay" class="sect">
-        <div class="eyebrow sect-h"><span>Ce que tu engages</span></div>
-        <div class="evo-choices">
+      <div class="sect">
+        <div class="eyebrow sect-h">
+          <span>Ce que tu engages</span>
+          <span class="mono muted">{{ engageable.length }} exemplaire{{ engageable.length > 1 ? 's' : '' }}</span>
+        </div>
+        <p v-if="!engageable.length" class="muted">
+          Aucun exemplaire à engager pour l’instant.
+        </p>
+        <div class="arena-list">
           <button
-            v-for="e in engageable" :key="e.key"
-            class="evo-choice" :class="{ press: chosen === e.key }"
-            :style="{ '--t': TIER_VAR[DEX[e.species].tier] }"
-            @click="chosen = chosen === e.key ? null : e.key"
+            v-for="g in bySpecies" :key="g.best.species"
+            class="arena-pick" :class="{ on: chosen === g.best.key }"
+            :disabled="!canPlay"
+            @click="chosen = chosen === g.best.key ? null : g.best.key"
           >
-            <img :src="spriteUrl(e.species, e.shiny)" :alt="DEX[e.species].name">
-            <span class="line-name">{{ DEX[e.species].name }}</span>
-            <span class="mono muted">niv. {{ levelOf(e.key) }}</span>
+            <img :src="spriteUrl(g.best.species, g.best.shiny)" :alt="DEX[g.best.species].name">
+            <span class="nm">{{ DEX[g.best.species].name }}</span>
+            <span class="lv">
+              niv. {{ levelOf(g.best.key) }}<template v-if="g.count > 1"> · {{ g.count }} ex.</template>
+            </span>
           </button>
         </div>
       </div>
@@ -105,16 +185,16 @@ function take(duelId) {
       <div class="sect">
         <div class="eyebrow sect-h"><span>Défis ouverts</span></div>
         <p v-if="!others.length" class="muted">
-          Personne n’a de défi en attente. Poste le tien — s’il reste sans preneur, l’ordinateur
-          le relèvera demain.
+          Personne n’attend de preneur. Poste le tien — s’il reste seul, l’ordinateur le relèvera
+          demain.
         </p>
         <div v-for="d in others" :key="d.id" class="log-row">
           <span class="log-title">{{ d.pseudo ?? 'Sans nom' }}</span>
-          <span class="log-sha mono">mise cachée</span>
+          <span class="log-sha mono">Pokémon caché</span>
           <button class="evo-btn" :disabled="busy || !chosen" @click="take(d.id)">Relever</button>
         </div>
         <p v-if="others.length && !chosen" class="muted" style="margin-top:8px">
-          Choisis d’abord ce que tu engages : les deux mises se révèlent en même temps.
+          Choisis d’abord ton Pokémon : vous révélerez vos deux choix en même temps.
         </p>
       </div>
     </div>

@@ -7,6 +7,7 @@ const exemplaire = (key, over = {}) => ({ key, species: 6, shiny: false, ...over
 const fauxClient = (over = {}) => ({
   readArena: vi.fn(async () => ({ credits: 3, pokedollars: 250, exemplars: [] })),
   readOpenChallenges: vi.fn(async () => []),
+  readMyOpen: vi.fn(async () => null),
   readDuel: vi.fn(async (id) => ({ id, status: 'resolved' })),
   engage: vi.fn(async () => 11),
   accept: vi.fn(async () => 22),
@@ -67,11 +68,22 @@ describe('useArena', () => {
   // Immobilisé, pas perdu : il reste dans la collection, mais on ne peut pas le miser deux fois.
   it('exclut l’exemplaire déjà posé sur la table', async () => {
     const claimed = ref([exemplaire('github:engage'), exemplaire('github:libre')])
-    const a = useArena(fauxClient(), claimed)
+    const client = fauxClient({ readMyOpen: async () => ({ id: 5, challenger_key: 'github:engage' }) })
+    const a = useArena(client, claimed)
     await a.load()
-    a.myOpen.value = { id: 5, challenger_key: 'github:engage' }
 
     expect(a.engageable.value.map((e) => e.key)).toEqual(['github:libre'])
+  })
+
+  // L'espèce n'est écrite dans un duel qu'à la résolution : pour un défi encore ouvert, on la
+  // retrouve dans sa propre collection — la seule qu'on ait le droit de lire.
+  it('retrouve l’espèce de son défi en attente dans sa collection', async () => {
+    const claimed = ref([exemplaire('github:engage', { species: 25 })])
+    const client = fauxClient({ readMyOpen: async () => ({ id: 5, challenger_key: 'github:engage' }) })
+    const a = useArena(client, claimed)
+    await a.load()
+
+    expect(a.myOpen.value.species).toBe(25)
   })
 
   /**

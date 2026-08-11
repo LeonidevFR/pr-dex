@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { FORMS, TIER_POWER, levelFactor } from '../../shared/battle.js'
+import { REWARD, COMPUTER_REWARD } from '../../shared/arena-economy.js'
 import { STATS } from '../../shared/species-stats.js'
 import { spriteUrl } from '../lib/sprites.js'
 
@@ -17,7 +18,7 @@ defineEmits(['close'])
  * duel n'a jamais eu lieu — il s'est juste affiché.
  */
 const stage = ref('face')
-onMounted(() => setTimeout(() => { stage.value = 'verdict' }, 1400))
+onMounted(() => setTimeout(() => { stage.value = 'verdict' }, 2200))
 
 /** Je suis le challengeur ou le preneur : tout l'affichage se lit depuis ce côté-là. */
 const iAmChallenger = computed(() => props.duel.challenger_id === props.userId)
@@ -43,6 +44,16 @@ const iWon = computed(() => props.duel.winner_id === props.userId)
 const myOdds = computed(() => {
   const p = Number(props.duel.probability)
   return Math.round((iAmChallenger.value ? p : 1 - p) * 100)
+})
+
+/**
+ * Ce que le duel rapporte, au palier de l'enjeu. Affiché en toutes lettres plutôt que laissé à
+ * deviner : un gain qu'on ne voit pas est un gain qui n'existe pas pour le joueur.
+ */
+const reward = computed(() => {
+  const t = props.duel.stake_tier
+  if (versusComputer.value) return { dollars: Math.round(COMPUTER_REWARD[t]), points: 0, pack: false }
+  return { dollars: REWARD[t].dollars, points: REWARD[t].points, pack: true }
 })
 
 const tierOf = (species) => DEX[species]?.tier ?? 'c'
@@ -76,14 +87,14 @@ const breakdown = (s) => [
       </div>
 
       <div class="sect">
-        <div class="sim-row">
-          <div class="sim">
+        <div class="arena-vs">
+          <div class="arena-mon" :class="{ lost: stage === 'verdict' && !iWon && !versusComputer }">
             <img :src="spriteUrl(mine.species)" :alt="nameOf(mine.species)">
             <span class="line-name">{{ nameOf(mine.species) }}</span>
             <span class="mono muted">niv. {{ mine.level }}</span>
           </div>
-          <span class="line-arrow mono">vs</span>
-          <div class="sim">
+          <span class="arena-vs-mark">VS</span>
+          <div class="arena-mon" :class="{ lost: stage === 'verdict' && iWon && !versusComputer }">
             <img :src="spriteUrl(theirs.species)" :alt="nameOf(theirs.species)">
             <span class="line-name">{{ nameOf(theirs.species) }}</span>
             <span class="mono muted">niv. {{ theirs.level }}</span>
@@ -112,6 +123,24 @@ const breakdown = (s) => [
           </p>
         </div>
 
+        <div v-if="iWon" class="sect">
+          <div class="eyebrow sect-h"><span>Ce que tu remportes</span></div>
+          <div class="arena-reward">
+            <div>
+              <span class="v">{{ reward.dollars }}</span>
+              <span class="arena-unit">pokédollars</span>
+            </div>
+            <div v-if="reward.points">
+              <span class="v">{{ reward.points }}</span>
+              <span class="arena-unit">points de saison</span>
+            </div>
+            <div v-if="reward.pack">
+              <span class="v">1</span>
+              <span class="arena-unit">pli {{ TIER_LABEL[duel.stake_tier].toLowerCase() }}</span>
+            </div>
+          </div>
+        </div>
+
         <div class="sect">
           <div class="eyebrow sect-h">
             <span>Enjeu du duel</span>
@@ -120,8 +149,9 @@ const breakdown = (s) => [
             </span>
           </div>
           <p class="muted">
-            Le plus petit des deux engagements : on ne gagne jamais plus que ce que l’autre a mis
-            sur la table.
+            Vous avez engagé un {{ TIER_LABEL[tierOf(mine.species)].toLowerCase() }} et un
+            {{ TIER_LABEL[tierOf(theirs.species)].toLowerCase() }} : le duel vaut donc le plus
+            modeste des deux. Comme au poker, on ne remporte que la mise que l’autre a couverte.
           </p>
         </div>
 
@@ -150,8 +180,8 @@ const breakdown = (s) => [
             </div>
           </div>
           <p class="muted" style="margin-top:8px">
-            Aucun duel n’est gagné d’avance : les chances sont bornées entre 10 et 90 %, quel que
-            soit l’écart.
+            Le tirage décide : sous {{ myOdds }} %, tu l’emportais. Aucun duel n’est joué
+            d’avance — même face au pire écart possible, le plus faible garde une chance sur dix.
           </p>
         </div>
 
@@ -162,7 +192,8 @@ const breakdown = (s) => [
         </div>
       </template>
       <div v-else class="sect">
-        <p class="muted">Les deux mises se révèlent…</p>
+        <div class="arena-wait"><span></span><span></span><span></span></div>
+        <p class="muted" style="text-align:center">Le combat se joue…</p>
       </div>
     </div>
   </div>

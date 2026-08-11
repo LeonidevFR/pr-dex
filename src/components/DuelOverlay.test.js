@@ -48,7 +48,7 @@ describe('DuelOverlay', () => {
   // et le verdict arrivent ensemble et le duel n'a jamais eu lieu, il s'est juste affiché.
   it('retient le verdict le temps de la révélation', () => {
     const w = monter()
-    expect(w.text()).toContain('Les deux mises se révèlent')
+    expect(w.text()).toContain('Le combat se joue')
     expect(w.text()).not.toContain('Victoire')
   })
 
@@ -81,10 +81,11 @@ describe('DuelOverlay', () => {
     expect(w.text()).toContain('cinquième du tarif')
   })
 
-  it('nomme l’enjeu, et rappelle qu’il est le plus petit des deux engagements', async () => {
+  it('nomme l’enjeu et l’explique par les deux paliers réellement engagés', async () => {
     const w = await revele(monter())
     expect(w.text()).toContain('Enjeu du duel')
-    expect(w.text()).toContain('plus petit des deux engagements')
+    expect(w.text()).toContain('comme au poker'.replace('c', 'C'))
+    expect(w.text()).toContain('le plus modeste des deux')
   })
 
   /**
@@ -115,12 +116,33 @@ describe('DuelOverlay', () => {
 
   it('montre son propre Pokémon en premier, quel que soit le côté', async () => {
     const w = await revele(monter({}, LUI))
-    const noms = w.findAll('.sim .line-name').map((n) => n.text())
+    const noms = w.findAll('.arena-mon .line-name').map((n) => n.text())
     expect(noms).toEqual(['Tortank', 'Dracaufeu'])
+  })
+
+  // Un gain qu'on ne voit pas est un gain qui n'existe pas pour le joueur.
+  it('affiche ce qu’on remporte, en toutes lettres', async () => {
+    const w = await revele(monter())
+    expect(w.text()).toContain('Ce que tu remportes')
+    expect(w.text()).toContain('250')
+    expect(w.text()).toContain('points de saison')
+    expect(w.text()).toContain('pli rare')
+  })
+
+  it('n’annonce ni pli ni point après un duel contre l’ordinateur', async () => {
+    const w = await revele(monter({ status: 'computer', opponent_id: null }))
+    expect(w.text()).not.toContain('points de saison')
+    expect(w.text()).not.toContain('pli rare')
+    expect(w.text()).toContain('50')
+  })
+
+  it('n’annonce aucune récompense en cas de défaite', async () => {
+    const w = await revele(monter({ winner_id: LUI }))
+    expect(w.text()).not.toContain('Ce que tu remportes')
   })
 
   it('rappelle qu’aucun duel n’est gagné d’avance', async () => {
     const w = await revele(monter())
-    expect(w.text()).toContain('bornées entre 10 et 90')
+    expect(w.text()).toContain('une chance sur dix')
   })
 })

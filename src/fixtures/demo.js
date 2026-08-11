@@ -182,12 +182,13 @@ export function demoArena(catches) {
   const JOUR = '2026-08-11'
   const MOI = 'demo-moi'
 
-  let credits = 3
+  let credits = 5
   let pokedollars = 250
   let seq = 100
   const levels = new Map()
   const destroyed = new Set()
   const duels = new Map()
+  let mine_ouverte = null
   const challenges = RIVAUX.map((r, i) => ({
     id: i + 1, challenger_id: r.id, pseudo: r.pseudo, created_at: JOUR, rival: r,
   }))
@@ -253,15 +254,25 @@ export function demoArena(catches) {
       }))),
     }),
     readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
-    readDuel: async (id) => duels.get(id),
-    engage: async (key, vsComputer) => jouer(
-      key,
-      vsComputer
-        ? { species: 20, level: 2 }
-        : { species: 12, level: 1 },
-      vsComputer ? 'computer' : 'resolved',
-      vsComputer ? null : 'demo-fantome',
-    ).id,
+    readDuel: async (id) => duels.get(id) ?? null,
+    readMyOpen: async () => (mine_ouverte
+      ? { id: mine_ouverte.id, challenger_key: mine_ouverte.key, species: especeDe(mine_ouverte.key) }
+      : null),
+    /**
+     * Poster un défi ne le résout pas : il reste ouvert, comme en vrai, et c'est l'ordinateur
+     * qui le relèvera au bout de 24 h si personne ne s'en charge. La démo le rend visible dans
+     * la liste et rappelle qui l'a posé — sans jamais montrer ce qui a été engagé.
+     */
+    engage: async (key, vsComputer) => {
+      if (!vsComputer) {
+        credits = Math.max(0, credits - 1)
+        const id = ++seq
+        mine_ouverte = { id, key }
+        challenges.push({ id, challenger_id: MOI, pseudo: 'toi', created_at: JOUR, rival: null })
+        return id
+      }
+      return jouer(key, { species: 20, level: 2 }, 'computer', null).id
+    },
     accept: async (duelId, key) => {
       const defi = challenges.find((c) => c.id === duelId)
       const duel = jouer(key, defi.rival, 'resolved', defi.challenger_id)

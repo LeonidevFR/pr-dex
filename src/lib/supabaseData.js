@@ -108,6 +108,22 @@ export function createSupabaseClient(userId) {
     )
   }
 
+  /**
+   * Son propre défi en attente. Lisible par son seul auteur : le secret de la mise protège le
+   * pari contre l'adversaire, pas contre celui dont le Pokémon est immobilisé.
+   */
+  async function readMyOpen() {
+    const rows = await query(() =>
+      supabase
+        .from('arena_duels')
+        .select('id, challenger_key')
+        .eq('challenger_id', userId)
+        .eq('status', 'open')
+        .limit(1),
+    )
+    return rows?.[0] ?? null
+  }
+
   /** Un duel résolu, avec de quoi rejouer le combat plutôt que d'avoir à croire son résultat. */
   async function readDuel(id) {
     return query(() =>
@@ -128,6 +144,6 @@ export function createSupabaseClient(userId) {
 
   return {
     checkAccess, readCatches, readState, writeState, triggerCatch,
-    readArena, readOpenChallenges, readDuel, engage, accept,
+    readArena, readOpenChallenges, readMyOpen, readDuel, engage, accept,
   }
 }

@@ -76,8 +76,14 @@ async function connectSession(s) {
 async function playArena(fn) {
   arenaBusy.value = true
   try {
-    duelShown.value = await fn()
-    arenaOpen.value = false
+    const duel = await fn()
+    // Poster un défi ne produit aucun duel : il reste ouvert jusqu'à ce que quelqu'un le
+    // relève. On garde donc l'arène à l'écran, où le défi en attente est désormais rappelé,
+    // plutôt que d'ouvrir un résumé de combat qui n'a pas eu lieu.
+    if (duel) {
+      duelShown.value = duel
+      arenaOpen.value = false
+    }
     await collection.refresh()
   } catch (e) {
     connectError.value = e.kind ?? 'server'

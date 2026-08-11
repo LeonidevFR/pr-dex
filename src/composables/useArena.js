@@ -39,11 +39,18 @@ export function useArena(client, claimed) {
     loading.value = true
     error.value = null
     try {
-      const [arena, open] = await Promise.all([client.readArena(), client.readOpenChallenges()])
+      const [arena, open, mien] = await Promise.all([
+        client.readArena(), client.readOpenChallenges(), client.readMyOpen(),
+      ])
       credits.value = arena.credits
       pokedollars.value = arena.pokedollars
       exemplars.value = arena.exemplars
       challenges.value = open
+      // L'espèce ne figure pas dans un duel ouvert — elle n'y est écrite qu'à la résolution.
+      // On la retrouve dans sa propre collection, la seule qu'on ait le droit de lire.
+      myOpen.value = mien
+        ? { ...mien, species: claimed.value.find((c) => c.key === mien.challenger_key)?.species }
+        : null
     } catch (e) {
       error.value = e
     } finally {
