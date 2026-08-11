@@ -49,11 +49,15 @@ describe('ArenaPanel', () => {
     expect(w.emitted('engage')).toBeUndefined()
   })
 
-  it('dit ce qu’on risque avant de confirmer', async () => {
+  // La barre d'action est collée au bas du panneau : posée à la suite d'une grille défilante,
+  // elle sortait de l'écran juste après le clic qui l'avait fait apparaître.
+  it('rappelle l’enjeu dans la barre d’action, sans quitter l’écran', async () => {
     const w = monter()
     await w.findAll('.arena-pick')[0].trigger('click')
-    expect(w.text()).toContain('il est détruit')
-    expect(w.text()).toContain("L’espèce reste à la planche")
+    const barre = w.find('.arena-bar')
+    expect(barre.exists()).toBe(true)
+    expect(barre.text()).toContain('Dracaufeu')
+    expect(barre.text()).toContain('S’il perd, il est détruit')
   })
 
   it('poste un défi avec l’exemplaire choisi', async () => {
@@ -138,7 +142,7 @@ describe('ArenaPanel', () => {
     const choix = w.findAll('.arena-pick')
     expect(choix).toHaveLength(2)
     expect(choix[0].text()).toContain('niv. 7')
-    expect(choix[0].text()).toContain('2 ex.')
+    expect(choix[0].text()).toContain('×2')
   })
 
   it('demande lequel engager quand l’espèce a plusieurs exemplaires', async () => {

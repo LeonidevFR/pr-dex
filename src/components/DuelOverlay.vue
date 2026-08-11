@@ -104,9 +104,10 @@ const breakdown = (s) => [
 
       <template v-if="stage === 'verdict'">
         <div class="sect">
-          <div class="reveal-banner" :style="{ '--t': TIER_VAR[duel.stake_tier] }">
-            {{ iWon ? 'Victoire' : 'Défaite' }}
-          </div>
+          <div
+            class="arena-verdict" :class="iWon ? 'won' : 'lost'"
+            :style="{ '--t': TIER_VAR[duel.stake_tier] }"
+          >{{ iWon ? 'Victoire' : 'Défaite' }}</div>
           <p class="muted" style="margin-top:8px">
             <template v-if="versusComputer">
               L’ordinateur ne possède rien : personne ne perd de Pokémon, et il n’y a pas de pli
@@ -157,22 +158,32 @@ const breakdown = (s) => [
 
         <div class="sect">
           <div class="eyebrow sect-h"><span>Comment ça s’est joué</span></div>
-          <div class="steps">
+
+          <!--
+            Trois tailles, trois rôles : ce qui a décidé du duel se lit d'un coup d'œil, ce qui
+            l'explique se lit si l'on veut, et le détail du calcul ne réclame l'attention de
+            personne. Tout au même corps donnait une bouillie de chiffres où le résultat se
+            perdait au milieu des multiplicateurs.
+          -->
+          <div class="arena-duel-nums">
+            <div>
+              <span class="v">{{ Math.round(mine.power) }}</span>
+              <span class="arena-unit">ta puissance</span>
+            </div>
+            <div>
+              <span class="v">{{ Math.round(theirs.power) }}</span>
+              <span class="arena-unit">la sienne</span>
+            </div>
+            <div>
+              <span class="v" :class="{ win: iWon }">{{ myOdds }} %</span>
+              <span class="arena-unit">tes chances</span>
+            </div>
+          </div>
+
+          <div class="steps" style="margin-top:12px">
             <div v-for="[quoi, combien] in breakdown(mine)" :key="'m' + quoi" class="line">
               <span class="line-name">{{ quoi }}</span>
               <span class="mono">{{ combien }}</span>
-            </div>
-            <div class="line line-here">
-              <span class="line-name">ta puissance</span>
-              <span class="mono">{{ Math.round(mine.power) }}</span>
-            </div>
-            <div class="line">
-              <span class="line-name">la sienne</span>
-              <span class="mono">{{ Math.round(theirs.power) }}</span>
-            </div>
-            <div class="line">
-              <span class="line-name">tes chances</span>
-              <span class="mono">{{ myOdds }} %</span>
             </div>
             <div class="line">
               <span class="line-name">tirage</span>

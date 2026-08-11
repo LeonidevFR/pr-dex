@@ -447,6 +447,28 @@
   .arena-mon.lost img{filter:sepia(1) saturate(.4) opacity(.45)}
   .arena-vs-mark{font-family:var(--f-label);font-size:11px;letter-spacing:.14em;color:var(--ink-3)}
 
+  .arena-pick .mult{color:var(--ochre);font-family:var(--f-data);font-size:10px;margin-left:3px}
+
+  /* Collée au bas du panneau : sans ça, la barre d'action sortait de l'écran juste après le
+     clic qui l'avait fait apparaître. */
+  .arena-bar{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    background:var(--paper);border-top:1px solid var(--rule);padding:12px 0 4px;margin-top:6px;z-index:2}
+  .arena-bar > div:first-child{flex:1;min-width:150px}
+
+  /* L'issue arrive après l'attente : elle doit s'imposer une seconde, pas apparaître comme une
+     ligne de plus. */
+  .arena-verdict{font-family:var(--f-display);font-size:30px;font-weight:600;letter-spacing:.02em;
+    text-align:center;padding:10px 0;animation:arena-verdict .5s cubic-bezier(.2,.9,.3,1.4) both}
+  .arena-verdict.won{color:var(--t)}
+  .arena-verdict.lost{color:var(--ink-3)}
+  @keyframes arena-verdict{0%{opacity:0;transform:scale(.82)}100%{opacity:1;transform:scale(1)}}
+
+  /* Les trois chiffres qui ont décidé du duel, au-dessus du détail qui les explique. */
+  .arena-duel-nums{display:flex;gap:22px;flex-wrap:wrap;margin-top:8px}
+  .arena-duel-nums div{display:flex;flex-direction:column;gap:2px}
+  .arena-duel-nums .v{font-family:var(--f-display);font-size:26px;font-weight:600;color:var(--ink);line-height:1}
+  .arena-duel-nums .v.win{color:var(--ochre)}
+
   .arena-reward{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
   .arena-reward div{display:flex;flex-direction:column;gap:2px}
   .arena-reward .v{font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--ink);line-height:1}

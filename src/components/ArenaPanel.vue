@@ -176,7 +176,7 @@ function take(duelId) {
         <p v-if="!engageable.length" class="muted">
           Aucun exemplaire à engager pour l’instant.
         </p>
-        <div class="arena-list">
+        <div v-if="!picking" class="arena-list">
           <button
             v-for="g in bySpecies" :key="g.species"
             class="arena-pick"
@@ -185,10 +185,10 @@ function take(duelId) {
             @click="openSpecies(g.species)"
           >
             <img :src="spriteUrl(g.species, g.shiny)" :alt="DEX[g.species].name">
-            <span class="nm">{{ DEX[g.species].name }}</span>
-            <span class="lv">
-              niv. {{ g.maxLevel }}<template v-if="g.count > 1"> · {{ g.count }} ex.</template>
+            <span class="nm">
+              {{ DEX[g.species].name }}<b v-if="g.count > 1" class="mult">×{{ g.count }}</b>
             </span>
+            <span class="lv">niv. {{ g.maxLevel }}</span>
           </button>
         </div>
 
@@ -196,6 +196,9 @@ function take(duelId) {
           <p class="muted" style="margin:12px 0 8px">
             Lequel de tes <b>{{ DEX[picking].name }}</b> envoies-tu ? Le plus aguerri gagne plus
             souvent, et c’est aussi celui que tu regretteras le plus.
+            <button class="cancel-btn" style="margin-left:8px;padding:4px 10px" @click="picking = null">
+              Changer d’espèce
+            </button>
           </p>
           <div class="log">
             <label v-for="e in specimens" :key="e.key" class="log-row picker-row">
@@ -211,18 +214,18 @@ function take(duelId) {
         </template>
       </div>
 
-      <div v-if="chosen" class="sect">
-        <div class="eyebrow sect-h">
-          <span>{{ nameOf(chosen) }}, niveau {{ levelOf(chosen) }}</span>
-          <span class="chip" :style="{ '--t': TIER_VAR[tierOf(chosen)] }">{{ TIER_LABEL[tierOf(chosen)] }}</span>
+      <!--
+        Collée en bas du panneau : la grille défile, et une barre d'action posée à sa suite
+        sortait de l'écran au moment précis où l'on venait de choisir. On cliquait, rien ne
+        semblait se produire — parce que ce qui avait changé n'était plus visible.
+      -->
+      <div v-if="chosen" class="arena-bar">
+        <div>
+          <div class="line-name">{{ nameOf(chosen) }} · niv. {{ levelOf(chosen) }}</div>
+          <div class="muted" style="font-size:11.5px">S’il perd, il est détruit.</div>
         </div>
-        <p class="muted">
-          Si tu perds, il est détruit. L’espèce reste à la planche, l’exemplaire non.
-        </p>
-        <div class="front-actions" style="margin-top:12px">
-          <button class="btn-solid" :disabled="busy" @click="play(false)">Poster un défi</button>
-          <button class="btn-ghost" :disabled="busy" @click="play(true)">Affronter l’ordinateur</button>
-        </div>
+        <button class="btn-solid" :disabled="busy" @click="play(false)">Poster un défi</button>
+        <button class="btn-ghost" :disabled="busy" @click="play(true)">Affronter l’ordinateur</button>
       </div>
 
       <div class="sect">
