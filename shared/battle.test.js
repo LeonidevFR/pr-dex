@@ -15,10 +15,16 @@ describe('coefficients de rareté', () => {
     expect(TIER_POWER.l).toBeGreaterThan(TIER_POWER.r)
   })
 
-  // La mesure des stats par palier (spec § 3) montre que les stats portent déjà l'écart de
-  // rareté : un coefficient lourd le compterait deux fois.
-  it('reste léger — au plus 25 % d’écart entre commun et légendaire', () => {
-    expect(TIER_POWER.l / TIER_POWER.c).toBeLessThanOrEqual(1.25)
+  // Léger sur les trois premiers paliers, parce que les stats portent déjà l'écart de rareté
+  // (spec § 3) et qu'un coefficient lourd le compterait deux fois. Le légendaire est
+  // l'exception mesurée : son pool (580 à 680) chevauche le haut du pool rare (jusqu'à 600),
+  // donc les stats seules ne séparent pas ces deux paliers-là.
+  it('reste léger sur les trois premiers paliers', () => {
+    expect(TIER_POWER.r / TIER_POWER.c).toBeLessThanOrEqual(1.15)
+  })
+
+  it('appuie franchement le palier légendaire, que les stats ne séparent pas du rare', () => {
+    expect(TIER_POWER.l).toBe(1.45)
   })
 })
 

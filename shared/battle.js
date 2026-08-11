@@ -3,11 +3,18 @@ import { STATS } from './species-stats.js'
 import { fnv1a } from './draw.js'
 
 /**
- * Le palier ne fait que nuancer : la mesure des stats par palier (spec § 3) montre que la
- * rareté est déjà largement portée par les stats elles-mêmes. Le coefficient appuie surtout
- * la frontière peu commun / rare, où les deux paliers se chevauchent lourdement.
+ * Le palier ne fait que nuancer sur les trois premiers : la mesure des stats par palier
+ * (spec § 3) montre que la rareté est déjà largement portée par les stats elles-mêmes, et un
+ * coefficient lourd la compterait deux fois. Le coefficient appuie la frontière peu commun /
+ * rare, où les deux paliers se chevauchent lourdement.
+ *
+ * Le légendaire est l'exception, et elle est mesurée : son pool va de 580 à 680 quand le pool
+ * rare monte à 600 — les stats seules ne séparent donc pas ces deux paliers. À 1,25, un
+ * légendaire frais ne battait le meilleur rare que 54 % du temps ; à 1,45 il le bat 64 % du
+ * temps et écrase un rare moyen à 80 %, sans jamais devenir intouchable puisque le bornage à
+ * 90 % continue de garantir sa mortalité.
  */
-export const TIER_POWER = { c: 1.00, u: 1.06, r: 1.15, l: 1.25 }
+export const TIER_POWER = { c: 1.00, u: 1.06, r: 1.15, l: 1.45 }
 
 export const LEVEL_MAX = 10
 
