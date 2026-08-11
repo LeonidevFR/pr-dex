@@ -164,6 +164,20 @@ for (const s of Object.values(DEX)) {
   POOL[s.tier].push(s.id)
 }
 
+/**
+ * Les espèces d'un palier dans une génération donnée, Léviator excepté.
+ *
+ * `POOL` ne contient que ce que le travail peut tirer — la Gen 2 en est exclue par
+ * construction. La boutique, elle, a besoin de l'inverse : tirer dans une génération précise
+ * qu'aucun travail ne donne. D'où cette fonction plutôt qu'un second pool figé, qui aurait
+ * dupliqué la règle d'exclusion de Léviator et fini par en diverger.
+ */
+export function poolOf(tier, gen = 1) {
+  return Object.values(DEX)
+    .filter((s) => s.tier === tier && s.gen === gen && s.id !== 130)
+    .map((s) => s.id)
+}
+
 // Du plus commun au plus rare. Sert partout où l'ordre des paliers compte — l'enjeu d'un
 // duel, les filtres de la grille — et pas seulement à l'économie de l'arène, d'où il vient.
 export const TIER_ORDER = ['c', 'u', 'r', 'l']

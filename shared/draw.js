@@ -41,10 +41,22 @@ export function drawFrom(seed) {
  * toucher aux cotes, la règle que `drawFrom` protège depuis le premier jour.
  */
 export function drawInTier(seed, tier) {
-  const pool = POOL[tier]
-  if (!pool?.length) throw new Error(`palier inconnu : ${tier}`)
+  if (!POOL[tier]?.length) throw new Error(`palier inconnu : ${tier}`)
+  return drawFromPool(seed, POOL[tier])
+}
+
+/**
+ * Le même tirage dans un ensemble d'espèces imposé. C'est ce qui permet à la boutique de vendre
+ * un pli d'une génération précise, ou un pli « inédit garanti » qui ne tire que parmi les
+ * espèces qu'on ne possède pas encore.
+ *
+ * Les suffixes de seed ne changent pas : un pli acheté n'a pas de meilleures chances d'être
+ * chromatique qu'un pli mérité. Seul l'ensemble dans lequel on pioche est restreint.
+ */
+export function drawFromPool(seed, ids) {
+  if (!ids?.length) throw new Error('tirage dans un ensemble vide')
   return {
-    species: pool[fnv1a(seed + ':pick') % pool.length],
+    species: ids[fnv1a(seed + ':pick') % ids.length],
     shiny: fnv1a(seed + ':shiny') % SHINY_ODDS === 0,
   }
 }

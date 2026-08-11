@@ -1226,4 +1226,83 @@ revoke execute on function public.arena_close_finished_seasons() from public;
 grant execute on function public.arena_close_finished_seasons() to service_role;
 
 
+-- La boutique : ce que les pokédollars achètent.
+--
+-- Une table plutôt que des constantes dans la fonction, pour que le catalogue se lise et se
+-- corrige sans toucher au code. Les prix doivent rester alignés sur `shared/arena-economy.js`,
+-- que le front lit pour afficher — un test de parité l'exige.
+create table public.arena_shop (
+  slug text primary key,
+  gen int not null check (gen in (1, 2)),
+  tier text not null check (tier in ('c', 'u', 'r', 'l')),
+  fresh boolean not null default false,
+  price int not null check (price > 0)
+);
+
+alter table public.arena_shop enable row level security;
+
+create policy "arena_shop_select_all" on public.arena_shop
+  for select to authenticated using (true);
+
+grant select on public.arena_shop to authenticated;
+
+-- Le pli acheté porte sa génération et son exigence d'inédit : c'est l'Action qui lui donnera
+-- un visage, et elle a besoin des deux pour tirer dans le bon ensemble.
+alter table public.arena_packs add column gen int not null default 1 check (gen in (1, 2));
+alter table public.arena_packs add column fresh boolean not null default false;
+alter table public.arena_packs alter column duel_id drop not null;
+
+/*
+ * Acheter un pli. Débit et dette sont posés dans la même transaction : payer sans recevoir, ou
+ * recevoir sans payer, sont deux façons également fâcheuses de perdre la confiance d'un joueur.
+ *
+ * Le pli n'est PAS tiré ici. La fonction enregistre qu'il est dû, à quelle génération et à quel
+ * palier ; c'est l'Action qui l'ouvre, avec le moteur de tirage JavaScript. `catches` garde
+ * ainsi son écrivain unique, et il n'existe toujours qu'un seul endroit au monde où une espèce
+ * est attribuée.
+ */
+create or replace function public.arena_buy(p_slug text)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_art record;
+  v_solde int;
+  v_pack bigint;
+begin
+  if v_uid is null then
+    raise exception 'arene : il faut être connecté pour acheter';
+  end if;
+
+  select * into v_art from public.arena_shop where slug = p_slug;
+  if v_art.slug is null then
+    raise exception 'boutique : article inconnu (%)', p_slug;
+  end if;
+
+  -- `for update` : deux achats simultanés ne doivent pas lire le même solde et le dépenser
+  -- deux fois. Même raison que le verrou de `arena_accept`, sur une ressource différente.
+  select pokedollars into v_solde from public.arena_wallet where user_id = v_uid for update;
+  v_solde := coalesce(v_solde, 0);
+
+  if v_solde < v_art.price then
+    raise exception 'boutique : il manque % pokédollars', v_art.price - v_solde;
+  end if;
+
+  update public.arena_wallet set pokedollars = pokedollars - v_art.price where user_id = v_uid;
+
+  insert into public.arena_packs (user_id, tier, gen, fresh)
+  values (v_uid, v_art.tier, v_art.gen, v_art.fresh)
+  returning id into v_pack;
+
+  return v_pack;
+end;
+$$;
+
+revoke execute on function public.arena_buy(text) from public;
+grant execute on function public.arena_buy(text) to authenticated;
+
+
 commit;

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { sinceDate, toRows, planSources, packRows, main, CONNECTORS } from './catch.mjs'
 import { drawFrom, drawInTier } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
-import { DEX } from '../shared/species.js'
+import { DEX, poolOf } from '../shared/species.js'
 
 const searchPage = (items, more = false) => ({
   ok: true, status: 200,
@@ -412,4 +412,58 @@ describe('packRows', () => {
     expect({ species: row.species, shiny: row.shiny }).toEqual(attendu)
   })
 
+})
+
+/**
+ * Un pli acheté ne se distingue d'un pli gagné que par l'ensemble dans lequel il pioche : la
+ * génération vient de l'article, « inédit garanti » retire ce qu'on possède déjà. Les cotes ne
+ * bougent jamais — c'est ce qui permet à la boutique de récompenser sans avantager.
+ */
+describe('plis de boutique', () => {
+  const achat = (over = {}) => ({
+    id: 900, user_id: 'u1', tier: 'r', gen: 1, fresh: false, duel_id: null,
+    created_at: '2026-08-11T09:00:00+00:00', ...over,
+  })
+
+  it('se reconnaît à sa source et à son intitulé', () => {
+    const [row] = packRows([achat()])
+    expect(row.source).toBe('boutique')
+    expect(row.label).toBe('Acheté en boutique')
+    expect(row.ref).toBeNull()
+  })
+
+  it('tire dans la génération achetée', () => {
+    for (let id = 900; id < 940; id++) {
+      const [g2] = packRows([achat({ id, gen: 2 })])
+      expect(g2.species).toBeGreaterThan(151)
+      const [g1] = packRows([achat({ id, gen: 1 })])
+      expect(g1.species).toBeLessThanOrEqual(151)
+    }
+  })
+
+  it('respecte le palier acheté dans les deux générations', () => {
+    for (const gen of [1, 2]) {
+      for (const tier of ['c', 'u', 'r', 'l']) {
+        const [row] = packRows([achat({ id: 950 + gen, tier, gen })])
+        expect(DEX[row.species].tier).toBe(tier)
+      }
+    }
+  })
+
+  it('évite ce qu’on possède déjà quand l’inédit est garanti', () => {
+    const deja = new Set(poolOf('r', 1).slice(0, -1))
+    const [row] = packRows([achat({ fresh: true })], { u1: deja })
+    expect(deja.has(row.species)).toBe(false)
+  })
+
+  // Mieux vaut un doublon qu'un pli perdu : tout posséder au palier acheté doit rester jouable.
+  it('rend quand même un exemplaire quand tout le palier est déjà possédé', () => {
+    const tout = new Set(poolOf('r', 1))
+    const [row] = packRows([achat({ fresh: true })], { u1: tout })
+    expect(DEX[row.species].tier).toBe('r')
+  })
+
+  it('reste déterministe pour un même achat', () => {
+    expect(packRows([achat()])).toEqual(packRows([achat()]))
+  })
 })

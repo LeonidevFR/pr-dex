@@ -1,4 +1,5 @@
-import { drawFrom, drawInTier } from '../shared/draw.js'
+import { drawFrom, drawFromPool } from '../shared/draw.js'
+import { poolOf } from '../shared/species.js'
 import { entryKey } from '../shared/entry.js'
 import * as github from './connectors/github.mjs'
 
@@ -66,16 +67,30 @@ export function toRows(userId, source, events) {
  *
  * Le palier vient du duel, l'espèce et le chromatique se tirent aux cotes de tout le monde.
  */
-export function packRows(packs) {
+export function packRows(packs, ownedByUser = {}) {
   return packs.map((p) => {
     const external = String(p.id)
-    const { species, shiny } = drawInTier(entryKey('arene', external), p.tier)
+    const source = p.duel_id ? 'arene' : 'boutique'
+
+    // L'ensemble dans lequel on pioche, et lui seul, distingue un pli d'un autre : la
+    // génération vient de l'article acheté, et « inédit garanti » retire ce que le joueur
+    // possède déjà. Les cotes, elles, ne bougent jamais — c'est ce qui permet à la boutique de
+    // récompenser sans avantager.
+    let ids = poolOf(p.tier, p.gen ?? 1)
+    if (p.fresh) {
+      const deja = ownedByUser[p.user_id] ?? new Set()
+      const inedits = ids.filter((id) => !deja.has(id))
+      // Tout posséder au palier acheté est possible : mieux vaut un doublon qu'un pli perdu.
+      if (inedits.length) ids = inedits
+    }
+
+    const { species, shiny } = drawFromPool(entryKey(source, external), ids)
     return {
       user_id: p.user_id,
-      source: 'arene',
+      source,
       external_id: external,
-      label: 'Victoire en arène',
-      ref: `duel #${p.duel_id}`,
+      label: p.duel_id ? 'Victoire en arène' : 'Acheté en boutique',
+      ref: p.duel_id ? `duel #${p.duel_id}` : null,
       url: null,
       date: String(p.created_at).slice(0, 10),
       species,
@@ -101,10 +116,20 @@ export async function resolveExpiredDuels(supabaseUrl, serviceKey, fetchFn = fet
   return res.json()
 }
 
+/** Toutes les espèces déjà possédées par un joueur — base des plis « inédit garanti ». */
+export async function fetchAllCatches(supabaseUrl, serviceKey, userId, fetchFn = fetch) {
+  const res = await fetchFn(
+    `${supabaseUrl}/rest/v1/catches?user_id=eq.${userId}&select=species`,
+    { headers: sbHeaders(serviceKey) },
+  )
+  if (!res.ok) throw new Error(`catches (lecture) a répondu ${res.status} pour ${userId}`)
+  return res.json()
+}
+
 /** Les plis gagnés que personne n'a encore matérialisés en captures. */
 export async function fetchOwedPacks(supabaseUrl, serviceKey, fetchFn = fetch) {
   const res = await fetchFn(
-    `${supabaseUrl}/rest/v1/arena_packs?claimed_at=is.null&select=id,user_id,tier,duel_id,created_at`,
+    `${supabaseUrl}/rest/v1/arena_packs?claimed_at=is.null&select=id,user_id,tier,gen,fresh,duel_id,created_at`,
     { headers: sbHeaders(serviceKey) },
   )
   if (!res.ok) throw new Error(`arena_packs (lecture) a répondu ${res.status}`)
@@ -226,7 +251,14 @@ export async function main() {
   // gagné ».
   const packs = await fetchOwedPacks(supabaseUrl, serviceKey)
   if (packs.length) {
-    await insertCatches(supabaseUrl, serviceKey, packRows(packs))
+    // Ce que chaque joueur possède déjà, pour les plis « inédit garanti ». Lu une fois par
+    // joueur concerné plutôt qu'une fois par pli.
+    const owned = {}
+    for (const uid of [...new Set(packs.filter((p) => p.fresh).map((p) => p.user_id))]) {
+      const rows = await fetchAllCatches(supabaseUrl, serviceKey, uid)
+      owned[uid] = new Set(rows.map((c) => c.species))
+    }
+    await insertCatches(supabaseUrl, serviceKey, packRows(packs, owned))
     await markPacksClaimed(supabaseUrl, serviceKey, packs.map((p) => p.id))
     total += packs.length
     console.log(`arène : ${packs.length} pli(s) gagné(s) matérialisé(s).`)

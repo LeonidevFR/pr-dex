@@ -1,6 +1,7 @@
 import { writeFile } from 'node:fs/promises'
 import { SPECIES, DEX } from '../shared/species.js'
 import { STATS_GEN2 } from '../shared/species-gen2.js'
+import { SHOP } from '../shared/arena-economy.js'
 
 const API = 'https://pokeapi.co/api/v2'
 const OUT = new URL('../shared/species-info.json', import.meta.url)
@@ -66,9 +67,17 @@ export function seedSql(statsById) {
     if (!tier) throw new Error(`palier manquant pour l'id ${id}`)
     return `  (${id}, ${stats}, '${tier}')`
   })
+  // Le catalogue de la boutique part dans le même seed : ses prix vivent dans
+  // `shared/arena-economy.js`, que le front lit pour afficher, et les deux doivent dire la même
+  // chose — un test de parité l'exige.
+  const articles = SHOP.map((a) =>
+    `  ('${a.slug}', ${a.gen}, '${a.tier}', ${a.fresh}, ${a.price})`).join(',\n')
+
   return `${SEED_HEADER}\ninsert into public.species_stats (species, stats, tier) values\n` +
     `${rows.join(',\n')}\non conflict (species) do update set ` +
-    'stats = excluded.stats, tier = excluded.tier;\n'
+    'stats = excluded.stats, tier = excluded.tier;\n\n' +
+    'insert into public.arena_shop (slug, gen, tier, fresh, price) values\n' +
+    `${articles}\non conflict (slug) do update set price = excluded.price;\n`
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
