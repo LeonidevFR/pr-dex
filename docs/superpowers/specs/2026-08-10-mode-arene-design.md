@@ -92,14 +92,24 @@ L'ordinateur n'est pas un joueur : il ne possède rien. S'il détruisait un exem
 un Pokémon disparaîtrait sans contrepartie ; s'il payait un pli, il en apparaîtrait un
 depuis rien. Un duel contre l'ordinateur est donc **symbolique** :
 
-- des **pokédollars uniquement**, moitié moins que contre un humain, au palier de sa
-  propre mise ;
+- des **pokédollars uniquement**, au **cinquième** du tarif humain, et au palier de
+  **l'enjeu du duel** — le plus petit de sa mise et de la tienne, exactement comme contre
+  un humain ;
 - **aucun pli**, **aucun point de classement**, **aucun gain de niveau**, **aucun risque**.
 
 **Comment l'ordinateur choisit son combattant.** Il **tire dans une distribution
-plausible** : une espèce au hasard dans le pool du palier de ta propre mise, à un niveau
-tiré entre 1 et le niveau médian des exemplaires réellement engagés dans l'arène ces
-trente derniers jours, avec sa forme du jour normale.
+plausible, indépendante de ta mise** : d'abord un **palier tiré dans le terrain ordinaire**
+— ce que l'équipe engage réellement, majoritairement du peu commun et du rare —, puis une
+espèce au hasard dans le pool de ce palier, à un niveau tiré entre 1 et le niveau médian
+des exemplaires réellement engagés dans l'arène ces trente derniers jours, avec sa forme du
+jour normale.
+
+**Indépendante de ta mise, et c'est le point.** Une version antérieure le faisait tirer
+dans le pool du palier de ta propre mise : les deux paliers étant alors égaux par
+construction, l'enjeu valait toujours ta mise et la règle de l'enjeu était **inopérante**
+contre l'ordinateur. Engager plus haut payait davantage sans contrepartie — seul endroit du
+modèle où c'était le cas. Avec un palier tiré indépendamment, engager un légendaire contre
+un terrain de peu communs ne rapporte que le peu commun, comme contre un humain.
 
 Un 50/50 systématique a été écarté : si l'issue ne dépend plus de ce qu'on engage, on
 engage n'importe quoi et le duel contre l'ordinateur n'apprend rien. Une distribution
@@ -254,20 +264,23 @@ Battre un rare ne rapporte donc pas 250 $ : il faut que **les deux** aient engag
 | Défaite contre un humain | rien, et l'exemplaire engagé est détruit |
 | Défaite contre l'ordinateur | rien, et l'exemplaire est conservé |
 
-Contre l'ordinateur, en pokédollars seulement, au palier de **sa propre** mise, **au quart** du
-tarif humain :
+Contre l'ordinateur, en pokédollars seulement, au palier de **l'enjeu** — le plus petit de sa
+mise et de la tienne, § 2 —, **au cinquième** du tarif humain :
 
-| Sa mise contre l'ordinateur | Pokédollars |
+| Enjeu contre l'ordinateur | Pokédollars |
 |---|---|
-| Commun | 12 |
-| Peu commun | 25 |
-| Rare | 62 |
-| Légendaire | 150 |
+| Commun | 10 |
+| Peu commun | 20 |
+| Rare | 50 |
+| Légendaire | 120 |
 
-**Le quart et non la moitié — mesuré, pas supposé.** À demi-tarif, la simulation donne
-2 750 pokédollars par saison en ne farmant que l'IA, **sans jamais rien risquer**, contre
-5 406 en duels réels : l'option sûre rapportait 96 % de l'option risquée en terrain mixte.
-Au quart, elle retombe à 1 158, soit 21 % — l'entraînement rémunéré qu'elle doit être.
+**Le cinquième, et l'enjeu plutôt que sa propre mise — mesuré, pas supposé.** Au quart et
+sans règle de l'enjeu, la simulation donne **1 176 pokédollars par saison** en ne farmant
+que l'IA, **sans jamais rien risquer**, contre un seuil de **1 384** (la moitié d'une saison
+en politique rare) : l'option sûre frôlait la moitié de l'option risquée. Les deux
+changements vont ensemble — l'enjeu, parce qu'il n'y avait aucune raison qu'engager plus
+haut paye davantage contre un adversaire qui ne risque rien ; le cinquième, pour ramener
+l'ordinateur à l'entraînement rémunéré qu'il doit être.
 
 Les **niveaux ne s'y lisent pas** : ils ne se gagnent que contre un humain, selon le
 barème du § 3.

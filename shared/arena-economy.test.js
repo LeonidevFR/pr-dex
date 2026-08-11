@@ -34,12 +34,13 @@ describe('gains', () => {
     expect(points).toEqual([5, 10, 25, 60])
   })
 
-  // Mesuré avant écriture : à demi-tarif, farmer l'ordinateur rapportait 2 750 $ par saison
-  // SANS AUCUN RISQUE, contre 5 406 $ en duels réels — l'option sûre devenait presque aussi
-  // rentable que l'option risquée. Le quart la ramène à 21 %.
-  it('paye l’ordinateur au quart du tarif humain, en pokédollars seulement', () => {
-    expect(COMPUTER_REWARD).toEqual({ c: 12, u: 25, r: 62, l: 150 })
-    for (const t of TIER_ORDER) expect(COMPUTER_REWARD[t]).toBeLessThan(REWARD[t].dollars / 3)
+  // Mesuré : au quart, et avec un gain indexé sur la seule mise du joueur, farmer
+  // l'ordinateur rapportait 1 176 $ par saison SANS AUCUN RISQUE contre un seuil de 1 384 $
+  // — l'option sûre frôlait la moitié de l'option risquée. Le cinquième, combiné à un gain
+  // qui suit désormais l'enjeu, la ramène à sa place d'entraînement rémunéré.
+  it('paye l’ordinateur au cinquième exact du tarif humain, en pokédollars seulement', () => {
+    expect(COMPUTER_REWARD).toEqual({ c: 10, u: 20, r: 50, l: 120 })
+    for (const t of TIER_ORDER) expect(COMPUTER_REWARD[t]).toBe(REWARD[t].dollars / 5)
   })
 })
 

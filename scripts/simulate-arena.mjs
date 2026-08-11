@@ -68,16 +68,32 @@ function newPlayer(policy) {
 }
 
 /**
- * L'adversaire de l'ordinateur : une espèce tirée uniformément dans le pool du palier engagé
- * — donc parfois plus faible, parfois plus forte —, un niveau bas, et la forme du jour
- * NORMALE (spec § 2) : l'ordinateur ne bénéficie ni ne souffre de l'aléa des formes.
+ * Le terrain ordinaire : ce que l'équipe engage réellement, majoritairement du peu commun et
+ * du rare. Sert deux fois — à l'ordinateur pour tirer son palier, et au légendaire descendu
+ * chaque semaine — et doit rester une seule table : deux copies divergeraient, et l'espérance
+ * de vie du légendaire cesserait de se mesurer sur le terrain que l'ordinateur incarne.
  */
-function computerSide(tier, seed) {
+const ORDINARY_FIELD = ['u', 'u', 'r', 'r', 'c']
+
+/**
+ * L'adversaire de l'ordinateur : un palier tiré dans le terrain ordinaire — INDÉPENDAMMENT
+ * de la mise du joueur (spec § 2) —, une espèce uniforme dans ce pool, un niveau bas, et la
+ * forme du jour NORMALE : l'ordinateur ne bénéficie ni ne souffre de l'aléa des formes.
+ *
+ * L'ancienne règle le faisait tirer dans le pool du palier engagé par le joueur. Les deux
+ * paliers étaient alors égaux par construction, donc l'enjeu valait toujours la mise du
+ * joueur et la règle de l'enjeu était inopérante contre l'ordinateur.
+ */
+function computerSide(seed) {
+  const tier = ORDINARY_FIELD[fnv1a(`${seed}:terrain`) % ORDINARY_FIELD.length]
   const pool = POOL[tier]
   return {
-    species: pool[fnv1a(`${seed}:ordinateur`) % pool.length],
-    level: 1 + (fnv1a(`${seed}:niveau`) % 4),
-    form: NORMAL_FORM,
+    tier,
+    side: {
+      species: pool[fnv1a(`${seed}:ordinateur`) % pool.length],
+      level: 1 + (fnv1a(`${seed}:niveau`) % 4),
+      form: NORMAL_FORM,
+    },
   }
 }
 
@@ -166,15 +182,17 @@ function duelHumain(a, b, seed) {
 }
 
 /**
- * Contre l'ordinateur : des pokédollars au quart du tarif humain, et rien d'autre. Aucun pli,
- * aucun point, AUCUN GAIN DE NIVEAU (spec § 2) et aucun risque — l'ordinateur ne possède rien,
- * il ne peut donc ni détruire ni créer un exemplaire. Un joueur qui ne fait que ça ne se
- * construit jamais de champion : c'est voulu.
+ * Contre l'ordinateur : des pokédollars au cinquième du tarif humain, au palier de l'enjeu
+ * comme contre un humain, et rien d'autre. Aucun pli, aucun point, AUCUN GAIN DE NIVEAU
+ * (spec § 2) et aucun risque — l'ordinateur ne possède rien, il ne peut donc ni détruire ni
+ * créer un exemplaire. Un joueur qui ne fait que ça ne se construit jamais de champion :
+ * c'est voulu.
  */
 function duelOrdinateur(j, seed) {
   const e = pickStake(j.stock, j.policy === 'ordinateur' ? 'rare' : j.policy)
   if (!e) return
   const mien = j.stock[e.tier][e.index]
+  const lui = computerSide(seed)
 
   j.duels++
   j.stakes[e.tier]++
@@ -182,23 +200,21 @@ function duelOrdinateur(j, seed) {
 
   const issue = resolveDuel({
     left: { ...mien, form: formOf(`${seed}:moi`, 'jour') },
-    right: computerSide(e.tier, seed),
+    right: lui.side,
     seed,
   })
   if (issue.winner === 'left') {
     j.wins++
     j.computerWins++
-    j.dollars += COMPUTER_REWARD[e.tier]
+    j.dollars += COMPUTER_REWARD[coveredTier(e.tier, lui.tier)]
   }
 }
 
 /**
- * Un légendaire descendu une fois par semaine face au terrain ordinaire — majoritairement du
- * peu commun et du rare, à des niveaux bas. Rend le nombre de semaines survécues : le
- * bornage à 90 % garantit qu'il finit par tomber, quelle que soit sa force.
+ * Un légendaire descendu une fois par semaine face au terrain ordinaire, à des niveaux bas.
+ * Rend le nombre de semaines survécues : le bornage à 90 % garantit qu'il finit par tomber,
+ * quelle que soit sa force.
  */
-const ORDINARY_FIELD = ['u', 'u', 'r', 'r', 'c']
-
 export function simulateLegendaryLife({ weeks, seed }) {
   let level = 1
   const species = POOL.l[fnv1a(`${seed}:mon-legendaire`) % POOL.l.length]

@@ -17,11 +17,16 @@ export const REWARD = {
 
 /**
  * L’ordinateur ne possède rien : il ne peut ni détruire ni créer un exemplaire, seulement
- * payer. Au quart du tarif humain et non à la moitié — la simulation a montré qu'à
- * demi-tarif, farmer l'IA rapportait presque autant qu'une saison de duels réels, sans
- * jamais rien risquer.
+ * payer. Au cinquième du tarif humain, et au palier de l'ENJEU — `coveredTier` de sa mise et
+ * de celle du joueur — comme contre un humain.
+ *
+ * Le quart avait été retenu quand le gain suivait la seule mise du joueur : engager plus
+ * haut payait alors davantage sans contrepartie, seul endroit du modèle où c'était le cas.
+ * Mesuré dans cette configuration, farmer l'ordinateur rapportait 1 176 $ par saison sans le
+ * moindre risque, contre un seuil de 1 384 $ (la moitié d'une saison en politique rare) :
+ * l'option sûre frôlait la moitié de l'option risquée.
  */
-export const COMPUTER_REWARD = { c: 12, u: 25, r: 62, l: 150 }
+export const COMPUTER_REWARD = { c: 10, u: 20, r: 50, l: 120 }
 
 export const FRESH_MULTIPLIER = 2.5
 
