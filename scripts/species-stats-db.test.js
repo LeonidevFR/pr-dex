@@ -1,16 +1,21 @@
 import { describe, it, expect } from 'vitest'
 import { STATS } from '../shared/species-stats.js'
+import { STATS_GEN2 } from '../shared/species-gen2.js'
 import { DEX } from '../shared/species.js'
 import { withDb, dbAvailable } from './db-test-helper.mjs'
 
 const disponible = await dbAvailable()
 
 describe.skipIf(!disponible)('species_stats en base', () => {
-  it('couvre exactement les 151 espèces, aux mêmes valeurs que le module JavaScript', async () => {
+  // La Gen 2 entre dans la même table : la fonction de combat en base doit connaître toute
+  // espèce que le jeu sait afficher, sinon un duel engageant un Pokémon de boutique lèverait au
+  // moment précis de la résolution.
+  it('couvre les deux générations, aux mêmes valeurs que les modules JavaScript', async () => {
+    const attendu = { ...STATS, ...STATS_GEN2 }
     const rows = await withDb((c) =>
       c.query('select species, stats from public.species_stats order by species').then((r) => r.rows))
-    expect(rows).toHaveLength(151)
-    for (const { species, stats } of rows) expect(stats).toBe(STATS[species])
+    expect(rows).toHaveLength(Object.keys(attendu).length)
+    for (const { species, stats } of rows) expect(stats).toBe(attendu[species])
   })
 
   // Le palier ne vient pas de PokéAPI mais de la planche : c'est le générateur du seed qui le

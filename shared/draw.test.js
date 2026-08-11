@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { fnv1a, drawFrom, drawInTier, WEIGHTS, SHINY_ODDS } from './draw.js'
 import { entryKey } from './entry.js'
-import { DEX, POOL, NOT_DRAWABLE } from './species.js'
+import { DEX, POOL, SPECIES, NOT_DRAWABLE } from './species.js'
 import golden from './draw.golden.json' with { type: 'json' }
 
 // Cinq hachages 32 bits rendus en hexadécimal — on utilise tous les bits de sortie.
@@ -98,7 +98,10 @@ describe('drawFrom', () => {
     for (const [tier, weight] of WEIGHTS) {
       expect(Math.abs(counts[tier] / N - weight)).toBeLessThan(0.01)
     }
-    expect(species.size).toBe(151 - NOT_DRAWABLE.size)
+    // Les espèces réellement tirables : la planche moins ses exclusions. `NOT_DRAWABLE` porte
+    // aussi toute la Gen 2, qui n'est pas sur la planche — la soustraire en bloc compterait
+    // deux fois ce qui n'y a jamais été.
+    expect(species.size).toBe(SPECIES.filter(([id]) => !NOT_DRAWABLE.has(id)).length)
     expect(shiny / N).toBeGreaterThan(1 / SHINY_ODDS * 0.7)
     expect(shiny / N).toBeLessThan(1 / SHINY_ODDS * 1.3)
   })

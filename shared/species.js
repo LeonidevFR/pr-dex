@@ -1,3 +1,5 @@
+import { SPECIES_GEN2 } from './species-gen2.js'
+
 // [id, nom, palier, évolueVers, coût en bonbons]
 // palier : c=commun u=peu commun r=rare l=légendaire
 export const SPECIES = [
@@ -68,9 +70,18 @@ export const SPECIES = [
   [150, 'Mewtwo', 'l'], [151, 'Mew', 'l'],
 ]
 
+/**
+ * `SPECIES` reste la planche — les 151, et elles seules. C'est elle que compte le rail, elle
+ * que dessine la grille, elle qui définit ce qu'« avoir fini » veut dire.
+ *
+ * `DEX` va plus loin : il décrit toute espèce que le jeu sait afficher, Gen 2 comprise. La
+ * distinction n'est pas cosmétique — verser la Gen 2 dans la planche ferait passer le compteur
+ * à 251 et afficherait cent cases vides pour toujours, alors qu'on ne les obtient qu'en
+ * boutique et qu'elles n'ont rien à faire dans une progression tirée du travail.
+ */
 export const DEX = {}
-for (const [id, name, tier, to, cost] of SPECIES) {
-  DEX[id] = { id, name, tier, to: to ?? null, cost: cost ?? null }
+for (const [id, name, tier, to, cost] of [...SPECIES, ...SPECIES_GEN2]) {
+  DEX[id] = { id, name, tier, to: to ?? null, cost: cost ?? null, gen: id > 151 ? 2 : 1 }
 }
 
 export const PARENT = {}
@@ -142,7 +153,10 @@ export function familyLine(id) {
 // Léviator ne se tire jamais : seul accès, faire évoluer Magicarpe (40 bonbons, cf. son coût
 // volontairement élevé). Exception ciblée, pas une règle générale sur les 3e évolutions —
 // celles-ci (Dracaufeu, Tortank...) restent tirables normalement.
-export const NOT_DRAWABLE = new Set([130])
+// La Gen 2 entière s'ajoute à l'exception : ces espèces ne s'obtiennent qu'en boutique, avec
+// des pokédollars gagnés en arène. C'est ce qui les garde désirables sans toucher aux cotes de
+// personne — le tirage du travail reste exactement celui qu'il a toujours été.
+export const NOT_DRAWABLE = new Set([130, ...SPECIES_GEN2.map(([id]) => id)])
 
 export const POOL = { c: [], u: [], r: [], l: [] }
 for (const s of Object.values(DEX)) {

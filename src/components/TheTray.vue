@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
+import { DEX, SPECIES, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
 const props = defineProps({
@@ -15,7 +15,10 @@ const props = defineProps({
 })
 const emit = defineEmits(['select', 'toggle-tier', 'set-caught-filter', 'reset-filters'])
 
-const ids = Object.keys(DEX).map(Number)
+// La planche, pas le dex : `DEX` décrit aussi la Gen 2, qu'on n'obtient qu'en boutique et qui
+// n'a rien à faire dans une progression tirée du travail. L'y verser afficherait cent cases
+// vides pour toujours et ferait mentir le compteur du rail.
+const ids = SPECIES.map(([id]) => id)
 const isShiny = (entries) => entries?.some((e) => e.shiny) ?? false
 const copyCount = (id) => props.copies[id] ?? props.bySpecies[id]?.length ?? 0
 

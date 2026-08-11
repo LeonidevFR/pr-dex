@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises'
 import { SPECIES, DEX } from '../shared/species.js'
+import { STATS_GEN2 } from '../shared/species-gen2.js'
 
 const API = 'https://pokeapi.co/api/v2'
 const OUT = new URL('../shared/species-info.json', import.meta.url)
@@ -137,7 +138,10 @@ async function main() {
   // La même donnée en SQL, générée par le même passage : la fonction de combat du lot 2b la
   // lit en base, le moteur JavaScript la lit en module. Deux copies produites d'un seul
   // fichier source ne peuvent pas diverger sans qu'on le voie dans le même diff.
-  await writeFile(OUT_STATS_SQL, seedSql(statsOut))
+  // La Gen 2 entre dans le même seed : la fonction de combat en base doit connaître toute
+  // espèce que le jeu sait afficher, sinon un duel engageant un Pokémon de boutique lèverait au
+  // moment précis de la résolution.
+  await writeFile(OUT_STATS_SQL, seedSql({ ...statsOut, ...STATS_GEN2 }))
 
   console.log(`\n${Object.keys(out).length} espèces écrites dans shared/species-info.json, ` +
     'shared/species-stats.js et supabase/seed.sql')
@@ -152,7 +156,7 @@ async function main() {
  */
 async function seedOnly() {
   const { STATS } = await import('../shared/species-stats.js')
-  await writeFile(OUT_STATS_SQL, seedSql(STATS))
+  await writeFile(OUT_STATS_SQL, seedSql({ ...STATS, ...STATS_GEN2 }))
   console.log(`${Object.keys(STATS).length} espèces écrites dans supabase/seed.sql`)
 }
 

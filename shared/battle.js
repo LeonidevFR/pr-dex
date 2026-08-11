@@ -1,5 +1,14 @@
 import { DEX } from './species.js'
 import { STATS } from './species-stats.js'
+import { STATS_GEN2 } from './species-gen2.js'
+
+/**
+ * Les stats de toute espèce que le jeu sait afficher, générations confondues. Deux fichiers
+ * parce qu'ils sont produits par deux passages distincts — la planche d'un côté, la boutique de
+ * l'autre — mais un seul point de lecture, sans quoi un exemplaire Gen 2 engagé en arène ferait
+ * lever le moteur au moment précis du duel.
+ */
+const ALL_STATS = { ...STATS, ...STATS_GEN2 }
 import { fnv1a } from './draw.js'
 
 /**
@@ -44,8 +53,8 @@ export const levelFactor = (level) => 1 + 0.05 * (level - 1)
 export function power({ species, level = 1, form = NORMAL_FORM }) {
   // Échec bruyant : un `NaN` remonterait jusqu'à `levelGain`, où toutes les comparaisons
   // avec `NaN` sont fausses — il y rendrait donc 5, le gain maximal.
-  if (!DEX[species] || !STATS[species]) throw new Error(`espèce inconnue : ${species}`)
-  return STATS[species] * TIER_POWER[DEX[species].tier] * levelFactor(level) * form.factor
+  if (!DEX[species] || !ALL_STATS[species]) throw new Error(`espèce inconnue : ${species}`)
+  return ALL_STATS[species] * TIER_POWER[DEX[species].tier] * levelFactor(level) * form.factor
 }
 
 /**

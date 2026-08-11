@@ -73,7 +73,7 @@ describe('power', () => {
     expect(power({ species: 16, level: 10, form: forte })).toBeCloseTo(251 * 1.45 * 1.10, 6)
   })
 
-  it('rend une puissance strictement positive pour les 151 espèces', () => {
+  it('rend une puissance strictement positive pour toutes les espèces connues', () => {
     for (const id of Object.keys(DEX).map(Number)) {
       expect(power({ species: id })).toBeGreaterThan(0)
       expect(Number.isFinite(power({ species: id }))).toBe(true)
