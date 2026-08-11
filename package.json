@@ -11,7 +11,11 @@
     "test:watch": "vitest",
     "catch": "node scripts/catch.mjs",
     "gen:species-info": "node scripts/gen-species-info.mjs",
-    "simulate:arena": "node scripts/simulate-arena.mjs"
+    "simulate:arena": "node scripts/simulate-arena.mjs",
+    "db:check": "node scripts/check-schema-sync.mjs && node scripts/check-local-db.mjs",
+    "db:start": "node scripts/check-local-db.mjs && supabase start",
+    "db:reset": "node scripts/check-local-db.mjs && supabase db reset",
+    "db:stop": "supabase stop"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

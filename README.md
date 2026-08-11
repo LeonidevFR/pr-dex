@@ -149,12 +149,45 @@ Actions), boucle sur chaque identité enregistrée et insère ses nouvelles capt
 depuis peu, sur `workflow_dispatch` (déclenché par le bouton de sync). Détails
 d'installation dans `pr-dex-data/README.md`.
 
+## Base de données locale
+
+La CLI Supabase fabrique une base Postgres jetable, sous Docker, pour éprouver les policies
+RLS et les fonctions `security definer` avant de les approcher de la production.
+
+```bash
+npm run db:start    # démarre la pile locale (premier lancement : plusieurs Go d'images)
+npm run db:reset    # rejoue le schéma sur une base vierge
+npm run db:check    # vérifie que schema.sql et sa copie de migration n'ont pas divergé
+npm run db:stop     # arrête la pile
+```
+
+> **Ne jamais lier ce dépôt au projet Supabase de production, ni lancer `supabase db push`.**
+>
+> La base en service porte plusieurs semaines de captures réelles et ignore la table de suivi
+> de migrations de la CLI : un `push` y rejouerait le schéma entier par-dessus des données
+> existantes. **La production se déploie comme depuis le premier jour** — on colle le SQL dans
+> l'éditeur du dashboard, une fois, à la main.
+>
+> Ce n'est pas qu'une consigne : `scripts/check-local-db.mjs` fait échouer toutes les
+> commandes `db:*` dès qu'un lien vers un projet distant apparaît.
+
+Les deux répertoires de migrations ne servent pas à la même chose, et les confondre casse la
+base locale : `supabase/migrations/` contient le **schéma complet**, sous un nom que la CLI
+comprend, et c'est lui que `db:reset` rejoue ; `supabase/migrations-appliquees/` garde les
+bascules déjà passées à la main sur la base en service, qu'une base neuve ne doit jamais
+rejouer puisqu'elle part directement du schéma complet.
+
 ## Structure du dépôt
 
 ```
 supabase/schema.sql               tables profiles/identities/catches/state, policies RLS, trigger d'auto-création
-supabase/migrations/              bascules à appliquer sur une base déjà en service
+supabase/migrations/              copie du schéma pour la CLI — fabrique la base de TEST locale
+supabase/migrations-appliquees/   bascules déjà passées à la main sur la base en service
 supabase/functions/trigger-catch  fonction Edge : déclenche workflow_dispatch sur catch.yml
+shared/battle.js          puissance, forme du jour, probabilité de victoire, résolution d'un duel d'arène
+shared/arena-economy.js   enjeu du duel, gains, boutique, plafonds de jeu
+shared/species-stats.js   total des stats de base par espèce, généré depuis PokéAPI
+scripts/simulate-arena.mjs        simulation d'équilibrage de l'arène, en ligue de cinq joueurs
 shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
 shared/draw.js            fnv1a + drawFrom, partagé front ↔ Action
 shared/entry.js           entryKey(source, externalId) — clé d'exemplaire et seed du tirage
