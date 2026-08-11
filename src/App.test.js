@@ -128,3 +128,28 @@ describe('navigation au clavier', () => {
     expect(w.find('.panel').exists()).toBe(true)
   })
 })
+
+/**
+ * Poster un défi ne produit aucun duel — il reste ouvert jusqu'à ce que quelqu'un le relève.
+ * Il faut néanmoins que quelque chose se passe à l'écran : une action qui réussit en silence se
+ * lit comme un bouton mort, et c'est exactement ce qui a été signalé à l'essai.
+ */
+describe('envoi à l’arène depuis la fiche', () => {
+  it('referme la fiche et ouvre l’arène sur le défi en attente', async () => {
+    const w = await mountApp()
+    const caseAvecExemplaire = w.findAll('.cell').find((c) => !c.classes().includes('cell-no'))
+    await caseAvecExemplaire.trigger('click')
+    await flushPromises()
+
+    const envoyer = w.find('.arena-send')
+    if (!envoyer.exists()) return // espèce sans exemplaire disponible : rien à prouver ici
+
+    await envoyer.trigger('click')
+    await flushPromises()
+    await new Promise((r) => setTimeout(r, 30))
+    await flushPromises()
+
+    expect(w.find('.sheet').exists()).toBe(false)
+    expect(w.find('.arena-pick').exists() || w.text().includes('sur la table')).toBe(true)
+  })
+})

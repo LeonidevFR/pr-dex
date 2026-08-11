@@ -78,11 +78,14 @@ async function playArena(fn) {
   try {
     const duel = await fn()
     // Poster un défi ne produit aucun duel : il reste ouvert jusqu'à ce que quelqu'un le
-    // relève. On garde donc l'arène à l'écran, où le défi en attente est désormais rappelé,
-    // plutôt que d'ouvrir un résumé de combat qui n'a pas eu lieu.
+    // relève. Il faut néanmoins que quelque chose se passe à l'écran — une action qui réussit
+    // en silence se lit comme un bouton mort. On ouvre donc l'arène, où le défi en attente est
+    // rappelé, plutôt qu'un résumé de combat qui n'a pas eu lieu.
     if (duel) {
       duelShown.value = duel
       arenaOpen.value = false
+    } else {
+      arenaOpen.value = true
     }
     await collection.refresh()
   } catch (e) {
@@ -94,7 +97,11 @@ async function playArena(fn) {
 
 const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComputer))
 
-/** Depuis la fiche, on poste un défi : c'est le geste par défaut, l'ordinateur reste dans l'arène. */
+/**
+ * Depuis la fiche, on poste un défi — c'est le geste par défaut, l'ordinateur reste un choix de
+ * l'écran d'arène. La fiche se referme et l'arène s'ouvre : sans ça le clic n'a aucun effet
+ * visible, puisqu'un défi posté ne produit pas de duel.
+ */
 function onEngageFromSheet(key) {
   selected.value = null
   return playArena(() => arena.engage(key, false))

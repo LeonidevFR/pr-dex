@@ -454,8 +454,10 @@
 
   /* Collée au bas du panneau : sans ça, la barre d'action sortait de l'écran juste après le
      clic qui l'avait fait apparaître. */
-  .arena-bar{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-    background:var(--paper);border-top:1px solid var(--rule);padding:12px 0 4px;margin-top:6px;z-index:2}
+  .arena-bar{position:sticky;bottom:0;display:flex;gap:12px 14px;align-items:center;flex-wrap:wrap;
+    background:var(--paper);border-top:1px solid var(--rule);padding:16px 2px 12px;margin-top:10px;z-index:2}
+  .arena-bar .line-name{line-height:1.5;margin-bottom:3px}
+  .arena-bar .muted{line-height:1.5}
   .arena-bar-txt{flex:1 1 100%;min-width:0}
   .arena-bar .btn-solid,.arena-bar .btn-ghost{flex:1 1 auto;white-space:nowrap}
   @media(min-width:520px){.arena-bar-txt{flex:1 1 200px}.arena-bar .btn-solid,.arena-bar .btn-ghost{flex:0 0 auto}}
