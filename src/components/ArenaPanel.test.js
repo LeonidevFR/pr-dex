@@ -93,8 +93,10 @@ describe('ArenaPanel', () => {
 
   it('refuse de relever tant qu’on n’a rien engagé', async () => {
     const w = monter({ challenges: [{ id: 7, pseudo: 'bob', created_at: 'x' }] })
+    // Le bouton porte lui-même son état : muet, il se lisait comme cassé.
     expect(w.find('.evo-btn').attributes('disabled')).toBeDefined()
-    expect(w.text()).toContain('Choisis d’abord ton Pokémon')
+    expect(w.find('.evo-btn').text()).toBe('Choisis ta mise')
+    expect(w.text()).toContain('le Pokémon que')
   })
 
   it('relève un défi une fois la mise choisie', async () => {

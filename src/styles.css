@@ -454,13 +454,16 @@
 
   /* Collée au bas du panneau : sans ça, la barre d'action sortait de l'écran juste après le
      clic qui l'avait fait apparaître. */
-  .arena-bar{position:sticky;bottom:0;display:flex;gap:12px 14px;align-items:center;flex-wrap:wrap;
-    background:var(--paper);border-top:1px solid var(--rule);padding:16px 2px 12px;margin-top:10px;z-index:2}
-  .arena-bar .line-name{line-height:1.5;margin-bottom:3px}
-  .arena-bar .muted{line-height:1.5}
-  .arena-bar-txt{flex:1 1 100%;min-width:0}
-  .arena-bar .btn-solid,.arena-bar .btn-ghost{flex:1 1 auto;white-space:nowrap}
-  @media(min-width:520px){.arena-bar-txt{flex:1 1 200px}.arena-bar .btn-solid,.arena-bar .btn-ghost{flex:0 0 auto}}
+  /* Même retrait horizontal que `.sect` : à 2 px, la barre était collée aux bords du panneau
+     pendant que tout le reste respirait à 26. Et deux lignes plutôt qu'une — l'information
+     au-dessus, les boutons en dessous — parce que les tasser côte à côte ne tient sur aucune
+     largeur d'écran. */
+  .arena-bar{position:sticky;bottom:0;z-index:2;background:var(--paper);
+    border-top:1.5px solid var(--rule);padding:18px 26px 20px}
+  .arena-bar .line-name{line-height:1.6;font-size:13px}
+  .arena-bar .muted{line-height:1.6;margin-top:2px}
+  .arena-bar-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+  .arena-bar-actions button{flex:1 1 190px;white-space:nowrap}
 
   /* La forme du jour se lit d'un coup d'œil : au-dessus de la normale ou en dessous. */
   .form-up{color:var(--herb)}

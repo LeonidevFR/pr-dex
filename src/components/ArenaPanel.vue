@@ -239,8 +239,10 @@ function take(duelId) {
           </div>
           <div class="muted" style="font-size:11.5px">S’il perd, il est détruit.</div>
         </div>
-        <button class="btn-solid" :disabled="busy" @click="play(false)">Poster un défi</button>
-        <button class="btn-ghost" :disabled="busy" @click="play(true)">Affronter l’ordinateur</button>
+        <div class="arena-bar-actions">
+          <button class="btn-solid" :disabled="busy" @click="play(false)">Poster un défi</button>
+          <button class="btn-ghost" :disabled="busy" @click="play(true)">Affronter l’ordinateur</button>
+        </div>
       </div>
 
       <div class="sect">
@@ -249,14 +251,22 @@ function take(duelId) {
           Personne n’attend de preneur. Poste le tien — s’il reste seul, l’ordinateur le relèvera
           demain.
         </p>
+        <!--
+          L'explication passe AVANT la liste, et le bouton porte lui-même son état : posée
+          dessous, elle arrivait après le clic sur un bouton muet — on croyait le bouton cassé
+          alors qu'il attendait qu'on choisisse sa propre mise.
+        -->
+        <p v-if="others.length && !chosen" class="muted" style="margin-bottom:10px">
+          Choisis d’abord le Pokémon que <b>tu</b> engages, plus haut : vous révélerez vos deux
+          choix en même temps.
+        </p>
         <div v-for="d in others" :key="d.id" class="log-row">
           <span class="log-title">{{ d.pseudo ?? 'Sans nom' }}</span>
           <span class="log-sha mono">Pokémon caché</span>
-          <button class="evo-btn" :disabled="busy || !chosen" @click="take(d.id)">Relever</button>
+          <button class="evo-btn" :disabled="busy || !chosen" @click="take(d.id)">
+            {{ chosen ? 'Relever' : 'Choisis ta mise' }}
+          </button>
         </div>
-        <p v-if="others.length && !chosen" class="muted" style="margin-top:8px">
-          Choisis d’abord ton Pokémon : vous révélerez vos deux choix en même temps.
-        </p>
       </div>
     </div>
   </div>
