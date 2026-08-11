@@ -261,6 +261,18 @@ describe('resolveDuel', () => {
     expect(r.levelAfter).toBeLessThanOrEqual(LEVEL_MAX)
   })
 
+  // L'issue ne doit dépendre que du couple d'exemplaires et du seed, jamais de qui a été
+  // passé en premier : le serveur résout un duel challenger/preneur, le client le rejoue
+  // dans l'ordre qui l'arrange, et les deux doivent tomber sur le même vainqueur.
+  it('désigne le même vainqueur quel que soit l’ordre des arguments', () => {
+    for (let i = 0; i < 500; i++) {
+      const seed = `ordre-${i}`
+      const gauche = resolveDuel({ left: { species: 4 }, right: { species: 6 }, seed })
+      const droite = resolveDuel({ left: { species: 6 }, right: { species: 4 }, seed })
+      expect(gauche.winner === 'left').toBe(droite.winner === 'right')
+    }
+  })
+
   it('applique la forme passée en argument', () => {
     const forte = FORMS[FORMS.length - 1]
     const r = resolveDuel({

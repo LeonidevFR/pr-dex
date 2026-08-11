@@ -78,14 +78,30 @@ export function levelGain(mine, theirs) {
  */
 const roll = (seed) => fnv1a(`${seed}:issue`) / 2 ** 32
 
+/**
+ * Ordre canonique du duel, dérivé du seul contenu des deux exemplaires. Deux exemplaires
+ * strictement identiques restent départagés par la place des arguments, mais rien ne permet
+ * alors de les distinguer : l'issue reste la même à un renommage près.
+ */
+const cleDeTri = ({ species, level = 1, form = NORMAL_FORM }) => `${species}:${level}:${form.slug}`
+
 export function resolveDuel({ left, right, seed }) {
   const pg = power(left)
   const pd = power(right)
   const probability = winProbability(pg, pd)
   const tirage = roll(seed)
-  const gaucheGagne = tirage < probability
 
-  const [vainqueur, perdant] = gaucheGagne ? [left, right] : [right, left]
+  // Le tirage est confronté au camp canoniquement premier et non à `left` : sans cela,
+  // échanger les deux arguments à seed égal changerait le vainqueur près d'une fois sur
+  // trois. Or le serveur résout un duel challenger / preneur et le client le rejoue dans
+  // l'ordre qui l'arrange — les deux doivent retomber sur le même exemplaire.
+  const gaucheDabord = cleDeTri(left) <= cleDeTri(right)
+  const premierGagne = gaucheDabord
+    ? tirage < probability
+    : tirage < winProbability(pd, pg)
+  const gaucheGagne = gaucheDabord ? premierGagne : !premierGagne
+
+  const vainqueur = gaucheGagne ? left : right
   const [pv, pp] = gaucheGagne ? [pg, pd] : [pd, pg]
   const gain = levelGain(pv, pp)
 
