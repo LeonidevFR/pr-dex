@@ -47,4 +47,93 @@ alter table public.species_stats enable row level security;
 create policy "species_stats_select_all" on public.species_stats
   for select to authenticated using (true);
 
+-- Niveau et destruction d'un exemplaire précis, repéré par sa clé `source:external_id`
+-- (cf. `shared/entry.js`). Séparé de `state`, qui est modifiable par son propriétaire : un
+-- niveau gagné et un exemplaire détruit engagent un adversaire, pas seulement soi-même.
+create table public.arena_exemplars (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  entry_key text not null,
+  level int not null default 1 check (level between 1 and 10),
+  wins int not null default 0 check (wins >= 0),
+  destroyed_at timestamptz,
+  primary key (user_id, entry_key)
+);
+
+-- Un duel, de son engagement à sa résolution. Les puissances et la probabilité sont
+-- conservées telles qu'elles ont été calculées : le résumé de combat les rejoue, et un
+-- joueur qui vient de perdre un Pokémon a le droit de vérifier plutôt que de croire.
+create table public.arena_duels (
+  id bigint generated always as identity primary key,
+  challenger_id uuid not null references auth.users (id) on delete cascade,
+  challenger_key text not null,
+  opponent_id uuid references auth.users (id) on delete cascade,
+  opponent_key text,
+  status text not null default 'open' check (status in ('open', 'resolved', 'computer')),
+  winner_id uuid references auth.users (id),
+  stake_tier text check (stake_tier in ('c', 'u', 'r', 'l')),
+  challenger_power numeric,
+  opponent_power numeric,
+  probability numeric,
+  roll numeric,
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+
+create index arena_duels_open_idx on public.arena_duels (created_at) where status = 'open';
+
+-- Portefeuille persistant, jamais remis à zéro : c'est ce qui rend la thésaurisation possible
+-- sur plusieurs saisons. Le score de saison, lui, repart de zéro — d'où deux tables et non
+-- deux colonnes.
+create table public.arena_wallet (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  pokedollars int not null default 0 check (pokedollars >= 0)
+);
+
+create table public.arena_season_points (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  season text not null,
+  points int not null default 0 check (points >= 0),
+  primary key (user_id, season)
+);
+
+-- Les saisons closes et leur podium. Sans cette table, un badge permanent n'aurait plus aucun
+-- référent une fois les points de la saison remis à zéro.
+create table public.arena_seasons (
+  season text primary key,
+  closed_at timestamptz not null default now(),
+  first_id uuid references auth.users (id),
+  second_id uuid references auth.users (id),
+  third_id uuid references auth.users (id)
+);
+
+alter table public.arena_exemplars enable row level security;
+alter table public.arena_duels enable row level security;
+alter table public.arena_wallet enable row level security;
+alter table public.arena_season_points enable row level security;
+alter table public.arena_seasons enable row level security;
+
+-- Lecture seule, et rien d'autre. L'unique écrivain de ces tables sera la fonction
+-- `security definer` du lot 2b : une policy d'écriture ici serait une faille, pas une
+-- facilité — elle laisserait un joueur s'attribuer des niveaux ou effacer sa défaite.
+create policy "arena_exemplars_select_own" on public.arena_exemplars
+  for select using (auth.uid() = user_id);
+
+create policy "arena_wallet_select_own" on public.arena_wallet
+  for select using (auth.uid() = user_id);
+
+create policy "arena_season_points_select_all" on public.arena_season_points
+  for select to authenticated using (true);
+
+create policy "arena_seasons_select_all" on public.arena_seasons
+  for select to authenticated using (true);
+
+-- Un duel résolu est lisible par ses deux participants. Un duel ouvert ne l'est par personne
+-- en direct : la mise ne doit pas seulement être masquée à l'affichage, elle ne doit pas être
+-- lisible du tout, sinon un appel direct à l'API la révélerait. Les défis ouverts passent par
+-- la vue `arena_open_challenges`, qui n'en expose pas la mise.
+create policy "arena_duels_select_resolved_own" on public.arena_duels
+  for select using (
+    status <> 'open' and (auth.uid() = challenger_id or auth.uid() = opponent_id)
+  );
+
 commit;
