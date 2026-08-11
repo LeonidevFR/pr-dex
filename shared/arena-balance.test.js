@@ -4,7 +4,7 @@ import { simulateLeague, simulateLegendaryLife } from '../scripts/simulate-arena
 // Une saison : deux mois, ~8,7 semaines, 5 duels par semaine ouvrée.
 const SAISON = 8.7
 const RUNS = 30
-const POLICIES = ['prudent', 'rare', 'audacieux', 'rare', 'maison']
+const POLICIES = ['prudent', 'rare', 'audacieux', 'rare', 'ordinateur']
 
 /** Moyenne d'un joueur sur plusieurs ligues : une saison isolée varie trop pour un seuil stable. */
 function moyenne(index) {
@@ -23,7 +23,7 @@ function moyenne(index) {
 const PRUDENT = 0
 const RARE = 1
 const AUDACIEUX = 2
-const MAISON = 4
+const ORDINATEUR = 4
 
 describe('équilibrage de l’arène', () => {
   // Acquis 1 de la spec : aucune stratégie de mise dominante. La contrainte n'est pas la
@@ -75,26 +75,26 @@ describe('équilibrage de l’arène', () => {
     expect(mediane).toBeLessThan(15)
   })
 
-  // Acquis 4 : la boutique reste hors de portée du seul farming contre la maison.
-  it('rapporte moins de la moitié en n’affrontant que la maison', () => {
-    const maison = moyenne(MAISON)
-    expect(maison.dollars).toBeLessThan(moyenne(RARE).dollars / 2)
-    // Les trois suivantes sont des garde-fous structurels, pas des acquis : `duelMaison` ne
-    // touche jamais ces compteurs. Elles rougiraient si la maison se mettait un jour à
+  // Acquis 4 : la boutique reste hors de portée du seul farming contre l'ordinateur.
+  it('rapporte moins de la moitié en n’affrontant que l’ordinateur', () => {
+    const ordinateur = moyenne(ORDINATEUR)
+    expect(ordinateur.dollars).toBeLessThan(moyenne(RARE).dollars / 2)
+    // Les trois suivantes sont des garde-fous structurels, pas des acquis : `duelOrdinateur` ne
+    // touche jamais ces compteurs. Elles rougiraient si l'ordinateur se mettait un jour à
     // distribuer des plis ou des points.
-    expect(maison.points).toBe(0)
-    expect(maison.plis).toBe(0)
-    expect(maison.lost).toBe(0)
+    expect(ordinateur.points).toBe(0)
+    expect(ordinateur.plis).toBe(0)
+    expect(ordinateur.lost).toBe(0)
   })
 
   // Identité comptable, et rien de plus : chaque duel entre humains produit exactement une
   // victoire et une défaite. Ce test ne détecte pas un biais du moteur — il garde contre une
-  // régression de comptage, du genre de celle qui faisait entrer les victoires contre la
-  // maison dans le même compteur.
+  // régression de comptage, du genre de celle qui faisait entrer les victoires contre
+  // l'ordinateur dans le même compteur.
   it('équilibre victoires et défaites sur l’ensemble de la ligue', () => {
     const ligue = simulateLeague({ weeks: SAISON, seed: 'symetrie', policies: POLICIES })
-    const humains = ligue.filter((j) => j.policy !== 'maison')
-    const wins = humains.reduce((a, j) => a + j.wins - j.houseWins, 0)
+    const humains = ligue.filter((j) => j.policy !== 'ordinateur')
+    const wins = humains.reduce((a, j) => a + j.wins - j.computerWins, 0)
     const lost = humains.reduce((a, j) => a + j.lost, 0)
     expect(wins).toBe(lost)
   })

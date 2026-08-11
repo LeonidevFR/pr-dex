@@ -16,12 +16,12 @@ export const REWARD = {
 }
 
 /**
- * La maison ne possède rien : elle ne peut ni détruire ni créer un exemplaire, seulement
+ * L’ordinateur ne possède rien : il ne peut ni détruire ni créer un exemplaire, seulement
  * payer. Au quart du tarif humain et non à la moitié — la simulation a montré qu'à
  * demi-tarif, farmer l'IA rapportait presque autant qu'une saison de duels réels, sans
  * jamais rien risquer.
  */
-export const HOUSE_REWARD = { c: 12, u: 25, r: 62, l: 150 }
+export const COMPUTER_REWARD = { c: 12, u: 25, r: 62, l: 150 }
 
 export const FRESH_MULTIPLIER = 2.5
 

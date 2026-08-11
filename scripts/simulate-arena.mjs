@@ -1,7 +1,7 @@
 import { POOL, DEX } from '../shared/species.js'
 import { drawFrom, fnv1a } from '../shared/draw.js'
 import { formOf, resolveDuel } from '../shared/battle.js'
-import { coveredTier, REWARD, HOUSE_REWARD, TIER_ORDER } from '../shared/arena-economy.js'
+import { coveredTier, REWARD, COMPUTER_REWARD, TIER_ORDER } from '../shared/arena-economy.js'
 
 const DUELS_PER_WEEK = 5
 
@@ -53,28 +53,28 @@ function pickStake(stock, policy) {
 }
 
 function newPlayer(policy) {
-  if (policy !== 'maison' && !(policy in POLICIES)) {
+  if (policy !== 'ordinateur' && !(policy in POLICIES)) {
     throw new Error(`politique inconnue : ${policy}`)
   }
   return {
     policy, stock: emptyStock(), dollars: 0, points: 0, plis: 0, lost: 0,
-    duels: 0, wins: 0, houseWins: 0, fallbacks: 0, stakes: { c: 0, u: 0, r: 0, l: 0 },
+    duels: 0, wins: 0, computerWins: 0, fallbacks: 0, stakes: { c: 0, u: 0, r: 0, l: 0 },
   }
 }
 
-/** L'adversaire de la maison : plausible, jamais plus faible, et sans rien à perdre. */
-function houseSide(tier, seed) {
+/** L'adversaire de l'ordinateur : plausible, jamais plus faible, et sans rien à perdre. */
+function computerSide(tier, seed) {
   const pool = POOL[tier]
   return {
-    species: pool[fnv1a(`${seed}:maison`) % pool.length],
+    species: pool[fnv1a(`${seed}:ordinateur`) % pool.length],
     level: 1 + (fnv1a(`${seed}:niveau`) % 4),
-    form: formOf(`${seed}:maison`, 'jour'),
+    form: formOf(`${seed}:ordinateur`, 'jour'),
   }
 }
 
 /**
  * Une ligue : cinq joueurs, chacun avec sa réserve et sa politique. Chaque jour ouvré, les
- * joueurs sont appariés par rotation et celui qui reste affronte la maison — la rotation
+ * joueurs sont appariés par rotation et celui qui reste affronte l'ordinateur — la rotation
  * fait que tout le monde y passe à son tour.
  *
  * Le terrain adverse est ainsi ÉMERGENT : personne ne décide de ce que les autres engagent,
@@ -92,7 +92,7 @@ export function simulateLeague({ weeks, seed, policies }) {
       players.forEach((p, i) => collectWeek(p.stock, `${seed}:tirage:${i}:${semaine}`))
     }
 
-    // Ronde à la Berger : le joueur qui « sort » affronte la maison, les autres sont
+    // Ronde à la Berger : le joueur qui « sort » affronte l'ordinateur, les autres sont
     // appariés en miroir autour de lui. Sur cinq jours, chaque paire se rencontre
     // exactement une fois — sans quoi un joueur n'affronterait qu'un voisinage fixe, et le
     // classement mesurerait sa position dans le cycle autant que sa politique.
@@ -101,25 +101,25 @@ export function simulateLeague({ weeks, seed, policies }) {
     for (let k = 1; k * 2 < n; k++) {
       duelHumain(players[(repos + k) % n], players[(repos - k + n) % n], `${seed}:${j}:${k}`)
     }
-    duelMaison(players[repos], `${seed}:${j}:maison`)
+    duelOrdinateur(players[repos], `${seed}:${j}:ordinateur`)
   }
 
   return players.map((p) => ({
     policy: p.policy, dollars: p.dollars, points: p.points, plis: p.plis, lost: p.lost,
-    duels: p.duels, wins: p.wins, houseWins: p.houseWins, fallbacks: p.fallbacks,
+    duels: p.duels, wins: p.wins, computerWins: p.computerWins, fallbacks: p.fallbacks,
     stakes: p.stakes,
     stock: Object.fromEntries(TIER_ORDER.map((t) => [t, p.stock[t].length])),
   }))
 }
 
 function duelHumain(a, b, seed) {
-  // Un joueur qui ne relève jamais de défi renvoie son adversaire du jour vers la maison —
+  // Un joueur qui ne relève jamais de défi renvoie son adversaire du jour vers l'ordinateur —
   // et va s'y entraîner lui aussi. Sans cette seconde ligne il ne jouerait qu'un jour sur
-  // cinq, et l'acquis « la maison ne suffit pas » se vérifierait sur un écart de cadence
+  // cinq, et l'acquis « l'ordinateur ne suffit pas » se vérifierait sur un écart de cadence
   // au lieu d'un écart de revenus.
-  if (a.policy === 'maison' || b.policy === 'maison') {
-    duelMaison(a, `${seed}:a`)
-    duelMaison(b, `${seed}:b`)
+  if (a.policy === 'ordinateur' || b.policy === 'ordinateur') {
+    duelOrdinateur(a, `${seed}:a`)
+    duelOrdinateur(b, `${seed}:b`)
     return
   }
   const ea = pickStake(a.stock, a.policy)
@@ -157,13 +157,13 @@ function duelHumain(a, b, seed) {
 }
 
 /**
- * Contre la maison : des pokédollars au quart du tarif humain, et rien d'autre. Aucun pli,
- * aucun point, AUCUN GAIN DE NIVEAU (spec § 2) et aucun risque — la maison ne possède rien,
- * elle ne peut donc ni détruire ni créer un exemplaire. Un joueur qui ne fait que ça ne se
+ * Contre l'ordinateur : des pokédollars au quart du tarif humain, et rien d'autre. Aucun pli,
+ * aucun point, AUCUN GAIN DE NIVEAU (spec § 2) et aucun risque — l'ordinateur ne possède rien,
+ * il ne peut donc ni détruire ni créer un exemplaire. Un joueur qui ne fait que ça ne se
  * construit jamais de champion : c'est voulu.
  */
-function duelMaison(j, seed) {
-  const e = pickStake(j.stock, j.policy === 'maison' ? 'rare' : j.policy)
+function duelOrdinateur(j, seed) {
+  const e = pickStake(j.stock, j.policy === 'ordinateur' ? 'rare' : j.policy)
   if (!e) return
   const mien = j.stock[e.tier][e.index]
 
@@ -173,13 +173,13 @@ function duelMaison(j, seed) {
 
   const issue = resolveDuel({
     left: { ...mien, form: formOf(`${seed}:moi`, 'jour') },
-    right: houseSide(e.tier, seed),
+    right: computerSide(e.tier, seed),
     seed,
   })
   if (issue.winner === 'left') {
     j.wins++
-    j.houseWins++
-    j.dollars += HOUSE_REWARD[e.tier]
+    j.computerWins++
+    j.dollars += COMPUTER_REWARD[e.tier]
   }
 }
 
@@ -217,7 +217,7 @@ const quantile = (tri, q) => tri[Math.min(tri.length - 1, Math.floor(tri.length 
 function main() {
   const SAISON = 8.7
   const RUNS = 30
-  const POLICIES_CLI = ['prudent', 'rare', 'audacieux', 'rare', 'maison']
+  const POLICIES_CLI = ['prudent', 'rare', 'audacieux', 'rare', 'ordinateur']
 
   console.log(`Ligue de ${POLICIES_CLI.length} joueurs, ${RUNS} saisons de deux mois simulées.\n`)
   console.log('politique     médiane   p10      p90    victoires  replis  mises légendaires')

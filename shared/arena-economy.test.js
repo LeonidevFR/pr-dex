@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  TIER_ORDER, coveredTier, REWARD, HOUSE_REWARD, SHOP, FRESH_MULTIPLIER,
+  TIER_ORDER, coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER,
   SEASON_PODIUM, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS,
 } from './arena-economy.js'
 
@@ -33,12 +33,12 @@ describe('gains', () => {
     expect(points).toEqual([5, 10, 25, 60])
   })
 
-  // Mesuré avant écriture : à demi-tarif, farmer la maison rapportait 2 750 $ par saison
+  // Mesuré avant écriture : à demi-tarif, farmer l'ordinateur rapportait 2 750 $ par saison
   // SANS AUCUN RISQUE, contre 5 406 $ en duels réels — l'option sûre devenait presque aussi
   // rentable que l'option risquée. Le quart la ramène à 21 %.
-  it('paye la maison au quart du tarif humain, en pokédollars seulement', () => {
-    expect(HOUSE_REWARD).toEqual({ c: 12, u: 25, r: 62, l: 150 })
-    for (const t of TIER_ORDER) expect(HOUSE_REWARD[t]).toBeLessThan(REWARD[t].dollars / 3)
+  it('paye l’ordinateur au quart du tarif humain, en pokédollars seulement', () => {
+    expect(COMPUTER_REWARD).toEqual({ c: 12, u: 25, r: 62, l: 150 })
+    for (const t of TIER_ORDER) expect(COMPUTER_REWARD[t]).toBeLessThan(REWARD[t].dollars / 3)
   })
 })
 

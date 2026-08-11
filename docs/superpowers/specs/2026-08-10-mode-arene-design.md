@@ -67,8 +67,8 @@ pseudonyme devient nécessaire.
   dimanche à 23h59.
 - Un crédit permet d'**engager un exemplaire précis**. Il est alors immobilisé : ni
   évolution, ni second engagement.
-- Au moment d'engager, le joueur choisit : **poster un défi ouvert**, ou **affronter la
-  maison tout de suite**. Personne n'est bloqué parce que l'équipe est absente.
+- Au moment d'engager, le joueur choisit : **poster un défi ouvert**, ou **affronter
+  l'ordinateur tout de suite**. Personne n'est bloqué parce que l'équipe est absente.
 - L'arène liste les défis ouverts avec le **pseudo** de qui les a posés, **jamais la
   mise**. On choisit qui on relève ; relever coûte un crédit et engage un exemplaire,
   **à l'aveugle des deux côtés**.
@@ -79,32 +79,32 @@ pseudonyme devient nécessaire.
 - **Vainqueur : exemplaire intact**, plus un **pli d'arène**, des pokédollars et des
   points de saison — tous trois au palier de **l'enjeu du duel**, c'est-à-dire le plus
   petit des deux engagements (§ 4).
-- **Un défi ouvert sans preneur sous 24 h** est résolu contre la maison.
+- **Un défi ouvert sans preneur sous 24 h** est résolu contre l'ordinateur.
 - **Deux duels par semaine maximum contre la même personne.**
 
 **Propriété centrale** : entre humains, l'arène **ne crée ni ne détruit d'exemplaire,
-elle déplace** — un détruit d'un côté, un tiré de l'autre. Contre la maison, elle ne
+elle déplace** — un détruit d'un côté, un tiré de l'autre. Contre l'ordinateur, elle ne
 touche à rien.
 
-### La maison
+### L'ordinateur
 
-La maison n'est pas un joueur : elle ne possède rien. Si elle détruisait un exemplaire,
-un Pokémon disparaîtrait sans contrepartie ; si elle payait un pli, il en apparaîtrait un
-depuis rien. Un duel contre la maison est donc **symbolique** :
+L'ordinateur n'est pas un joueur : il ne possède rien. S'il détruisait un exemplaire,
+un Pokémon disparaîtrait sans contrepartie ; s'il payait un pli, il en apparaîtrait un
+depuis rien. Un duel contre l'ordinateur est donc **symbolique** :
 
 - des **pokédollars uniquement**, moitié moins que contre un humain, au palier de sa
   propre mise ;
 - **aucun pli**, **aucun point de classement**, **aucun gain de niveau**, **aucun risque**.
 
-**Comment la maison choisit son combattant.** Elle **tire dans une distribution
+**Comment l'ordinateur choisit son combattant.** Il **tire dans une distribution
 plausible** : une espèce au hasard dans le pool du palier de ta propre mise, à un niveau
 tiré entre 1 et le niveau médian des exemplaires réellement engagés dans l'arène ces
 trente derniers jours, avec sa forme du jour normale.
 
 Un 50/50 systématique a été écarté : si l'issue ne dépend plus de ce qu'on engage, on
-engage n'importe quoi et le duel contre la maison n'apprend rien. Une distribution
+engage n'importe quoi et le duel contre l'ordinateur n'apprend rien. Une distribution
 plausible conserve la seule chose qui compte — que le choix de la mise ait des
-conséquences — sans jamais rendre la maison plus facile que l'équipe.
+conséquences — sans jamais rendre l'ordinateur plus facile que l'équipe.
 
 L'absence de gain de niveau n'est pas un détail : sans elle, on monterait un champion
 sans jamais rien risquer, et le niveau cesserait de mesurer ce qu'on a osé.
@@ -252,12 +252,12 @@ Battre un rare ne rapporte donc pas 250 $ : il faut que **les deux** aient engag
 | Autre situation | Gains |
 |---|---|
 | Défaite contre un humain | rien, et l'exemplaire engagé est détruit |
-| Défaite contre la maison | rien, et l'exemplaire est conservé |
+| Défaite contre l'ordinateur | rien, et l'exemplaire est conservé |
 
-Contre la maison, en pokédollars seulement, au palier de **sa propre** mise, **au quart** du
+Contre l'ordinateur, en pokédollars seulement, au palier de **sa propre** mise, **au quart** du
 tarif humain :
 
-| Sa mise contre la maison | Pokédollars |
+| Sa mise contre l'ordinateur | Pokédollars |
 |---|---|
 | Commun | 12 |
 | Peu commun | 25 |
@@ -456,7 +456,7 @@ cœur. L'information cachée intéressante est celle de l'adversaire.
 | Table | Contenu |
 |---|---|
 | `arena_exemplars` | Niveau, victoires et destruction d'un exemplaire, repéré par sa clé `source:external_id` |
-| `arena_duels` | Les deux camps, les deux mises, l'état (ouvert / résolu / maison), le vainqueur, et les puissances conservées pour le résumé |
+| `arena_duels` | Les deux camps, les deux mises, l'état (ouvert / résolu / ordinateur), le vainqueur, et les puissances conservées pour le résumé |
 | `arena_wallet` | Portefeuille persistant |
 | `arena_season_points` | Score par saison, remis à zéro |
 | `arena_seasons` | Saisons closes et leur podium — **les points repartent à zéro, les badges sont permanents** : sans cette table, un badge gagné n'aurait plus aucun référent après la remise à zéro |
@@ -535,7 +535,7 @@ Quatre acquis à **démontrer**, pas à supposer :
    doit pas être gratuit.
 2. **Un joueur prudent progresse, un joueur audacieux nettement plus.**
 3. **Un légendaire descendu chaque semaine finit détruit** en quelques mois.
-4. **La boutique reste hors de portée du seul farming contre la maison.**
+4. **La boutique reste hors de portée du seul farming contre l'ordinateur.**
 
 ### Une donnée qui change les ordres de grandeur
 
@@ -583,9 +583,9 @@ ne pas savoir ce que l'autre engage.
 **« Pas deux fois de suite le même adversaire »** — dépendait de qui était connecté au
 même moment. Remplacé par le **plafond de 2 duels par semaine et par paire**, prévisible
 et sans condition. Coût assumé : en semaine à deux joueurs, seuls 2 duels humains sont
-possibles, le reste part à la maison.
+possibles, le reste part à l'ordinateur.
 
-**Un pli offert par la maison** — créerait des exemplaires à partir de rien, jusqu'à 5 par
+**Un pli offert par l'ordinateur** — créerait des exemplaires à partir de rien, jusqu'à 5 par
 semaine et par personne. Le joueur isolé reçoit ses plis par la boutique, qui reste
 **l'unique robinet de création**, dont les prix se calibrent.
 
