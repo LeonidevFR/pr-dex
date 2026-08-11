@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   FORMS, LEVEL_MAX, TIER_POWER, formOf, power, winProbability, levelGain, resolveDuel,
 } from '../shared/battle.js'
+import { DEX } from '../shared/species.js'
 import { withDb, dbAvailable } from './db-test-helper.mjs'
 
 const disponible = await dbAvailable()
@@ -227,4 +228,53 @@ describe.skipIf(!disponible)('parité de la résolution d’un duel', () => {
     expect(obtenu.gain).toBe(5)
     expect(obtenu.apres).toBe(LEVEL_MAX)
   })
+})
+
+describe.skipIf(!disponible)('parité en masse', () => {
+  // Deux mille duels dérivés d'un seed : toutes les espèces, tous les niveaux, toutes les
+  // formes, et des jours différents. Deux cents duels choisis à la main ne couvrent que ce à
+  // quoi on a pensé ; celui-ci attrape le reste. Un désaccord sur un seul d'entre eux
+  // signifierait qu'un joueur peut voir un résultat que le serveur n'a pas écrit.
+  it('ne diverge sur aucun de deux mille duels', async () => {
+    const especes = Object.keys(DEX).map(Number)
+    const cas = Array.from({ length: 2000 }, (_, i) => ({
+      seed: `masse-${i}`,
+      jour: ['2026-08-11', '2026-11-30', '2027-02-28'][i % 3],
+      left: { key: `github:m${i}`, species: especes[i % especes.length], level: (i % 10) + 1 },
+      right: { key: `github:n${i}`, species: especes[(i * 7) % especes.length], level: ((i * 5) % 10) + 1 },
+    }))
+
+    const desaccords = await withDb(async (c) => {
+      const ko = []
+      for (const { seed, jour, left, right } of cas) {
+        const attendu = resolveDuel({
+          left: { ...left, form: formOf(left.key, jour) },
+          right: { ...right, form: formOf(right.key, jour) },
+          seed,
+        })
+        const { rows } = await c.query(
+          `select * from arena_resolve($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [left.key, left.species, left.level, right.key, right.species, right.level, jour, seed])
+        const sql = rows[0]
+        if (sql.winner !== attendu.winner || sql.gain !== attendu.gain
+            || sql.level_after !== attendu.levelAfter) {
+          // On rapporte l'écart tirage / probabilité avec le désaccord : c'est lui qui dit si
+          // le cas tombe dans la fenêtre où `pow()` glibc et `pow()` fdlibm se séparent (de
+          // l'ordre de 1e-16, limite du format) ou s'il s'agit d'un vrai défaut de portage.
+          ko.push({
+            seed,
+            jour,
+            winner: [attendu.winner, sql.winner],
+            gain: [attendu.gain, sql.gain],
+            levelAfter: [attendu.levelAfter, sql.level_after],
+            ecart: Math.abs(attendu.roll - attendu.probability),
+          })
+        }
+      }
+      return ko
+    })
+    // Aucun assouplissement : ces cas sont exactement ceux qui feraient diverger le serveur et
+    // le client en production, et le JavaScript fait foi.
+    expect(desaccords).toEqual([])
+  }, 60_000)
 })
