@@ -8,6 +8,8 @@ const fauxClient = (over = {}) => ({
   readArena: vi.fn(async () => ({ credits: 3, pokedollars: 250, exemplars: [] })),
   readOpenChallenges: vi.fn(async () => []),
   readMyOpen: vi.fn(async () => null),
+  readShop: vi.fn(async () => []),
+  buy: vi.fn(async () => 1),
   readDuel: vi.fn(async (id) => ({ id, status: 'resolved' })),
   engage: vi.fn(async () => 11),
   accept: vi.fn(async () => 22),
@@ -120,5 +122,30 @@ describe('useArena', () => {
 
     expect(client.accept).toHaveBeenCalledWith(5, 'github:b')
     expect(duel.id).toBe(22)
+  })
+
+  /**
+   * Le pli n'arrive pas tout de suite : la base enregistre qu'il est dû et l'Action lui donne un
+   * visage au passage suivant. Le portefeuille, lui, est débité sur-le-champ — sans relecture,
+   * l'écran laisserait racheter ce qu'on ne peut plus payer.
+   */
+  it('relit l’état après un achat', async () => {
+    const client = fauxClient()
+    const a = useArena(client, ref([]))
+    await a.load()
+    client.readArena.mockClear()
+
+    await a.buy('gen1-r')
+
+    expect(client.buy).toHaveBeenCalledWith('gen1-r')
+    expect(client.readArena).toHaveBeenCalledTimes(1)
+  })
+
+  it('expose le catalogue tel que la base le donne', async () => {
+    const articles = [{ slug: 'gen1-c', gen: 1, tier: 'c', fresh: false, price: 250 }]
+    const a = useArena(fauxClient({ readShop: async () => articles }), ref([]))
+    await a.load()
+
+    expect(a.shop.value).toEqual(articles)
   })
 })

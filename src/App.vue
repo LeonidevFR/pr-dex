@@ -115,6 +115,9 @@ function onEngageFromSheet(key) {
 }
 const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
 
+/** Acheter ne produit pas de duel : l'arène reste à l'écran, solde et catalogue rafraîchis. */
+const onBuy = (slug) => playArena(async () => { await arena.buy(slug); return null })
+
 function disconnect() {
   signOut()
   settingsOpen.value = false
@@ -286,8 +289,8 @@ useKeyboardNav({
         :challenges="arena.challenges.value" :engageable="arena.engageable.value"
         :my-open="arena.myOpen.value" :level-of="arena.levelOf"
         :form-of-key="arena.formOfKey" :busy="arenaBusy"
-        :preselect="arenaPreselect"
-        @close="arenaOpen = false; arenaPreselect = null" @engage="onEngage" @accept="onAccept"
+        :preselect="arenaPreselect" :shop="arena.shop.value"
+        @close="arenaOpen = false; arenaPreselect = null" @engage="onEngage" @accept="onAccept" @buy="onBuy"
       />
     </transition>
 

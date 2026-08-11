@@ -14,11 +14,19 @@ const props = defineProps({
   formOfKey: { type: Function, required: true },
   busy: { type: Boolean, default: false },
   preselect: { type: String, default: null },
+  shop: { type: Array, default: () => [] },
 })
-const emit = defineEmits(['close', 'engage', 'accept'])
+const emit = defineEmits(['close', 'engage', 'accept', 'buy'])
 
 const chosen = ref(null)
 const rulesOpen = ref(false)
+
+/** Deux onglets : le panneau porte déjà beaucoup, et acheter n'est pas se battre. */
+const tab = ref('duels')
+
+const ARTICLE = { c: 'commun', u: 'peu commun', r: 'rare', l: 'légendaire' }
+const nomArticle = (a) =>
+  `Pli ${ARTICLE[a.tier]}${a.gen === 2 ? ' · Gen 2' : ''}${a.fresh ? ' · inédit garanti' : ''}`
 
 /**
  * L'espèce dont on est en train de choisir l'exemplaire. Deux temps plutôt qu'un : une liste à
@@ -120,6 +128,14 @@ function take(duelId) {
             {{ rulesOpen ? 'Masquer les règles' : 'Comment ça marche' }}
           </button>
         </div>
+        <div class="gen-tabs" style="padding:10px 0 0">
+          <button
+            class="filter-chip" :class="{ active: tab === 'duels' }" @click="tab = 'duels'"
+          >Duels</button>
+          <button
+            class="filter-chip" :class="{ active: tab === 'boutique' }" @click="tab = 'boutique'"
+          >Boutique</button>
+        </div>
         <p v-if="!credits" class="muted">
           Tu as joué tous tes engagements. Il en revient <b>un par jour ouvré</b>, et ils
           s’accumulent jusqu’à cinq — reviens demain.
@@ -169,7 +185,7 @@ function take(duelId) {
         </div>
       </div>
 
-      <div v-if="myOpen" class="sect">
+      <div v-if="tab === 'duels' && myOpen" class="sect">
         <div class="eyebrow sect-h"><span>Ton défi en cours</span></div>
         <div class="repo-ptr">
           <span class="dot"></span>
@@ -178,7 +194,7 @@ function take(duelId) {
         </div>
       </div>
 
-      <div class="sect">
+      <div v-if="tab === 'duels'" class="sect">
         <div class="eyebrow sect-h">
           <span>Ce que tu engages</span>
           <span class="mono muted">{{ engageable.length }} exemplaire{{ engageable.length > 1 ? 's' : '' }}</span>
@@ -237,7 +253,7 @@ function take(duelId) {
         sortait de l'écran au moment précis où l'on venait de choisir. On cliquait, rien ne
         semblait se produire — parce que ce qui avait changé n'était plus visible.
       -->
-      <div v-if="chosen" class="arena-bar">
+      <div v-if="tab === 'duels' && chosen" class="arena-bar">
         <div class="arena-bar-txt">
           <div class="line-name">
             {{ nameOf(chosen) }} · niv. {{ levelOf(chosen) }} ·
@@ -254,7 +270,7 @@ function take(duelId) {
         </div>
       </div>
 
-      <div class="sect">
+      <div v-if="tab === 'duels'" class="sect">
         <div class="eyebrow sect-h"><span>Défis ouverts</span></div>
         <p v-if="!others.length" class="muted">
           Personne n’attend de preneur. Poste le tien — s’il reste seul, l’ordinateur le relèvera
@@ -276,6 +292,25 @@ function take(duelId) {
             {{ chosen ? 'Relever' : 'Choisis ta mise' }}
           </button>
         </div>
+      </div>
+      <div v-if="tab === 'boutique'" class="sect">
+        <div class="eyebrow sect-h"><span>Ce que les pokédollars achètent</span></div>
+        <p class="muted" style="margin-bottom:12px">
+          Un pli acheté s’ouvre comme les autres, aux mêmes cotes — seul l’ensemble dans lequel
+          il pioche est décidé d’avance. La <b>Gen 2</b> ne s’obtient que par ici ; l’<b>inédit
+          garanti</b> ne tire que parmi les espèces qui te manquent encore.
+        </p>
+        <div v-for="a in shop" :key="a.slug" class="log-row">
+          <span class="log-title">{{ nomArticle(a) }}</span>
+          <span class="log-sha mono">{{ a.price }} ₽</span>
+          <button
+            class="evo-btn" :disabled="busy || pokedollars < a.price" @click="emit('buy', a.slug)"
+          >{{ pokedollars < a.price ? `il manque ${a.price - pokedollars} ₽` : 'Acheter' }}</button>
+        </div>
+        <p class="muted" style="margin-top:10px">
+          Le pli n’arrive pas à la seconde : il t’est dû, et il rejoint ta file d’ouverture au
+          prochain passage de la collecte.
+        </p>
       </div>
     </div>
   </div>

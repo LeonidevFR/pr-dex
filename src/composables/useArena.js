@@ -16,6 +16,7 @@ export function useArena(client, claimed) {
   const pokedollars = ref(0)
   const exemplars = ref([])
   const challenges = ref([])
+  const shop = ref([])
   const myOpen = ref(null)
   const loading = ref(false)
   const error = ref(null)
@@ -50,9 +51,10 @@ export function useArena(client, claimed) {
     loading.value = true
     error.value = null
     try {
-      const [arena, open, mien] = await Promise.all([
-        client.readArena(), client.readOpenChallenges(), client.readMyOpen(),
+      const [arena, open, mien, articles] = await Promise.all([
+        client.readArena(), client.readOpenChallenges(), client.readMyOpen(), client.readShop(),
       ])
+      shop.value = articles ?? []
       credits.value = arena.credits
       pokedollars.value = arena.pokedollars
       exemplars.value = arena.exemplars
@@ -81,6 +83,17 @@ export function useArena(client, claimed) {
     return duel
   }
 
+  /**
+   * Acheter, puis relire. Le pli n'arrive pas tout de suite : la base enregistre qu'il est dû,
+   * et c'est l'Action qui lui donne un visage au passage suivant. Le portefeuille, lui, est
+   * débité immédiatement — d'où la relecture, sans laquelle l'écran afficherait encore l'ancien
+   * solde et laisserait racheter ce qu'on ne peut plus payer.
+   */
+  async function buy(slug) {
+    await client.buy(slug)
+    await load()
+  }
+
   async function accept(duelId, entryKey) {
     const id = await client.accept(duelId, entryKey)
     const duel = await client.readDuel(id)
@@ -89,7 +102,7 @@ export function useArena(client, claimed) {
   }
 
   return {
-    credits, pokedollars, exemplars, challenges, myOpen, loading, error,
-    levels, destroyed, engageable, levelOf, formOfKey, load, engage, accept,
+    credits, pokedollars, exemplars, challenges, shop, myOpen, loading, error,
+    levels, destroyed, engageable, levelOf, formOfKey, load, engage, accept, buy,
   }
 }

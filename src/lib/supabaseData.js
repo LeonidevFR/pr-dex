@@ -136,6 +136,12 @@ export function createSupabaseClient(userId) {
     )
   }
 
+  /** Le catalogue vient de la base, jamais des constantes du front : c'est elle qui débite. */
+  const readShop = () =>
+    query(() => supabase.from('arena_shop').select('slug, gen, tier, fresh, price').order('price'))
+
+  const buy = (slug) => query(() => supabase.rpc('arena_buy', { p_slug: slug }))
+
   const engage = (entryKey, vsComputer = false) =>
     query(() => supabase.rpc('arena_engage', { p_entry_key: entryKey, p_vs_computer: vsComputer }))
 
@@ -144,6 +150,6 @@ export function createSupabaseClient(userId) {
 
   return {
     checkAccess, readCatches, readState, writeState, triggerCatch,
-    readArena, readOpenChallenges, readMyOpen, readDuel, engage, accept,
+    readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, engage, accept,
   }
 }

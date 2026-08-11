@@ -2,7 +2,7 @@ import { fnv1a, drawFrom } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
 import { DEX } from '../../shared/species.js'
 import { FORMS, formOf, power, resolveDuel } from '../../shared/battle.js'
-import { REWARD, coveredTier } from '../../shared/arena-economy.js'
+import { REWARD, SHOP, coveredTier } from '../../shared/arena-economy.js'
 
 const FAKE_PRS = [
   ['fix: race condition à l\'upload de fichiers', 'moi/atlas', 142, '2026-02-03'],
@@ -259,6 +259,18 @@ export function demoArena(catches) {
       }))),
     }),
     readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
+    readShop: async () => SHOP.map(({ slug, gen, tier, fresh, price }) => ({ slug, gen, tier, fresh, price })),
+    /**
+     * En démo l'achat est immédiat : il n'y a pas d'Action pour matérialiser le pli plus tard,
+     * et faire attendre un joueur qui essaie le jeu sans compte n'apprendrait rien à personne.
+     */
+    buy: async (slug) => {
+      const art = SHOP.find((a) => a.slug === slug)
+      if (!art) throw new Error(`boutique : article inconnu (${slug})`)
+      if (pokedollars < art.price) throw new Error(`boutique : il manque ${art.price - pokedollars} pokédollars`)
+      pokedollars -= art.price
+      return ++seq
+    },
     readDuel: async (id) => duels.get(id) ?? null,
     readMyOpen: async () => (mine_ouverte
       ? { id: mine_ouverte.id, challenger_key: mine_ouverte.key, species: especeDe(mine_ouverte.key) }
