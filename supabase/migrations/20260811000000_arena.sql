@@ -280,4 +280,118 @@ returns double precision language sql immutable strict as $$
                greatest(0.10 :: double precision, a ^ 3 / (a ^ 3 + b ^ 3)))
 $$;
 
+-- Seuils croissants sur le rapport ADVERSAIRE / SOI, et jamais l'inverse. Écraser plus faible
+-- que soi rend 0 : c'est ce qui rend stérile l'acharnement sur les petits joueurs, sans qu'une
+-- règle ait à l'interdire. Le rapport inversé donnerait exactement la stratégie contraire —
+-- c'est le seul endroit du portage où une erreur de sens ne casse rien et change tout.
+--
+-- Comparaisons strictes (`<`) et seuils en `double precision` : un seuil laissé en `numeric`
+-- ferait remonter la division en décimal exact et le rapport tomberait du bon côté d'un seuil
+-- que le JavaScript place de l'autre.
+create or replace function public.arena_level_gain(mine double precision, theirs double precision)
+returns int language sql immutable strict as $$
+  select case
+    when theirs / mine < 0.75 :: double precision then 0
+    when theirs / mine < 1.10 :: double precision then 1
+    when theirs / mine < 1.50 :: double precision then 2
+    when theirs / mine < 2.00 :: double precision then 3
+    else 5
+  end
+$$;
+
+-- Les slugs de `FORMS`, dans l'ordre. Ils ne servent qu'à la clé de tri du duel : la forme
+-- elle-même passe par son facteur. Ce sont donc bien les slugs du JavaScript qu'il faut, et
+-- pas des noms d'affichage — ils entrent dans une comparaison de chaînes.
+create or replace function public.arena_form_slug(idx int)
+returns text language sql immutable strict as $$
+  select (array['epuise', 'fatigue', 'normal', 'en-forme', 'pleine-forme'])[idx + 1]
+$$;
+
+-- Clé de tri canonique d'un exemplaire, reprise de `sortKey` dans `shared/battle.js`. La clé
+-- d'exemplaire vient en tête parce qu'elle est la seule des quatre composantes à être unique :
+-- espèce, niveau et forme laissent ex æquo deux exemplaires jumeaux — deux joueurs engageant la
+-- même espèce au même niveau, avec la même forme du jour une fois sur cinq.
+create or replace function public.arena_sort_key(entry_key text, species int, level int, form_idx int)
+returns text language sql immutable strict as $$
+  select entry_key || ':' || species || ':' || level || ':' || public.arena_form_slug(form_idx)
+$$;
+
+-- Résolution complète d'un duel, portage de `resolveDuel`. Le serveur l'appelle pour écrire
+-- l'issue, le client rejoue la même chose en JavaScript pour l'afficher : les deux doivent
+-- désigner le même vainqueur, sinon le résumé de combat devient une affirmation à croire sur
+-- parole. `scripts/arena-combat-parity.test.js` compare les deux moteurs sur 2 200 duels.
+--
+-- Trois points de portage à ne pas relâcher :
+--
+--  1. Le tirage vient de `fnv1a(seed || ':issue') / 2^32`, exactement comme en JavaScript — la
+--     division par une puissance de deux est exacte des deux côtés, donc le tirage se compare
+--     au bit près (contrairement à la probabilité, qui passe par `pow()`).
+--
+--  2. Le tirage est confronté au camp canoniquement PREMIER et non à `left`. Sans cela,
+--     échanger les deux camps à seed égal change le vainqueur près d'une fois sur trois — le
+--     bug a existé dans le JavaScript et y a été corrigé. Or le serveur résout un duel
+--     challenger / preneur et le client le rejoue dans l'ordre qui l'arrange.
+--
+--  3. `collate "C"` sur la comparaison des clés de tri : JavaScript compare les chaînes unité
+--     de code par unité de code, là où la collation par défaut de la base range les signes de
+--     ponctuation selon des règles linguistiques. Les clés contiennent `:` et `-` — sous une
+--     collation linguistique, le camp canoniquement premier ne serait pas le même des deux
+--     côtés, et l'anti-symétrie se retournerait contre nous.
+--
+-- `stable` : la puissance dépend de `species_stats`.
+create or replace function public.arena_resolve(
+  left_key text, left_species int, left_level int,
+  right_key text, right_species int, right_level int,
+  day text, seed text)
+returns table (
+  winner text, probability double precision, roll double precision,
+  left_power double precision, right_power double precision,
+  gain int, level_after int)
+language sql stable strict as $$
+  with f as (
+    select public.arena_form_index(arena_resolve.left_key, arena_resolve.day) as lf,
+           public.arena_form_index(arena_resolve.right_key, arena_resolve.day) as rf
+  ),
+  p as (
+    select f.lf, f.rf,
+           public.arena_power(arena_resolve.left_species, arena_resolve.left_level, f.lf) as lp,
+           public.arena_power(arena_resolve.right_species, arena_resolve.right_level, f.rf) as rp
+    from f
+  ),
+  d as (
+    select p.lp, p.rp,
+           public.arena_win_probability(p.lp, p.rp) as prob,
+           public.fnv1a(arena_resolve.seed || ':issue') :: double precision
+             / 4294967296 :: double precision as draw,
+           public.arena_sort_key(arena_resolve.left_key, arena_resolve.left_species,
+                                 arena_resolve.left_level, p.lf) collate "C"
+             <= public.arena_sort_key(arena_resolve.right_key, arena_resolve.right_species,
+                                      arena_resolve.right_level, p.rf) collate "C" as left_first
+    from p
+  ),
+  i as (
+    -- `firstWins` porte sur le camp canoniquement premier ; l'issue de `left` s'en déduit par
+    -- négation quand c'est `right` qui est premier.
+    select d.*,
+           case when d.left_first then d.draw < d.prob
+                else not (d.draw < public.arena_win_probability(d.rp, d.lp)) end as left_wins
+    from d
+  )
+  select case when i.left_wins then 'left' else 'right' end,
+         i.prob,
+         i.draw,
+         i.lp,
+         i.rp,
+         -- Le gain se lit du point de vue du VAINQUEUR : sa puissance en premier argument,
+         -- celle du perdant en second.
+         public.arena_level_gain(case when i.left_wins then i.lp else i.rp end,
+                                 case when i.left_wins then i.rp else i.lp end),
+         -- Plafond à 10 : un exploit rapporte cinq niveaux, jamais au-delà de `LEVEL_MAX`.
+         least(10, (case when i.left_wins then arena_resolve.left_level
+                         else arena_resolve.right_level end)
+                   + public.arena_level_gain(case when i.left_wins then i.lp else i.rp end,
+                                             case when i.left_wins then i.rp else i.lp end))
+  from i
+$$;
+
 commit;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  FORMS, LEVEL_MAX, TIER_POWER, formOf, power, winProbability,
+  FORMS, LEVEL_MAX, TIER_POWER, formOf, power, winProbability, levelGain, resolveDuel,
 } from '../shared/battle.js'
 import { withDb, dbAvailable } from './db-test-helper.mjs'
 
@@ -109,5 +109,122 @@ describe.skipIf(!disponible)('parité de la probabilité de victoire', () => {
       return rows.map((r) => Number(r.p))
     })
     for (let i = 0; i < attendus.length; i++) expect(obtenus[i]).toBeCloseTo(attendus[i], 12)
+  })
+})
+
+describe.skipIf(!disponible)('parité du gain de niveau', () => {
+  it('rend le même gain que le JavaScript sur toute la plage des rapports', async () => {
+    // Les paires encadrent chacun des quatre seuils par en dessous et par au-dessus : c'est
+    // là et nulle part ailleurs que le portage peut se tromper de comparaison stricte ou de
+    // sens du rapport. `[1000, 500]` doit rendre 0 — écraser un faible ne fait pas monter.
+    const paires = [[1000, 500], [1000, 740], [1000, 750], [1000, 1000], [1000, 1090],
+      [1000, 1100], [1000, 1490], [1000, 1500], [1000, 1990], [1000, 2000], [1000, 9000]]
+    const attendus = paires.map(([m, t]) => levelGain(m, t))
+    const obtenus = await withDb(async (c) => {
+      const { rows } = await c.query(
+        `select arena_level_gain(m, t) as g
+         from unnest($1::float8[], $2::float8[]) with ordinality as x(m, t, n)
+         order by n`,
+        [paires.map((p) => p[0]), paires.map((p) => p[1])])
+      return rows.map((r) => r.g)
+    })
+    expect(obtenus).toEqual(attendus)
+  })
+
+  it('n’accorde rien au vainqueur qui écrase, quel que soit l’écart', async () => {
+    // Le rapport est adversaire / soi. Inversé, ces trois cas rendraient 5 au lieu de 0 et le
+    // farming des petits joueurs deviendrait la meilleure façon de monter.
+    const obtenus = await withDb(async (c) => {
+      const { rows } = await c.query(
+        `select arena_level_gain(m, t) as g
+         from unnest($1::float8[], $2::float8[]) with ordinality as x(m, t, n)
+         order by n`,
+        [[1000, 1000, 1000], [10, 100, 500]])
+      return rows.map((r) => r.g)
+    })
+    expect(obtenus).toEqual([0, 0, 0])
+  })
+})
+
+describe.skipIf(!disponible)('parité de la résolution d’un duel', () => {
+  it('désigne le même vainqueur et les mêmes chiffres que le JavaScript', async () => {
+    const jour = '2026-08-11'
+    const cas = []
+    for (let i = 0; i < 200; i++) {
+      cas.push({
+        seed: `duel-${i}`,
+        left: { key: `github:g${i}`, species: [1, 4, 6, 16, 19, 145, 150][i % 7], level: (i % 10) + 1 },
+        right: { key: `github:d${i}`, species: [20, 83, 129, 130, 6, 4, 1][i % 7], level: ((i * 3) % 10) + 1 },
+      })
+    }
+
+    const attendus = cas.map(({ seed, left, right }) => resolveDuel({
+      left: { ...left, form: formOf(left.key, jour) },
+      right: { ...right, form: formOf(right.key, jour) },
+      seed,
+    }))
+
+    const obtenus = await withDb(async (c) => {
+      const rows = []
+      for (const { seed, left, right } of cas) {
+        const { rows: r } = await c.query(
+          `select * from arena_resolve($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [left.key, left.species, left.level, right.key, right.species, right.level, jour, seed])
+        rows.push(r[0])
+      }
+      return rows
+    })
+
+    for (let i = 0; i < cas.length; i++) {
+      expect(obtenus[i].winner).toBe(attendus[i].winner)
+      expect(obtenus[i].gain).toBe(attendus[i].gain)
+      expect(obtenus[i].level_after).toBe(attendus[i].levelAfter)
+      // Les puissances, elles, se comparent au bit près : elles ne passent par aucun `pow()`.
+      expect(Number(obtenus[i].left_power)).toBe(attendus[i].left.power)
+      expect(Number(obtenus[i].right_power)).toBe(attendus[i].right.power)
+      expect(Number(obtenus[i].probability)).toBeCloseTo(attendus[i].probability, 12)
+      // Le tirage ne dépend que de `fnv1a` : égalité stricte, pas de tolérance à accorder.
+      expect(Number(obtenus[i].roll)).toBe(attendus[i].roll)
+    }
+  })
+
+  it('désigne le même vainqueur quel que soit l’ordre des deux camps', async () => {
+    // L'anti-symétrie est la propriété qui permet au client de rejouer un duel que le serveur
+    // a résolu en challenger / preneur : si l'échange des arguments changeait l'issue, le
+    // joueur verrait un vainqueur que le serveur n'a pas écrit.
+    const jour = '2026-08-11'
+    const desaccords = await withDb(async (c) => {
+      const ko = []
+      for (let i = 0; i < 120; i++) {
+        const g = { key: `github:sym-g${i}`, species: [1, 4, 6, 16, 19, 145, 150][i % 7], level: (i % 10) + 1 }
+        const d = { key: `github:sym-d${i}`, species: [20, 83, 129, 130, 6, 4, 1][i % 7], level: ((i * 3) % 10) + 1 }
+        const seed = `sym-${i}`
+        const direct = (await c.query('select * from arena_resolve($1,$2,$3,$4,$5,$6,$7,$8)',
+          [g.key, g.species, g.level, d.key, d.species, d.level, jour, seed])).rows[0]
+        const inverse = (await c.query('select * from arena_resolve($1,$2,$3,$4,$5,$6,$7,$8)',
+          [d.key, d.species, d.level, g.key, g.species, g.level, jour, seed])).rows[0]
+        // Vu depuis l'appel inversé, « left » désigne l'autre camp : les deux issues se
+        // correspondent si elles se lisent en miroir.
+        const memeGagnant = direct.winner === (inverse.winner === 'left' ? 'right' : 'left')
+        if (!memeGagnant || direct.gain !== inverse.gain) ko.push({ seed, direct: direct.winner, inverse: inverse.winner })
+      }
+      return ko
+    })
+    expect(desaccords).toEqual([])
+  })
+
+  it('plafonne le niveau à dix même sur un exploit à cinq niveaux', async () => {
+    const obtenu = await withDb(async (c) => {
+      // Rattata niveau 9 contre Mewtwo : le rapport dépasse 2, l'exploit vaut 5 niveaux, et
+      // le résultat doit rester à `LEVEL_MAX`.
+      const { rows } = await c.query(
+        `select public.arena_level_gain(public.arena_power(19, 9, 2), public.arena_power(150, 1, 2)) as gain,
+                least($1::int, 9 + public.arena_level_gain(public.arena_power(19, 9, 2),
+                                                           public.arena_power(150, 1, 2))) as apres`,
+        [LEVEL_MAX])
+      return rows[0]
+    })
+    expect(obtenu.gain).toBe(5)
+    expect(obtenu.apres).toBe(LEVEL_MAX)
   })
 })
