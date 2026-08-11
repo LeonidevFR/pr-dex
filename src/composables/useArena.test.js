@@ -1,0 +1,112 @@
+import { describe, it, expect, vi } from 'vitest'
+import { ref } from 'vue'
+import { useArena } from './useArena.js'
+
+const exemplaire = (key, over = {}) => ({ key, species: 6, shiny: false, ...over })
+
+const fauxClient = (over = {}) => ({
+  readArena: vi.fn(async () => ({ credits: 3, pokedollars: 250, exemplars: [] })),
+  readOpenChallenges: vi.fn(async () => []),
+  readDuel: vi.fn(async (id) => ({ id, status: 'resolved' })),
+  engage: vi.fn(async () => 11),
+  accept: vi.fn(async () => 22),
+  ...over,
+})
+
+describe('useArena', () => {
+  it('charge crédits, portefeuille et défis en une fois', async () => {
+    const client = fauxClient({
+      readOpenChallenges: async () => [{ id: 1, pseudo: 'bob' }],
+    })
+    const a = useArena(client, ref([]))
+    await a.load()
+
+    expect(a.credits.value).toBe(3)
+    expect(a.pokedollars.value).toBe(250)
+    expect(a.challenges.value).toHaveLength(1)
+  })
+
+  it('retient l’erreur au lieu de la laisser remonter', async () => {
+    const a = useArena(fauxClient({ readArena: async () => { throw new Error('coupé') } }), ref([]))
+    await a.load()
+
+    expect(a.error.value.message).toBe('coupé')
+    expect(a.loading.value).toBe(false)
+  })
+
+  it('rend le niveau d’un exemplaire, et un pour les inconnus', async () => {
+    const client = fauxClient({
+      readArena: async () => ({
+        credits: 1, pokedollars: 0,
+        exemplars: [{ entry_key: 'github:a', level: 7, wins: 4, destroyed_at: null }],
+      }),
+    })
+    const a = useArena(client, ref([]))
+    await a.load()
+
+    expect(a.levelOf('github:a')).toBe(7)
+    expect(a.levelOf('github:jamais-vu')).toBe(1)
+  })
+
+  // Un exemplaire détruit reste dans la collection — l'espèce est acquise pour toujours — mais
+  // il n'a plus rien à engager.
+  it('exclut un exemplaire détruit de ce qu’on peut engager', async () => {
+    const client = fauxClient({
+      readArena: async () => ({
+        credits: 1, pokedollars: 0,
+        exemplars: [{ entry_key: 'github:mort', level: 3, wins: 1, destroyed_at: '2026-08-11' }],
+      }),
+    })
+    const claimed = ref([exemplaire('github:mort'), exemplaire('github:vivant')])
+    const a = useArena(client, claimed)
+    await a.load()
+
+    expect(a.engageable.value.map((e) => e.key)).toEqual(['github:vivant'])
+  })
+
+  // Immobilisé, pas perdu : il reste dans la collection, mais on ne peut pas le miser deux fois.
+  it('exclut l’exemplaire déjà posé sur la table', async () => {
+    const claimed = ref([exemplaire('github:engage'), exemplaire('github:libre')])
+    const a = useArena(fauxClient(), claimed)
+    await a.load()
+    a.myOpen.value = { id: 5, challenger_key: 'github:engage' }
+
+    expect(a.engageable.value.map((e) => e.key)).toEqual(['github:libre'])
+  })
+
+  /**
+   * Le serveur décide du vainqueur, des niveaux et des gains. Réappliquer sa décision en
+   * mémoire donnerait deux sources de vérité pour un seul fait, et on découvrirait un jour
+   * qu'elles divergent — sur un duel perdu, c'est-à-dire au pire moment.
+   */
+  it('relit le duel et l’état après un engagement, sans rien recalculer', async () => {
+    const client = fauxClient()
+    const a = useArena(client, ref([]))
+    await a.load()
+    client.readArena.mockClear()
+
+    const duel = await a.engage('github:a')
+
+    expect(client.engage).toHaveBeenCalledWith('github:a', false)
+    expect(client.readDuel).toHaveBeenCalledWith(11)
+    expect(client.readArena).toHaveBeenCalledTimes(1)
+    expect(duel.id).toBe(11)
+  })
+
+  it('transmet le choix d’affronter l’ordinateur', async () => {
+    const client = fauxClient()
+    const a = useArena(client, ref([]))
+    await a.engage('github:a', true)
+
+    expect(client.engage).toHaveBeenCalledWith('github:a', true)
+  })
+
+  it('relit de même après avoir relevé un défi', async () => {
+    const client = fauxClient()
+    const a = useArena(client, ref([]))
+    const duel = await a.accept(5, 'github:b')
+
+    expect(client.accept).toHaveBeenCalledWith(5, 'github:b')
+    expect(duel.id).toBe(22)
+  })
+})
