@@ -63,6 +63,14 @@ describe('ArenaPanel', () => {
     expect(w.emitted('engage')[0]).toEqual(['github:a', false])
   })
 
+  it('n’engage rien tant qu’aucun exemplaire n’est retenu', async () => {
+    const w = monter({
+      engageable: [exemplaire('github:a', 6), exemplaire('github:a2', 6)],
+    })
+    await w.find('.arena-pick').trigger('click')
+    expect(w.find('.btn-solid').exists()).toBe(false)
+  })
+
   it('affronte l’ordinateur avec le même exemplaire', async () => {
     const w = monter()
     await w.findAll('.arena-pick')[1].trigger('click')
@@ -118,9 +126,9 @@ describe('ArenaPanel', () => {
     expect(w.text()).toContain('une chance sur dix')
   })
 
-  // À cinquante exemplaires ouverts, une liste à plat devient illisible : on propose le plus
-  // aguerri de chaque espèce et on annonce combien attendent derrière.
-  it('regroupe les doublons et propose le plus aguerri', () => {
+  // À cinquante exemplaires ouverts, une liste à plat devient illisible : une vignette par
+  // espèce, portant le niveau du meilleur, et le choix de l'exemplaire au clic.
+  it('n’affiche qu’une vignette par espèce, avec son meilleur niveau', () => {
     const w = monter({
       engageable: [
         exemplaire('github:a', 6), exemplaire('github:a2', 6), exemplaire('github:b', 25),
@@ -131,6 +139,27 @@ describe('ArenaPanel', () => {
     expect(choix).toHaveLength(2)
     expect(choix[0].text()).toContain('niv. 7')
     expect(choix[0].text()).toContain('2 ex.')
+  })
+
+  it('demande lequel engager quand l’espèce a plusieurs exemplaires', async () => {
+    const w = monter({
+      engageable: [exemplaire('github:a', 6), exemplaire('github:a2', 6)],
+      levelOf: (k) => (k === 'github:a2' ? 7 : 1),
+    })
+    await w.find('.arena-pick').trigger('click')
+    expect(w.text()).toContain('Lequel de tes')
+    expect(w.findAll('.picker-row')).toHaveLength(2)
+    // Du plus aguerri au plus frais : c'est l'ordre dans lequel on décide.
+    expect(w.findAll('.picker-row')[0].text()).toContain('niv. 7')
+  })
+
+  // Un seul exemplaire, un seul geste possible : autant l'épargner au joueur.
+  it('choisit directement quand l’espèce n’a qu’un exemplaire', async () => {
+    const w = monter({ engageable: [exemplaire('github:b', 25)] })
+    await w.find('.arena-pick').trigger('click')
+    expect(w.findAll('.picker-row')).toHaveLength(0)
+    await w.find('.btn-solid').trigger('click')
+    expect(w.emitted('engage')[0]).toEqual(['github:b', false])
   })
 
   it('bloque les boutons pendant un appel en cours', async () => {

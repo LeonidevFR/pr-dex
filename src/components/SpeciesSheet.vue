@@ -19,8 +19,10 @@ const props = defineProps({
   // Exemplaires consommables par une évolution, chacun avec sa `key` et son statut `shiny` —
   // sert au sélecteur, distinct de `entries` qui garde tout le journal (y compris consommé).
   available: { type: Array, default: () => [] },
+  arenaCredits: { type: Number, default: 0 },
+  arenaLevelOf: { type: Function, default: () => 1 },
 })
-const emit = defineEmits(['close', 'evolve'])
+const emit = defineEmits(['close', 'evolve', 'engage'])
 
 // Cible d'évolution en cours de sélection (id de l'espèce), ou `null` hors sélection.
 const pickingTarget = ref(null)
@@ -124,6 +126,31 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               </div>
             </div>
           </template>
+        </div>
+      </div>
+
+      <!--
+        Engager depuis la fiche : c'est le geste naturel — on regarde son Dracaufeu, on décide
+        de l'envoyer. Le passage par l'écran d'arène restait possible, mais il obligeait à
+        retrouver dans une grille le Pokémon qu'on avait justement sous les yeux.
+      -->
+      <div v-if="caught && available.length" class="sect">
+        <div class="eyebrow sect-h">
+          <span>Arène</span>
+          <span class="mono muted">niv. {{ arenaLevelOf(available[0].key) }}</span>
+        </div>
+        <p class="muted">
+          <template v-if="arenaCredits">
+            L’envoyer au duel le met en jeu pour de bon : s’il perd, il est détruit.
+          </template>
+          <template v-else>
+            Aucun engagement disponible — il en revient un par jour ouvré.
+          </template>
+        </p>
+        <div class="front-actions" style="margin-top:12px">
+          <button class="evo-btn arena-send" :disabled="!arenaCredits" @click="$emit('engage', available[0].key)">
+            Envoyer à l’arène
+          </button>
         </div>
       </div>
 

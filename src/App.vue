@@ -93,6 +93,12 @@ async function playArena(fn) {
 }
 
 const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComputer))
+
+/** Depuis la fiche, on poste un défi : c'est le geste par défaut, l'ordinateur reste dans l'arène. */
+function onEngageFromSheet(key) {
+  selected.value = null
+  return playArena(() => arena.engage(key, false))
+}
 const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
 
 function disconnect() {
@@ -236,7 +242,9 @@ useKeyboardNav({
         :can-evolve="collection.dex.canEvolve(selected)"
         :is-dead-end="collection.dex.isDeadEnd(selected)"
         :caught-ids="caughtIds"
-        @close="selected = null" @evolve="onEvolve"
+        :arena-credits="arena ? arena.credits.value : 0"
+        :arena-level-of="arena ? arena.levelOf : () => 1"
+        @close="selected = null" @evolve="onEvolve" @engage="onEngageFromSheet"
       />
     </transition>
 

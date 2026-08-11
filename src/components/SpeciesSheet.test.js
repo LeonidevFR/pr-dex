@@ -116,14 +116,14 @@ describe('bonbons et évolution', () => {
 
   it('désactive le bouton quand les bonbons manquent', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], candies: 3, canEvolve: false })
-    expect(w.find('.evo-btn').attributes('disabled')).toBeDefined()
+    expect(w.find('.evo-btn:not(.arena-send)').attributes('disabled')).toBeDefined()
   })
 
   it('affiche le sélecteur d’exemplaire au clic sur le bouton d’évolution', async () => {
     const w = mountSheet({
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     expect(w.find('.picker-row').exists()).toBe(true)
     expect(w.find('.evo-choices').exists()).toBe(false)
   })
@@ -132,8 +132,8 @@ describe('bonbons et évolution', () => {
     const w = mountSheet({
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn').trigger('click')
-    await w.find('.evo-btn').trigger('click') // le même bouton sert de « Confirmer » à l'étape 2
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click') // le même bouton sert de « Confirmer » à l'étape 2
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:a' }])
   })
 
@@ -151,7 +151,7 @@ describe('bonbons et évolution', () => {
       id: 133, entries: [capture('a', 133)], available: [capture('a', 133)], candies: 9, canEvolve: true,
     })
     await w.findAll('.evo-choice')[1].trigger('click')
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 133, to: 135, key: 'github:a' }])
   })
 
@@ -173,7 +173,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({
       id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     const checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
     expect(checked.element.value).toBe('github:b')
   })
@@ -182,10 +182,10 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({
       id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     const radios = w.findAll('input[type=radio]')
     await radios.find((i) => i.element.value === 'github:a').setValue()
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:a' }])
   })
 
@@ -193,7 +193,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     expect(w.findAll('.picker-row')).toHaveLength(1)
   })
 
@@ -201,7 +201,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     await w.find('.cancel-btn').trigger('click')
     expect(w.find('.picker-row').exists()).toBe(false)
     expect(w.emitted('evolve')).toBeUndefined()
@@ -210,7 +210,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
   it('revalide la sélection si l’exemplaire choisi disparaît de la liste pendant que le picker est ouvert', async () => {
     const ab = [capture('a', 1), capture('b', 1)]
     const w = mountSheet({ id: 1, entries: ab, available: ab, candies: 9, canEvolve: true })
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     // Pré-coché sur le premier disponible ('a', pas de chromatique ici).
     let checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
     expect(checked.element.value).toBe('github:a')
@@ -220,7 +220,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
     expect(checked.element.value).toBe('github:b')
 
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:b' }])
   })
 })
@@ -251,7 +251,7 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
     expect(w.find('.candy').exists()).toBe(true)
     expect(w.text()).toContain('Salamèche')
     expect(w.find('.candy-nums').text()).toBe('5')
-    expect(w.find('.evo-btn').exists()).toBe(false)
+    expect(w.find('.evo-btn:not(.arena-send)').exists()).toBe(false)
     expect(w.find('.evo-choices').exists()).toBe(false)
     expect(w.find('.reserve').exists()).toBe(false)
   })
@@ -263,7 +263,7 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
 
   it('Bulbizarre garde son bouton d’évolution (non-régression)', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], candies: 9, canEvolve: true, isDeadEnd: false })
-    expect(w.find('.evo-btn').exists()).toBe(true)
+    expect(w.find('.evo-btn:not(.arena-send)').exists()).toBe(true)
     expect(w.find('.reserve').exists()).toBe(false)
   })
 
@@ -298,7 +298,7 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
         const reserve = !evolving && isDeadEnd && entryCount > 1
 
         expect(w.find('.candy').exists()).toBe(evolving || finalForm)
-        expect(w.find('.evo-btn').exists() || w.find('.evo-choices').exists()).toBe(evolving)
+        expect(w.find('.evo-btn:not(.arena-send)').exists() || w.find('.evo-choices').exists()).toBe(evolving)
         expect(w.find('.reserve').exists()).toBe(reserve)
 
         const renderedCount = [evolving, finalForm, reserve].filter(Boolean).length
@@ -424,5 +424,38 @@ describe('notice', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
     const sections = w.findAll('.sect')
     expect(sections[sections.length - 1].find('.dexnote').exists()).toBe(true)
+  })
+})
+
+/**
+ * Engager depuis la fiche est le geste naturel : on regarde son Dracaufeu et on décide de
+ * l'envoyer. Passer par l'écran d'arène restait possible, mais obligeait à retrouver dans une
+ * grille le Pokémon qu'on avait justement sous les yeux.
+ */
+describe('envoi à l’arène depuis la fiche', () => {
+  const dispo = [{ key: 'github:a', via: 'catch', source: 'github', label: 'a', date: '2026-01-01', species: 6 }]
+
+  it('propose d’envoyer l’exemplaire au duel', async () => {
+    const w = mountSheet({ id: 6, entries: dispo, available: dispo, arenaCredits: 2 })
+    const bouton = w.find('.arena-send')
+    expect(bouton.exists()).toBe(true)
+    await bouton.trigger('click')
+    expect(w.emitted('engage')[0]).toEqual(['github:a'])
+  })
+
+  it('dit ce qu’on risque avant d’envoyer', () => {
+    const w = mountSheet({ id: 6, entries: dispo, available: dispo, arenaCredits: 2 })
+    expect(w.text()).toContain('s’il perd, il est détruit')
+  })
+
+  it('empêche l’envoi sans engagement disponible, et explique pourquoi', () => {
+    const w = mountSheet({ id: 6, entries: dispo, available: dispo, arenaCredits: 0 })
+    expect(w.find('.arena-send').attributes('disabled')).toBeDefined()
+    expect(w.text()).toContain('un par jour ouvré')
+  })
+
+  it('ne propose rien quand il ne reste aucun exemplaire disponible', () => {
+    const w = mountSheet({ id: 6, entries: dispo, available: [], arenaCredits: 2 })
+    expect(w.find('.arena-send').exists()).toBe(false)
   })
 })

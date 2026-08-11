@@ -19,6 +19,13 @@ const chosen = ref(null)
 const rulesOpen = ref(false)
 
 /**
+ * L'espèce dont on est en train de choisir l'exemplaire. Deux temps plutôt qu'un : une liste à
+ * plat de tous les exemplaires devient illisible dès qu'on possède le dex, et le premier geste
+ * naturel est « je veux envoyer un Dracaufeu », pas « je veux envoyer ce Dracaufeu-là ».
+ */
+const picking = ref(null)
+
+/**
  * Sans engagement disponible on peut encore regarder, mais plus miser. La liste reste affichée
  * à dessein : la faire disparaître donnait un écran qui semblait cassé alors qu'il appliquait
  * simplement une règle.
@@ -41,13 +48,30 @@ const bySpecies = computed(() => {
   const map = new Map()
   for (const e of props.engageable) {
     const cur = map.get(e.species)
-    if (!cur) map.set(e.species, { best: e, count: 1 })
-    else if (props.levelOf(e.key) > props.levelOf(cur.best.key)) map.set(e.species, { best: e, count: cur.count + 1 })
-    else map.set(e.species, { best: cur.best, count: cur.count + 1 })
+    if (!cur) map.set(e.species, { species: e.species, shiny: e.shiny, maxLevel: props.levelOf(e.key), count: 1 })
+    else map.set(e.species, {
+      ...cur,
+      shiny: cur.shiny || e.shiny,
+      maxLevel: Math.max(cur.maxLevel, props.levelOf(e.key)),
+      count: cur.count + 1,
+    })
   }
-  return [...map.values()].sort((a, b) =>
-    props.levelOf(b.best.key) - props.levelOf(a.best.key) || a.best.species - b.best.species)
+  return [...map.values()].sort((a, b) => b.maxLevel - a.maxLevel || a.species - b.species)
 })
+
+/** Les exemplaires d'une espèce, du plus aguerri au plus frais. */
+const specimens = computed(() => props.engageable
+  .filter((e) => e.species === picking.value)
+  .sort((a, b) => props.levelOf(b.key) - props.levelOf(a.key)))
+
+function openSpecies(species) {
+  if (picking.value === species) { picking.value = null; return }
+  picking.value = species
+  chosen.value = null
+  // Un seul exemplaire : le choisir est le seul geste possible, autant l'épargner au joueur.
+  const seuls = props.engageable.filter((e) => e.species === species)
+  if (seuls.length === 1) { chosen.value = seuls[0].key; picking.value = null }
+}
 
 function play(vsComputer) {
   if (!chosen.value) return
@@ -154,18 +178,37 @@ function take(duelId) {
         </p>
         <div class="arena-list">
           <button
-            v-for="g in bySpecies" :key="g.best.species"
-            class="arena-pick" :class="{ on: chosen === g.best.key }"
+            v-for="g in bySpecies" :key="g.species"
+            class="arena-pick"
+            :class="{ on: picking === g.species || (chosen && found(chosen)?.species === g.species) }"
             :disabled="!canPlay"
-            @click="chosen = chosen === g.best.key ? null : g.best.key"
+            @click="openSpecies(g.species)"
           >
-            <img :src="spriteUrl(g.best.species, g.best.shiny)" :alt="DEX[g.best.species].name">
-            <span class="nm">{{ DEX[g.best.species].name }}</span>
+            <img :src="spriteUrl(g.species, g.shiny)" :alt="DEX[g.species].name">
+            <span class="nm">{{ DEX[g.species].name }}</span>
             <span class="lv">
-              niv. {{ levelOf(g.best.key) }}<template v-if="g.count > 1"> · {{ g.count }} ex.</template>
+              niv. {{ g.maxLevel }}<template v-if="g.count > 1"> · {{ g.count }} ex.</template>
             </span>
           </button>
         </div>
+
+        <template v-if="picking">
+          <p class="muted" style="margin:12px 0 8px">
+            Lequel de tes <b>{{ DEX[picking].name }}</b> envoies-tu ? Le plus aguerri gagne plus
+            souvent, et c’est aussi celui que tu regretteras le plus.
+          </p>
+          <div class="log">
+            <label v-for="e in specimens" :key="e.key" class="log-row picker-row">
+              <input type="radio" name="arena-specimen" :value="e.key" v-model="chosen">
+              <span class="log-sha mono">niv. {{ levelOf(e.key) }}</span>
+              <span class="log-title">
+                {{ e.label ?? DEX[e.species].name }}
+                <span v-if="e.shiny" class="chip" style="margin-left:6px">✦</span>
+              </span>
+              <span class="log-date">{{ e.date }}</span>
+            </label>
+          </div>
+        </template>
       </div>
 
       <div v-if="chosen" class="sect">
