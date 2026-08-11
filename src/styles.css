@@ -405,6 +405,8 @@
     .stack{width:210px;height:300px}
   }
 
+  .gen-tabs{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:0 26px 14px}
+
   /* ───────── arène ───────── */
   /* Le solde d'engagements est la contrainte qui structure tout le mode : il se lit d'un coup
      d'œil, pas en petits caractères. */

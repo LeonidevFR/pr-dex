@@ -1,5 +1,9 @@
 import { SPECIES_GEN2 } from './species-gen2.js'
 
+// Réexporté ici : `species.js` est le point d'entrée de tout ce qui touche aux espèces, et un
+// appelant n'a pas à savoir que la seconde génération vit dans son propre fichier généré.
+export { SPECIES_GEN2 }
+
 // [id, nom, palier, évolueVers, coût en bonbons]
 // palier : c=commun u=peu commun r=rare l=légendaire
 export const SPECIES = [

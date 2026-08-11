@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises'
 import { SPECIES, DEX } from '../shared/species.js'
-import { STATS_GEN2 } from '../shared/species-gen2.js'
+import { SPECIES_GEN2, STATS_GEN2 } from '../shared/species-gen2.js'
 import { SHOP } from '../shared/arena-economy.js'
 
 const API = 'https://pokeapi.co/api/v2'
@@ -106,7 +106,9 @@ async function main() {
   const out = {}
   const statsOut = {}
 
-  for (const [id] of SPECIES) {
+  // Les deux générations : une fiche Gen 2 sans types ni notice s'ouvrirait vide. Les stats,
+  // elles, ne concernent que la planche — celles de la Gen 2 viennent de son propre générateur.
+  for (const [id] of [...SPECIES, ...SPECIES_GEN2]) {
     const mon = await get(`pokemon/${id}`)
     const species = await get(`pokemon-species/${id}`)
 
@@ -127,8 +129,8 @@ async function main() {
     }
 
     out[id] = { types, text }
-    statsOut[id] = stats
-    process.stdout.write(`\r${id}/${SPECIES.length}`)
+    if (id <= 151) statsOut[id] = stats
+    process.stdout.write(`\r${id}/${SPECIES.length + SPECIES_GEN2.length}`)
     await sleep(60)
   }
 

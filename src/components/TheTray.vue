@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { DEX, SPECIES, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
+import { DEX, SPECIES, SPECIES_GEN2, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
 const props = defineProps({
@@ -12,13 +12,20 @@ const props = defineProps({
   filtersOpen: { type: Boolean, default: false },
   activeTiers: { type: Set, default: () => new Set(['c', 'u', 'r', 'l']) },
   caughtFilter: { type: String, default: 'all' }, // 'all' | 'caught' | 'uncaught'
+  gen: { type: Number, default: 1 },
 })
-const emit = defineEmits(['select', 'toggle-tier', 'set-caught-filter', 'reset-filters'])
+const emit = defineEmits(['select', 'toggle-tier', 'set-caught-filter', 'reset-filters', 'set-gen'])
 
-// La planche, pas le dex : `DEX` décrit aussi la Gen 2, qu'on n'obtient qu'en boutique et qui
-// n'a rien à faire dans une progression tirée du travail. L'y verser afficherait cent cases
-// vides pour toujours et ferait mentir le compteur du rail.
-const ids = SPECIES.map(([id]) => id)
+/**
+ * Deux étagères, jamais une seule grille.
+ *
+ * La planche des 151 est ce que le travail remplit — c'est elle que compte le rail et elle qui
+ * définit ce qu'« avoir fini » veut dire. La Gen 2 ne s'obtient qu'en boutique : la verser dans
+ * la même grille ferait passer le compteur à 251 et afficherait cent cases vides pour toujours,
+ * là où elle est une collection à part, qu'on entame quand on a de quoi.
+ */
+const TABLES = { 1: SPECIES, 2: SPECIES_GEN2 }
+const ids = computed(() => TABLES[props.gen].map(([id]) => id))
 const isShiny = (entries) => entries?.some((e) => e.shiny) ?? false
 const copyCount = (id) => props.copies[id] ?? props.bySpecies[id]?.length ?? 0
 
@@ -27,8 +34,11 @@ const hasActiveFilters = computed(
   () => props.activeTiers.size < TIERS.length || props.caughtFilter !== 'all',
 )
 
+const caughtInGen = computed(() =>
+  ids.value.filter((id) => props.bySpecies[id]).length)
+
 const visibleIds = computed(() =>
-  ids.filter((id) => {
+  ids.value.filter((id) => {
     if (!props.activeTiers.has(DEX[id].tier)) return false
     const caught = !!props.bySpecies[id]
     if (props.caughtFilter === 'caught' && !caught) return false
@@ -39,6 +49,22 @@ const visibleIds = computed(() =>
 </script>
 
 <template>
+  <!--
+    Deux étagères et non deux filtres : la planche se compte sur 151 et la Gen 2 sur 100, et
+    mêler les deux ferait mentir la seule mesure qui dise « j'ai fini ».
+  -->
+  <div class="gen-tabs">
+    <button
+      class="filter-chip" :class="{ active: gen === 1 }" @click="emit('set-gen', 1)"
+    >Planche · {{ caughtInGen }}/151</button>
+    <button
+      class="filter-chip" :class="{ active: gen === 2 }" @click="emit('set-gen', 2)"
+    >Génération 2 · {{ gen === 2 ? caughtInGen : '—' }}/100</button>
+    <span v-if="gen === 2" class="muted" style="font-size:11.5px">
+      Ne se tire jamais au travail : elle s’achète en arène, avec des pokédollars.
+    </span>
+  </div>
+
   <div v-if="filtersOpen" class="filters">
     <div class="filter-group">
       <button

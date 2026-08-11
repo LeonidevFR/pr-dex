@@ -32,6 +32,7 @@ const settingsOpen = ref(false)
 const arenaOpen = ref(false)
 const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
+const gen = ref(1)
 const duelShown = ref(null)
 const userId = ref('')
 let arena = null
@@ -240,9 +241,10 @@ useKeyboardNav({
     <TheTray
       :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
       :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
-      :caught-filter="filters.caughtFilter.value"
+      :caught-filter="filters.caughtFilter.value" :gen="gen"
       @select="(id) => (selected = id)"
       @toggle-tier="filters.toggleTier" @set-caught-filter="filters.setCaughtFilter" @reset-filters="filters.reset"
+      @set-gen="gen = $event"
     />
 
     <transition name="fade">

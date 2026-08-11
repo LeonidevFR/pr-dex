@@ -163,3 +163,38 @@ describe('TheTray', () => {
     })
   })
 })
+
+/**
+ * Deux étagères et non deux filtres : la planche se compte sur 151 et la Gen 2 sur 100. Les
+ * mêler ferait mentir la seule mesure qui dise « j'ai fini », et afficherait cent cases vides
+ * pour toujours à qui n'a jamais acheté de pli.
+ */
+describe('générations', () => {
+  const surEtagere = (gen, bySpecies = {}) =>
+    mount(TheTray, { props: { bySpecies, gen } })
+
+  it('n’affiche que la planche par défaut', () => {
+    expect(mountTray({}).findAll('.cell')).toHaveLength(151)
+  })
+
+  it('bascule sur les cent espèces de la Gen 2', () => {
+    expect(surEtagere(2).findAll('.cell')).toHaveLength(100)
+  })
+
+  it('demande le changement d’étagère au lieu de le décider seul', async () => {
+    const w = surEtagere(1)
+    await w.findAll('.gen-tabs .filter-chip')[1].trigger('click')
+    expect(w.emitted('set-gen')[0]).toEqual([2])
+  })
+
+  it('compte les espèces obtenues dans l’étagère affichée', () => {
+    const possede = { 1: [{}], 152: [{}], 153: [{}] }
+    expect(surEtagere(1, possede).find('.gen-tabs').text()).toContain('1/151')
+    expect(surEtagere(2, possede).find('.gen-tabs').text()).toContain('2/100')
+  })
+
+  // Le dire là où on la découvre : sans ça, une grille vide passe pour un bug.
+  it('explique que la Gen 2 ne se tire pas au travail', () => {
+    expect(surEtagere(2).text()).toContain('s’achète en arène')
+  })
+})
