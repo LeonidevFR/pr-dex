@@ -133,9 +133,11 @@ describe.skipIf(!disponible)('isolation entre deux joueurs', () => {
 
   // Un duel ouvert n'est lisible par personne en direct, pas même par celui qui l'a lancé :
   // sa mise est dans la ligne, et un appel direct à l'API la révélerait.
-  it('ne laisse lire aucun duel ouvert, pas même le sien', async () => {
+  // La mise d'un défi ouvert se cache à l'ADVERSAIRE, pas à son auteur : l'exemplaire engagé
+  // est immobilisé, et son propriétaire doit pouvoir dire lequel il a mis en jeu.
+  it('ne laisse lire le défi ouvert d’autrui à personne', async () => {
     const rows = await withDb((c) =>
-      commeUtilisateur(c, ALICE, `select id from public.arena_duels where status = 'open'`))
+      commeUtilisateur(c, BOB, `select id from public.arena_duels where status = 'open'`))
     expect(rows).toEqual([])
   })
 

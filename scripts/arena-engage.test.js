@@ -135,15 +135,16 @@ describe.skipIf(!disponible)('engager un exemplaire', () => {
       const id = await engager(c, 'github:engage-rare')
       const { rows: defis } = await c.query(
         'select * from public.arena_open_challenges where id = $1', [id])
-      // Depuis l'identité du joueur, la table elle-même ne rend rien : la policy exclut les
-      // duels ouverts, y compris les siens.
+      // Son auteur, lui, retrouve sa propre mise : elle est cachée à l'adversaire, pas à
+      // celui dont le Pokémon est immobilisé tant que le défi tient.
       const { rows: table } = await c.query(
-        'select id from public.arena_duels where id = $1', [id])
+        'select challenger_key from public.arena_duels where id = $1', [id])
       return { defis, table }
     })
     expect(vu.defis).toHaveLength(1)
     expect(Object.keys(vu.defis[0])).not.toContain('stake_tier')
-    expect(vu.table).toEqual([])
+    expect(Object.keys(vu.defis[0])).not.toContain('challenger_key')
+    expect(vu.table).toEqual([{ challenger_key: 'github:engage-rare' }])
   })
 
   it('consomme un crédit', async () => {

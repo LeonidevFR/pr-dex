@@ -105,6 +105,10 @@ describe.skipIf(!disponible)('son propre défi ouvert', () => {
           on conflict (id) do nothing
         `, [u, mail])
       }
+      // Ce fichier laisse volontairement son défi ouvert — les deux policies ne se lisent que
+      // sur un duel non résolu. D'où le nettoyage préalable, sans quoi l'index qui interdit
+      // deux engagements du même exemplaire rejetterait le second passage.
+      await c.query('delete from public.arena_duels where challenger_id = $1', [MOI])
       const r = await c.query(`
         insert into public.arena_duels (challenger_id, challenger_key, status)
         values ($1, 'github:secret-1', 'open') returning id
