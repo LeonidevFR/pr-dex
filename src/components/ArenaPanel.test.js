@@ -12,6 +12,7 @@ const monter = (props = {}) => mount(ArenaPanel, {
     engageable: [exemplaire('github:a', 6), exemplaire('github:b', 25)],
     myOpen: null,
     levelOf: (k) => (k === 'github:a' ? 4 : 1),
+    formOfKey: () => ({ name: 'Normal', factor: 1 }),
     ...props,
   },
 })
@@ -170,5 +171,43 @@ describe('ArenaPanel', () => {
     const w = monter({ busy: true })
     await w.findAll('.arena-pick')[0].trigger('click')
     expect(w.find('.btn-solid').attributes('disabled')).toBeDefined()
+  })
+})
+
+/**
+ * La forme du jour entre dans le calcul de puissance au même titre que le niveau. L'afficher
+ * est la seule façon d'engager en connaissance de cause : sans elle, on envoie son champion un
+ * jour où il est épuisé et l'on perd sans jamais savoir pourquoi.
+ */
+describe('forme du jour', () => {
+  const enForme = { name: 'En pleine forme', factor: 1.10 }
+  const epuise = { name: 'Épuisé', factor: 0.90 }
+
+  it('annonce la forme de l’exemplaire retenu dans la barre d’action', async () => {
+    const w = monter({ formOfKey: () => enForme })
+    await w.findAll('.arena-pick')[0].trigger('click')
+    expect(w.find('.arena-bar').text().toLowerCase()).toContain('en pleine forme')
+  })
+
+  it('distingue visuellement une forme au-dessus et en dessous de la normale', async () => {
+    const bon = monter({ formOfKey: () => enForme })
+    await bon.findAll('.arena-pick')[0].trigger('click')
+    expect(bon.find('.arena-bar .form-up').exists()).toBe(true)
+
+    const mauvais = monter({ formOfKey: () => epuise })
+    await mauvais.findAll('.arena-pick')[0].trigger('click')
+    expect(mauvais.find('.arena-bar .form-down').exists()).toBe(true)
+  })
+
+  it('la donne aussi pour chaque exemplaire au moment de choisir', async () => {
+    const w = monter({
+      engageable: [exemplaire('github:a', 6), exemplaire('github:a2', 6)],
+      formOfKey: (k) => (k === 'github:a' ? epuise : enForme),
+    })
+    await w.find('.arena-pick').trigger('click')
+    const lignes = w.findAll('.picker-row')
+    expect(lignes.map((l) => l.text())).toEqual(
+      expect.arrayContaining([expect.stringContaining('Épuisé'), expect.stringContaining('En pleine forme')]),
+    )
   })
 })

@@ -88,13 +88,13 @@ const breakdown = (s) => [
 
       <div class="sect">
         <div class="arena-vs">
-          <div class="arena-mon" :class="{ lost: stage === 'verdict' && !iWon && !versusComputer }">
+          <div class="arena-mon" :class="{ lost: stage === 'verdict' && !iWon }">
             <img :src="spriteUrl(mine.species)" :alt="nameOf(mine.species)">
             <span class="line-name">{{ nameOf(mine.species) }}</span>
             <span class="mono muted">niv. {{ mine.level }}</span>
           </div>
           <span class="arena-vs-mark">VS</span>
-          <div class="arena-mon" :class="{ lost: stage === 'verdict' && iWon && !versusComputer }">
+          <div class="arena-mon" :class="{ lost: stage === 'verdict' && iWon }">
             <img :src="spriteUrl(theirs.species)" :alt="nameOf(theirs.species)">
             <span class="line-name">{{ nameOf(theirs.species) }}</span>
             <span class="mono muted">niv. {{ theirs.level }}</span>

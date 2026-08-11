@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { formOf } from '../../shared/battle.js'
 
 /**
  * L'état d'arène du joueur et les effets qui le modifient.
@@ -34,6 +35,16 @@ export function useArena(client, claimed) {
     !destroyed.value.has(c.key) && c.key !== myOpen.value?.challenger_key))
 
   const levelOf = (key) => levels.value[key] ?? 1
+
+  /**
+   * La forme du jour d'un exemplaire. Elle entre dans le calcul de puissance au même titre que
+   * le niveau, et le joueur doit la voir avant de choisir : engager son champion un jour où il
+   * est épuisé, sans l'avoir su, c'est perdre sans comprendre.
+   *
+   * Calculée ici comme côté serveur, à partir de la clé et de la date — jamais stockée.
+   */
+  const today = () => new Date().toLocaleDateString('sv-SE')
+  const formOfKey = (key) => formOf(key, today())
 
   async function load() {
     loading.value = true
@@ -79,6 +90,6 @@ export function useArena(client, claimed) {
 
   return {
     credits, pokedollars, exemplars, challenges, myOpen, loading, error,
-    levels, destroyed, engageable, levelOf, load, engage, accept,
+    levels, destroyed, engageable, levelOf, formOfKey, load, engage, accept,
   }
 }

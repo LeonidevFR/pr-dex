@@ -162,7 +162,7 @@
 
   /* ───────── fiche ───────── */
   .scrim{position:fixed;inset:0;z-index:40;background:rgba(44,38,32,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px}
-  .panel{
+  .panel{overflow-x:hidden;
     width:min(560px,100%);max-height:88vh;overflow:auto;background:var(--paper);
     border:1.5px solid var(--rule-hi);box-shadow:0 24px 60px rgba(44,38,32,.35);
   }
@@ -444,7 +444,10 @@
   .arena-vs{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:6px}
   .arena-mon{display:flex;flex-direction:column;align-items:center;gap:4px;width:110px}
   .arena-mon img{width:76px;height:76px}
-  .arena-mon.lost img{filter:sepia(1) saturate(.4) opacity(.45)}
+  /* Le vaincu s'efface, y compris face à l'ordinateur : c'est le combat qu'il a perdu, et le
+     texte dit à côté que rien n'est détruit dans ce cas. */
+  .arena-mon.lost img{filter:sepia(1) saturate(.35) opacity(.4);transition:filter .6s ease .2s}
+  .arena-mon.lost .line-name,.arena-mon.lost .muted{color:var(--ink-3)}
   .arena-vs-mark{font-family:var(--f-label);font-size:11px;letter-spacing:.14em;color:var(--ink-3)}
 
   .arena-pick .mult{color:var(--ochre);font-family:var(--f-data);font-size:10px;margin-left:3px}
@@ -453,7 +456,13 @@
      clic qui l'avait fait apparaître. */
   .arena-bar{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
     background:var(--paper);border-top:1px solid var(--rule);padding:12px 0 4px;margin-top:6px;z-index:2}
-  .arena-bar > div:first-child{flex:1;min-width:150px}
+  .arena-bar-txt{flex:1 1 100%;min-width:0}
+  .arena-bar .btn-solid,.arena-bar .btn-ghost{flex:1 1 auto;white-space:nowrap}
+  @media(min-width:520px){.arena-bar-txt{flex:1 1 200px}.arena-bar .btn-solid,.arena-bar .btn-ghost{flex:0 0 auto}}
+
+  /* La forme du jour se lit d'un coup d'œil : au-dessus de la normale ou en dessous. */
+  .form-up{color:var(--herb)}
+  .form-down{color:var(--stamp)}
 
   /* L'issue arrive après l'attente : elle doit s'imposer une seconde, pas apparaître comme une
      ligne de plus. */

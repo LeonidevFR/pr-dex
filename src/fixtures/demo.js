@@ -195,6 +195,11 @@ export function demoArena(catches) {
 
   const especeDe = (key) => catches.find((c) => entryKey(c.source, c.external_id) === key)?.species
 
+  // Un champion déjà aguerri dans la main de départ : sans lui, tout est au niveau 1 et l'effet
+  // du niveau sur un duel reste invisible à l'essai.
+  const champion = catches.find((c) => DEX[c.species].tier === 'r') ?? catches[0]
+  if (champion) levels.set(entryKey(champion.source, champion.external_id), 5)
+
   const cote = (key, species, level) => ({
     key, species, level, form: formOf(key, JOUR),
   })

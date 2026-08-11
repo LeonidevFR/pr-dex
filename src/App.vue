@@ -269,7 +269,8 @@ useKeyboardNav({
         v-if="arenaOpen && arena"
         :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
         :challenges="arena.challenges.value" :engageable="arena.engageable.value"
-        :my-open="arena.myOpen.value" :level-of="arena.levelOf" :busy="arenaBusy"
+        :my-open="arena.myOpen.value" :level-of="arena.levelOf"
+        :form-of-key="arena.formOfKey" :busy="arenaBusy"
         @close="arenaOpen = false" @engage="onEngage" @accept="onAccept"
       />
     </transition>

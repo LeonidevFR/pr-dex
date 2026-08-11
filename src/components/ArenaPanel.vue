@@ -11,6 +11,7 @@ const props = defineProps({
   engageable: { type: Array, required: true },
   myOpen: { type: Object, default: null },
   levelOf: { type: Function, required: true },
+  formOfKey: { type: Function, required: true },
   busy: { type: Boolean, default: false },
 })
 const emit = defineEmits(['close', 'engage', 'accept'])
@@ -208,7 +209,15 @@ function take(duelId) {
                 {{ e.label ?? DEX[e.species].name }}
                 <span v-if="e.shiny" class="chip" style="margin-left:6px">✦</span>
               </span>
-              <span class="log-date">{{ e.date }}</span>
+              <!--
+                La forme du jour entre dans le calcul au même titre que le niveau : l'afficher
+                ici, c'est la seule façon d'engager en connaissance de cause plutôt que de
+                perdre sans comprendre pourquoi.
+              -->
+              <span class="log-date" :class="{ 'form-up': formOfKey(e.key).factor > 1,
+                                               'form-down': formOfKey(e.key).factor < 1 }">
+                {{ formOfKey(e.key).name }}
+              </span>
             </label>
           </div>
         </template>
@@ -220,8 +229,14 @@ function take(duelId) {
         semblait se produire — parce que ce qui avait changé n'était plus visible.
       -->
       <div v-if="chosen" class="arena-bar">
-        <div>
-          <div class="line-name">{{ nameOf(chosen) }} · niv. {{ levelOf(chosen) }}</div>
+        <div class="arena-bar-txt">
+          <div class="line-name">
+            {{ nameOf(chosen) }} · niv. {{ levelOf(chosen) }} ·
+            <span :class="{ 'form-up': formOfKey(chosen).factor > 1,
+                            'form-down': formOfKey(chosen).factor < 1 }">
+              {{ formOfKey(chosen).name.toLowerCase() }}
+            </span>
+          </div>
           <div class="muted" style="font-size:11.5px">S’il perd, il est détruit.</div>
         </div>
         <button class="btn-solid" :disabled="busy" @click="play(false)">Poster un défi</button>
