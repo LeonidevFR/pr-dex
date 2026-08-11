@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cleanFlavor, pickFlavor } from './gen-species-info.mjs'
+import { cleanFlavor, pickFlavor, statTotal } from './gen-species-info.mjs'
 
 describe('cleanFlavor', () => {
   // PokeAPI stocke ces textes avec la mise en page de la boîte de dialogue du jeu.
@@ -44,5 +44,20 @@ describe('pickFlavor', () => {
 
   it('nettoie le texte retenu', () => {
     expect(pickFlavor([entry('fr', 'firered', 'deux\nlignes')])).toBe('deux lignes')
+  })
+})
+
+describe('statTotal', () => {
+  const stat = (name, base_stat) => ({ base_stat, stat: { name } })
+
+  it('additionne les six statistiques de base', () => {
+    expect(statTotal([
+      stat('hp', 45), stat('attack', 49), stat('defense', 49),
+      stat('special-attack', 65), stat('special-defense', 65), stat('speed', 45),
+    ])).toBe(318)
+  })
+
+  it('rend 0 pour une liste vide plutôt que NaN', () => {
+    expect(statTotal([])).toBe(0)
   })
 })
