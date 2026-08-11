@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { simulateLeague, simulateLegendaryLife } from '../scripts/simulate-arena.mjs'
+import { simulateLeague, simulateLegendaryLife } from './simulate-arena.mjs'
 
 // Une saison : deux mois, ~8,7 semaines, 5 duels par semaine ouvrée.
 const SAISON = 8.7

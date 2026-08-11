@@ -20,6 +20,7 @@ describe('coefficients de rareté', () => {
   // l'exception mesurée : son pool (580 à 680) chevauche le haut du pool rare (jusqu'à 600),
   // donc les stats seules ne séparent pas ces deux paliers-là.
   it('reste léger sur les trois premiers paliers', () => {
+    expect(TIER_POWER.u / TIER_POWER.c).toBeLessThanOrEqual(1.10)
     expect(TIER_POWER.r / TIER_POWER.c).toBeLessThanOrEqual(1.15)
   })
 
@@ -108,7 +109,7 @@ describe('formOf', () => {
     expect(vues.size).toBeGreaterThan(1)
   })
 
-  it('ne donne pas la même forme à deux exemplaires le même jour', () => {
+  it('fait apparaître les cinq formes sur deux cents exemplaires le même jour', () => {
     const cles = Array.from({ length: 200 }, (_, i) => `github:sha${i}`)
     const vues = new Set(cles.map((k) => formOf(k, '2026-08-11').slug))
     expect(vues.size).toBe(FORMS.length)

@@ -197,7 +197,7 @@ perdre un champion, c'est perdre du temps investi, pas de la chance au tirage.
 
 Cinq états, de « en pleine forme » à « épuisé ». **Calculée, jamais stockée** : fonction
 pure de la clé d'exemplaire et de la date, sur le modèle du tirage
-(`fnv1a(clé + ':forme' + jour)`). Aucune table, aucune écriture, impossible à retirer en
+(`fnv1a(clé + ':forme:' + jour)`). Aucune table, aucune écriture, impossible à retirer en
 rafraîchissant, vérifiable par n'importe qui.
 
 Un joueur voit la forme de **ses** exemplaires ; celle de l'adversaire lui est inconnue,

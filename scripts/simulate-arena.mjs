@@ -1,9 +1,14 @@
 import { POOL, DEX } from '../shared/species.js'
 import { drawFrom, fnv1a } from '../shared/draw.js'
 import { formOf, resolveDuel, NORMAL_FORM } from '../shared/battle.js'
-import { coveredTier, REWARD, COMPUTER_REWARD, TIER_ORDER } from '../shared/arena-economy.js'
+import { coveredTier, REWARD, COMPUTER_REWARD, TIER_ORDER, CREDIT_CAP } from '../shared/arena-economy.js'
 
-const DUELS_PER_WEEK = 5
+/**
+ * Un duel coûte un crédit et le plafond hebdomadaire de crédits est de cinq : le nombre de
+ * duels qu'un joueur peut mener dans la semaine EST le plafond de crédits, ce n'est pas une
+ * seconde grandeur qui se trouverait valoir la même chose.
+ */
+const DUELS_PER_WEEK = CREDIT_CAP
 
 /** Rythme réel observé dans l'équipe : ~5 PR mergées par jour ouvré, donc ~25 plis par semaine. */
 const PLIS_PER_WEEK = 25
@@ -145,9 +150,9 @@ function duelHumain(a, b, seed) {
     if (e.fallback) j.fallbacks++
   }
 
-  const [vainqueur, ev, gv, perdant, ep] = issue.winner === 'left'
-    ? [a, ea, ga, b, eb]
-    : [b, eb, gb, a, ea]
+  const [vainqueur, gv, perdant, ep] = issue.winner === 'left'
+    ? [a, ga, b, eb]
+    : [b, gb, a, ea]
 
   gv.level = issue.levelAfter
   vainqueur.wins++

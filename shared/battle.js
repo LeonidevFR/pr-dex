@@ -32,6 +32,10 @@ export const NORMAL_FORM = FORMS.find((f) => f.factor === 1)
  * Calculée, jamais stockée : une fonction pure de la clé d'exemplaire et du jour, sur le
  * modèle du tirage. Aucune table, aucune écriture, impossible à retirer en rafraîchissant
  * la page, et le serveur comme le client arrivent au même résultat sans se parler.
+ *
+ * La chaîne hachée est un CONTRAT : la spec § 6 prévoit que cette logique vive en double,
+ * ici et en SQL, avec un test de parité. Elle doit être répliquée caractère pour caractère
+ * côté SQL — un deux-points de différence donne une autre forme pour le même exemplaire.
  */
 export const formOf = (key, day) => FORMS[fnv1a(`${key}:forme:${day}`) % FORMS.length]
 
