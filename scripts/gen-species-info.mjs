@@ -4,6 +4,7 @@ import { SPECIES } from '../shared/species.js'
 const API = 'https://pokeapi.co/api/v2'
 const OUT = new URL('../shared/species-info.json', import.meta.url)
 const OUT_STATS = new URL('../shared/species-stats.js', import.meta.url)
+const OUT_STATS_SQL = new URL('../supabase/seed.sql', import.meta.url)
 
 /**
  * Les versions gen 1 n'ont jamais eu de traduction française : `flavor_text_entries` n'a
@@ -97,8 +98,14 @@ async function main() {
   const statsBody = Object.entries(statsOut).map(([id, v]) => `  ${id}: ${v},`).join('\n')
   await writeFile(OUT_STATS, `/** Total des stats de base par espèce — généré par scripts/gen-species-info.mjs. */\nexport const STATS = {\n${statsBody}\n}\n`)
 
-  console.log(`\n${Object.keys(out).length} espèces écrites dans shared/species-info.json ` +
-    'et shared/species-stats.js')
+  // La même donnée en SQL, générée par le même passage : la fonction de combat du lot 2b la
+  // lit en base, le moteur JavaScript la lit en module. Deux copies produites d'un seul
+  // fichier source ne peuvent pas diverger sans qu'on le voie dans le même diff.
+  const rowsSql = Object.entries(statsOut).map(([id, v]) => `  (${id}, ${v})`).join(',\n')
+  await writeFile(OUT_STATS_SQL, `-- Généré par scripts/gen-species-info.mjs — ne pas éditer à la main.\ninsert into public.species_stats (species, stats) values\n${rowsSql}\non conflict (species) do update set stats = excluded.stats;\n`)
+
+  console.log(`\n${Object.keys(out).length} espèces écrites dans shared/species-info.json, ` +
+    'shared/species-stats.js et supabase/seed.sql')
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

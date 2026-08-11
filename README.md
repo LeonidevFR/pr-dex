@@ -170,6 +170,10 @@ npm run db:stop     # arrête la pile
 >
 > Ce n'est pas qu'une consigne : `scripts/check-local-db.mjs` fait échouer toutes les
 > commandes `db:*` dès qu'un lien vers un projet distant apparaît.
+>
+> Le mode arène ajoute `supabase/seed.sql`, que `db:reset` applique automatiquement après les
+> migrations. En production, la mise en service se fait donc en **deux collages** dans
+> l'éditeur SQL du dashboard : la migration d'abord, `supabase/seed.sql` ensuite.
 
 Les deux répertoires de migrations ne servent pas à la même chose, et les confondre casse la
 base locale : `supabase/migrations/` contient le **schéma complet**, sous un nom que la CLI
