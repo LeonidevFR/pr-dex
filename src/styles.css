@@ -469,7 +469,9 @@
   }
   .queue-note{font-family:var(--f-data);font-size:11px;color:var(--ink-3);letter-spacing:.04em}
 
-  .reveal{position:relative;display:grid;place-items:center;width:360px;height:400px}
+  /* La scène épouse la carte. Une hauteur fixe ajouterait du vide, et la carte est plus haute
+     que le sprite qu'elle remplace : sur un portable, ça la faisait sortir de l'écran. */
+  .reveal{position:relative;display:grid;place-items:center}
   /* Le décompte rend l'automatique prévisible. Une carte qui se retourne toute seule sans
      prévenir vole le geste ; une barre qui se remplit le rend au joueur. */
   .reveal-hint{display:flex;flex-direction:column;align-items:center;gap:7px;
@@ -591,9 +593,25 @@
     .tray{grid-template-columns:repeat(auto-fill,minmax(60px,1fr))}
     .rail{gap:14px}
     .panel-top{flex-direction:column;align-items:flex-start}
-    .reveal{width:auto;height:auto}
-    .reveal .pkc{width:214px;height:300px}
-    .reveal .pkc-art img{width:114px;height:114px}
     .reveal-name{font-size:30px}
-    .stack{width:210px;height:300px}
+  }
+
+  /* Le rituel occupe tout l'écran et ne défile pas : c'est la carte qui doit tenir dedans,
+     avec le nom, les chips et le bouton suivant. Sur un portable, tout ça ne rentre pas à
+     la taille de bureau — et une carte tronquée par le haut n'est plus un objet. */
+  @media (max-height:860px){
+    .ritual{gap:18px}
+    .reveal .pkc{width:214px;height:300px}
+    .reveal .pkc-art img{width:112px;height:112px}
+    .reveal .pkc-name{font-size:17px}
+    .reveal-name{font-size:32px}
+    .stack{width:210px;height:292px}
+  }
+  @media (max-height:700px){
+    .ritual{gap:12px}
+    .reveal .pkc{width:176px;height:246px}
+    .reveal .pkc-art img{width:92px;height:92px}
+    .reveal-name{font-size:26px}
+    .reveal-note{margin-top:10px}
+    .stack{width:186px;height:258px}
   }
