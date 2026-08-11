@@ -58,7 +58,7 @@ function newPlayer(policy) {
   }
   return {
     policy, stock: emptyStock(), dollars: 0, points: 0, plis: 0, lost: 0,
-    duels: 0, wins: 0, fallbacks: 0, stakes: { c: 0, u: 0, r: 0, l: 0 },
+    duels: 0, wins: 0, houseWins: 0, fallbacks: 0, stakes: { c: 0, u: 0, r: 0, l: 0 },
   }
 }
 
@@ -92,16 +92,22 @@ export function simulateLeague({ weeks, seed, policies }) {
       players.forEach((p, i) => collectWeek(p.stock, `${seed}:tirage:${i}:${semaine}`))
     }
 
-    const ordre = players.map((_, i) => (i + j) % players.length)
-    for (let k = 0; k + 1 < players.length; k += 2) {
-      duelHumain(players[ordre[k]], players[ordre[k + 1]], `${seed}:${j}:${k}`)
+    // Ronde à la Berger : le joueur qui « sort » affronte la maison, les autres sont
+    // appariés en miroir autour de lui. Sur cinq jours, chaque paire se rencontre
+    // exactement une fois — sans quoi un joueur n'affronterait qu'un voisinage fixe, et le
+    // classement mesurerait sa position dans le cycle autant que sa politique.
+    const n = players.length
+    const repos = j % n
+    for (let k = 1; k * 2 < n; k++) {
+      duelHumain(players[(repos + k) % n], players[(repos - k + n) % n], `${seed}:${j}:${k}`)
     }
-    duelMaison(players[ordre[players.length - 1]], `${seed}:${j}:maison`)
+    duelMaison(players[repos], `${seed}:${j}:maison`)
   }
 
   return players.map((p) => ({
     policy: p.policy, dollars: p.dollars, points: p.points, plis: p.plis, lost: p.lost,
-    duels: p.duels, wins: p.wins, fallbacks: p.fallbacks, stakes: p.stakes,
+    duels: p.duels, wins: p.wins, houseWins: p.houseWins, fallbacks: p.fallbacks,
+    stakes: p.stakes,
     stock: Object.fromEntries(TIER_ORDER.map((t) => [t, p.stock[t].length])),
   }))
 }
@@ -169,6 +175,7 @@ function duelMaison(j, seed) {
   })
   if (issue.winner === 'left') {
     j.wins++
+    j.houseWins++
     j.dollars += HOUSE_REWARD[e.tier]
   }
 }
