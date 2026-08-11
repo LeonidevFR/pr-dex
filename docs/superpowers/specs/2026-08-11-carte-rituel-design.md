@@ -87,8 +87,13 @@ C'est un gain d'agentivité par rapport à l'existant, où l'étape `silhouette`
 ### Le dos porte la provenance
 
 Le dos, c'est le sachet ouvert : trame tissée en diagonale, papier vergé. Dessus, une **étiquette
-de spécimen** — dépôt, numéro de PR, titre (tronqué à 3 lignes via `-webkit-line-clamp`), date de
-merge, et la mention « Une PR mergée · un tirage ».
+de spécimen** — la référence de la source, le titre (tronqué à 3 lignes via `-webkit-line-clamp`),
+la date, et la mention « Une PR mergée · un tirage ».
+
+Le modèle réel ne porte pas le dépôt et le numéro séparément : `entry.ref` est déjà une chaîne
+composée par la source (`moi/atlas#142 · a3f8c21`), et `entry.label` porte le titre. On affiche donc
+`ref`, `label`, `date` — et `ref` peut manquer (une source peut n'avoir aucune référence courte à
+donner, cas déjà géré par le pli scellé), auquel cas la ligne disparaît.
 
 Chaque carte dit ainsi d'où elle vient, ce qui donne une vraie raison de la retourner au lieu d'un
 simple effet. Les veines de pliage d'une première version sont supprimées : ça faisait autocollant.
@@ -170,7 +175,10 @@ provenance et une scène ; elle n'accède ni au store ni au réseau. Elle doit �
   le clic pendant `awaiting` révèle immédiatement et **annule** le minuteur ; l'absence de clic
   révèle à 4 s ; une seule fanfare par tirage (le bug rencontré en maquette était précisément un
   double déclenchement — déchirure *et* retournement).
-- **Non-régression** : les 346 tests existants passent inchangés.
+- **Migration assumée** : `RitualOverlay.test.js` (36 tests) encode l'étape `silhouette` et les
+  temporisations 2200/2800 ms — c'est-à-dire exactement le comportement qu'on remplace. Ces tests
+  doivent être réécrits, pas contournés. Les 310 autres passent inchangés : aucun ne touche au
+  rituel.
 - **Visuel** : hors tests automatisés, validé sur la maquette publiée.
 
 ---
