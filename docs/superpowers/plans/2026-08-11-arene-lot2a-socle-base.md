@@ -372,13 +372,13 @@ create policy "species_stats_select_all" on public.species_stats
   for select to authenticated using (true);
 ```
 
-Puis, dans le même fichier, juste avant `commit;`, inclure les données :
+**Les données ne vont pas dans la migration.** `supabase db reset` applique automatiquement `supabase/seed.sql` après les migrations — c'est l'emplacement prévu pour ce genre de contenu, et il évite une méta-commande `\i` que l'éditeur SQL du dashboard ne saurait de toute façon pas exécuter. Le générateur écrit donc **directement dans `supabase/seed.sql`**, et non dans un fichier intermédiaire :
 
-```sql
-\i supabase/seed-species-stats.sql
+```js
+const OUT_STATS_SQL = new URL('../supabase/seed.sql', import.meta.url)
 ```
 
-**Si `\i` ne fonctionne pas** — c'est une méta-commande de `psql`, que l'éditeur SQL du dashboard ne connaît pas —, recopier à la place le contenu du fichier généré directement dans la migration, et le signaler dans le compte rendu : la mise en service se fera par copier-coller, l'inclusion doit donc marcher partout.
+Conséquence à documenter dans le README : la mise en service en production se fait en **deux collages** dans l'éditeur SQL — la migration d'abord, `supabase/seed.sql` ensuite.
 
 - [ ] **Step 5: Appliquer et vérifier**
 
@@ -718,13 +718,24 @@ const disponible = await dbAvailable()
 const ALICE = '11111111-1111-1111-1111-111111111111'
 const BOB = '22222222-2222-2222-2222-222222222222'
 
-/** Rejoue une requête comme le ferait PostgREST pour un utilisateur donné. */
+/**
+ * Rejoue une requête comme le ferait PostgREST pour un utilisateur donné.
+ *
+ * La transaction explicite n'est pas décorative : `set local` ne vaut que pour la durée d'une
+ * transaction, et sans elle le rôle et les claims seraient silencieusement ignorés — les
+ * requêtes passeraient alors en superutilisateur et TOUS les tests d'isolation seraient verts
+ * pour la pire des raisons.
+ */
 const commeUtilisateur = async (c, uid, sql) => {
-  await c.query('set local role authenticated')
-  await c.query(`set local request.jwt.claims = '{"sub":"${uid}","role":"authenticated"}'`)
-  const r = await c.query(sql)
-  await c.query('reset role')
-  return r.rows
+  await c.query('begin')
+  try {
+    await c.query('set local role authenticated')
+    await c.query(`set local request.jwt.claims = '{"sub":"${uid}","role":"authenticated"}'`)
+    const r = await c.query(sql)
+    return r.rows
+  } finally {
+    await c.query('rollback')
+  }
 }
 
 describe.skipIf(!disponible)('isolation entre deux joueurs', () => {
