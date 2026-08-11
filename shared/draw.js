@@ -27,7 +27,22 @@ export function drawFrom(seed) {
     acc += w
     if (r < acc) { tier = t; break }
   }
+  return drawInTier(seed, tier)
+}
+
+/**
+ * Le même tirage, mais dans un palier imposé. Sert aux plis dont le palier ne se joue pas au
+ * hasard : celui gagné en arène vaut l'enjeu du duel, celui acheté en boutique vaut ce qu'on
+ * a payé.
+ *
+ * L'espèce et le chromatique se tirent exactement comme ailleurs, sur les mêmes suffixes de
+ * seed — un pli d'arène n'a pas de meilleures chances qu'un pli de travail, il a seulement
+ * son palier décidé d'avance. C'est ce qui permet à l'arène de récompenser sans jamais
+ * toucher aux cotes, la règle que `drawFrom` protège depuis le premier jour.
+ */
+export function drawInTier(seed, tier) {
   const pool = POOL[tier]
+  if (!pool?.length) throw new Error(`palier inconnu : ${tier}`)
   return {
     species: pool[fnv1a(seed + ':pick') % pool.length],
     shiny: fnv1a(seed + ':shiny') % SHINY_ODDS === 0,

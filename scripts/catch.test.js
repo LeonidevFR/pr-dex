@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { sinceDate, toRows, planSources, main, CONNECTORS } from './catch.mjs'
-import { drawFrom } from '../shared/draw.js'
+import { sinceDate, toRows, planSources, packRows, main, CONNECTORS } from './catch.mjs'
+import { drawFrom, drawInTier } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
+import { DEX } from '../shared/species.js'
 
 const searchPage = (items, more = false) => ({
   ok: true, status: 200,
@@ -92,12 +93,20 @@ describe('main', () => {
    * l'URL. `github` fournit les réponses GitHub dans l'ordre d'appel, communes à toutes les
    * identités traitées par ce run — suffisant tant qu'une seule identité par test a du nouveau.
    */
-  function makeFetch({ identities, catchesByUser = {}, github = [] } = {}) {
+  function makeFetch({ identities, catchesByUser = {}, github = [], packs = [] } = {}) {
     const githubQueue = [...github]
     const inserted = []
+    const claimed = []
     const fn = vi.fn(async (url, init = {}) => {
       if (url.includes('/rest/v1/identities')) {
         return { ok: true, status: 200, json: async () => identities, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/arena_packs') && (!init.method || init.method === 'GET')) {
+        return { ok: true, status: 200, json: async () => packs, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/arena_packs') && init.method === 'PATCH') {
+        claimed.push(url)
+        return { ok: true, status: 204, json: async () => [], headers: new Headers() }
       }
       if (url.includes('/rest/v1/catches') && (!init.method || init.method === 'GET')) {
         const params = new URL(url).searchParams
@@ -117,6 +126,7 @@ describe('main', () => {
       return next
     })
     fn.inserted = inserted
+    fn.claimed = claimed
     return fn
   }
 
@@ -292,4 +302,96 @@ describe('main', () => {
   it('n’enregistre que des sources dont le connecteur déclare la même clé', () => {
     for (const [key, connector] of Object.entries(CONNECTORS)) expect(connector.id).toBe(key)
   })
+
+  // L'arène n'a pas son propre déclencheur : elle profite du run qui existe déjà, et donc du
+  // bouton de synchronisation, qui devient aussi « montre-moi ce que j'ai gagné ».
+  it('matérialise les plis d’arène dus dans le même run que les captures', async () => {
+    const fetchMock = makeFetch({
+      identities: [identity('u1')],
+      github: [searchPage([])],
+      packs: [
+        { id: 11, user_id: 'u1', tier: 'r', duel_id: 3, created_at: '2026-08-11T09:00:00+00:00' },
+        { id: 12, user_id: 'u2', tier: 'c', duel_id: 4, created_at: '2026-08-11T10:00:00+00:00' },
+      ],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const total = await main()
+
+    expect(total).toBe(2)
+    const lignes = fetchMock.inserted.flat()
+    expect(lignes.map((l) => [l.user_id, l.source, l.external_id]))
+      .toEqual([['u1', 'arene', '11'], ['u2', 'arene', '12']])
+    expect(DEX[lignes[0].species].tier).toBe('r')
+    expect(DEX[lignes[1].species].tier).toBe('c')
+  })
+
+  // Marquer avant d'insérer ferait disparaître un pli gagné si le run mourait entre les deux ;
+  // marquer après ne coûte qu'un doublon, que la contrainte unique de `catches` absorbe.
+  it('ne marque les plis comme matérialisés qu’après les avoir insérés', async () => {
+    const ordre = []
+    const fetchMock = makeFetch({
+      identities: [identity('u1')],
+      github: [searchPage([])],
+      packs: [{ id: 21, user_id: 'u1', tier: 'u', duel_id: 5, created_at: '2026-08-11T09:00:00+00:00' }],
+    })
+    const suivi = vi.fn(async (url, init = {}) => {
+      if (url.includes('/rest/v1/catches') && init.method === 'POST') ordre.push('insert')
+      if (url.includes('/rest/v1/arena_packs') && init.method === 'PATCH') ordre.push('marque')
+      return fetchMock(url, init)
+    })
+    vi.stubGlobal('fetch', suivi)
+
+    await main()
+
+    expect(ordre).toEqual(['insert', 'marque'])
+  })
+
+  it('ne touche pas aux plis quand il n’y en a aucun de dû', async () => {
+    const fetchMock = makeFetch({ identities: [identity('u1')], github: [searchPage([])] })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    expect(fetchMock.claimed).toEqual([])
+  })
+})
+
+describe('packRows', () => {
+  const pli = (over = {}) => ({
+    id: 42, user_id: 'u1', tier: 'r', duel_id: 7,
+    created_at: '2026-08-11T09:30:00+00:00', ...over,
+  })
+
+  it('fabrique une capture de source arène', () => {
+    const [row] = packRows([pli()])
+    expect(row.source).toBe('arene')
+    expect(row.external_id).toBe('42')
+    expect(row.user_id).toBe('u1')
+    expect(row.date).toBe('2026-08-11')
+    expect(row.ref).toBe('duel #7')
+  })
+
+  // Le palier vient du duel, jamais du hasard : c'est tout ce que l'arène décide du tirage.
+  it('respecte le palier de l’enjeu', () => {
+    for (const tier of ['c', 'u', 'r', 'l']) {
+      for (let id = 1; id < 60; id++) {
+        const [row] = packRows([pli({ id, tier })])
+        expect(DEX[row.species].tier).toBe(tier)
+      }
+    }
+  })
+
+  // Même clé, même exemplaire : un pli rematérialisé après un run interrompu doit retomber
+  // sur la même espèce, sinon la contrainte unique absorberait un doublon différent.
+  it('est déterministe pour un même pli', () => {
+    expect(packRows([pli()])).toEqual(packRows([pli()]))
+  })
+
+  it('tire le même exemplaire que le tirage direct sur la clé d’arène', () => {
+    const [row] = packRows([pli()])
+    const attendu = drawInTier(entryKey('arene', '42'), 'r')
+    expect({ species: row.species, shiny: row.shiny }).toEqual(attendu)
+  })
+
 })

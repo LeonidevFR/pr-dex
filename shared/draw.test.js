@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fnv1a, drawFrom, WEIGHTS, SHINY_ODDS } from './draw.js'
+import { fnv1a, drawFrom, drawInTier, WEIGHTS, SHINY_ODDS } from './draw.js'
 import { entryKey } from './entry.js'
 import { DEX, POOL, NOT_DRAWABLE } from './species.js'
 import golden from './draw.golden.json' with { type: 'json' }
@@ -111,5 +111,43 @@ describe('drawFrom', () => {
     const N = 100000
     const { species } = measure(shaAt, N)
     expect(species.has(130)).toBe(false)
+  })
+})
+
+describe('drawInTier', () => {
+  // Un pli d'arène ou de boutique a son palier décidé d'avance, jamais ses cotes : l'espèce et
+  // le chromatique se tirent sur les mêmes suffixes de seed que n'importe quel pli de travail.
+  it('rend toujours une espèce du palier demandé', () => {
+    for (const tier of ['c', 'u', 'r', 'l']) {
+      for (let i = 0; i < 500; i++) {
+        expect(DEX[drawInTier(`arene:${i}`, tier).species].tier).toBe(tier)
+      }
+    }
+  })
+
+  it('rend le même exemplaire que le tirage libre quand celui-ci tombe sur ce palier', () => {
+    for (let i = 0; i < 200; i++) {
+      const seed = `github:sha${i}`
+      const libre = drawFrom(seed)
+      expect(drawInTier(seed, DEX[libre.species].tier)).toEqual(libre)
+    }
+  })
+
+  it('ne tire jamais une espèce exclue du pool', () => {
+    for (let i = 0; i < 2000; i++) {
+      expect(NOT_DRAWABLE.has(drawInTier(`arene:${i}`, 'r').species)).toBe(false)
+    }
+  })
+
+  it('garde le taux de chromatique commun à tous les plis', () => {
+    let shiny = 0
+    const n = 50_000
+    for (let i = 0; i < n; i++) if (drawInTier(`arene:${i}`, 'u').shiny) shiny++
+    expect(shiny / n).toBeGreaterThan(1 / SHINY_ODDS * 0.8)
+    expect(shiny / n).toBeLessThan(1 / SHINY_ODDS * 1.2)
+  })
+
+  it('refuse un palier inconnu plutôt que de rendre une espèce indéfinie', () => {
+    expect(() => drawInTier('x', 'z')).toThrow(/palier inconnu/)
   })
 })
