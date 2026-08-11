@@ -392,3 +392,17 @@ describe('focus clavier', () => {
     expect(document.activeElement).toBe(document.body)
   })
 })
+
+describe('vitesse des rayons', () => {
+  // Un rare tournait en 3,2 s et un légendaire en 1,8 s : c'est stroboscopique, et le rituel se
+  // rejoue quelques centaines de fois par an sans qu'on puisse le désactiver. L'intensité passe
+  // par l'opacité, le nombre de couches et le halo — jamais par la vitesse.
+  it('ne descend jamais sous dix secondes par tour, quel que soit le palier', async () => {
+    for (const species of [16, 25, 6, 151]) {
+      const w = mountRitual({ entry: entryOf({ species }) })
+      await w.find('.packet').trigger('click')
+      const secondes = Number(/--rayspeed:\s*([\d.]+)s/.exec(w.find('.ritual').attributes('style'))[1])
+      expect(secondes).toBeGreaterThanOrEqual(10)
+    }
+  })
+})

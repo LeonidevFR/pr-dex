@@ -16,12 +16,17 @@ const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
  * Quatre crans, durée quasi constante : le rituel se rejoue ~300 fois par an. L'écart
  * entre un commun et un légendaire passe par l'intensité (rayons, halo, flash), pas par
  * une attente plus longue — sinon on cherche à le sauter au bout d'une semaine.
+ *
+ * La vitesse de rotation ne fait PAS partie de ces leviers. Elle l'a été : un rare tournait
+ * en 3,2 s et un légendaire en 1,8 s, ce qui produisait un clignotement franchement pénible
+ * sur la seule scène qu'on ne peut pas éviter. Un tour lent lit « ça rayonne » ; un tour
+ * rapide lit « ça stroboscope ». L'écart entre paliers se joue donc en dessous.
  */
 const INTENSITY = {
-  c: { rayop: 0.10, glow: '8px', flashscale: 2.4, rayspeed: '7s' },
-  u: { rayop: 0.18, glow: '16px', flashscale: 3.2, rayspeed: '6s' },
-  r: { rayop: 0.42, glow: '38px', flashscale: 5.2, rayspeed: '3.2s' },
-  l: { rayop: 0.65, glow: '66px', flashscale: 7.5, rayspeed: '1.8s' },
+  c: { rayop: 0.10, glow: '8px', flashscale: 2.4, rayspeed: '26s' },
+  u: { rayop: 0.18, glow: '16px', flashscale: 3.2, rayspeed: '22s' },
+  r: { rayop: 0.42, glow: '38px', flashscale: 5.2, rayspeed: '18s' },
+  l: { rayop: 0.65, glow: '66px', flashscale: 7.5, rayspeed: '14s' },
 }
 
 const RAY_LAYER_COUNT = { c: 3, u: 4, r: 5, l: 6 }
