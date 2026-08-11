@@ -7,6 +7,7 @@ import RitualOverlay from './components/RitualOverlay.vue'
 import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import ArenaPanel from './components/ArenaPanel.vue'
+import ShopPanel from './components/ShopPanel.vue'
 import DuelOverlay from './components/DuelOverlay.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
@@ -30,6 +31,7 @@ const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
 const arenaOpen = ref(false)
+const shopOpen = ref(false)
 const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
 const gen = ref(1)
@@ -115,8 +117,18 @@ function onEngageFromSheet(key) {
 }
 const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
 
-/** Acheter ne produit pas de duel : l'arène reste à l'écran, solde et catalogue rafraîchis. */
-const onBuy = (slug) => playArena(async () => { await arena.buy(slug); return null })
+/** Acheter ne produit pas de duel : la boutique reste à l'écran, solde rafraîchi. */
+async function onBuy(slug) {
+  arenaBusy.value = true
+  try {
+    await arena.buy(slug)
+    await collection.refresh()
+  } catch (e) {
+    connectError.value = e.kind ?? 'server'
+  } finally {
+    arenaBusy.value = false
+  }
+}
 
 function disconnect() {
   signOut()
@@ -238,7 +250,7 @@ useKeyboardNav({
       :syncing="collection.loading.value" :sync-error="collection.error.value"
       :filters-open="filters.open.value" :filters-active="filters.active.value"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
-      @arena="arenaOpen = true"
+      @arena="arenaOpen = true" @shop="shopOpen = true"
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
@@ -289,9 +301,17 @@ useKeyboardNav({
         :challenges="arena.challenges.value" :engageable="arena.engageable.value"
         :my-open="arena.myOpen.value" :level-of="arena.levelOf"
         :form-of-key="arena.formOfKey" :busy="arenaBusy"
-        :preselect="arenaPreselect" :shop="arena.shop.value" :leaderboard="arena.leaderboard.value"
+        :preselect="arenaPreselect" :leaderboard="arena.leaderboard.value"
         :seasons="arena.seasons.value" :season="arena.season.value" :user-id="userId"
-        @close="arenaOpen = false; arenaPreselect = null" @engage="onEngage" @accept="onAccept" @buy="onBuy"
+        @close="arenaOpen = false; arenaPreselect = null" @engage="onEngage" @accept="onAccept"
+      />
+    </transition>
+
+    <transition name="fade">
+      <ShopPanel
+        v-if="shopOpen && arena"
+        :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
+        @close="shopOpen = false" @buy="onBuy"
       />
     </transition>
 

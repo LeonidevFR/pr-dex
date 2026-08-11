@@ -68,6 +68,7 @@
   .bar{height:3px;background:var(--rule);position:relative;overflow:hidden}
   .bar-fill{position:absolute;inset:0 auto 0 0;background:var(--herb);transition:width .8s cubic-bezier(.2,.8,.2,1)}
   .rail-tools{display:flex;align-items:center;gap:10px}
+  .gear svg{display:block}
   .gear{
     position:relative;display:inline-flex;align-items:center;justify-content:center;
     border:1px solid var(--rule-hi);background:transparent;color:var(--ink-2);width:38px;height:38px;
@@ -75,9 +76,12 @@
   }
   .gear:hover:not(:disabled){background:var(--plate);color:var(--ink)}
   .gear:disabled{cursor:default}
-  /* La rotation est sur le glyphe (span), pas sur le bouton entier : sinon la pastille
-     d'erreur, positionnée dans un coin du bouton, tournait avec tout le bloc. */
-  .gear.sync span.spinning{color:var(--herb);display:inline-block;animation:spin .8s linear infinite}
+  /* La rotation est sur l'icône (span), pas sur le bouton entier : sinon la pastille d'erreur,
+     positionnée dans un coin du bouton, tournerait avec tout le bloc.
+     `flex` et non `inline-block` : autour d'un SVG, la boîte en ligne réserve la place d'une
+     ligne de texte, le centre de rotation tombe à côté et l'icône part de travers. */
+  .gear.sync span{display:flex}
+  .gear.sync span.spinning{color:var(--herb);transform-origin:50% 50%;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .err-dot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--stamp);box-shadow:0 0 0 1.5px var(--paper)}
   .filter-toggle.active{border-color:var(--herb);color:var(--herb)}

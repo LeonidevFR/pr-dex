@@ -15,13 +15,12 @@ const props = defineProps({
   formOfKey: { type: Function, required: true },
   busy: { type: Boolean, default: false },
   preselect: { type: String, default: null },
-  shop: { type: Array, default: () => [] },
   leaderboard: { type: Array, default: () => [] },
   seasons: { type: Array, default: () => [] },
   season: { type: String, default: '' },
   userId: { type: String, default: '' },
 })
-const emit = defineEmits(['close', 'engage', 'accept', 'buy'])
+const emit = defineEmits(['close', 'engage', 'accept'])
 
 const chosen = ref(null)
 const rulesOpen = ref(false)
@@ -37,9 +36,7 @@ const mesBadges = computed(() => props.seasons
   }))
   .filter((b) => b.rank > 0))
 
-const ARTICLE = { c: 'commun', u: 'peu commun', r: 'rare', l: 'légendaire' }
-const nomArticle = (a) =>
-  `Pli ${ARTICLE[a.tier]}${a.gen === 2 ? ' · Gen 2' : ''}${a.fresh ? ' · inédit garanti' : ''}`
+
 
 /**
  * L'espèce dont on est en train de choisir l'exemplaire. Deux temps plutôt qu'un : une liste à
@@ -145,9 +142,6 @@ function take(duelId) {
           <button
             class="filter-chip" :class="{ active: tab === 'duels' }" @click="tab = 'duels'"
           >Duels</button>
-          <button
-            class="filter-chip" :class="{ active: tab === 'boutique' }" @click="tab = 'boutique'"
-          >Boutique</button>
           <button
             class="filter-chip" :class="{ active: tab === 'saison' }" @click="tab = 'saison'"
           >Saison</button>
@@ -340,25 +334,6 @@ function take(duelId) {
         </div>
       </div>
 
-      <div v-if="tab === 'boutique'" class="sect">
-        <div class="eyebrow sect-h"><span>Ce que les pokédollars achètent</span></div>
-        <p class="muted" style="margin-bottom:12px">
-          Un pli acheté s’ouvre comme les autres, aux mêmes cotes — seul l’ensemble dans lequel
-          il pioche est décidé d’avance. La <b>Gen 2</b> ne s’obtient que par ici ; l’<b>inédit
-          garanti</b> ne tire que parmi les espèces qui te manquent encore.
-        </p>
-        <div v-for="a in shop" :key="a.slug" class="log-row">
-          <span class="log-title">{{ nomArticle(a) }}</span>
-          <span class="log-sha mono">{{ a.price }} ₽</span>
-          <button
-            class="evo-btn" :disabled="busy || pokedollars < a.price" @click="emit('buy', a.slug)"
-          >{{ pokedollars < a.price ? `il manque ${a.price - pokedollars} ₽` : 'Acheter' }}</button>
-        </div>
-        <p class="muted" style="margin-top:10px">
-          Le pli n’arrive pas à la seconde : il t’est dû, et il rejoint ta file d’ouverture au
-          prochain passage de la collecte.
-        </p>
-      </div>
     </div>
   </div>
 </template>

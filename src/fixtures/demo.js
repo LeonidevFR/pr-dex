@@ -1,6 +1,6 @@
-import { fnv1a, drawFrom } from '../../shared/draw.js'
+import { fnv1a, drawFrom, drawFromPool } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
-import { DEX } from '../../shared/species.js'
+import { DEX, poolOf } from '../../shared/species.js'
 import { FORMS, formOf, power, resolveDuel } from '../../shared/battle.js'
 import { REWARD, SHOP, coveredTier } from '../../shared/arena-economy.js'
 
@@ -183,7 +183,8 @@ export function demoArena(catches) {
   const MOI = 'demo-moi'
 
   let credits = 5
-  let pokedollars = 250
+  // De quoi essayer tous les articles, légendaire inédit compris : la démo sert à voir.
+  let pokedollars = 14000
   let points = 120
   let seq = 100
   const levels = new Map()
@@ -282,7 +283,27 @@ export function demoArena(catches) {
       if (!art) throw new Error(`boutique : article inconnu (${slug})`)
       if (pokedollars < art.price) throw new Error(`boutique : il manque ${art.price - pokedollars} pokédollars`)
       pokedollars -= art.price
-      return ++seq
+
+      // Le pli est tiré avec le VRAI moteur, dans le même ensemble que celui qu'emprunterait
+      // l'Action : la génération vient de l'article, « inédit garanti » retire ce qu'on possède
+      // déjà. La démo montre donc ce qui se produirait, pas une approximation.
+      const id = ++seq
+      let ids = poolOf(art.tier, art.gen)
+      if (art.fresh) {
+        const deja = new Set(catches.map((c) => c.species))
+        const inedits = ids.filter((i) => !deja.has(i))
+        if (inedits.length) ids = inedits
+      }
+      const { species, shiny } = drawFromPool(entryKey('boutique', String(id)), ids)
+
+      // Ajouté à la collection sans être réclamé : il rejoint la file d'ouverture, exactement
+      // comme une PR fraîchement mergée. En production il faudrait attendre le passage de la
+      // collecte ; ici l'attente n'apprendrait rien à personne.
+      catches.push({
+        source: 'boutique', external_id: String(id), label: 'Acheté en boutique',
+        ref: null, url: null, date: new Date().toLocaleDateString('sv-SE'), species, shiny,
+      })
+      return id
     },
     readDuel: async (id) => duels.get(id) ?? null,
     readMyOpen: async () => (mine_ouverte

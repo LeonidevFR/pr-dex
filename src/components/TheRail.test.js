@@ -151,3 +151,32 @@ describe('accès à l’arène', () => {
     expect(w.emitted('arena')).toHaveLength(1)
   })
 })
+
+/**
+ * Un jeu d'icônes tracé dans le projet plutôt qu'une bibliothèque : le build ne dépend d'aucun
+ * CDN, et six symboles ne justifient pas les dizaines de kilo-octets d'un paquet.
+ */
+describe('icônes du rail', () => {
+  it('donne à chaque action son icône, et un intitulé aux lecteurs d’écran', () => {
+    const w = mountRail()
+    for (const titre of ['Arène', 'Boutique', 'Réglages', 'Filtrer la grille']) {
+      const b = w.findAll('button').find((x) => x.attributes('title') === titre)
+      expect(b, titre).toBeDefined()
+      expect(b.find('svg').exists()).toBe(true)
+    }
+  })
+
+  it('ouvre la boutique depuis le rail, sans passer par l’arène', async () => {
+    const w = mountRail()
+    await w.findAll('button').find((b) => b.attributes('title') === 'Boutique').trigger('click')
+    expect(w.emitted('shop')).toHaveLength(1)
+  })
+
+  // La rotation porte sur l'icône seule : sur le bouton entier, la pastille d'erreur tournerait
+  // avec lui.
+  it('ne fait tourner que l’icône de synchronisation', () => {
+    const w = mountRail({ syncing: true })
+    expect(w.find('.gear.sync span.spinning svg').exists()).toBe(true)
+    expect(w.find('.gear.sync').classes()).not.toContain('spinning')
+  })
+})

@@ -1,4 +1,5 @@
 <script setup>
+import AppIcon from './AppIcon.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
@@ -9,7 +10,7 @@ const props = defineProps({
   filtersOpen: { type: Boolean, default: false },
   filtersActive: { type: Boolean, default: false },
 })
-const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'arena'])
+const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'arena', 'shop'])
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
@@ -88,15 +89,15 @@ onUnmounted(() => clearTimeout(cooldownTimer))
         class="gear filter-toggle" :class="{ active: filtersOpen || filtersActive }"
         title="Filtrer la grille" @click="$emit('toggle-filters')"
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-        ><polygon points="3 4 21 4 14 12.5 14 20 10 20 10 12.5 3 4"></polygon></svg>
+        <AppIcon name="filter" />
       </button>
       <button class="gear sync" :title="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
-        <span :class="{ spinning: syncing }">⟳</span><span v-if="syncError" class="err-dot"></span>
+        <span :class="{ spinning: syncing }"><AppIcon name="sync" /></span>
+        <span v-if="syncError" class="err-dot"></span>
       </button>
-      <button class="gear" title="Arène" @click="$emit('arena')">⚔</button>
-      <button class="gear" title="Réglages" @click="$emit('settings')">⚙</button>
+      <button class="gear" title="Arène" @click="$emit('arena')"><AppIcon name="arena" /></button>
+      <button class="gear" title="Boutique" @click="$emit('shop')"><AppIcon name="shop" /></button>
+      <button class="gear" title="Réglages" @click="$emit('settings')"><AppIcon name="settings" /></button>
     </div>
   </header>
 </template>

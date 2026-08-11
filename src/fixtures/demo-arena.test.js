@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { demoCatches, demoArena } from './demo.js'
+import { demoCatches, demoArena, loadDemoClient } from './demo.js'
 import { entryKey } from '../../shared/entry.js'
 import { DEX } from '../../shared/species.js'
 
@@ -69,5 +69,51 @@ describe('arène en mode démo', () => {
     expect(duel.challenger_species).toBeGreaterThan(0)
     expect(duel.opponent_species).toBeGreaterThan(0)
     expect(['c', 'u', 'r', 'l']).toContain(duel.stake_tier)
+  })
+})
+
+/**
+ * Un achat qui ne se voit pas ne s'essaie pas. En production le pli attend le passage de la
+ * collecte ; en démo il rejoint la file d'ouverture sur-le-champ — faire patienter quelqu'un
+ * qui découvre le jeu sans compte n'apprendrait rien à personne.
+ */
+describe('achats en mode démo', () => {
+  const client = () => loadDemoClient()
+
+  it('donne de quoi essayer tous les articles', async () => {
+    const plusCher = Math.max(...(await client().readShop()).map((a) => a.price))
+    expect((await client().readArena()).pokedollars).toBeGreaterThanOrEqual(plusCher)
+  })
+
+  it('débite et dépose le pli dans la file d’ouverture', async () => {
+    const c = client()
+    const avant = (await c.readCatches()).length
+    const solde = (await c.readArena()).pokedollars
+
+    const id = await c.buy('gen1-r')
+
+    const apres = await c.readCatches()
+    expect(apres).toHaveLength(avant + 1)
+    expect((await c.readArena()).pokedollars).toBeLessThan(solde)
+
+    // Non réclamé : il doit s'ouvrir comme une PR fraîchement mergée, pas apparaître tout ouvert.
+    const etat = await c.readState()
+    expect(etat.state.claimed).not.toContain(`boutique:${id}`)
+  })
+
+  it('tire dans la génération achetée', async () => {
+    const c = client()
+    await c.buy('gen2-c')
+    const dernier = (await c.readCatches()).at(-1)
+    expect(dernier.species).toBeGreaterThan(151)
+    expect(DEX[dernier.species].tier).toBe('c')
+  })
+
+  it('refuse un achat hors budget sans rien déposer', async () => {
+    const c = client()
+    for (let i = 0; i < 3; i++) await c.buy('gen1-l-inedit').catch(() => {})
+    const avant = (await c.readCatches()).length
+    await expect(c.buy('gen1-l-inedit')).rejects.toThrow(/il manque/)
+    expect(await c.readCatches()).toHaveLength(avant)
   })
 })
