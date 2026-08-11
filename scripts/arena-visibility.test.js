@@ -14,11 +14,14 @@ describe.skipIf(!disponible)('ce qu’un adversaire a le droit de voir', () => {
     expect(cols).toContain('pseudo')
   })
 
-  it('refuse deux pseudonymes identiques', async () => {
+  // L'unicité vit dans un index d'expression (`lower(trim(pseudo))`), pas dans une contrainte :
+  // Postgres refuse de promouvoir un index sur expression en contrainte `unique`. `pg_indexes`
+  // est donc la bonne table catalogue à interroger, pas `pg_constraint`.
+  it('refuse deux pseudonymes identiques, même à la casse ou aux espaces près', async () => {
     await withDb(async (c) => {
       const { rows } = await c.query(`
-        select conname from pg_constraint
-        where conrelid = 'public.profiles' :: regclass and contype = 'u'
+        select indexname from pg_indexes
+        where schemaname = 'public' and tablename = 'profiles' and indexdef ilike '%unique%'
       `)
       expect(rows.length).toBeGreaterThan(0)
     })

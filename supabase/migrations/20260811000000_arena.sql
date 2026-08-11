@@ -151,6 +151,24 @@ grant select on public.species_stats, public.arena_exemplars, public.arena_duels
 -- usurper ne sert à rien dans une arène où l'on choisit qui l'on affronte.
 alter table public.profiles add column pseudo text unique;
 
+-- Un joueur choisit son pseudonyme, et celui-là seulement. `with check` autant que `using` :
+-- sans lui, on pourrait passer la ligne d'autrui sous son propre identifiant.
+create policy "profiles_update_own" on public.profiles
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+grant update (pseudo) on public.profiles to authenticated;
+
+-- L'unicité posée à la création de la colonne est sensible à la casse et aux espaces, donc
+-- inopérante contre ce qu'elle vise : dans une arène où l'on choisit son adversaire sur la foi
+-- d'un nom, `Leo` et `leo` côte à côte suffisent à se faire passer pour l'autre.
+-- Un index unique sur expression ne peut pas être promu en contrainte (Postgres l'interdit :
+-- « cannot create a unique constraint using such an index » dès que l'index porte sur une
+-- expression, ici `lower(trim(...))`) ; il reste donc un index, visible dans `pg_indexes` et
+-- non dans `pg_constraint`. Le test du lot 2a qui vérifiait l'unicité via `pg_constraint` est
+-- mis à jour en conséquence dans `scripts/arena-visibility.test.js`.
+alter table public.profiles drop constraint profiles_pseudo_key;
+create unique index profiles_pseudo_unique on public.profiles (lower(trim(pseudo)));
+
 -- Les vues appartiennent au propriétaire du schéma et s'exécutent sous ses droits : elles
 -- traversent donc RLS. C'est voulu, et c'est pour ça qu'elles n'exposent QUE des colonnes
 -- dont la publication a été tranchée dans la spec § 5.
