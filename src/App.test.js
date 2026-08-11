@@ -153,3 +153,32 @@ describe('envoi à l’arène depuis la fiche', () => {
     expect(w.find('.arena-pick').exists() || w.text().includes('sur la table')).toBe(true)
   })
 })
+
+/**
+ * Le pli acheté doit s'ouvrir, pas se ranger. La file est triée par date : un achat arrive
+ * derrière tous les plis laissés fermés, et ouvrir « le premier de la file » ouvrait donc un
+ * autre pli — ou rien de visible du tout. On avait payé et l'écran ne bougeait pas.
+ */
+describe('achat en boutique', () => {
+  const ouvrirBoutique = async (w) => {
+    await w.findAll('.gear').find((b) => b.attributes('title') === 'Boutique').trigger('click')
+    await flushPromises()
+  }
+
+  it('ouvre le pli qu’on vient d’acheter, pas le premier de la file', async () => {
+    const w = await mountApp()
+    await ouvrirBoutique(w)
+
+    const acheter = w.findAll('.log-row')[0].find('button')
+    await acheter.trigger('click')   // confirmation
+    await acheter.trigger('click')
+    for (let i = 0; i < 50 && !w.find('.ritual').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+
+    expect(w.find('.ritual').exists()).toBe(true)
+    // La boutique s'efface : deux couches empilées cacheraient la révélation.
+    expect(w.findAll('.panel-plate').some((p) => p.text() === 'BOUTIQUE')).toBe(false)
+  })
+})

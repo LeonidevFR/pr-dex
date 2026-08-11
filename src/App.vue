@@ -14,6 +14,7 @@ import { useCollection } from './composables/useCollection.js'
 import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
+import { entryKey } from '../shared/entry.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
@@ -117,12 +118,24 @@ function onEngageFromSheet(key) {
 }
 const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
 
-/** Acheter ne produit pas de duel : la boutique reste à l'écran, solde rafraîchi. */
+/**
+ * Acheter ne produit pas de duel : on ouvre le pli, pas un résumé de combat.
+ *
+ * Et on ouvre CELUI-LÀ, pas le premier de la file : la file est triée par date, donc un pli
+ * acheté arrive derrière tous ceux qu'on avait laissés fermés. Il tombait bien dans la file,
+ * mais invisible — on avait payé et rien ne se passait à l'écran.
+ *
+ * `refresh` déclenche la collecte et attend qu'elle rapporte quelque chose : c'est elle qui
+ * matérialise le pli dû. Si elle rentre les mains vides (run lent, hors ligne), on ne force
+ * rien — le pli reste dû et s'ouvrira au prochain passage.
+ */
 async function onBuy(slug) {
   arenaBusy.value = true
   try {
-    await arena.buy(slug)
+    const id = await arena.buy(slug)
     await collection.refresh()
+    const achete = collection.dex.pending.value.find((e) => e.key === entryKey('boutique', id))
+    if (achete) { shopOpen.value = false; showPacket(achete) }
   } catch (e) {
     connectError.value = e.kind ?? 'server'
   } finally {
@@ -169,12 +182,13 @@ watch(
 // même la révélation, donc une liaison directe la dirait déjà rencontrée — le marqueur ne
 // s'allumerait jamais. Il se lit sur l'état d'avant l'ouverture, seul état où la question
 // « jamais rencontrée ? » a un sens.
-function showNextPacket() {
+function showPacket(entry) {
   const queue = collection.dex.pending.value
-  ritualEntry.value = queue[0] ?? null
+  ritualEntry.value = entry ?? null
   ritualRemaining.value = queue.length
   ritualIsNew.value = ritualEntry.value ? collection.dex.isNewSpecies(ritualEntry.value.species) : false
 }
+const showNextPacket = () => showPacket(collection.dex.pending.value[0])
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
 

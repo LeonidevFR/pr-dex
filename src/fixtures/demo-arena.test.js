@@ -117,3 +117,25 @@ describe('achats en mode démo', () => {
     expect(await c.readCatches()).toHaveLength(avant)
   })
 })
+
+/**
+ * Le piège qui a rendu un achat invisible : le client rendait le tableau qu'il mutait, donc
+ * `catches.value = c` reposait la même référence et Vue ne réagissait pas. Le pli était bien
+ * là, dans un écran qui ne se redessinait jamais.
+ */
+describe('lectures du client démo', () => {
+  it('rend une charge neuve à chaque lecture', async () => {
+    const c = loadDemoClient()
+    expect(await c.readCatches()).not.toBe(await c.readCatches())
+  })
+
+  it('ne laisse pas muter sa collection depuis l’extérieur', async () => {
+    const c = loadDemoClient()
+    const lu = await c.readCatches()
+    lu.push({ source: 'pirate' })
+    lu[0].species = 999
+    const relu = await c.readCatches()
+    expect(relu).toHaveLength(lu.length - 1)
+    expect(relu[0].species).not.toBe(999)
+  })
+})

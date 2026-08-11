@@ -499,3 +499,7 @@
   .arena-reward div{display:flex;flex-direction:column;gap:2px}
   .arena-reward .v{font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--ink);line-height:1}
 
+
+/* Un achat à confirmer : le bouton change d'état, pas seulement de libellé — le libellé seul
+   se lit après coup, la couleur se voit avant de recliquer. */
+.evo-btn.confirming { background: var(--ink); color: var(--paper); border-color: var(--ink); }

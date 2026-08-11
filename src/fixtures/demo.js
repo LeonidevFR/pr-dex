@@ -157,7 +157,11 @@ export function loadDemoClient() {
   }
   return {
     checkAccess: async () => true,
-    readCatches: async () => catches,
+    // Une copie, jamais le tableau lui-même : `catches.value = c` avec la même référence ne
+    // déclenche aucune réactivité, et un pli acheté restait invisible — la file, le compteur du
+    // rail, tout gardait l'état d'avant. Un vrai client renvoie de toute façon une charge neuve
+    // à chaque lecture ; la démo doit se comporter pareil, sinon elle ne prouve rien.
+    readCatches: async () => catches.map((c) => ({ ...c })),
     readState: async () => ({ state: JSON.parse(JSON.stringify(state)), blobSha: 'demo' }),
     writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'demo' } },
     // Rien à déclencher en démo : pas de vraie Action, pas de vrai repo derrière.

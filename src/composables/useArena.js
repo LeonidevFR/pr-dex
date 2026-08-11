@@ -96,9 +96,11 @@ export function useArena(client, claimed) {
    * débité immédiatement — d'où la relecture, sans laquelle l'écran afficherait encore l'ancien
    * solde et laisserait racheter ce qu'on ne peut plus payer.
    */
+  /** Rend l'identifiant du pli acheté : l'appelant en a besoin pour l'ouvrir tout de suite. */
   async function buy(slug) {
-    await client.buy(slug)
+    const id = await client.buy(slug)
     await load()
+    return id
   }
 
   async function accept(duelId, entryKey) {
