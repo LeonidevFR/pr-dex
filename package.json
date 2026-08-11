@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "catch": "node scripts/catch.mjs",
-    "gen:species-info": "node scripts/gen-species-info.mjs"
+    "gen:species-info": "node scripts/gen-species-info.mjs",
+    "simulate:arena": "node scripts/simulate-arena.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
