@@ -115,11 +115,30 @@ describe('inclinaison et retournement', () => {
     expect(w.find('.pkc').classes()).not.toContain('is-flipped')
   })
 
-  it('s’active aussi au clavier', async () => {
+  /**
+   * Entrée ET Espace. Le pli scellé est un vrai `<button>`, donc Espace l'ouvre nativement ;
+   * la carte est un `div` focalisable, où il ne se passe rien par défaut — et où Espace fait
+   * même défiler la page. Sans ce traitement, le rituel s'ouvre au clavier mais ne se retourne
+   * qu'à la souris.
+   */
+  it('s’active à Entrée comme à Espace', async () => {
     const w = mountCard({ provenance })
     expect(w.find('.pkc').attributes('tabindex')).toBe('0')
+    expect(w.find('.pkc').attributes('role')).toBe('button')
+
     await w.find('.pkc').trigger('keyup.enter')
     expect(w.emitted('activate')).toHaveLength(1)
+
+    await w.find('.pkc').trigger('keyup.space')
+    expect(w.emitted('activate')).toHaveLength(2)
+  })
+
+  // Sans `.prevent` sur le keydown, la page saute d'un écran au moment même où l'on retourne.
+  it('empêche Espace de faire défiler la page sous la carte', () => {
+    const w = mountCard({ provenance })
+    const evenement = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    w.find('.pkc').element.dispatchEvent(evenement)
+    expect(evenement.defaultPrevented).toBe(true)
   })
 
   // La position du pointeur sert deux fois : au relief, et au déplacement du balayage de lumière.

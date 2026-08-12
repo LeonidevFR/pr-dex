@@ -83,9 +83,11 @@ function onLeave() {
 <template>
   <div
     class="pkc" :class="[`scene-${scene}`, { 'is-shiny': shiny, 'is-flipped': flipped, 'is-live': tilt }]"
-    :data-tier="tier" :style="style" tabindex="0"
+    :data-tier="tier" :style="style" tabindex="0" role="button"
     @pointermove="onMove" @pointerleave="onLeave"
-    @click="emit('activate')" @keyup.enter="emit('activate')"
+    @click="emit('activate')"
+    @keyup.enter="emit('activate')" @keyup.space="emit('activate')"
+    @keydown.space.prevent
   >
     <!-- Les deux faces coexistent pour que le retournement soit une vraie rotation. Mais
          `backface-visibility` ne cache qu'à l'œil : sans `aria-hidden`, un lecteur d'écran

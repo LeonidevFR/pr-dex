@@ -448,6 +448,26 @@ describe('focus clavier', () => {
     await w.vm.$nextTick()
     expect(document.activeElement).toBe(w.find('.pkc').element)
   })
+
+  /**
+   * Tout le rituel doit se jouer à la barre d'espace, du premier pli au dernier. Le pli est un
+   * vrai `<button>`, donc Espace l'ouvre nativement ; la carte est un `div` focalisable où il
+   * ne se passait rien. Sans ce test, on ouvre au clavier mais on retourne à la souris.
+   */
+  it('se joue entièrement à la barre d’espace', async () => {
+    const w = mountAttached()
+    expect(document.activeElement).toBe(w.find('.packet').element)
+
+    await w.find('.packet').trigger('keyup.space')
+    await w.find('.packet').trigger('click') // ce qu'Espace déclenche nativement sur un bouton
+    vi.advanceTimersByTime(1180)
+    await w.vm.$nextTick()
+    await w.vm.$nextTick()
+
+    expect(document.activeElement).toBe(w.find('.pkc').element)
+    await w.find('.pkc').trigger('keyup.space')
+    expect(w.find('.reveal-name').exists()).toBe(true)
+  })
 })
 
 describe('entaille du sceau', () => {
