@@ -133,22 +133,32 @@ export function demoCatches() {
   // Quatre captures de la seconde source déjà ouvertes, insérées avant la file d'attente…
   drawn.splice(-3, 0, ...FAKE_CRM.slice(0, -1).map((c) => crmCatch(...c)))
 
-  // …et la cinquième glissée dans les trois derniers, donc en attente. Sa date la place en
-  // tête de file : le premier pli scellé de la démo vient de l'autre pôle, ce qui est
-  // précisément ce qu'on cherche à montrer. Le nombre de plis en attente reste à trois.
+  // …et la cinquième glissée dans les derniers, donc en attente. Sa date la place en tête de
+  // file : le premier pli scellé de la démo vient de l'autre pôle, ce qui est précisément ce
+  // qu'on cherche à montrer.
   drawn.splice(-1, 0, crmCatch(...FAKE_CRM[FAKE_CRM.length - 1]))
+
+  // Une seconde légendaire, celle-là laissée EN ATTENTE : sans elle, la démo ne permet pas
+  // d'ouvrir un pli légendaire, donc pas de juger la seule fanfare qui tape vraiment fort.
+  // Insérée en DERNIER, après toutes les autres : chaque `splice` en fin de tableau repousse
+  // ce qui précède, et une insertion trop tôt sortait de la file d'attente sans qu'on le voie.
+  // Sa date la place juste derrière le pli de la seconde source, qui garde la tête de file.
+  drawn.splice(-1, 0, ghCatch(
+    'ev1eg3ndary2000000000000000000000000000',
+    'moi/atlas', 227, 'feat: file d’attente prioritaire sur la synchro', '2026-07-15', 144, false,
+  ))
 
   return drawn
 }
 
 /**
- * Client en mémoire respectant l'interface commune des clients de données. Trois plis restent
- * à ouvrir, dont un venu de la seconde source.
+ * Client en mémoire respectant l'interface commune des clients de données. Quatre plis restent
+ * à ouvrir : un venu de la seconde source, un légendaire, et deux ordinaires.
  */
 export function loadDemoClient() {
   const catches = demoCatches()
   let state = {
-    claimed: catches.slice(0, -3).map((c) => entryKey(c.source, c.external_id)),
+    claimed: catches.slice(0, -4).map((c) => entryKey(c.source, c.external_id)),
     spent: {},
     evolutions: [],
   }

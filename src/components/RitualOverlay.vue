@@ -246,10 +246,13 @@ watch(stage, async (s) => {
     </template>
 
     <template v-else>
-      <div class="rays"></div>
       <div class="vignette"></div>
 
       <div class="reveal" :class="stage">
+        <!-- Les rayons appartiennent à la carte, pas à l'écran : centrés sur la fenêtre, leur
+             foyer tombait sous la carte, décalée vers le haut par le nom, les chips et le
+             bouton qui vivent en dessous. -->
+        <div class="rays"></div>
         <div v-if="loud" class="flash"></div>
         <span v-for="(r, i) in (loud ? fxRings : [])" :key="'r' + i" class="fx-ring" :style="r"></span>
         <div class="pkc-stage">

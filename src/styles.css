@@ -297,7 +297,7 @@
   .pkc.is-flipped{--pkc-flip:180deg}
   .pkc:focus-visible{outline:2px solid var(--stamp);outline-offset:4px}
   /* La perspective appartient au contenant : c'est lui qui décide de la profondeur de scène. */
-  .pkc-stage{perspective:900px}
+  .pkc-stage{position:relative;z-index:2;perspective:900px}
   .pkc-face{position:absolute;inset:0;overflow:hidden;display:flex;flex-direction:column;
     background:linear-gradient(168deg,var(--plate-hi),var(--plate) 40%,var(--paper-lo));
     border:1px solid var(--rule-hi);
@@ -524,7 +524,7 @@
   /* Un disque, masqué en ANNEAU : le masque d'avant partait du centre, donc effaçait les
      rayons là où la carte les rendrait justement visibles. */
   .rays{position:absolute;left:50%;top:50%;width:620px;height:620px;margin:-310px 0 0 -310px;
-    pointer-events:none;will-change:transform;opacity:0;
+    z-index:0;pointer-events:none;will-change:transform;opacity:0;
     background:repeating-conic-gradient(from 0deg, var(--ray) 0 var(--wedge), transparent var(--wedge) calc(var(--wedge) * 4));
     -webkit-mask-image:radial-gradient(circle,#000 30%,transparent 72%);
     mask-image:radial-gradient(circle,#000 30%,transparent 72%);

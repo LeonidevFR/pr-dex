@@ -376,11 +376,13 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
       setup: () => ({ col, entry, remaining }),
       template: `<RitualOverlay :entry="entry" :remaining="remaining" @claim="col.claim" />`,
     })
+    // Dérivé de la file réelle plutôt que codé en dur : la démo peut gagner ou perdre un pli
+    // sans que ce test, qui porte sur le décompte et non sur son contenu, ait à bouger.
+    const attendu = remaining.value - 1
     await reveler(w)
 
-    // 3 en attente au départ : celui-ci + 2 → le libellé doit annoncer 2
-    expect(w.find('.next-btn').text()).toContain('2 restants')
-    expect(col.dex.pending.value).toHaveLength(2)
+    expect(w.find('.next-btn').text()).toContain(`${attendu} restants`)
+    expect(col.dex.pending.value).toHaveLength(attendu)
   })
 
   // `claim` inscrit l'espèce au dex dès le sceau brisé : lue trop tard, la question
