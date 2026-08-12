@@ -89,7 +89,8 @@ describe('navigation au clavier', () => {
     press(' ')
     await flushPromises()
 
-    expect(w.find('.packet').exists()).toBe(true)
+    // Le rituel s'ouvre directement sur la carte, dos visible : il n'y a plus de pli scellé.
+    expect(w.find('.pkc').exists()).toBe(true)
   })
 
   /**

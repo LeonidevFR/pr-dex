@@ -69,12 +69,22 @@ se déduit pas du code :
   légendaire ne signifie plus rien. On ne monte pas le plancher, on monte le plafond. Un
   chromatique relève tout de même ce plancher au niveau du rare : il sort une fois sur cent
   vingt-huit quel que soit le palier.
-- **Le retournement appartient au joueur.** L'étape `silhouette` imposait 2,2 s (2,8 s en
-  légendaire) d'attente subie. La carte sort dos visible et attend ; l'automatique à quatre
-  secondes n'est qu'un filet, annoncé par une barre pour ne pas voler le geste.
-- **Les décors ne sont jamais aléatoires.** Dentelure de coupe et positions des étincelles
-  sont dérivées de l'index : deux ouvertures du même pli donnent le même bord, deux tirages
-  du même palier la même salve. Un décor qui varie cesse d'être un objet.
+- **La cérémonie tient en un geste, et le pli scellé a disparu.** Il y a d'abord eu une
+  ouverture de pli complète — sceau, entaille au trait de lumière, bandeau qui se soulève,
+  corps découpé qui tombe — puis un retournement automatique à quatre secondes annoncé par une
+  barre de décompte. Deux cérémonies pour une seule information, sur une scène qui se rejoue
+  quelques centaines de fois par an : à la troisième ouverture on attendait déjà que ça passe.
+  Le pli portait la PR, mais le dos de la carte la porte aussi et mieux — il reste avec elle.
+  Il ne reste donc que la carte, dos visible, et le geste de la retourner. Rien ne se
+  déclenche sans le joueur, y compris s'il ne fait rien pendant une heure.
+- **Les décors ne sont jamais aléatoires.** Les positions des étincelles sont dérivées de leur
+  index : deux tirages du même palier produisent la même salve. Un décor qui varie cesse
+  d'être un objet.
+- **Aucune animation n'est conditionnée à `prefers-reduced-motion`**, et ce n'est pas un
+  oubli. Plusieurs postes de l'équipe forcent ce réglage sans que personne l'ait demandé
+  (profil durci, préférence cachée) : s'y fier leur servait une application entièrement figée.
+  La décision remonte à `ac68ba4` et vaut pour tout le jeu, cérémonie d'évolution comprise.
+  Ce lot l'avait réintroduite par mégarde — voir plus bas.
 - **Le zoom du sprite a été conservé** sur la fiche, contre ce que prévoyait le plan
   d'implémentation : c'était une fonctionnalité complète, clavier compris, et l'échanger
   contre une carte plus petite aurait été un recul déguisé en refonte. La carte l'ouvre.
@@ -110,6 +120,13 @@ Chacun était invisible à une suite de tests verte :
   rotation, et `backface-visibility` ne les cache qu'à l'œil : un lecteur d'écran annonçait
   l'espèce avant le retournement. La révélation n'existait que pour les voyants. Corrigé par
   `aria-hidden` sur la face non tournée vers le joueur.
+- La carte et son rituel ont **réintroduit `prefers-reduced-motion`** partout — rayons,
+  étincelles, ondes, secousse, retournement, inclinaison, entaille, décompte — alors que
+  `ac68ba4` l'avait retiré trois semaines plus tôt, précisément parce que des postes le
+  forcent. Sur ces machines, l'entaille durait 0,01 s et la carte ne se retournait pas
+  visiblement : le correctif de juillet était annulé sans que rien ne le signale. Aucun test
+  ne pouvait l'attraper — une media query ne casse rien, elle éteint. Remonté par un
+  utilisateur qui a reconnu le symptôme d'un bug déjà corrigé.
 
 ## Manques connus, laissés volontairement
 
