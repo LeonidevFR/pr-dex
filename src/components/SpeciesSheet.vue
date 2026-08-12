@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
+import PokeCard from './PokeCard.vue'
 import SPECIES_INFO from '../../shared/species-info.json'
 
 const props = defineProps({
@@ -64,6 +65,19 @@ const caught = computed(() => (props.entries?.length ?? 0) > 0)
 const shiny = computed(() => props.entries?.some((e) => e.shiny) ?? false)
 // Rien à voir en grand sur une silhouette non capturée.
 const zoomed = ref(false)
+const zoomFlipped = ref(false)
+
+/**
+ * Le dos de la carte en grand porte la capture la plus récente. Une espèce peut avoir
+ * plusieurs exemplaires ; en montrer un seul est un choix assumé — le journal, juste en
+ * dessous, les liste tous. Une évolution n'a pas de PR d'origine, d'où le repli sur la
+ * capture la plus récente qui en soit une.
+ */
+const lastProvenance = computed(() => {
+  const captures = (props.entries ?? []).filter((e) => e.label)
+  const derniere = captures[captures.length - 1]
+  return derniere ? { ref: derniere.ref ?? null, label: derniere.label, date: derniere.date } : null
+})
 const targets = computed(() => {
   const to = species.value.to
   return to === null ? [] : Array.isArray(to) ? to : [to]
@@ -80,12 +94,16 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
     <div class="panel" :style="{ '--tier': TIER_VAR[species.tier] }">
       <div class="panel-top">
         <button class="x" @click="$emit('close')">✕</button>
-        <div
-          class="panel-art" :class="{ ghost: !caught, zoomable: caught }"
-          :tabindex="caught ? 0 : -1" :role="caught ? 'button' : null"
-          :aria-label="caught ? 'Voir le sprite en plus grand' : null"
-          @click="caught && (zoomed = true)" @keyup.enter="caught && (zoomed = true)"
-        >
+        <!-- Capturée, l'espèce se montre sous la forme où on l'a gagnée : sa carte, posée à
+             plat. Non capturée, elle reste la planche vide en dessin préparatoire — il n'y a
+             pas d'exemplaire, donc pas de carte. -->
+        <div v-if="caught" class="pkc-stage panel-card">
+          <PokeCard
+            :species-id="id" :tier="species.tier" :shiny="shiny" scene="day"
+            @activate="zoomed = true"
+          />
+        </div>
+        <div v-else class="panel-art ghost" :tabindex="-1">
           <img :src="spriteUrl(id, shiny)" :alt="species.name" @error="$event.target.dataset.broken = '1'">
         </div>
         <div>
@@ -268,9 +286,16 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
       </div>
     </div>
 
-    <div v-if="zoomed" class="zoom-scrim" @click="zoomed = false">
-      <div class="zoom-art" :style="{ '--tier': TIER_VAR[species.tier] }">
-        <img :src="spriteUrl(id, shiny)" :alt="species.name">
+    <!-- En grand, c'est la carte — pas le sprite seul. On y retrouve l'exemplaire tel qu'on
+         l'a gagné, dos compris : la provenance vient de la capture la plus récente. -->
+    <div v-if="zoomed" class="zoom-scrim" @click="zoomed = false; zoomFlipped = false">
+      <div class="pkc-stage zoom-card" @click.stop>
+        <PokeCard
+          :species-id="id" :tier="species.tier" :shiny="shiny" scene="day"
+          :provenance="lastProvenance" :flipped="zoomFlipped"
+          @activate="zoomFlipped = !zoomFlipped"
+        />
+        <span class="zoom-hint">{{ zoomFlipped ? 'Cliquer pour revenir à la face' : 'Cliquer pour voir le dos' }}</span>
       </div>
     </div>
   </div>

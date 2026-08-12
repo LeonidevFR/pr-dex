@@ -26,8 +26,10 @@ const PATHS = {
   settings: '<circle cx="12" cy="12" r="3"/>' +
             '<path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.2 2.2M16.9 16.9l2.2 2.2' +
             'M19.1 4.9l-2.2 2.2M7.1 16.9l-2.2 2.2"/>',
-  // Une flèche qui boucle : la synchronisation.
-  sync: '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>',
+  // Une flèche qui boucle : la synchronisation. Arc ouvert et pointe pleine — c'est le dessin
+  // retenu sur `main`, dont le tracé symétrique tourne mieux qu'une pointe en deux traits.
+  sync: '<path d="M19 12A7 7 0 1 1 12 5"/>'
+      + '<polygon points="12 1.5 12 8.5 16.5 5" fill="currentColor" stroke="none"/>',
   // L'entonnoir d'origine du rail, repris au trait près.
   filter: '<polygon points="3 4 21 4 14 12.5 14 20 10 20 10 12.5 3 4"/>',
   close: '<path d="M18 6 6 18M6 6l12 12"/>',

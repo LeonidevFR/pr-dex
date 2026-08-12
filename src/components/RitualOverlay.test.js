@@ -37,178 +37,203 @@ beforeEach(() => {
 })
 afterEach(() => vi.useRealTimers())
 
-describe('pli scellé', () => {
-  it('porte le libellé de la capture et la référence donnée par sa source', () => {
+// La cérémonie tient en un geste : la carte est là dès le montage, on la retourne.
+const retourner = async (w) => {
+  await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+  await w.vm.$nextTick()
+  return w
+}
+const reveler = retourner
+
+describe('la carte au repos', () => {
+  it('est là dès l’ouverture, dos visible, et ne divulgue rien', () => {
     const w = mountRitual()
-    expect(w.find('.pkt-title').text()).toBe('fix: race condition')
-    expect(w.find('.pkt-pr').text()).toContain('moi/atlas#142 · a3f8c21')
+    expect(w.findComponent({ name: 'PokeCard' }).props('flipped')).toBe(true)
+    expect(w.find('.reveal-name').exists()).toBe(false)
+    // La face avant est dans le DOM pour que le retournement soit une vraie rotation, mais
+    // masquée aux lecteurs d'écran : sinon la révélation ne vaudrait que pour les voyants.
+    expect(w.find('.pkc-front').attributes('aria-hidden')).toBe('true')
   })
 
-  // Une source peut n'avoir aucune référence courte à donner : le pli doit rester lisible.
-  it('se passe de la ligne de référence quand la source n’en fournit pas', () => {
-    const w = mountRitual({ entry: entryOf({ source: 'crm', ref: null }) })
-    expect(w.find('.pkt-pr').exists()).toBe(false)
-    expect(w.find('.pkt-title').text()).toBe('fix: race condition')
-  })
-
-  it('ne révèle rien avant d’être ouvert', () => {
+  // La provenance a quitté le pli scellé pour le dos de la carte, où elle reste avec elle.
+  it('porte au dos le libellé et la référence de la capture', () => {
     const w = mountRitual()
-    expect(w.find('.reveal').exists()).toBe(false)
-    expect(w.text()).not.toContain('Pikachu')
+    expect(w.find('.pkc-lab-title').text()).toBe('fix: race condition')
+    expect(w.find('.pkc-lab-ref').text()).toContain('moi/atlas#142 · a3f8c21')
   })
 
-  it('annonce le dernier pli', () => {
-    expect(mountRitual({ remaining: 1 }).find('.queue-note').text()).toBe('dernier pli')
-  })
-
-  it('annonce la file restante', () => {
-    expect(mountRitual({ remaining: 3 }).find('.queue-note').text()).toBe('3 plis en attente')
-  })
-
-  it('empile des plis fantômes selon la file', () => {
-    expect(mountRitual({ remaining: 1 }).findAll('.ghost-pkt')).toHaveLength(0)
-    expect(mountRitual({ remaining: 2 }).findAll('.ghost-pkt')).toHaveLength(1)
-    expect(mountRitual({ remaining: 3 }).findAll('.ghost-pkt')).toHaveLength(2)
+  it('invite à la retourner', () => {
+    expect(mountRitual().find('.reveal-hint').text()).toContain('Cliquer pour retourner')
   })
 })
 
-describe('ouverture', () => {
-  it('réclame la capture dès que le sceau est brisé', async () => {
+describe('retournement', () => {
+  it('inscrit la capture au retournement, pas avant', async () => {
     const w = mountRitual()
-    await w.find('.packet').trigger('click')
+    expect(w.emitted('claim')).toBeUndefined()
+
+    await retourner(w)
     expect(w.emitted('claim')[0]).toEqual(['github:a3f8c21e9b4d'])
   })
 
-  it('passe par la silhouette avant la révélation', async () => {
+  it('révèle l’espèce au clic sur la carte', async () => {
     const w = mountRitual()
-    await w.find('.packet').trigger('click')
-    expect(w.find('.reveal').classes()).toContain('silhouette')
-    expect(w.find('img').classes()).toContain('silh')
-    expect(w.find('.reveal-name').exists()).toBe(false)
+    await retourner(w)
+    expect(w.findComponent({ name: 'PokeCard' }).props('flipped')).toBe(false)
+    expect(w.find('.reveal-name').text()).toBe('Pikachu')
   })
 
-  it('révèle après le délai', async () => {
+  /**
+   * Rien ne se déclenche sans le joueur. Il y a eu ici un retournement automatique à quatre
+   * secondes, avec sa barre de décompte : un filet pour qui pose son téléphone. Retiré — la
+   * cérémonie tient en un geste, et un geste qui se fait tout seul n'en est plus un.
+   */
+  it('n’a plus rien d’automatique : elle attend indéfiniment', async () => {
     const w = mountRitual()
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
+    vi.advanceTimersByTime(60000)
     await w.vm.$nextTick()
-    expect(w.find('.reveal').classes()).toContain('revealed')
-    expect(w.find('.reveal-name').text()).toBe('Pikachu')
+
+    expect(w.find('.reveal-name').exists()).toBe(false)
+    expect(w.emitted('claim')).toBeUndefined()
+  })
+
+  it('ne se retourne qu’une fois', async () => {
+    const w = mountRitual()
+    await retourner(w)
+    await retourner(w)
+    expect(w.emitted('claim')).toHaveLength(1)
+    expect(w.findAll('.reveal-name')).toHaveLength(1)
+  })
+
+  it('retire l’invite une fois retournée', async () => {
+    const w = mountRitual()
+    await retourner(w)
+    expect(w.find('.reveal-hint').exists()).toBe(false)
+  })
+})
+
+/**
+ * Le défaut le plus vicieux de la première version : la scène prenait les couleurs du palier
+ * dès la déchirure. On lisait donc la réponse dans les rayons — et dans le fond, et dans le
+ * halo de la carte — avant même d'avoir retourné quoi que ce soit. Le geste ne servait plus
+ * à rien, et l'attente non plus.
+ */
+describe('la scène ne vend pas la mèche', () => {
+  const decorAvantRetournement = async (species) => {
+    const w = mountRitual({ entry: entryOf({ species }) })
+    const ritual = w.find('.ritual')
+    return { style: ritual.attributes('style'), classes: ritual.classes() }
+  }
+
+  it('affiche le même décor pour un commun et pour un légendaire, dos visible', async () => {
+    const commun = await decorAvantRetournement(19)
+    const legendaire = await decorAvantRetournement(144)
+
+    const decor = (s) => (s.match(/--ray[^;]*;|--wedge[^;]*;|--glow[^;]*;/g) ?? []).join('')
+    expect(decor(legendaire.style)).toBe(decor(commun.style))
+  })
+
+  it('ne marque pas la scène légendaire avant la révélation', async () => {
+    const legendaire = await decorAvantRetournement(144)
+    expect(legendaire.classes).not.toContain('leg')
+  })
+
+  it('ne prend les couleurs du palier qu’une fois la carte retournée', async () => {
+    const w = mountRitual({ entry: entryOf({ species: 144 }) })
+    const avant = w.find('.ritual').attributes('style')
+
+    await retourner(w)
+    const apres = w.find('.ritual').attributes('style')
+    expect(apres).not.toBe(avant)
+    expect(apres).toContain('--glow: 60px')
+    expect(w.find('.ritual').classes()).toContain('leg')
   })
 })
 
 describe('échelle d’intensité', () => {
-  it('affiche le nombre de rayons attendu par palier', async () => {
-    const layerCount = async (species) => {
+  // Mesuré APRÈS le retournement : avant, la scène est volontairement neutre.
+  const sceneDe = async (species) => {
+    const w = mountRitual({ entry: entryOf({ species }) })
+    await reveler(w)
+    return w.find('.ritual').attributes('style')
+  }
+
+  // Un disque unique, dont l'opacité — pas la vitesse — porte l'écart entre paliers.
+  it('n’a qu’un disque de rayons, quel que soit le palier', async () => {
+    for (const species of [19, 20, 1, 144]) {
       const w = mountRitual({ entry: entryOf({ species }) })
-      await w.find('.packet').trigger('click')
-      return w.findAll('.ray-layer').length
-    }
-    expect(await layerCount(19)).toBe(3)   // commun (Rattata)
-    expect(await layerCount(20)).toBe(4)   // peu commun (Rattatac)
-    expect(await layerCount(1)).toBe(5)    // rare (Bulbizarre)
-    expect(await layerCount(144)).toBe(6)  // légendaire (Artikodin)
-  })
-
-  it('garde la couleur unique du palier pour commun et peu commun', async () => {
-    const w = mountRitual({ entry: entryOf({ species: 20 }) }) // peu commun
-    await w.find('.packet').trigger('click')
-    const layers = w.findAll('.ray-layer')
-    expect(layers).toHaveLength(4)
-    for (const layer of layers) {
-      expect(layer.attributes('style')).toContain('--ray-color: var(--t-u)')
+      expect(w.findAll('.rays')).toHaveLength(1)
     }
   })
 
-  it('cycle sur la palette multicolore pour rare et légendaire', async () => {
-    const palette = ['#e63946', '#457b9d', '#f4d35e', '#5c7a52', '#9b5de5']
-    const w = mountRitual({ entry: entryOf({ species: 144 }) }) // légendaire, 6 couches
-    await w.find('.packet').trigger('click')
-    const layers = w.findAll('.ray-layer')
-    expect(layers).toHaveLength(6)
-    layers.forEach((layer, i) => {
-      expect(layer.attributes('style')).toContain(`--ray-color: ${palette[i % palette.length]}`)
-    })
+  it('monte l’opacité des rayons avec le palier', async () => {
+    const op = async (species) => Number(/--rayop:\s*([\d.]+)/.exec(await sceneDe(species))[1])
+    expect(await op(19)).toBeLessThan(await op(20))    // commun < peu commun
+    expect(await op(20)).toBeLessThan(await op(1))     // peu commun < rare
+    expect(await op(1)).toBeLessThan(await op(144))    // rare < légendaire
+  })
+
+  // Des rayons plus fins et plus nombreux en haut de l'échelle : c'est ce qui fait « gravure »
+  // plutôt que « gros disque ».
+  it('affine les rayons avec le palier', async () => {
+    const wedge = async (species) => Number(/--wedge:\s*([\d.]+)deg/.exec(await sceneDe(species))[1])
+    expect(await wedge(144)).toBeLessThan(await wedge(1))
+    expect(await wedge(1)).toBeLessThan(await wedge(19))
   })
 
   it('monte le halo avec le palier', async () => {
-    const glow = async (species) => {
-      const w = mountRitual({ entry: entryOf({ species }) })
-      await w.find('.packet').trigger('click')
-      return w.find('.ritual').attributes('style')
-    }
-    expect(await glow(19)).toContain('--glow: 8px')    // commun
-    expect(await glow(20)).toContain('--glow: 16px')   // peu commun
-    expect(await glow(1)).toContain('--glow: 38px')    // rare
-    expect(await glow(144)).toContain('--glow: 66px')  // légendaire
+    expect(await sceneDe(19)).toContain('--glow: 8px')    // commun
+    expect(await sceneDe(20)).toContain('--glow: 16px')   // peu commun
+    expect(await sceneDe(1)).toContain('--glow: 38px')    // rare
+    expect(await sceneDe(144)).toContain('--glow: 60px')  // légendaire
   })
 
-  it('marque la scène légendaire', async () => {
+  it('marque la scène légendaire une fois révélée', async () => {
     const w = mountRitual({ entry: entryOf({ species: 144 }) })
-    await w.find('.packet').trigger('click')
+    await reveler(w)
     expect(w.find('.ritual').classes()).toContain('leg')
-    vi.advanceTimersByTime(2800)
-    await w.vm.$nextTick()
     expect(w.find('.reveal-banner').text()).toContain('Légendaire')
   })
 
-  it('déclenche la salve de particules sur un rare ou un légendaire, même sans chromatique', async () => {
+  // La salve n'est plus un interrupteur « gros palier ou non » : elle est graduée. Le détail
+  // du barème est vérifié par la suite « fanfare » ; ici on tient juste l'ordre des paliers.
+  it('gradue la salve selon le palier au lieu de l’allumer d’un coup', async () => {
     const burst = async (species) => {
       const w = mountRitual({ entry: entryOf({ species }) })
-      await w.find('.packet').trigger('click')
-      vi.advanceTimersByTime(2800)
-      await w.vm.$nextTick()
-      return w.findAll('.spark').length
+      await reveler(w)
+      return w.findAll('.fx-spark').length
     }
-    expect(await burst(20)).toBe(0)   // peu commun : pas de salve
-    expect(await burst(1)).toBe(16)   // rare
-    expect(await burst(144)).toBe(16) // légendaire
-  })
-
-  it('garde une durée proche entre paliers — l’écart passe par l’intensité', async () => {
-    const w = mountRitual({ entry: entryOf({ species: 19 }) })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
-    expect(w.find('.reveal').classes()).toContain('revealed')
-
-    const l = mountRitual({ entry: entryOf({ species: 144 }) })
-    await l.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2800)
-    await l.vm.$nextTick()
-    expect(l.find('.reveal').classes()).toContain('revealed')
+    expect(await burst(19)).toBe(0)                            // commun : rien
+    expect(await burst(20)).toBeGreaterThan(0)                 // peu commun : un peu
+    expect(await burst(1)).toBeGreaterThan(await burst(20))    // rare : davantage
+    expect(await burst(144)).toBeGreaterThan(await burst(1))   // légendaire : le maximum
   })
 })
 
 describe('chromatique', () => {
-  it('teinte l’attente et fait scintiller la révélation', async () => {
+  it('marque la carte, et fait scintiller la révélation', async () => {
     const w = mountRitual({ entry: entryOf({ shiny: true }) })
-    await w.find('.packet').trigger('click')
-    expect(w.find('.dev-note').text()).toContain('scintille')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    // Le chromatique se voit sur la carte elle-même, dès qu'elle est là — plus besoin d'une
+    // ligne de texte pour teaser l'attente, puisqu'il n'y a plus d'attente subie.
+    expect(w.find('.pkc').classes()).toContain('is-shiny')
+
+    await retourner(w)
     expect(w.find('.reveal-banner').text()).toContain('Chromatique')
-    expect(w.findAll('.spark')).toHaveLength(16)
-    expect(w.find('img').attributes('src')).toContain('/shiny/')
+    // Pikachu est commun : sans traitement particulier, un chromatique commun serait muet.
+    // Il relève le plancher de la fanfare, sinon on tairait la seule chose rare du tirage.
+    expect(w.findAll('.fx-spark').length).toBeGreaterThan(0)
+    expect(w.find('.pkc-art img').attributes('src')).toContain('/shiny/')
   })
 
   it('prime le chromatique sur le légendaire dans le bandeau', async () => {
     const w = mountRitual({ entry: entryOf({ species: 144, shiny: true }) })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2800)
-    await w.vm.$nextTick()
+    await reveler(w)
     expect(w.find('.reveal-banner').text()).toContain('Chromatique')
   })
 })
 
 describe('espèce jamais rencontrée', () => {
-  const reveal = async (props) => {
-    const w = mountRitual(props)
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2800) // couvre aussi la tenue plus longue du légendaire
-    await w.vm.$nextTick()
-    return w
-  }
+  const reveal = async (props) => reveler(mountRitual(props))
 
   it('marque la révélation d’une espèce nouvelle', async () => {
     const w = await reveal({ isNew: true })
@@ -227,11 +252,10 @@ describe('espèce jamais rencontrée', () => {
     expect(w.find('.new-chip').exists()).toBe(false)
   })
 
-  it('ne divulgue rien avant la révélation — le pli scellé et la silhouette restent muets', async () => {
+  it('ne divulgue rien avant le retournement — le pli scellé et le dos restent muets', async () => {
     const w = mountRitual({ isNew: true })
     expect(w.text()).not.toContain('Nouveau')
-    await w.find('.packet').trigger('click')
-    expect(w.find('.reveal').classes()).toContain('silhouette')
+    expect(w.findComponent({ name: 'PokeCard' }).props('flipped')).toBe(true)
     expect(w.text()).not.toContain('Nouveau')
   })
 
@@ -246,35 +270,27 @@ describe('espèce jamais rencontrée', () => {
 describe('suite de la file', () => {
   it('propose le retour quand c’est le dernier', async () => {
     const w = mountRitual({ remaining: 1 })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     expect(w.find('.next-btn').text()).toBe('Retour à la planche')
     expect(w.findAll('button.queue-note')).toHaveLength(0)
   })
 
   it('décompte les plis restants après celui-ci', async () => {
     const w = mountRitual({ remaining: 3 })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     expect(w.find('.next-btn').text()).toContain('2 restants')
   })
 
   it('accorde le singulier à un seul pli restant', async () => {
     const w = mountRitual({ remaining: 2 })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     expect(w.find('.next-btn').text()).toContain('1 restant')
     expect(w.find('.next-btn').text()).not.toContain('restants')
   })
 
   it('émet next et skip-all', async () => {
     const w = mountRitual({ remaining: 3 })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     await w.find('.next-btn').trigger('click')
     expect(w.emitted('next')).toBeTruthy()
     await w.find('button.queue-note').trigger('click')
@@ -290,9 +306,7 @@ describe('fermeture anticipée', () => {
 
   it('permet de revenir à la planche pendant la révélation, sans avoir tout ouvert', async () => {
     const w = mountRitual({ remaining: 3 })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     await w.find('.ritual-close').trigger('click')
     expect(w.emitted('close')).toBeTruthy()
   })
@@ -318,13 +332,13 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
       setup: () => ({ col, entry, remaining }),
       template: `<RitualOverlay :entry="entry" :remaining="remaining" @claim="col.claim" />`,
     })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    // Dérivé de la file réelle plutôt que codé en dur : la démo peut gagner ou perdre un pli
+    // sans que ce test, qui porte sur le décompte et non sur son contenu, ait à bouger.
+    const attendu = remaining.value - 1
+    await reveler(w)
 
-    // 3 en attente au départ : celui-ci + 2 → le libellé doit annoncer 2
-    expect(w.find('.next-btn').text()).toContain('2 restants')
-    expect(col.dex.pending.value).toHaveLength(2)
+    expect(w.find('.next-btn').text()).toContain(`${attendu} restants`)
+    expect(col.dex.pending.value).toHaveLength(attendu)
   })
 
   // `claim` inscrit l'espèce au dex dès le sceau brisé : lue trop tard, la question
@@ -340,9 +354,7 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
       setup: () => ({ col, entry, isNew }),
       template: `<RitualOverlay :entry="entry" :remaining="1" :is-new="isNew" @claim="col.claim" />`,
     })
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
 
     expect(col.dex.isNewSpecies(25)).toBe(false) // le claim l'a déjà inscrite
     expect(w.find('.new-chip').exists()).toBe(true)
@@ -369,26 +381,52 @@ describe('focus clavier', () => {
 
   afterEach(() => { document.body.innerHTML = '' })
 
-  it('pose le focus sur le pli à l’ouverture', () => {
+  it('pose le focus sur la carte dès l’arrivée', () => {
     const w = mountAttached()
-    expect(document.activeElement).toBe(w.find('.packet').element)
+    expect(document.activeElement).toBe(w.find('.pkc').element)
   })
 
   it('pose le focus sur le bouton suivant une fois révélé', async () => {
     const w = mountAttached()
-    await w.find('.packet').trigger('click')
-    vi.advanceTimersByTime(2200)
-    await w.vm.$nextTick()
+    await reveler(w)
     await w.vm.$nextTick()
     expect(document.activeElement).toBe(w.find('.next-btn').element)
   })
 
-  // L'attente fait partie du rituel : rien à focaliser, donc Espace n'a rien à activer.
-  it('ne focalise rien pendant la silhouette', async () => {
+  /**
+   * Renversement par rapport à l'ancienne silhouette, qui ne focalisait rien parce qu'elle
+   * imposait une attente : la carte, elle, porte l'action. Sans focus, on réserverait le
+   * retournement à la souris.
+   */
+  it('pose le focus sur la carte, qui porte désormais l’action', async () => {
     const w = mountAttached()
-    await w.find('.packet').trigger('click')
     await w.vm.$nextTick()
-    expect(w.find('.reveal').classes()).toContain('silhouette')
-    expect(document.activeElement).toBe(document.body)
+    expect(document.activeElement).toBe(w.find('.pkc').element)
+  })
+
+  /**
+   * Tout le rituel doit se jouer à la barre d'espace, du premier pli au dernier. Le pli est un
+   * vrai `<button>`, donc Espace l'ouvre nativement ; la carte est un `div` focalisable où il
+   * ne se passait rien. Sans ce test, on ouvre au clavier mais on retourne à la souris.
+   */
+  it('se joue entièrement à la barre d’espace', async () => {
+    const w = mountAttached()
+    expect(document.activeElement).toBe(w.find('.pkc').element)
+
+    await w.find('.pkc').trigger('keyup.space')
+    expect(w.find('.reveal-name').exists()).toBe(true)
+  })
+})
+
+describe('vitesse des rayons', () => {
+  // Un rare tournait en 3,2 s et un légendaire en 1,8 s : c'est stroboscopique, et le rituel se
+  // rejoue quelques centaines de fois par an sans qu'on puisse le désactiver. L'intensité passe
+  // par l'opacité, le nombre de couches et le halo — jamais par la vitesse.
+  it('ne descend jamais sous dix secondes par tour, quel que soit le palier', async () => {
+    for (const species of [16, 25, 6, 151]) {
+      const w = mountRitual({ entry: entryOf({ species }) })
+      const secondes = Number(/--rayspeed:\s*([\d.]+)s/.exec(w.find('.ritual').attributes('style'))[1])
+      expect(secondes).toBeGreaterThanOrEqual(10)
+    }
   })
 })
