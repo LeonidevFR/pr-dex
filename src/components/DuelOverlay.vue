@@ -1,10 +1,10 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import PokeCard from './PokeCard.vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { FORMS, TIER_POWER, levelFactor } from '../../shared/battle.js'
 import { REWARD, COMPUTER_REWARD } from '../../shared/arena-economy.js'
 import { STATS } from '../../shared/species-stats.js'
-import { spriteUrl } from '../lib/sprites.js'
 
 const props = defineProps({
   duel: { type: Object, required: true },
@@ -13,12 +13,31 @@ const props = defineProps({
 defineEmits(['close'])
 
 /**
- * Deux temps, et le second ne vient qu'après le premier : on regarde les deux Pokémon avant de
- * savoir lequel tombe. Sans cette pause, la révélation et le verdict arrivent ensemble et le
- * duel n'a jamais eu lieu — il s'est juste affiché.
+ * La cérémonie, en quatre temps dans les mêmes 2,2 s qu'occupaient trois points clignotants.
+ *
+ * Ce n'est pas une décoration ajoutée : c'est le seul endroit de l'application où un exemplaire
+ * cesse d'exister, et il avait moins d'égards qu'un pli commun qu'on ouvre. Le rituel a sa
+ * carte, ses rayons et son blanchiment ; le duel n'avait qu'un verdict qui grossissait de 18 %.
+ *
+ *   scellé  → les deux mises sont des cartes face cachée, dont le cachet respire
+ *   révélé  → elles se retournent EN MÊME TEMPS : c'est la règle du jeu, elle se voit
+ *   mesuré  → la balance s'ouvre, chacun voit ce qu'il pesait
+ *   verdict → éclat, le perdant s'éteint, le vainqueur s'auréole
+ *
+ * Les durées sont celles du rituel — retournement 0,62 s, éclat 0,62 s — pour que deux
+ * cérémonies de la même application battent au même rythme.
  */
-const stage = ref('face')
-onMounted(() => setTimeout(() => { stage.value = 'verdict' }, 2200))
+const ETAPES = [['revele', 850], ['mesure', 1700], ['verdict', 2200]]
+const stage = ref('scelle')
+const minuteries = []
+onMounted(() => {
+  for (const [etat, quand] of ETAPES) minuteries.push(setTimeout(() => { stage.value = etat }, quand))
+})
+onUnmounted(() => minuteries.forEach(clearTimeout))
+
+/** Vrai dès que les cartes sont retournées : tout ce qui suit s'empile sans jamais revenir en arrière. */
+const apres = (etat) => ['scelle', 'revele', 'mesure', 'verdict'].indexOf(stage.value)
+  >= ['scelle', 'revele', 'mesure', 'verdict'].indexOf(etat)
 
 /** Je suis le challengeur ou le preneur : tout l'affichage se lit depuis ce côté-là. */
 const iAmChallenger = computed(() => props.duel.challenger_id === props.userId)
@@ -56,6 +75,16 @@ const reward = computed(() => {
   return { dollars: REWARD[t].dollars, points: REWARD[t].points, pack: true }
 })
 
+/**
+ * La part de chacun dans la balance. Ce n'est pas la probabilité — celle-ci est déjà dite en
+ * pourcentage juste à côté — mais le rapport brut des puissances : deux informations
+ * différentes, l'écart de force et la chance qu'il laisse.
+ */
+const partMienne = computed(() => {
+  const total = mine.value.power + theirs.value.power
+  return total ? Math.round((mine.value.power / total) * 100) : 50
+})
+
 const tierOf = (species) => DEX[species]?.tier ?? 'c'
 const nameOf = (species) => DEX[species]?.name ?? '—'
 const formName = (i) => FORMS[i]?.name ?? '—'
@@ -86,20 +115,66 @@ const breakdown = (s) => [
         </div>
       </div>
 
-      <div class="sect">
-        <div class="arena-vs">
-          <div class="arena-mon" :class="{ lost: stage === 'verdict' && !iWon }">
-            <img :src="spriteUrl(mine.species)" :alt="nameOf(mine.species)">
-            <span class="line-name">{{ nameOf(mine.species) }}</span>
-            <span class="mono muted">niv. {{ mine.level }}</span>
-          </div>
-          <span class="arena-vs-mark">VS</span>
-          <div class="arena-mon" :class="{ lost: stage === 'verdict' && iWon }">
-            <img :src="spriteUrl(theirs.species)" :alt="nameOf(theirs.species)">
-            <span class="line-name">{{ nameOf(theirs.species) }}</span>
-            <span class="mono muted">niv. {{ theirs.level }}</span>
+      <!--
+        La scène. Elle occupe la largeur du panneau et bascule dans la nuit : une cérémonie
+        éteint la salle, comme celle du rituel. Le reste du panneau reste le carnet.
+      -->
+      <div class="duel-scene" :data-etat="stage" :style="{ '--t': TIER_VAR[duel.stake_tier] }">
+        <div class="duel-eclat" aria-hidden="true"></div>
+
+        <div class="duel-camps">
+          <div
+            v-for="camp in [
+              { cle: 'moi', mon: mine, qui: 'ta mise', gagne: iWon },
+              { cle: 'lui', mon: theirs, qui: versusComputer ? 'l’ordinateur' : 'sa mise', gagne: !iWon },
+            ]"
+            :key="camp.cle" class="duel-camp"
+            :class="{
+              gagne: stage === 'verdict' && camp.gagne,
+              perd: stage === 'verdict' && !camp.gagne,
+              rien: stage === 'verdict' && versusComputer && !camp.gagne && camp.cle === 'lui',
+            }"
+          >
+            <div class="duel-slot">
+              <div class="duel-flip" :class="{ dos: !apres('revele') }">
+                <!-- Le dos : le cachet de cire du palier de la mise, qui respire tant qu'il tient. -->
+                <div class="duel-dos"><span class="duel-cire">PR</span></div>
+                <div class="duel-front" :aria-hidden="apres('revele') ? null : 'true'">
+                  <PokeCard
+                    :species-id="camp.mon.species" :tier="tierOf(camp.mon.species)"
+                    scene="night" :tiltable="false"
+                  />
+                </div>
+              </div>
+              <span v-for="i in 7" :key="'c' + i" class="duel-cendre" :style="`--i:${i}`"></span>
+            </div>
+            <div class="duel-nom">
+              <b>{{ apres('revele') ? nameOf(camp.mon.species) : '—' }}</b>
+              <span v-if="apres('revele')" class="mono">niv. {{ camp.mon.level }}</span>
+              <span v-else class="mono">{{ camp.qui }} · scellée</span>
+            </div>
           </div>
         </div>
+
+        <!-- La balance : l'écart de force d'un côté, la chance qu'il laisse de l'autre. -->
+        <div class="duel-balance" :class="{ vu: apres('mesure') }">
+          <div class="duel-piste">
+            <i class="moi" :style="{ width: partMienne + '%' }"></i>
+            <i class="lui" :style="{ width: (100 - partMienne) + '%' }"></i>
+          </div>
+          <div class="duel-cotes mono">
+            <span>{{ Math.round(mine.power) }}</span>
+            <span class="duel-chances">{{ myOdds }} % de chances</span>
+            <span>{{ Math.round(theirs.power) }}</span>
+          </div>
+        </div>
+
+        <p class="duel-annonce" :class="{ vif: stage === 'verdict' }">
+          <template v-if="stage === 'scelle'">Les deux mises sont scellées</template>
+          <template v-else-if="stage === 'revele'">Révélation simultanée</template>
+          <template v-else-if="stage === 'mesure'">On mesure</template>
+          <template v-else>{{ iWon ? 'Tu l’emportes' : 'Tu perds' }}</template>
+        </p>
       </div>
 
       <template v-if="stage === 'verdict'">

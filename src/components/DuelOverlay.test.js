@@ -38,8 +38,25 @@ const revele = async (w) => {
 }
 
 describe('DuelOverlay', () => {
-  it('montre les deux Pokémon face à face dès l’ouverture', () => {
+  /**
+   * Les deux mises sont scellées jusqu'à la révélation, et le scellé n'est pas qu'un dessin :
+   * `backface-visibility` ne cache qu'à l'œil. Sans `aria-hidden`, un lecteur d'écran
+   * annoncerait les deux espèces avant le retournement.
+   */
+  it('tient les deux mises scellées à l’ouverture', () => {
     const w = monter()
+    expect(w.findAll('.duel-flip.dos')).toHaveLength(2)
+    // C'est bien `aria-hidden` qu'on vérifie, et pas l'absence du texte : les deux faces
+    // doivent coexister dans le DOM pour que le retournement soit une vraie rotation. Ce qui
+    // compte est qu'elles soient hors de l'arbre d'accessibilité tant que le sceau tient.
+    expect(w.findAll('.duel-front[aria-hidden="true"]')).toHaveLength(2)
+  })
+
+  // Elles se retournent ensemble : personne n'ajuste sa mise en voyant celle de l'autre, et
+  // c'est la règle centrale du jeu — l'animation la dit sans une ligne de texte.
+  it('retourne les deux mises en même temps', async () => {
+    const w = await revele(monter())
+    expect(w.findAll('.duel-flip.dos')).toHaveLength(0)
     expect(w.text()).toContain('Dracaufeu')
     expect(w.text()).toContain('Tortank')
   })
@@ -116,7 +133,7 @@ describe('DuelOverlay', () => {
 
   it('montre son propre Pokémon en premier, quel que soit le côté', async () => {
     const w = await revele(monter({}, LUI))
-    const noms = w.findAll('.arena-mon .line-name').map((n) => n.text())
+    const noms = w.findAll('.duel-nom b').map((n) => n.text())
     expect(noms).toEqual(['Tortank', 'Dracaufeu'])
   })
 
@@ -144,5 +161,34 @@ describe('DuelOverlay', () => {
   it('rappelle qu’aucun duel n’est gagné d’avance', async () => {
     const w = await revele(monter())
     expect(w.text()).toContain('une chance sur vingt')
+  })
+
+  /**
+   * Le perdant s'éteint — il ne se sépie pas. C'est le seul endroit de l'application où
+   * quelque chose cesse d'exister, et la classe qui porte cette extinction doit tomber sur le
+   * bon camp, quel que soit le côté d'où l'on regarde.
+   */
+  it('éteint la carte du perdant, et auréole celle du vainqueur', async () => {
+    const w = await revele(monter({ winner_id: LUI }))
+    const camps = w.findAll('.duel-camp')
+    expect(camps[0].classes()).toContain('perd')
+    expect(camps[1].classes()).toContain('gagne')
+  })
+
+  // L'ordinateur ne possède rien : il perd le combat, pas un exemplaire. Le brûler raconterait
+  // une destruction qui n'a pas lieu.
+  it('efface l’ordinateur battu sans le brûler', async () => {
+    const w = await revele(monter({ status: 'computer', winner_id: MOI }))
+    const lui = w.findAll('.duel-camp')[1]
+    expect(lui.classes()).toContain('rien')
+  })
+
+  // La balance ne s'ouvre qu'au temps de la mesure : tout donner d'un coup annulerait la
+  // progression que la cérémonie installe.
+  it('n’ouvre la balance qu’une fois les cartes retournées', async () => {
+    const w = monter()
+    expect(w.find('.duel-balance').classes()).not.toContain('vu')
+    const vu = await revele(w)
+    expect(vu.find('.duel-balance').classes()).toContain('vu')
   })
 })
