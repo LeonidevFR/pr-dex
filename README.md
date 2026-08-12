@@ -11,8 +11,8 @@ quoi ce ne serait plus un jeu commun mais plusieurs jeux qui partagent une planc
 
 ## L'ouverture
 
-On entaille le haut du pli, il cède, et une **carte** en sort — dos visible. On la retourne
-quand on veut ; si on ne fait rien, elle se retourne seule au bout de quatre secondes.
+Une **carte**, dos visible. On la retourne. C'est tout — rien ne se déclenche sans le joueur,
+il n'y a ni sceau à briser ni minuteur qui court.
 
 La carte est un objet, pas une vignette. Son carton dit la rareté : papier pâle en commun,
 trame pointillée en peu commun, carton teinté ocre en rare, carton profond guilloché en
@@ -29,8 +29,10 @@ La même carte se retrouve sur la fiche de l'espèce, à plat et en lumière du 
 même objet — une carte qui changerait d'identité entre l'écran où on la gagne et celui où on
 la retrouve ne se posséderait pas.
 
-Tout ce qui bouge respecte `prefers-reduced-motion` : étincelles, ondes et secousse d'écran
-disparaissent, l'entaille et le retournement deviennent instantanés.
+Rien n'est conditionné à `prefers-reduced-motion`, et c'est délibéré : plusieurs postes de
+l'équipe forcent ce réglage sans que personne l'ait demandé — profil durci, préférence
+cachée — et s'y fier revenait à leur servir une application sans aucune animation. La
+décision remonte à `ac68ba4` et vaut pour tout le jeu.
 
 Aucun serveur applicatif : le jeu s'appuie sur l'API GitHub et sur Supabase (Postgres +
 Auth + une fonction Edge pour le bouton de sync), en base de données et fournisseur de
