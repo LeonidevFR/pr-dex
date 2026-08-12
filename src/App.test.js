@@ -182,3 +182,55 @@ describe('achat en boutique', () => {
     expect(w.findAll('.panel-plate').some((p) => p.text() === 'BOUTIQUE')).toBe(false)
   })
 })
+
+/**
+ * Les lieux ont désormais une adresse. Ce qui se teste ici n'est pas le routeur — il a ses
+ * propres tests — mais le fait que l'écran et l'URL ne puissent plus diverger : c'est la
+ * divergence qui produisait une couche ouverte après un retour navigateur, et un lien partagé
+ * qui ne menait nulle part.
+ */
+describe('les lieux ont une URL', () => {
+  const chemin = () => location.pathname
+
+  it('écrit l’adresse de l’arène en y entrant, et revient à la planche en sortant', async () => {
+    const w = await mountApp()
+    await w.findAll('.gear').find((b) => b.attributes('title') === 'Arène').trigger('click')
+    await flushPromises()
+    expect(chemin()).toBe('/arena')
+
+    await w.find('.panel .x').trigger('click')
+    await flushPromises()
+    expect(chemin()).toBe('/')
+    expect(w.find('.panel-plate').exists()).toBe(false)
+  })
+
+  it('donne son adresse à la fiche d’une espèce', async () => {
+    const w = await mountApp()
+    await cellOf(w, CHENIPAN).trigger('click')
+    await flushPromises()
+    expect(chemin()).toBe('/collection/010')
+  })
+
+  /**
+   * Le geste que tout le monde fait sur téléphone. Avant, il quittait l'application : la fiche
+   * n'ayant pas d'adresse, le navigateur n'avait rien à défaire.
+   */
+  it('referme la fiche au retour du navigateur, sans quitter l’application', async () => {
+    const w = await mountApp()
+    await cellOf(w, CHENIPAN).trigger('click')
+    await flushPromises()
+    expect(w.find('.panel-name').exists()).toBe(true)
+
+    window.history.replaceState({}, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    await flushPromises()
+    expect(w.find('.panel-name').exists()).toBe(false)
+  })
+
+  // Le cas du lien partagé, et celui du rechargement : l'écran doit se reconstituer seul.
+  it('ouvre directement le bon écran depuis l’adresse', async () => {
+    window.history.replaceState({}, '', '/shop?demo')
+    const w = await mountApp()
+    expect(w.findAll('.panel-plate').some((p) => p.text() === 'BOUTIQUE')).toBe(true)
+  })
+})

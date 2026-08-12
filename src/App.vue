@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import TheRail from './components/TheRail.vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
@@ -15,6 +15,7 @@ import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
 import { entryKey } from '../shared/entry.js'
+import { createRouter } from './composables/useRoute.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
@@ -25,14 +26,27 @@ const connectError = ref(null)
 const connecting = ref(false)
 const githubLogin = ref('')
 
-const selected = ref(null)
+const router = createRouter()
+const { route } = router
+onUnmounted(router.stop)
+
+/**
+ * L'écran courant se LIT dans l'URL, il ne s'écrit pas à côté. Trois refs (`selected`,
+ * `arenaOpen`, `shopOpen`) disaient auparavant la même chose que l'adresse : deux sources de
+ * vérité pour « où suis-je » finissent toujours par diverger — un retour navigateur laissait
+ * une couche ouverte, un lien partagé ne menait nulle part.
+ *
+ * Les couches qui n'ont pas de lieu (rituel, évolution, résumé de duel, réglages) gardent leur
+ * ref : un pli qu'on rouvrirait en collant un lien n'aurait aucun sens.
+ */
+const selected = computed(() => (route.value.name === 'collection' ? route.value.param : null))
+const arenaOpen = computed(() => route.value.name === 'arena')
+const shopOpen = computed(() => route.value.name === 'shop')
 const ritualEntry = ref(null)
 const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
-const arenaOpen = ref(false)
-const shopOpen = ref(false)
 const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
 const gen = ref(1)
@@ -88,9 +102,9 @@ async function playArena(fn) {
     // rappelé, plutôt qu'un résumé de combat qui n'a pas eu lieu.
     if (duel) {
       duelShown.value = duel
-      arenaOpen.value = false
+      router.go('collection')
     } else {
-      arenaOpen.value = true
+      router.go('arena')
     }
     await collection.refresh()
   } catch (e) {
@@ -112,9 +126,13 @@ const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComput
  * bouton à offrir puisque tout était déjà joué.
  */
 function onEngageFromSheet(key) {
-  selected.value = null
   arenaPreselect.value = key
-  arenaOpen.value = true
+  router.go('arena')
+}
+
+function quitterArene() {
+  arenaPreselect.value = null
+  router.go('collection')
 }
 const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
 
@@ -135,7 +153,7 @@ async function onBuy(slug) {
     const id = await arena.buy(slug)
     await collection.refresh()
     const achete = collection.dex.pending.value.find((e) => e.key === entryKey('boutique', id))
-    if (achete) { shopOpen.value = false; showPacket(achete) }
+    if (achete) { router.go('collection'); showPacket(achete) }
   } catch (e) {
     connectError.value = e.kind ?? 'server'
   } finally {
@@ -205,7 +223,7 @@ async function onEvolve({ from, to, key }) {
   // toujours déjà rencontrée. Les bonbons suivent la règle inverse et se lisent au rendu,
   // après la dépense — d'où leur absence de cet instantané.
   const isNew = collection.dex.isNewSpecies(to)
-  selected.value = null
+  router.go('collection')
   const written = await collection.evolve(from, to, key, new Date().toISOString().slice(0, 10))
   // L'écriture a échoué, ou n'a rien eu à faire (exemplaire déjà consommé ailleurs,
   // bonbons insuffisants sur l'état frais) : pas de cérémonie pour une évolution qui n'a pas eu lieu.
@@ -214,7 +232,9 @@ async function onEvolve({ from, to, key }) {
 }
 
 function finishEvo() {
-  selected.value = evoAnim.value.to
+  // La cérémonie finie, on rouvre la fiche de la forme OBTENUE : c'est elle qu'on veut lire,
+  // et l'URL doit la désigner pour que le retour navigateur ramène à la planche.
+  router.go('collection', evoAnim.value.to)
   evoAnim.value = null
 }
 
@@ -229,7 +249,7 @@ function closeTopOverlay() {
   if (evoAnim.value) finishEvo()
   else if (ritualEntry.value) ritualEntry.value = null
   else if (settingsOpen.value) settingsOpen.value = false
-  else if (selected.value) selected.value = null
+  else if (selected.value) router.go('collection')
   else return
 
   // La fiche et les réglages n'ont pas de discipline de focus : leur déclencheur (la case de la
@@ -264,14 +284,14 @@ useKeyboardNav({
       :syncing="collection.loading.value" :sync-error="collection.error.value"
       :filters-open="filters.open.value" :filters-active="filters.active.value"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
-      @arena="arenaOpen = true" @shop="shopOpen = true"
+      @arena="router.go('arena')" @shop="router.go('shop')"
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
       :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
       :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
       :caught-filter="filters.caughtFilter.value" :gen="gen"
-      @select="(id) => (selected = id)"
+      @select="(id) => router.go('collection', id)"
       @toggle-tier="filters.toggleTier" @set-caught-filter="filters.setCaughtFilter" @reset-filters="filters.reset"
       @set-gen="gen = $event"
     />
@@ -288,7 +308,7 @@ useKeyboardNav({
         :caught-ids="caughtIds"
         :arena-credits="arena ? arena.credits.value : 0"
         :arena-level-of="arena ? arena.levelOf : () => 1"
-        @close="selected = null" @evolve="onEvolve" @engage="onEngageFromSheet"
+        @close="router.go('collection')" @evolve="onEvolve" @engage="onEngageFromSheet"
       />
     </transition>
 
@@ -317,7 +337,7 @@ useKeyboardNav({
         :form-of-key="arena.formOfKey" :busy="arenaBusy"
         :preselect="arenaPreselect" :leaderboard="arena.leaderboard.value"
         :seasons="arena.seasons.value" :season="arena.season.value" :user-id="userId"
-        @close="arenaOpen = false; arenaPreselect = null" @engage="onEngage" @accept="onAccept"
+        @close="quitterArene" @engage="onEngage" @accept="onAccept"
       />
     </transition>
 
@@ -325,7 +345,7 @@ useKeyboardNav({
       <ShopPanel
         v-if="shopOpen && arena"
         :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
-        @close="shopOpen = false" @buy="onBuy"
+        @close="router.go('collection')" @buy="onBuy"
       />
     </transition>
 
