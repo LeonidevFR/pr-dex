@@ -50,6 +50,35 @@ cérémonie » qui apparaît à partir du deuxième paquet.
   booléen par entrée et poussait les évolutions dans le même tableau ; le contrat réel
   dérive les deux depuis `state.json`.
 
+## Décisions de la carte et de son rituel
+
+Voir `docs/superpowers/specs/2026-08-11-carte-rituel-design.md` pour le détail. Ce qui ne
+se déduit pas du code :
+
+- **Une seule matière, deux éclairages.** La tentation était de faire une carte
+  spectaculaire au tirage (laqué noir, foil irisé) et une carte sobre dans la fiche. Refusé :
+  une carte qui change d'identité entre l'écran où on la gagne et celui où on la retrouve ne
+  se possède pas. Seule la `scene` change — nuit sous les rayons, jour sur le bureau.
+- **La rareté se lit dans le carton, pas dans un décor.** Quatre traitements distincts —
+  papier pâle, trame pointillée, carton teinté ocre, carton profond guilloché. Le rare est
+  passé par des hachures, un cartouche gravé et une bordure imprimée avant d'arriver là : la
+  seule version qui se reconnaît à la vignette est celle où c'est la *teinte du carton* qui
+  change, sans motif ajouté.
+- **La fanfare est muette en commun, et c'est le sujet.** Ces plis s'ouvrent quelques
+  centaines de fois par an sans qu'on puisse les sauter. Si chacun explose, l'explosion du
+  légendaire ne signifie plus rien. On ne monte pas le plancher, on monte le plafond. Un
+  chromatique relève tout de même ce plancher au niveau du rare : il sort une fois sur cent
+  vingt-huit quel que soit le palier.
+- **Le retournement appartient au joueur.** L'étape `silhouette` imposait 2,2 s (2,8 s en
+  légendaire) d'attente subie. La carte sort dos visible et attend ; l'automatique à quatre
+  secondes n'est qu'un filet, annoncé par une barre pour ne pas voler le geste.
+- **Les décors ne sont jamais aléatoires.** Dentelure de coupe et positions des étincelles
+  sont dérivées de l'index : deux ouvertures du même pli donnent le même bord, deux tirages
+  du même palier la même salve. Un décor qui varie cesse d'être un objet.
+- **Le zoom du sprite a été conservé** sur la fiche, contre ce que prévoyait le plan
+  d'implémentation : c'était une fonctionnalité complète, clavier compris, et l'échanger
+  contre une carte plus petite aurait été un recul déguisé en refonte. La carte l'ouvre.
+
 ## Bugs trouvés en implémentation, non anticipés par les specs
 
 Chacun était invisible à une suite de tests verte :
@@ -73,6 +102,14 @@ Chacun était invisible à une suite de tests verte :
 - Le « Suivant · N restants » du rituel était décalé d'un cran, parce que `remaining`
   était lié en direct à `pending.length` alors que `claim` retire le paquet en cours
   de cette liste en cours d'affichage.
+- Les rayons du rituel tournaient en 3,2 s pour un rare et **1,8 s** pour un légendaire.
+  Sur la seule scène du jeu qu'on ne peut ni sauter ni désactiver, ça ne lisait plus « ça
+  rayonne » mais « ça stroboscope ». Trouvé en relisant `INTENSITY` pour la carte, jamais
+  remonté par personne — un défaut d'accessibilité ne casse aucun test.
+- Les deux faces de la carte coexistent dans le DOM pour que le retournement soit une vraie
+  rotation, et `backface-visibility` ne les cache qu'à l'œil : un lecteur d'écran annonçait
+  l'espèce avant le retournement. La révélation n'existait que pour les voyants. Corrigé par
+  `aria-hidden` sur la face non tournée vers le joueur.
 
 ## Manques connus, laissés volontairement
 

@@ -36,30 +36,73 @@ describe('espèce non capturée', () => {
   })
 })
 
-describe('zoom du sprite', () => {
-  it('n’a rien à zoomer sur une silhouette non capturée', () => {
-    const w = mountSheet({ id: 4 })
-    expect(w.find('.panel-art').classes()).not.toContain('zoomable')
+describe('la carte de la fiche', () => {
+  // La carte gagnée au tirage est celle qu'on retrouve ici : même composant, même matière.
+  // Seule la scène change — le tiroir est en lumière du jour, pas sous les projecteurs.
+  it('montre la même carte que le rituel, en lumière du jour', () => {
+    const w = mountSheet({ id: 6, entries: [capture('a', 6)] })
+    const carte = w.findComponent({ name: 'PokeCard' })
+    expect(carte.props('scene')).toBe('day')
+    expect(carte.props('tier')).toBe(DEX[6].tier)
+    // On consulte une espèce, pas un exemplaire daté : pas de dos, donc pas de provenance.
+    expect(carte.props('provenance')).toBeNull()
   })
 
-  it('ouvre le sprite en grand au clic, sur une espèce capturée', async () => {
+  it('porte le chromatique sur la carte', () => {
+    const w = mountSheet({ id: 25, entries: [capture('a', 25, { shiny: true })] })
+    expect(w.findComponent({ name: 'PokeCard' }).props('shiny')).toBe(true)
+  })
+})
+
+describe('la carte en grand', () => {
+  it('n’a rien à agrandir sur une silhouette non capturée', () => {
+    const w = mountSheet({ id: 4 })
+    expect(w.findComponent({ name: 'PokeCard' }).exists()).toBe(false)
+    expect(w.find('.panel-art').classes()).toContain('ghost')
+  })
+
+  it('ouvre la carte en grand quand on active celle de la fiche', async () => {
     const w = mountSheet({ id: 25, entries: [capture('a', 25)] })
     expect(w.find('.zoom-scrim').exists()).toBe(false)
-    await w.find('.panel-art').trigger('click')
-    expect(w.find('.zoom-scrim').exists()).toBe(true)
-    expect(w.find('.zoom-art img').attributes('src')).toContain('/25.png')
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+    expect(w.find('.zoom-card').exists()).toBe(true)
+  })
+
+  // C'est bien la carte qu'on agrandit, dos compris — pas le sprite dans un cadre.
+  it('donne un dos à la carte agrandie, avec la provenance de la dernière capture', async () => {
+    const w = mountSheet({
+      id: 25,
+      entries: [capture('a', 25), capture('b', 25, { label: 'feat: dernière', date: '2026-03-09' })],
+    })
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+    const grande = w.findAll('.zoom-card')[0].findComponent({ name: 'PokeCard' })
+    expect(grande.props('provenance')).toMatchObject({ label: 'feat: dernière', date: '2026-03-09' })
+  })
+
+  it('se retourne au clic, et revient', async () => {
+    const w = mountSheet({ id: 25, entries: [capture('a', 25)] })
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+    const grande = () => w.findAll('.zoom-card')[0].findComponent({ name: 'PokeCard' })
+    expect(grande().props('flipped')).toBe(false)
+
+    await grande().vm.$emit('activate')
+    expect(grande().props('flipped')).toBe(true)
+
+    await grande().vm.$emit('activate')
+    expect(grande().props('flipped')).toBe(false)
   })
 
   it('se referme au clic sur le fond', async () => {
     const w = mountSheet({ id: 25, entries: [capture('a', 25)] })
-    await w.find('.panel-art').trigger('click')
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
     await w.find('.zoom-scrim').trigger('click')
     expect(w.find('.zoom-scrim').exists()).toBe(false)
   })
 
-  it('respecte le clavier (entrée) autant que le clic', async () => {
+  // La carte porte déjà `tabindex` et Entrée : le clavier passe par le même chemin que le clic.
+  it('respecte le clavier autant que le clic', async () => {
     const w = mountSheet({ id: 25, entries: [capture('a', 25)] })
-    await w.find('.panel-art').trigger('keyup.enter')
+    await w.find('.pkc').trigger('keyup.enter')
     expect(w.find('.zoom-scrim').exists()).toBe(true)
   })
 })
