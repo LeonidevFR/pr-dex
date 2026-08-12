@@ -646,3 +646,39 @@ instant dans une équipe de cinq.
 **Un léger bonus de points à celui qui poste**, pour compenser le fait que celui qui
 relève voit le pseudo alors que le poste ignore qui viendra. Réglage tenu en réserve,
 pas une règle.
+
+## 10 · Le rappel — reporté à la 1.1, et pourquoi
+
+**Le constat qui l'a fait naître.** La ressource rare n'est pas le Pokémon, c'est le quota :
+un engagement par jour, cinq au plus. On cherche donc du rendement **par duel**, et là le
+légendaire écrase tout — 47,5 ₽ contre 25 ₽ pour un commun face à son pareil, puisqu'il gagne
+95 fois sur 100. Le sortir est parfaitement rationnel.
+
+Ce qui ne l'est pas, c'est de le sortir **souvent**. À 5 % de défaite par duel, un légendaire
+joué chaque jour survit à 77 % une semaine et à **13 % une saison de deux mois**. Il meurt donc
+presque à coup sûr, après avoir rapporté ~950 ₽ là où le racheter en coûte 4 500. Le seul geste
+sensé est de le laisser à la boîte — et les plus belles pièces du dex ne descendent jamais dans
+l'arène.
+
+**L'objet envisagé.** Un rappel, cher, qui ranime un exemplaire détruit **au niveau 1**. La
+bête revient, ce qui disparaît est l'investissement — ses niveaux, ses victoires. L'usure
+continue donc de faire son travail, ce qui compte : le plancher à 5 % est le seul mécanisme qui
+garantit qu'un légendaire finit par tomber, et un rappel sans contrepartie l'annulerait
+purement. Une fois par exemplaire et par saison, pour borner l'abus par construction plutôt que
+par le prix — un objet simplement cher enrichit le riche, c'est-à-dire celui qui gagne déjà,
+soit l'inverse de ce qu'un classement de saison demande.
+
+**Pourquoi pas maintenant.** Rien n'est déployé, aucune saison n'a été jouée : on
+rééquilibrerait à l'aveugle un mode dont on ignore le rythme réel. Et la mesure viendra seule —
+`arena_exemplars.destroyed_at` est une destruction douce, la ligne survit avec sa date et son
+niveau. En fin de saison on saura combien de légendaires sont morts et combien sont restés au
+placard, et la décision se prendra sur des chiffres.
+
+**Ce que ça coûtera le jour venu.** Ranimer, c'est remettre `destroyed_at` à `null` et le
+niveau à 1 : un article au catalogue et une RPC. Rien dans le schéma actuel ne ferme la porte.
+
+**La cause, elle, restera à traiter.** C'est la règle de l'enjeu couvert qui rend un légendaire
+peu payant : il ne vaut le tarif légendaire que si l'adversaire en mise un aussi, ce qui
+n'arrive presque jamais. Elle est juste — elle empêche d'écraser un petit joueur — mais une
+prime au risque, proportionnelle à ce qu'on a mis en jeu au-delà de l'enjeu couvert, mérite
+d'être simulée. À mesurer avant de trancher, comme le reste de cette section.
