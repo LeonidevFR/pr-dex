@@ -24,10 +24,15 @@ defineEmits(['close'])
  *   mesuré  → la balance s'ouvre, chacun voit ce qu'il pesait
  *   verdict → éclat, le perdant s'éteint, le vainqueur s'auréole
  *
- * Les durées sont celles du rituel — retournement 0,62 s, éclat 0,62 s — pour que deux
- * cérémonies de la même application battent au même rythme.
+ * Le temps de mesure est le plus long des quatre, et ce n'est pas un réglage de confort : la
+ * balance met 0,9 s à se remplir, et un verdict qui tombe pendant qu'elle bouge encore arrive
+ * sur quelqu'un qui n'a rien lu. Il faut d'abord SAVOIR ce qu'on pesait pour que l'issue veuille
+ * dire quelque chose — 1,65 s laissent les barres finir leur course, puis un temps d'arrêt.
+ *
+ * Les durées de mouvement sont celles du rituel — retournement 0,62 s, éclat 0,62 s — pour que
+ * deux cérémonies de la même application battent au même rythme.
  */
-const ETAPES = [['revele', 850], ['mesure', 1700], ['verdict', 2200]]
+const ETAPES = [['revele', 900], ['mesure', 1750], ['verdict', 3400]]
 const stage = ref('scelle')
 const minuteries = []
 onMounted(() => {
@@ -73,16 +78,6 @@ const reward = computed(() => {
   const t = props.duel.stake_tier
   if (versusComputer.value) return { dollars: Math.round(COMPUTER_REWARD[t]), points: 0, pack: false }
   return { dollars: REWARD[t].dollars, points: REWARD[t].points, pack: true }
-})
-
-/**
- * La part de chacun dans la balance. Ce n'est pas la probabilité — celle-ci est déjà dite en
- * pourcentage juste à côté — mais le rapport brut des puissances : deux informations
- * différentes, l'écart de force et la chance qu'il laisse.
- */
-const partMienne = computed(() => {
-  const total = mine.value.power + theirs.value.power
-  return total ? Math.round((mine.value.power / total) * 100) : 50
 })
 
 const tierOf = (species) => DEX[species]?.tier ?? 'c'
@@ -156,16 +151,26 @@ const breakdown = (s) => [
           </div>
         </div>
 
-        <!-- La balance : l'écart de force d'un côté, la chance qu'il laisse de l'autre. -->
+        <!--
+          La balance porte les CHANCES, pas le rapport des puissances. Elle affichait d'abord le
+          second : une barre au quart sous une étiquette disant « 6 % » est une contradiction que
+          l'œil voit avant que le texte ne s'explique. Les deux nombres sont vrais mais ne
+          coïncident pas — la puissance entre au cube et le résultat est borné à 5 %, si bien
+          qu'un écart modeste peut valoir une chance minuscule.
+
+          Un objet, une grandeur : la barre dit ce qui a décidé du duel, et c'est elle que le
+          tirage a franchie. Les puissances restent en chiffres à chaque bout, où elles
+          expliquent d'où viennent ces chances sans prétendre les mesurer.
+        -->
         <div class="duel-balance" :class="{ vu: apres('mesure') }">
           <div class="duel-piste">
-            <i class="moi" :style="{ width: partMienne + '%' }"></i>
-            <i class="lui" :style="{ width: (100 - partMienne) + '%' }"></i>
+            <i class="moi" :style="{ width: myOdds + '%' }"></i>
+            <i class="lui" :style="{ width: (100 - myOdds) + '%' }"></i>
           </div>
           <div class="duel-cotes mono">
-            <span>{{ Math.round(mine.power) }}</span>
-            <span class="duel-chances">{{ myOdds }} % de chances</span>
-            <span>{{ Math.round(theirs.power) }}</span>
+            <span :title="`ta puissance : ${Math.round(mine.power)}`">{{ Math.round(mine.power) }}</span>
+            <span class="duel-chances">{{ myOdds }} % de chances pour toi</span>
+            <span :title="`sa puissance : ${Math.round(theirs.power)}`">{{ Math.round(theirs.power) }}</span>
           </div>
         </div>
 

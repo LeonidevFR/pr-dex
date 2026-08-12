@@ -191,4 +191,46 @@ describe('DuelOverlay', () => {
     const vu = await revele(w)
     expect(vu.find('.duel-balance').classes()).toContain('vu')
   })
+
+  /**
+   * Le rythme est le sujet, pas un détail de confort : la balance met 0,9 s à se remplir, et un
+   * verdict qui tombe pendant qu'elle bouge encore arrive sur quelqu'un qui n'a rien lu. Il faut
+   * savoir ce qu'on pesait pour que l'issue veuille dire quelque chose.
+   */
+  it('laisse la balance finir sa course avant de trancher', async () => {
+    const w = monter()
+    vi.advanceTimersByTime(1750)
+    await w.vm.$nextTick()
+    expect(w.find('.duel-balance').classes()).toContain('vu')
+    expect(w.text()).not.toContain('Victoire')
+
+    // 0,9 s de course, plus un temps d'arrêt : à 2,8 s on lit encore, le verdict n'est pas tombé.
+    vi.advanceTimersByTime(1050)
+    await w.vm.$nextTick()
+    expect(w.text()).not.toContain('Victoire')
+
+    vi.advanceTimersByTime(700)
+    await w.vm.$nextTick()
+    expect(w.text()).toContain('Victoire')
+  })
+
+  /**
+   * La barre et son étiquette doivent dire le MÊME nombre. Elle a d'abord porté le rapport des
+   * puissances sous une étiquette annonçant les chances : à 6 % de chances la barre s'affichait
+   * au quart, contradiction que l'œil voit avant que le texte ne s'explique. Les deux grandeurs
+   * sont vraies mais ne coïncident pas — la puissance entre au cube, et le résultat est borné
+   * à 5 %.
+   */
+  it('trace la barre sur les chances annoncées, pas sur les puissances', async () => {
+    // 700 contre 610 : à peine 53 % des puissances, mais 62 % de chances au cube.
+    const w = await revele(monter({ probability: 0.62 }))
+    expect(w.find('.duel-piste .moi').attributes('style')).toContain('width: 62%')
+    expect(w.find('.duel-chances').text()).toContain('62 %')
+  })
+
+  it('retourne aussi la barre quand on est le preneur', async () => {
+    const w = await revele(monter({ probability: 0.62 }, LUI))
+    expect(w.find('.duel-piste .moi').attributes('style')).toContain('width: 38%')
+    expect(w.find('.duel-chances').text()).toContain('38 %')
+  })
 })

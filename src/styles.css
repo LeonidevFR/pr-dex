@@ -706,7 +706,7 @@
   }
   .duel-balance.vu{opacity:1;transform:none}
   .duel-piste{display:flex;height:5px;background:#2b251c;border:1px solid #3a3226;overflow:hidden}
-  .duel-piste i{display:block;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+  .duel-piste i{display:block;transition:width .9s cubic-bezier(.2,.8,.2,1)}
   .duel-piste .moi{background:var(--ochre)}
   .duel-piste .lui{background:#6d6250}
   .duel-cotes{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font-size:12px;color:#a99a7f}
