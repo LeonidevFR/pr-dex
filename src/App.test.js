@@ -44,6 +44,9 @@ async function mountApp() {
   return wrapper
 }
 
+/** Les lieux se rejoignent par leur onglet dans le rail. */
+const onglet = (w, libelle) => w.findAll('.tab').find((t) => t.text().includes(libelle))
+
 const press = (key, over = {}) =>
   window.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true, ...over }))
 
@@ -162,7 +165,7 @@ describe('envoi à l’arène depuis la fiche', () => {
  */
 describe('achat en boutique', () => {
   const ouvrirBoutique = async (w) => {
-    await w.findAll('.gear').find((b) => b.attributes('title') === 'Boutique').trigger('click')
+    await onglet(w, 'Boutique').trigger('click')
     await flushPromises()
   }
 
@@ -195,7 +198,7 @@ describe('les lieux ont une URL', () => {
 
   it('écrit l’adresse de l’arène en y entrant, et revient à la planche en sortant', async () => {
     const w = await mountApp()
-    await w.findAll('.gear').find((b) => b.attributes('title') === 'Arène').trigger('click')
+    await onglet(w, 'Arène').trigger('click')
     await flushPromises()
     expect(chemin()).toBe('/arena')
 
@@ -243,7 +246,7 @@ describe('les lieux ont une URL', () => {
  */
 describe('le profil', () => {
   const ouvrir = async (w) => {
-    await w.findAll('.gear').find((b) => b.attributes('title') === 'Profil').trigger('click')
+    await onglet(w, 'Profil').trigger('click')
     await flushPromises()
     return w
   }
@@ -286,7 +289,7 @@ describe('le profil', () => {
 describe('la saison', () => {
   it('s’ouvre à son adresse depuis le rail', async () => {
     const w = await mountApp()
-    await w.findAll('.gear').find((b) => b.attributes('title') === 'Saison').trigger('click')
+    await onglet(w, 'Saison').trigger('click')
     await flushPromises()
     expect(location.pathname).toBe('/season')
     expect(w.findAll('.panel-plate').some((p) => p.text().startsWith('SAISON'))).toBe(true)

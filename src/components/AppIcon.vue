@@ -16,6 +16,9 @@ defineProps({
  * exactement le tracé qui existait déjà dans le rail, pour que rien ne bouge à l'écran.
  */
 const PATHS = {
+  // Quatre cases : la planche du dex.
+  grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>'
+      + '<rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
   // Deux lames croisées : l'arène.
   arena: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/>' +
          '<path d="M19 21h2v-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/>',

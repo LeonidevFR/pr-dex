@@ -142,13 +142,50 @@ describe('TheRail', () => {
   })
 })
 
-describe('accès à l’arène', () => {
-  it('propose un bouton qui ouvre les duels', async () => {
+/**
+ * Des onglets et non plus des icônes : une icône dit « une action », un onglet dit « tu es
+ * ici ». Avec un seul écran la nuance ne coûtait rien ; à cinq lieux, ne pas savoir où l'on se
+ * trouve devient le problème principal.
+ */
+describe('les onglets', () => {
+  const onglet = (w, libelle) => w.findAll('.tab').find((t) => t.text().includes(libelle))
+
+  it('offre les cinq lieux', () => {
     const w = mountRail()
-    const bouton = w.findAll('.gear').find((b) => b.attributes('title') === 'Arène')
-    expect(bouton).toBeDefined()
-    await bouton.trigger('click')
-    expect(w.emitted('arena')).toHaveLength(1)
+    for (const l of ['Planche', 'Arène', 'Saison', 'Boutique', 'Profil']) {
+      expect(onglet(w, l), l).toBeDefined()
+    }
+  })
+
+  it('demande la navigation par le nom du lieu, pas par un émetteur par écran', async () => {
+    const w = mountRail()
+    await onglet(w, 'Boutique').trigger('click')
+    expect(w.emitted('go')[0]).toEqual(['shop'])
+  })
+
+  it('marque le lieu courant, et lui seul', () => {
+    const w = mountRail({ place: 'season' })
+    const actifs = w.findAll('.tab[aria-current="page"]')
+    expect(actifs).toHaveLength(1)
+    expect(actifs[0].text()).toContain('Saison')
+  })
+
+  // Un pli en attente doit se voir depuis n'importe quel lieu, sans quoi on l'oublie en jouant
+  // ailleurs : la pastille reste sur l'onglet de la planche, où l'ouverture se fait.
+  it('porte la pastille des plis sur l’onglet de la planche', () => {
+    const w = mountRail({ pendingCount: 3 })
+    expect(onglet(w, 'Planche').find('.pip').text()).toBe('3')
+    expect(onglet(w, 'Arène').find('.pip').exists()).toBe(false)
+  })
+
+  /**
+   * La progression et l'ouverture appartiennent à la planche : les afficher au-dessus de la
+   * boutique ou du classement, c'est proposer un geste sans rapport avec l'écran regardé.
+   */
+  it('ne montre la progression et l’ouverture que sur la planche', () => {
+    expect(mountRail({ place: 'collection' }).find('.rail-bas').exists()).toBe(true)
+    expect(mountRail({ place: 'shop' }).find('.rail-bas').exists()).toBe(false)
+    expect(mountRail({ place: 'shop' }).find('.claim-btn').exists()).toBe(false)
   })
 })
 
@@ -157,19 +194,17 @@ describe('accès à l’arène', () => {
  * CDN, et six symboles ne justifient pas les dizaines de kilo-octets d'un paquet.
  */
 describe('icônes du rail', () => {
-  it('donne à chaque action son icône, et un intitulé aux lecteurs d’écran', () => {
+  it('donne à chaque outil son icône, et un intitulé aux lecteurs d’écran', () => {
     const w = mountRail()
-    for (const titre of ['Arène', 'Boutique', 'Réglages', 'Filtrer la grille']) {
+    for (const titre of ['Réglages', 'Filtrer la grille']) {
       const b = w.findAll('button').find((x) => x.attributes('title') === titre)
       expect(b, titre).toBeDefined()
       expect(b.find('svg').exists()).toBe(true)
     }
   })
 
-  it('ouvre la boutique depuis le rail, sans passer par l’arène', async () => {
-    const w = mountRail()
-    await w.findAll('button').find((b) => b.attributes('title') === 'Boutique').trigger('click')
-    expect(w.emitted('shop')).toHaveLength(1)
+  it('donne à chaque onglet la sienne', () => {
+    for (const t of mountRail().findAll('.tab')) expect(t.find('svg').exists()).toBe(true)
   })
 
   // La rotation porte sur l'icône seule : sur le bouton entier, la pastille d'erreur tournerait

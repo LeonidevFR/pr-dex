@@ -9,8 +9,26 @@ const props = defineProps({
   syncError: { type: String, default: null }, // 'offline' | 'server' | 'conflict' | 'revoked'
   filtersOpen: { type: Boolean, default: false },
   filtersActive: { type: Boolean, default: false },
+  /** Le lieu courant, pour marquer l'onglet actif. */
+  place: { type: String, default: 'collection' },
 })
-const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'arena', 'season', 'shop', 'profile'])
+const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'go'])
+
+/**
+ * Les cinq lieux, dans l'ordre où on les traverse : on collectionne, on se bat, on regarde où
+ * ça mène, on dépense, on se contemple.
+ *
+ * Des onglets et non plus des icônes : une icône dit « une action », un onglet dit « tu es
+ * ici ». Avec un seul écran la nuance ne coûtait rien ; à cinq lieux, ne pas savoir où l'on se
+ * trouve devient le problème principal.
+ */
+const LIEUX = [
+  { nom: 'collection', icone: 'grid', libelle: 'Planche' },
+  { nom: 'arena', icone: 'arena', libelle: 'Arène' },
+  { nom: 'season', icone: 'season', libelle: 'Saison' },
+  { nom: 'shop', icone: 'shop', libelle: 'Boutique' },
+  { nom: 'profile', icone: 'profile', libelle: 'Profil' },
+]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
@@ -69,37 +87,57 @@ onUnmounted(() => clearTimeout(cooldownTimer))
 
 <template>
   <header class="rail">
-    <div>
+    <div class="rail-haut">
       <div class="wordmark">PR<span>·</span>DEX</div>
-      <div class="eyebrow rail-sub">Une PR mergée, un Pokémon</div>
-    </div>
-    <div class="progress">
-      <div class="progress-head">
-        <span class="eyebrow">Collection</span>
-        <span class="progress-count"><b>{{ String(caughtCount).padStart(3, '0') }}</b><i> / 151</i></span>
+
+      <nav class="tabs" aria-label="Les lieux">
+        <button
+          v-for="l in LIEUX" :key="l.nom"
+          class="tab" :aria-current="place === l.nom ? 'page' : null"
+          @click="emit('go', l.nom)"
+        >
+          <AppIcon :name="l.icone" :size="14" />
+          <span>{{ l.libelle }}</span>
+          <!-- La pastille suit l'onglet concerné : un pli en attente doit se voir depuis
+               n'importe quel lieu, sans quoi on l'oublie en jouant ailleurs. -->
+          <span v-if="l.nom === 'collection' && pendingCount" class="pip">{{ pendingCount }}</span>
+        </button>
+      </nav>
+
+      <div class="rail-tools">
+        <button class="gear sync" :title="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
+          <span :class="{ spinning: syncing }"><AppIcon name="sync" /></span>
+          <span v-if="syncError" class="err-dot"></span>
+        </button>
+        <button class="gear" title="Réglages" @click="$emit('settings')"><AppIcon name="settings" /></button>
       </div>
-      <div class="bar"><div class="bar-fill" :style="{ width: (caughtCount / 151 * 100) + '%' }"></div></div>
     </div>
-    <div class="rail-tools">
-      <button class="claim-btn" :class="{ pulsing: pendingCount }" :disabled="!pendingCount" @click="$emit('open')">
-        {{ pendingCount ? 'Ouvrir' : 'Rien à ouvrir' }}
-        <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
-      </button>
-      <button
-        class="gear filter-toggle" :class="{ active: filtersOpen || filtersActive }"
-        title="Filtrer la grille" @click="$emit('toggle-filters')"
-      >
-        <AppIcon name="filter" />
-      </button>
-      <button class="gear sync" :title="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
-        <span :class="{ spinning: syncing }"><AppIcon name="sync" /></span>
-        <span v-if="syncError" class="err-dot"></span>
-      </button>
-      <button class="gear" title="Arène" @click="$emit('arena')"><AppIcon name="arena" /></button>
-      <button class="gear" title="Saison" @click="$emit('season')"><AppIcon name="season" /></button>
-      <button class="gear" title="Boutique" @click="$emit('shop')"><AppIcon name="shop" /></button>
-      <button class="gear" title="Profil" @click="$emit('profile')"><AppIcon name="profile" /></button>
-      <button class="gear" title="Réglages" @click="$emit('settings')"><AppIcon name="settings" /></button>
+
+    <!--
+      La progression et l'ouverture appartiennent à la planche, pas à l'application : les
+      afficher au-dessus de la boutique ou du classement, c'est proposer un geste qui n'a rien
+      à voir avec l'écran qu'on regarde. Elles suivent donc leur lieu.
+    -->
+    <div v-if="place === 'collection'" class="rail-bas">
+      <div class="progress">
+        <div class="progress-head">
+          <span class="eyebrow">Collection</span>
+          <span class="progress-count"><b>{{ String(caughtCount).padStart(3, '0') }}</b><i> / 151</i></span>
+        </div>
+        <div class="bar"><div class="bar-fill" :style="{ width: (caughtCount / 151 * 100) + '%' }"></div></div>
+      </div>
+      <div class="rail-tools">
+        <button class="claim-btn" :class="{ pulsing: pendingCount }" :disabled="!pendingCount" @click="$emit('open')">
+          {{ pendingCount ? 'Ouvrir' : 'Rien à ouvrir' }}
+          <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
+        </button>
+        <button
+          class="gear filter-toggle" :class="{ active: filtersOpen || filtersActive }"
+          title="Filtrer la grille" @click="$emit('toggle-filters')"
+        >
+          <AppIcon name="filter" />
+        </button>
+      </div>
     </div>
   </header>
 </template>

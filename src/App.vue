@@ -325,9 +325,9 @@ useKeyboardNav({
       :pending-count="collection.dex.pending.value.length"
       :syncing="collection.loading.value" :sync-error="collection.error.value"
       :filters-open="filters.open.value" :filters-active="filters.active.value"
+      :place="route.name"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
-      @arena="router.go('arena')" @shop="router.go('shop')" @profile="router.go('profile')"
-      @season="router.go('season')"
+      @go="(lieu) => router.go(lieu)"
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
