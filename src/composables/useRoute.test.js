@@ -18,15 +18,20 @@ describe('parseRoute', () => {
   })
 
   it('reconnaît les lieux qui ont un écran', () => {
-    for (const nom of ['collection', 'arena', 'shop']) {
+    for (const nom of ['collection', 'arena', 'shop', 'profile']) {
       expect(parse(`/pr-dex/${nom}`)).toEqual({ name: nom, param: null })
     }
   })
 
-  // Spécifiés, pas encore construits : mieux vaut ramener à la planche qu'ouvrir du vide.
-  it('ramène à la planche les lieux pas encore construits', () => {
+  // Spécifiée, pas encore construite : mieux vaut ramener à la planche qu'ouvrir du vide.
+  it('ramène à la planche un lieu pas encore construit', () => {
     expect(parse('/pr-dex/season')).toEqual({ name: 'collection', param: null })
-    expect(parse('/pr-dex/profile')).toEqual({ name: 'collection', param: null })
+  })
+
+  // Le seul lien qu'on ait envie d'envoyer à un collègue, avec la fiche d'une espèce.
+  it('lit le pseudo d’un profil, et le laisse en texte', () => {
+    expect(parse('/pr-dex/profile/marion')).toEqual({ name: 'profile', param: 'marion' })
+    expect(parse('/pr-dex/profile')).toEqual({ name: 'profile', param: null })
   })
 
   it('tolère la barre finale, que le navigateur ajoute ou non', () => {
@@ -62,6 +67,7 @@ describe('routePath', () => {
     expect(routePath({ name: 'arena' }, '/pr-dex/')).toBe('/pr-dex/arena')
     expect(routePath({ name: 'collection', param: 25 }, '/pr-dex/')).toBe('/pr-dex/collection/025')
     expect(routePath({ name: 'shop' }, '/pr-dex/')).toBe('/pr-dex/shop')
+    expect(routePath({ name: 'profile', param: 'marion' }, '/pr-dex/')).toBe('/pr-dex/profile/marion')
   })
 
   it('fait de la collection la racine, pour que l’URL par défaut reste courte', () => {
@@ -75,6 +81,7 @@ describe('routePath', () => {
     const routes = [
       { name: 'collection', param: null }, { name: 'collection', param: 25 },
       { name: 'arena', param: null }, { name: 'shop', param: null },
+      { name: 'profile', param: null }, { name: 'profile', param: 'marion' },
     ]
     for (const r of routes) expect(parseRoute(routePath(r, '/pr-dex/'), '/pr-dex/')).toEqual(r)
   })

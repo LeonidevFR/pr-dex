@@ -235,3 +235,47 @@ describe('les lieux ont une URL', () => {
     expect(w.findAll('.panel-plate').some((p) => p.text() === 'BOUTIQUE')).toBe(true)
   })
 })
+
+/**
+ * Le profil, de bout en bout. Deux dossiers pour un seul gabarit : le sien, complet, et celui
+ * d'un collègue, caviardé. C'est la vue SQL qui garantit la règle ; ce qui se vérifie ici est
+ * que l'écran sait lequel des deux il regarde.
+ */
+describe('le profil', () => {
+  const ouvrir = async (w) => {
+    await w.findAll('.gear').find((b) => b.attributes('title') === 'Profil').trigger('click')
+    await flushPromises()
+    return w
+  }
+
+  it('s’ouvre sur son propre dossier, à son adresse', async () => {
+    const w = await ouvrir(await mountApp())
+    expect(location.pathname).toBe('/profile')
+    expect(w.find('.panel-name').text()).toBe('toi')
+    expect(w.findAll('.prof-case.secret')).toHaveLength(0)
+  })
+
+  it('compte les exemplaires depuis la collection, et non depuis le dossier public', async () => {
+    const w = await ouvrir(await mountApp())
+    const exemplaires = w.findAll('.prof-case')
+      .find((c) => c.find('span').text() === 'Exemplaires').find('b').text()
+    expect(Number(exemplaires)).toBeGreaterThan(0)
+  })
+
+  // Un lien reçu d'un collègue : l'écran doit se reconstituer seul, et caviarder.
+  it('ouvre le dossier d’un collègue depuis l’adresse, caviardé', async () => {
+    window.history.replaceState({}, '', '/profile/bob?demo')
+    const w = await mountApp()
+    await flushPromises()
+    expect(w.find('.panel-name').text()).toBe('bob')
+    expect(w.findAll('.prof-case.secret')).toHaveLength(4)
+    expect(w.find('.prof-bascule').exists()).toBe(false)
+  })
+
+  it('explique un pseudonyme qui ne joue pas, au lieu d’un dossier vide', async () => {
+    window.history.replaceState({}, '', '/profile/fantome?demo')
+    const w = await mountApp()
+    await flushPromises()
+    expect(w.text()).toContain('Personne ne joue sous ce nom')
+  })
+})

@@ -19,11 +19,10 @@ import { DEX } from '../../shared/species.js'
  * le jour où un vrai domaine arrive il n'y ait qu'une ligne de configuration à changer.
  */
 /**
- * Les lieux qui ont un écran. `season` et `profile` sont spécifiés mais pas encore construits :
- * les déclarer ici avant leur vue produirait une URL qui s'ouvre sur du vide, ce qui est pire
- * qu'une URL inconnue — celle-là au moins ramène à la planche.
+ * Les lieux qui ont un écran. `season` reste dehors tant que sa vue n'existe pas : une URL qui
+ * s'ouvre sur du vide est pire qu'une URL inconnue — celle-là au moins ramène à la planche.
  */
-export const ROUTES = ['collection', 'arena', 'shop']
+export const ROUTES = ['collection', 'arena', 'shop', 'profile']
 
 /** Seuls ces deux lieux désignent quelque chose de précis : une espèce, une personne. */
 const AVEC_PARAM = { collection: 'species', profile: 'pseudo' }

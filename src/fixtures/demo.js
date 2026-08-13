@@ -209,6 +209,15 @@ export function demoArena(catches) {
     id: i + 1, challenger_id: r.id, pseudo: r.pseudo, created_at: JOUR, rival: r,
   }))
 
+  /**
+   * Les dossiers des adversaires, cohérents avec le classement affiché à côté : un profil qui
+   * dirait autre chose que le tableau d'où l'on vient de cliquer se lirait comme un bug.
+   */
+  const DOSSIERS_RIVAUX = {
+    bob: { user_id: 'demo-bob', pseudo: 'bob', species: 112, wins: 31, losses: 4 },
+    ada: { user_id: 'demo-ada', pseudo: 'ada', species: 64, wins: 9, losses: 12 },
+  }
+
   const especeDe = (key) => catches.find((c) => entryKey(c.source, c.external_id) === key)?.species
 
   // Un champion déjà aguerri dans la main de départ : sans lui, tout est au niveau 1 et l'effet
@@ -279,6 +288,26 @@ export function demoArena(catches) {
       }))),
     }),
     readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
+    /**
+     * Les dossiers publics. Celui des autres est fixe ; le sien se recalcule depuis les duels
+     * réellement joués — un dossier figé donnerait l'impression que l'écran n'a pas vu ce qui
+     * vient de se passer, alors que c'est précisément ce qu'on essaie en démo.
+     */
+    readPublicProfile: async (pseudo) => DOSSIERS_RIVAUX[pseudo] ?? null,
+    readMyProfile: async () => {
+      const joues = [...duels.values()]
+      return {
+        user_id: MOI,
+        pseudo: 'toi',
+        species: new Set(catches.map((c) => c.species)).size,
+        wins: joues.filter((d) => d.winner_id === MOI).length,
+        losses: joues.filter((d) => d.winner_id !== MOI).length,
+      }
+    },
+    readDestroyed: async () => [...destroyed].map((entry_key) => ({
+      entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: JOUR,
+    })),
+
     readLeaderboard: async () => [
       { user_id: 'demo-bob', pseudo: 'bob', points: 275, rank: 1 },
       { user_id: MOI, pseudo: 'toi', points: points, rank: 2 },

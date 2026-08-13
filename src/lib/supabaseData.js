@@ -151,6 +151,30 @@ export function createSupabaseClient(userId) {
     query(() => supabase.from('arena_seasons').select('season, first_id, second_id, third_id')
       .order('season', { ascending: false }))
 
+  /**
+   * Le dossier public d'un joueur : le sien, ou celui d'un collègue.
+   *
+   * La vue ne porte QUE ce que la spec § 5 autorise à publier — espèces, victoires, défaites.
+   * Les exemplaires, la caisse et les crédits n'y sont pas, et c'est voulu : un écran peut
+   * oublier de cacher une colonne, une colonne absente de la vue ne peut pas fuir. Le dossier
+   * complet du joueur courant se compose donc à côté, avec ses propres lectures.
+   */
+  const readPublicProfile = (pseudo) =>
+    query(() => supabase.from('arena_public_profile').select('user_id, pseudo, species, wins, losses')
+      .eq('pseudo', pseudo).maybeSingle())
+
+  const readMyProfile = (uid) =>
+    query(() => supabase.from('arena_public_profile').select('user_id, pseudo, species, wins, losses')
+      .eq('user_id', uid).maybeSingle())
+
+  /**
+   * Les exemplaires perdus à l'arène. Ils ne sortent jamais du dossier public : c'est une
+   * information à soi, et elle ne regarde personne d'autre.
+   */
+  const readDestroyed = () =>
+    query(() => supabase.from('arena_exemplars').select('entry_key, level, wins, destroyed_at')
+      .not('destroyed_at', 'is', null).order('destroyed_at', { ascending: false }))
+
   /** Le catalogue vient de la base, jamais des constantes du front : c'est elle qui débite. */
   const readShop = () =>
     query(() => supabase.from('arena_shop').select('slug, gen, tier, fresh, price').order('price'))
@@ -166,5 +190,6 @@ export function createSupabaseClient(userId) {
   return {
     checkAccess, readCatches, readState, writeState, triggerCatch,
     readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readLeaderboard, readSeasons, engage, accept,
+    readPublicProfile, readMyProfile, readDestroyed,
   }
 }

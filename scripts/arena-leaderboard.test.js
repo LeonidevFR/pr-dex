@@ -5,7 +5,14 @@ const disponible = await dbAvailable()
 const A = 'aa11aa11-0000-0000-0000-000000000001'
 const B = 'bb22bb22-0000-0000-0000-000000000002'
 const C = 'cc33cc33-0000-0000-0000-000000000003'
-const SAISON = '2026-S4'
+/**
+ * Une saison que le code d'exécution ne peut jamais produire. Ce test affirmait le contenu
+ * EXACT du classement d'une saison réelle ; or `arena_accept` inscrit des points dans la saison
+ * en cours, et un test de duel qui tourne en parallèle y ajoutait un quatrième joueur — le
+ * classement devenait juste, l'assertion fausse. Le rang étant calculé par partition de saison,
+ * une saison à soi isole complètement le cas.
+ */
+const SAISON = '1999-S1'
 
 const commeUtilisateur = (uid, sql) => withDb(async (c) => {
   await c.query('begin')

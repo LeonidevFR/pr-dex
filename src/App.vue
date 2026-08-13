@@ -8,6 +8,7 @@ import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import ArenaPanel from './components/ArenaPanel.vue'
 import ShopPanel from './components/ShopPanel.vue'
+import ProfilePanel from './components/ProfilePanel.vue'
 import DuelOverlay from './components/DuelOverlay.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
@@ -42,6 +43,44 @@ onUnmounted(router.stop)
 const selected = computed(() => (route.value.name === 'collection' ? route.value.param : null))
 const arenaOpen = computed(() => route.value.name === 'arena')
 const shopOpen = computed(() => route.value.name === 'shop')
+const profileOpen = computed(() => route.value.name === 'profile')
+
+/**
+ * Le dossier affiché. Sans pseudo dans l'URL c'est le sien, avec c'est celui d'un collègue —
+ * la même vue SQL dans les deux cas, ce qui garantit qu'aucun écran ne peut publier plus que
+ * ce qu'elle contient. Ce qui ne se publie jamais est composé à part, et seulement pour soi.
+ */
+const dossier = ref(null)
+const dossierCharge = ref(false)
+const detruits = ref([])
+
+/**
+ * `connected` fait partie des sources, et la surveillance est immédiate : arriver DIRECTEMENT
+ * sur /profile/bob — un lien reçu, un rechargement — ne produit aucun changement de route, donc
+ * une surveillance ordinaire ne se déclencherait jamais et l'écran resterait sur son attente.
+ * Le client, lui, n'existe qu'une fois la session ouverte : c'est son apparition qui donne le
+ * signal quand l'URL, elle, n'a pas bougé.
+ */
+watch([profileOpen, () => route.value.param, connected], async ([ouvert, pseudo, pret]) => {
+  if (!ouvert || !pret || !client) return
+  dossierCharge.value = false
+  dossier.value = null
+  try {
+    dossier.value = pseudo ? await client.readPublicProfile(pseudo) : await client.readMyProfile(userId.value)
+    detruits.value = pseudo ? [] : await client.readDestroyed()
+  } catch (e) {
+    connectError.value = e.kind ?? 'server'
+  } finally {
+    dossierCharge.value = true
+  }
+}, { immediate: true })
+
+const dossierPrive = computed(() => (route.value.param ? null : {
+  copies: collection.catches.value.length,
+  pokedollars: arena?.pokedollars.value ?? 0,
+  credits: arena?.credits.value ?? 0,
+  destroyed: detruits.value.length,
+}))
 const ritualEntry = ref(null)
 const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
@@ -53,6 +92,7 @@ const gen = ref(1)
 const duelShown = ref(null)
 const userId = ref('')
 let arena = null
+let client = null
 
 const filters = useTrayFilters()
 
@@ -70,7 +110,7 @@ async function connectSession(s) {
   connecting.value = true
   connectError.value = null
   githubLogin.value = s.user.user_metadata?.user_name ?? ''
-  const client = createSupabaseClient(s.user.id)
+  client = createSupabaseClient(s.user.id)
   userId.value = s.user.id
   arena = useArena(client, collection.dex.claimed)
   try {
@@ -172,7 +212,7 @@ onMounted(async () => {
   if (new URLSearchParams(location.search).has('demo')) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
     githubLogin.value = 'démo'
-    const client = loadDemoClient()
+    client = loadDemoClient()
     userId.value = 'demo-moi'
     arena = useArena(client, collection.dex.claimed)
     await collection.load(client)
@@ -284,7 +324,7 @@ useKeyboardNav({
       :syncing="collection.loading.value" :sync-error="collection.error.value"
       :filters-open="filters.open.value" :filters-active="filters.active.value"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
-      @arena="router.go('arena')" @shop="router.go('shop')"
+      @arena="router.go('arena')" @shop="router.go('shop')" @profile="router.go('profile')"
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
@@ -346,6 +386,19 @@ useKeyboardNav({
         v-if="shopOpen && arena"
         :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
         @close="router.go('collection')" @buy="onBuy"
+      />
+    </transition>
+
+    <transition name="fade">
+      <ProfilePanel
+        v-if="profileOpen"
+        :dossier="dossier" :pseudo="route.param" :prive="dossierPrive"
+        :seasons="arena ? arena.seasons.value : []"
+        :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.points ?? 0) : 0"
+        :rank="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.rank ?? null) : null"
+        :season="arena ? arena.season.value : ''"
+        :loading="!dossierCharge" :introuvable="dossierCharge && !dossier"
+        @close="router.go('collection')"
       />
     </transition>
 

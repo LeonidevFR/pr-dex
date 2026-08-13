@@ -1,0 +1,147 @@
+<script setup>
+import { computed, ref } from 'vue'
+import AppIcon from './AppIcon.vue'
+import SeasonBadge from './SeasonBadge.vue'
+
+const props = defineProps({
+  /** Le dossier public tel que la base le rend : espèces, victoires, défaites. */
+  dossier: { type: Object, default: null },
+  /** Le pseudo regardé. Absent : c'est le sien. */
+  pseudo: { type: String, default: null },
+  /**
+   * Ce qui ne se publie jamais, et n'est donc fourni que pour son propre dossier :
+   * `{ copies, pokedollars, credits, destroyed }`.
+   */
+  prive: { type: Object, default: null },
+  /** Les saisons closes, avec leur podium, pour dresser l'étagère. */
+  seasons: { type: Array, default: () => [] },
+  points: { type: Number, default: 0 },
+  rank: { type: Number, default: null },
+  season: { type: String, default: '' },
+  loading: { type: Boolean, default: false },
+  introuvable: { type: Boolean, default: false },
+})
+defineEmits(['close'])
+
+const cestMoi = computed(() => !props.pseudo)
+
+/**
+ * Le caviardage. On regarde son propre dossier avec les yeux d'un collègue, d'un seul geste.
+ *
+ * Ce n'est pas une démonstration : c'est le MÊME gabarit que celui d'un profil visité. Le
+ * montrer sous un bouton répond à la question que tout le monde se pose une fois — qu'est-ce
+ * que les autres voient de moi ? — et il vaut mieux y répondre d'un clic que par une note de
+ * bas de page que personne ne lit.
+ */
+const caviarde = ref(false)
+const public_ = computed(() => !cestMoi.value || caviarde.value)
+
+/**
+ * Le dossier, dans l'ordre où on le lit. `secret` marque ce qui ne sort jamais de chez soi —
+ * la case reste alors en place, hachurée : la retirer ferait une page plus courte dont on ne
+ * saurait pas ce qu'elle a perdu. Une case barrée montre où passe la règle.
+ */
+const cases = computed(() => {
+  const d = props.dossier ?? {}
+  const p = props.prive ?? {}
+  return [
+    { v: String(d.species ?? 0).padStart(3, '0'), l: 'Espèces' },
+    { v: p.copies ?? '—', l: 'Exemplaires', secret: true },
+    { v: p.pokedollars != null ? `${p.pokedollars} ₽` : '—', l: 'Pokédollars', secret: true },
+    { v: p.credits ?? '—', l: 'Crédits', secret: true },
+    { v: d.wins ?? 0, l: 'Duels gagnés' },
+    { v: d.losses ?? 0, l: 'Perdus' },
+    { v: props.points, l: `Points · ${props.season}` },
+    { v: p.destroyed ?? '—', l: 'Exemplaires perdus', secret: true },
+  ]
+})
+
+/** Les trois marches, et rien d'autre : une saison sans podium n'a pas de badge à montrer. */
+const RANGS = ['first_id', 'second_id', 'third_id']
+const palmares = computed(() => {
+  const id = props.dossier?.user_id
+  if (!id) return []
+  return props.seasons
+    .map((s) => ({ season: s.season, rank: RANGS.findIndex((r) => s[r] === id) + 1 }))
+    .filter((s) => s.rank > 0)
+})
+</script>
+
+<template>
+  <div class="scrim" @click.self="$emit('close')">
+    <div class="panel" style="width:min(620px,100%)">
+      <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
+        <button class="x" @click="$emit('close')"><AppIcon name="close" :size="13" /></button>
+        <div>
+          <span class="panel-plate mono">PROFIL</span>
+          <h2 class="panel-name" style="font-size:26px;margin-bottom:0">
+            {{ pseudo ?? 'toi' }}
+          </h2>
+          <p v-if="rank && !loading" class="muted" style="margin-top:6px">
+            {{ rank }}<sup>{{ rank === 1 ? 'er' : 'e' }}</sup> de la saison {{ season }}
+          </p>
+        </div>
+      </div>
+
+      <div v-if="loading" class="sect">
+        <div class="arena-wait"><span></span><span></span><span></span></div>
+      </div>
+
+      <div v-else-if="introuvable" class="sect">
+        <p class="muted">
+          Personne ne joue sous ce nom. Un pseudonyme se change — le lien que tu as suivi
+          désigne peut-être quelqu’un qui s’est renommé depuis.
+        </p>
+      </div>
+
+      <template v-else>
+        <div v-if="cestMoi" class="prof-bascule">
+          <span class="muted" style="flex:1">Voir ton dossier comme un collègue le voit</span>
+          <button
+            class="filter-chip" :class="{ active: caviarde }" :aria-pressed="caviarde"
+            style="--tier:var(--stamp)" @click="caviarde = !caviarde"
+          >{{ caviarde ? 'Revenir à ta vue' : 'Caviarder' }}</button>
+        </div>
+
+        <div class="prof-cases">
+          <div
+            v-for="c in cases" :key="c.l"
+            class="prof-case" :class="{ secret: c.secret && public_ }"
+          >
+            <b>{{ c.secret && public_ ? '—' : c.v }}</b>
+            <span>{{ c.l }}</span>
+          </div>
+        </div>
+
+        <div class="sect">
+          <p class="muted">
+            <b>Les espèces se publient, les exemplaires jamais.</b> Le nombre d’espèces plafonne
+            à 151 et sature vite ; le nombre d’exemplaires, lui, ne plafonne pas — c’est un
+            compteur brut de PR mergées, et l’afficher reviendrait à publier un classement de
+            productivité. La règle est tenue en base : l’agrégat public est une vue qui ne
+            contient pas ces colonnes.
+          </p>
+        </div>
+
+        <div class="sect">
+          <div class="eyebrow sect-h">
+            <span>Palmarès</span>
+            <span class="mono" style="font-size:11px;color:var(--ink-3)">
+              {{ palmares.length }} podium{{ palmares.length > 1 ? 's' : '' }}
+            </span>
+          </div>
+          <div v-if="palmares.length" class="prof-badges">
+            <div v-for="p in palmares" :key="p.season" class="prof-badge">
+              <SeasonBadge :season="p.season" :rank="p.rank" :size="46" />
+              <span class="mono">{{ p.season }}</span>
+            </div>
+          </div>
+          <p v-else class="muted">
+            Aucune saison sur le podium pour l’instant. Les trois premiers d’une saison gardent
+            son badge — une saison ne se rejoue pas.
+          </p>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>

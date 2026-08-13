@@ -1158,6 +1158,41 @@ create or replace view public.arena_leaderboard as
 
 grant select on public.arena_leaderboard to authenticated;
 
+-- Le dossier public d'un joueur : ce qu'un collègue a le droit de savoir de lui, et rien
+-- d'autre. La vue n'est pas une commodité d'affichage, c'est la garantie technique de la
+-- règle : les colonnes interdites n'y sont pas, donc aucun écran ne peut les montrer par
+-- distraction.
+--
+-- Les ESPÈCES s'y trouvent, les EXEMPLAIRES non (spec § 5) : le nombre d'espèces plafonne à
+-- 151 et sature vite, le nombre d'exemplaires ne plafonne jamais — c'est un compteur brut de
+-- PR mergées, et l'afficher dans une entreprise reviendrait à publier un classement de
+-- productivité. Le palmarès de duels, lui, se publie : il ne dit rien du travail fourni, il
+-- dit ce qu'on a osé engager.
+--
+-- Une défaite est tout duel joué qu'on n'a pas gagné, `winner_id` compris à NULL : c'est ce
+-- qu'écrit `arena_resolve_expired` quand la maison résout un défi contre l'ordinateur et que
+-- le joueur tombe. `is distinct from` et non `<>`, sans quoi la comparaison à NULL rendrait
+-- NULL et la ligne ne serait jamais comptée.
+create or replace view public.arena_public_profile as
+  select pr.user_id,
+         pr.pseudo,
+         (
+           select count(distinct c.species) :: int
+           from public.catches c
+           where c.user_id = pr.user_id
+         ) as species,
+         count(*) filter (where d.winner_id = pr.user_id) :: int as wins,
+         count(*) filter (
+           where d.status <> 'open' and d.winner_id is distinct from pr.user_id
+         ) :: int as losses
+  from public.profiles pr
+  left join public.arena_duels d
+    on d.challenger_id = pr.user_id or d.opponent_id = pr.user_id
+  where pr.pseudo is not null
+  group by pr.user_id, pr.pseudo;
+
+grant select on public.arena_public_profile to authenticated;
+
 
 -- Clôture les saisons terminées : podium consigné, récompenses versées.
 --

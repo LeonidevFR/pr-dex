@@ -778,3 +778,32 @@
 /* Un achat à confirmer : le bouton change d'état, pas seulement de libellé — le libellé seul
    se lit après coup, la couleur se voit avant de recliquer. */
 .evo-btn.confirming { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* ───────── profil ───────── */
+  .prof-bascule{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:14px 26px;border-bottom:1.5px solid var(--rule);background:var(--plate-hi);
+  }
+  /* Un filet d'un pixel et demi entre les cases, obtenu par la couleur de fond de la grille :
+     plus net qu'une bordure par case, qui doublerait aux jointures. */
+  .prof-cases{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1.5px;
+    background:var(--rule);border-bottom:1.5px solid var(--rule);
+  }
+  .prof-case{background:var(--plate);padding:16px 18px}
+  .prof-case b{
+    display:block;font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .prof-case span{
+    display:block;margin-top:7px;font-family:var(--f-label);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-2);
+  }
+  /* Hachurée plutôt que retirée : une case barrée montre où passe la règle, une case absente
+     laisse croire qu'il n'y avait rien à dire. */
+  .prof-case.secret{background:repeating-linear-gradient(135deg,var(--plate) 0 7px,var(--paper-lo) 7px 8px)}
+  .prof-case.secret b{color:var(--ink-3)}
+
+  .prof-badges{display:flex;gap:20px;flex-wrap:wrap}
+  .prof-badge{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .prof-badge span{font-size:10.5px;color:var(--ink-2)}
