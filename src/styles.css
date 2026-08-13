@@ -725,6 +725,11 @@
     color:#6d6250;transition:color .5s ease;
   }
   .duel-annonce.vif{color:var(--ochre);animation:duel-annonce .55s cubic-bezier(.2,.9,.3,1.45) both}
+  .duel-scene{cursor:pointer}
+  .duel-passer{
+    position:relative;text-align:center;margin-top:7px;
+    font-family:var(--f-data);font-size:9.5px;letter-spacing:.1em;color:#5a5142;
+  }
   @keyframes duel-annonce{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
 
   .arena-vs-mark{font-family:var(--f-label);font-size:11px;letter-spacing:.14em;color:var(--ink-3)}

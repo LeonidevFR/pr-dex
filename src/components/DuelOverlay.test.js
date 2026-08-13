@@ -197,21 +197,48 @@ describe('DuelOverlay', () => {
    * verdict qui tombe pendant qu'elle bouge encore arrive sur quelqu'un qui n'a rien lu. Il faut
    * savoir ce qu'on pesait pour que l'issue veuille dire quelque chose.
    */
-  it('laisse la balance finir sa course avant de trancher', async () => {
+  it('laisse la balance finir sa course, puis un temps d’arrêt, avant de trancher', async () => {
     const w = monter()
-    vi.advanceTimersByTime(1750)
+    // Scellé 1,4 s puis révélation 1,9 s : la mesure s'ouvre à 3,3 s.
+    vi.advanceTimersByTime(3300)
     await w.vm.$nextTick()
     expect(w.find('.duel-balance').classes()).toContain('vu')
     expect(w.text()).not.toContain('Victoire')
 
-    // 0,9 s de course, plus un temps d'arrêt : à 2,8 s on lit encore, le verdict n'est pas tombé.
-    vi.advanceTimersByTime(1050)
+    // 0,5 s d'apparition et 0,9 s de remplissage : à 5 s les barres sont posées depuis un
+    // moment, et le verdict n'est toujours pas tombé — c'est cet arrêt-là qui rend lisible.
+    vi.advanceTimersByTime(1700)
     await w.vm.$nextTick()
     expect(w.text()).not.toContain('Victoire')
 
-    vi.advanceTimersByTime(700)
+    vi.advanceTimersByTime(1100)
     await w.vm.$nextTick()
     expect(w.text()).toContain('Victoire')
+  })
+
+  /**
+   * Longue ET interruptible : une cérémonie qu'on revoit vingt fois doit pouvoir se sauter.
+   * Faire l'un sans l'autre donne soit une pendule, soit un clignotement.
+   */
+  it('saute au temps suivant d’un clic, jusqu’à l’issue', async () => {
+    const w = monter()
+    expect(w.findAll('.duel-flip.dos')).toHaveLength(2)
+
+    await w.find('.duel-scene').trigger('click')
+    expect(w.findAll('.duel-flip.dos')).toHaveLength(0)
+
+    await w.find('.duel-scene').trigger('click')
+    expect(w.find('.duel-balance').classes()).toContain('vu')
+
+    await w.find('.duel-scene').trigger('click')
+    expect(w.text()).toContain('Victoire')
+  })
+
+  // Le repère de saut disparaît quand il n'y a plus rien à sauter : le laisser inviterait à
+  // cliquer sur un bouton qui ne fait plus rien.
+  it('retire l’invite à avancer une fois l’issue connue', async () => {
+    const w = await revele(monter())
+    expect(w.find('.duel-passer').exists()).toBe(false)
   })
 
   /**

@@ -24,21 +24,43 @@ defineEmits(['close'])
  *   mesuré  → la balance s'ouvre, chacun voit ce qu'il pesait
  *   verdict → éclat, le perdant s'éteint, le vainqueur s'auréole
  *
- * Le temps de mesure est le plus long des quatre, et ce n'est pas un réglage de confort : la
- * balance met 0,9 s à se remplir, et un verdict qui tombe pendant qu'elle bouge encore arrive
- * sur quelqu'un qui n'a rien lu. Il faut d'abord SAVOIR ce qu'on pesait pour que l'issue veuille
- * dire quelque chose — 1,65 s laissent les barres finir leur course, puis un temps d'arrêt.
+ * Chaque temps dure le temps qu'il faut pour le lire, pas le temps qu'il faut pour le jouer.
+ * Trois versions ont été trop rapides : le verdict tombait pendant que la balance se remplissait
+ * encore, donc sur quelqu'un qui n'avait rien lu. Les durées ci-dessous laissent chaque
+ * mouvement finir sa course PUIS un temps d'arrêt — c'est l'arrêt qui rend l'information
+ * lisible, pas l'animation.
  *
- * Les durées de mouvement sont celles du rituel — retournement 0,62 s, éclat 0,62 s — pour que
- * deux cérémonies de la même application battent au même rythme.
+ * En contrepartie, tout se saute d'un clic : une cérémonie qu'on revoit vingt fois doit être
+ * longue et interruptible. Faire l'un sans l'autre donne soit une pendule, soit un
+ * clignotement.
+ *
+ * Les durées de mouvement, elles, restent celles du rituel — retournement et éclat à 0,62 s :
+ * deux cérémonies de la même application doivent battre au même rythme.
  */
-const ETAPES = [['revele', 900], ['mesure', 1750], ['verdict', 3400]]
+const SUITE = ['scelle', 'revele', 'mesure', 'verdict']
+const TENUES = {
+  scelle: 1400,  // le cachet respire : on a le temps de voir qu'il y a deux mises fermées
+  revele: 1900,  // 0,62 s de retournement, puis on regarde ce qui est sorti
+  mesure: 2700,  // 0,5 s d'apparition, 0,9 s de remplissage, et 1,3 s pour lire les chiffres
+}
 const stage = ref('scelle')
-const minuteries = []
-onMounted(() => {
-  for (const [etat, quand] of ETAPES) minuteries.push(setTimeout(() => { stage.value = etat }, quand))
-})
-onUnmounted(() => minuteries.forEach(clearTimeout))
+let minuterie = null
+
+function passeA(etat) {
+  clearTimeout(minuterie)
+  stage.value = etat
+  const suivant = SUITE[SUITE.indexOf(etat) + 1]
+  if (suivant) minuterie = setTimeout(() => passeA(suivant), TENUES[etat])
+}
+
+/** Un clic n'importe où dans la scène saute au temps suivant, et le dernier saute à l'issue. */
+function presse() {
+  const suivant = SUITE[SUITE.indexOf(stage.value) + 1]
+  if (suivant) passeA(suivant)
+}
+
+onMounted(() => passeA('scelle'))
+onUnmounted(() => clearTimeout(minuterie))
 
 /** Vrai dès que les cartes sont retournées : tout ce qui suit s'empile sans jamais revenir en arrière. */
 const apres = (etat) => ['scelle', 'revele', 'mesure', 'verdict'].indexOf(stage.value)
@@ -114,7 +136,10 @@ const breakdown = (s) => [
         La scène. Elle occupe la largeur du panneau et bascule dans la nuit : une cérémonie
         éteint la salle, comme celle du rituel. Le reste du panneau reste le carnet.
       -->
-      <div class="duel-scene" :data-etat="stage" :style="{ '--t': TIER_VAR[duel.stake_tier] }">
+      <div
+        class="duel-scene" :data-etat="stage" :style="{ '--t': TIER_VAR[duel.stake_tier] }"
+        @click="presse"
+      >
         <div class="duel-eclat" aria-hidden="true"></div>
 
         <div class="duel-camps">
@@ -180,6 +205,9 @@ const breakdown = (s) => [
           <template v-else-if="stage === 'mesure'">On mesure</template>
           <template v-else>{{ iWon ? 'Tu l’emportes' : 'Tu perds' }}</template>
         </p>
+
+        <!-- Discret, et seulement tant qu'il reste quelque chose à sauter. -->
+        <p v-if="stage !== 'verdict'" class="duel-passer">clique pour avancer</p>
       </div>
 
       <template v-if="stage === 'verdict'">
