@@ -23,7 +23,7 @@ const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'go'])
  * trouve devient le problème principal.
  */
 const LIEUX = [
-  { nom: 'collection', icone: 'grid', libelle: 'Planche' },
+  { nom: 'collection', icone: 'grid', libelle: 'Collection' },
   { nom: 'arena', icone: 'arena', libelle: 'Arène' },
   { nom: 'season', icone: 'season', libelle: 'Saison' },
   { nom: 'shop', icone: 'shop', libelle: 'Boutique' },
@@ -86,7 +86,7 @@ onUnmounted(() => clearTimeout(cooldownTimer))
 </script>
 
 <template>
-  <header class="rail">
+  <header class="rail" :data-place="place">
     <div class="rail-haut">
       <div class="wordmark">PR<span>·</span>DEX</div>
 
@@ -121,7 +121,7 @@ onUnmounted(() => clearTimeout(cooldownTimer))
     <div v-if="place === 'collection'" class="rail-bas">
       <div class="progress">
         <div class="progress-head">
-          <span class="eyebrow">Collection</span>
+          <span class="eyebrow">Espèces rencontrées</span>
           <span class="progress-count"><b>{{ String(caughtCount).padStart(3, '0') }}</b><i> / 151</i></span>
         </div>
         <div class="bar"><div class="bar-fill" :style="{ width: (caughtCount / 151 * 100) + '%' }"></div></div>

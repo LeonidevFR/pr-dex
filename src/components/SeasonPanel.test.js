@@ -89,3 +89,23 @@ describe('SeasonPanel', () => {
     expect(w.findAll('.saison-rang')).toHaveLength(0)
   })
 })
+
+/**
+ * Une saison met quelque chose sur la table : le savoir change la façon de la jouer. Le badge
+ * s'affiche donc en tête, et sans rang — il n'est encore à personne.
+ */
+describe('le badge en jeu', () => {
+  it('montre le badge de la saison en cours, sans lui coller de rang', () => {
+    const w = monter()
+    const prix = w.find('.saison-prix .sbadge')
+    expect(prix.exists()).toBe(true)
+    expect(prix.find('.sbadge-rang').exists()).toBe(false)
+    expect(prix.attributes('aria-label')).toContain('en jeu')
+  })
+
+  it('donne à chaque saison le sien', () => {
+    const a = monter({ season: '2026-S4' }).find('.saison-prix svg').attributes('viewBox')
+    const b = monter({ season: '2026-S5' }).find('.saison-prix svg').attributes('viewBox')
+    expect(a).not.toBe(b)
+  })
+})

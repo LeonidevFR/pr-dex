@@ -77,6 +77,21 @@ const palmares = computed(() => props.seasons.map((s) => ({
     </div>
   </div>
 
+  <!--
+    Le badge en jeu, en tête : c'est ce que la saison met sur la table, et le savoir change la
+    façon de la jouer. Sans rang, puisqu'il n'est encore à personne.
+  -->
+  <div class="sect saison-prix">
+    <SeasonBadge :season="season" :rank="0" :size="84" />
+    <div>
+      <div class="eyebrow">Le badge en jeu</div>
+      <p class="muted" style="margin-top:7px">
+        Les trois premiers l’épinglent à leur profil à la clôture. Il change à chaque saison,
+        et une saison ne se rejoue pas.
+      </p>
+    </div>
+  </div>
+
   <div class="sect">
     <div class="arena-head">
       <div>

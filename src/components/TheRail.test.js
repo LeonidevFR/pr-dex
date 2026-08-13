@@ -152,7 +152,7 @@ describe('les onglets', () => {
 
   it('offre les cinq lieux', () => {
     const w = mountRail()
-    for (const l of ['Planche', 'Arène', 'Saison', 'Boutique', 'Profil']) {
+    for (const l of ['Collection', 'Arène', 'Saison', 'Boutique', 'Profil']) {
       expect(onglet(w, l), l).toBeDefined()
     }
   })
@@ -174,7 +174,7 @@ describe('les onglets', () => {
   // ailleurs : la pastille reste sur l'onglet de la planche, où l'ouverture se fait.
   it('porte la pastille des plis sur l’onglet de la planche', () => {
     const w = mountRail({ pendingCount: 3 })
-    expect(onglet(w, 'Planche').find('.pip').text()).toBe('3')
+    expect(onglet(w, 'Collection').find('.pip').text()).toBe('3')
     expect(onglet(w, 'Arène').find('.pip').exists()).toBe(false)
   })
 

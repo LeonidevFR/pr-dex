@@ -209,7 +209,7 @@ describe('les lieux ont une URL', () => {
     expect(w.findAll('.cell')).toHaveLength(0)
 
     // On quitte un lieu en allant dans un autre, plus en refermant une croix.
-    await onglet(w, 'Planche').trigger('click')
+    await onglet(w, 'Collection').trigger('click')
     await flushPromises()
     expect(chemin()).toBe('/')
     expect(w.findAll('.cell').length).toBeGreaterThan(0)

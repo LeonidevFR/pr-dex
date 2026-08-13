@@ -4,6 +4,11 @@ import { badgeOf } from '../lib/badges.js'
 
 const props = defineProps({
   season: { type: String, required: true },
+  /**
+   * Le rang obtenu, ou `0` quand le badge n'est pas encore gagné — il se montre alors sans
+   * pastille : coller « 1er » sur une médaille qui n'est à personne serait un mensonge, et la
+   * masquer entièrement priverait la saison de ce qu'elle met en jeu.
+   */
   rank: { type: Number, default: 1 },
   size: { type: Number, default: 34 },
 })
@@ -39,9 +44,10 @@ const rangCourt = computed(() => RANG[props.rank] ?? `${props.rank}e`)
 <template>
   <span
     class="sbadge" :style="{ '--taille': size + 'px', '--medaille': teinte }"
-    role="img" :aria-label="`Badge de la saison ${season}, rang ${rank}`"
+    role="img"
+    :aria-label="rank ? `Badge de la saison ${season}, rang ${rank}` : `Badge en jeu pour la saison ${season}`"
   >
     <svg :viewBox="badge.viewBox" :width="size" :height="size" aria-hidden="true" v-html="contenu"></svg>
-    <span class="sbadge-rang mono" aria-hidden="true">{{ rangCourt }}</span>
+    <span v-if="rank" class="sbadge-rang mono" aria-hidden="true">{{ rangCourt }}</span>
   </span>
 </template>

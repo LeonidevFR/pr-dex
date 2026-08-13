@@ -56,7 +56,7 @@ const visibleIds = computed(() =>
   <div class="gen-tabs">
     <button
       class="filter-chip" :class="{ active: gen === 1 }" @click="emit('set-gen', 1)"
-    >Planche · {{ caughtInGen }}/151</button>
+    >Génération 1 · {{ caughtInGen }}/151</button>
     <button
       class="filter-chip" :class="{ active: gen === 2 }" @click="emit('set-gen', 2)"
     >Génération 2 · {{ gen === 2 ? caughtInGen : '—' }}/100</button>
