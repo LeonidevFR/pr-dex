@@ -32,6 +32,8 @@ const PATHS = {
       + '<polygon points="12 1.5 12 8.5 16.5 5" fill="currentColor" stroke="none"/>',
   // L'entonnoir d'origine du rail, repris au trait près.
   filter: '<polygon points="3 4 21 4 14 12.5 14 20 10 20 10 12.5 3 4"/>',
+  // Une médaille à ruban : la saison, et ce qu'elle met en jeu.
+  season: '<circle cx="12" cy="9" r="6"/><path d="m8.2 14.3-1.7 6.2 5.5-3 5.5 3-1.7-6.2"/>',
   // Une tête et des épaules : le profil.
   profile: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
   close: '<path d="M18 6 6 18M6 6l12 12"/>',

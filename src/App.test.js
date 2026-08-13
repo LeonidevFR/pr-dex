@@ -278,3 +278,29 @@ describe('le profil', () => {
     expect(w.text()).toContain('Personne ne joue sous ce nom')
   })
 })
+
+/**
+ * La saison ferme la boucle des cinq lieux : c'est le seul écran qui mène à un autre profil
+ * que le sien, et donc le seul endroit d'où un pseudonyme devient une adresse.
+ */
+describe('la saison', () => {
+  it('s’ouvre à son adresse depuis le rail', async () => {
+    const w = await mountApp()
+    await w.findAll('.gear').find((b) => b.attributes('title') === 'Saison').trigger('click')
+    await flushPromises()
+    expect(location.pathname).toBe('/season')
+    expect(w.findAll('.panel-plate').some((p) => p.text().startsWith('SAISON'))).toBe(true)
+  })
+
+  // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
+  it('emmène au profil d’un joueur du classement', async () => {
+    window.history.replaceState({}, '', '/season?demo')
+    const w = await mountApp()
+    await flushPromises()
+    const autre = w.findAll('.saison-rang').find((r) => r.find('.nom').text() !== 'toi')
+    await autre.trigger('click')
+    await flushPromises()
+    expect(location.pathname).toMatch(/^\/profile\//)
+    expect(w.find('.panel-name').exists()).toBe(true)
+  })
+})

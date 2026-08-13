@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER,
-  SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP,
-  CHALLENGE_EXPIRY_HOURS,
-} from './arena-economy.js'
+import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason } from './arena-economy.js'
 import { TIER_ORDER } from './species.js'
 
 describe('coveredTier', () => {
@@ -85,5 +81,63 @@ describe('plafonds de jeu', () => {
     expect(PAIR_WEEKLY_CAP).toBe(2)
     expect(CHALLENGE_EXPIRY_HOURS).toBe(24)
     expect(SEASON_PODIUM).toEqual([1000, 500, 250])
+  })
+})
+
+/**
+ * Les bornes d'une saison se déduisent de son nom : deux mois de calendrier, rien de stocké.
+ * Une date de début consignée en base pourrait diverger du découpage, qui est un calcul.
+ */
+describe('bornes de saison', () => {
+  it('couvre les deux mois que son numéro désigne', () => {
+    const { start, end } = seasonBounds('2026-S4')
+    expect(start.getMonth()).toBe(6)   // juillet
+    expect(start.getDate()).toBe(1)
+    expect(end.getMonth()).toBe(7)     // août
+    expect(end.getDate()).toBe(31)
+  })
+
+  it('place la première saison sur janvier et février', () => {
+    const { start, end } = seasonBounds('2027-S1')
+    expect(start.getFullYear()).toBe(2027)
+    expect(start.getMonth()).toBe(0)
+    expect(end.getMonth()).toBe(1)
+  })
+
+  // Février fait 28 ou 29 jours : la borne se déduit du calendrier, jamais d'un compte fixe.
+  it('suit les années bissextiles', () => {
+    expect(seasonBounds('2028-S1').end.getDate()).toBe(29)
+    expect(seasonBounds('2027-S1').end.getDate()).toBe(28)
+  })
+
+  // La fin est le dernier instant de la saison, pas le premier de la suivante — sinon l'écran
+  // annoncerait un jour de plus qu'il n'en reste.
+  it('finit à la dernière seconde, et non au lendemain', () => {
+    const { end } = seasonBounds('2026-S4')
+    expect(end.getHours()).toBe(23)
+    expect(seasonOf(end)).toBe('2026-S4')
+  })
+
+  it('se recoupe avec seasonOf sur toute une année', () => {
+    for (let mois = 0; mois < 12; mois++) {
+      const jour = new Date(2026, mois, 15)
+      const { start, end } = seasonBounds(seasonOf(jour))
+      expect(jour >= start && jour <= end).toBe(true)
+    }
+  })
+})
+
+describe('jours restants', () => {
+  it('compte le jour courant, où l’on peut encore engager', () => {
+    expect(daysLeftInSeason('2026-S4', new Date(2026, 7, 31, 8, 0))).toBe(1)
+  })
+
+  it('rend zéro une fois la saison passée', () => {
+    expect(daysLeftInSeason('2026-S4', new Date(2026, 8, 1))).toBe(0)
+  })
+
+  it('donne la durée entière au premier jour', () => {
+    // Juillet et août : 62 jours.
+    expect(daysLeftInSeason('2026-S4', new Date(2026, 6, 1, 0, 0))).toBe(62)
   })
 })

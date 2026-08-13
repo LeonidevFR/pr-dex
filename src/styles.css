@@ -803,3 +803,50 @@
   .prof-badges{display:flex;gap:20px;flex-wrap:wrap}
   .prof-badge{display:flex;flex-direction:column;align-items:center;gap:7px}
   .prof-badge span{font-size:10.5px;color:var(--ink-2)}
+
+  /* ───────── saison ───────── */
+  .saison-sablier{
+    height:6px;background:var(--paper-lo);border:1px solid var(--rule);position:relative;
+    overflow:hidden;margin-top:16px;
+  }
+  .saison-sablier i{position:absolute;inset:0 auto 0 0;background:var(--herb)}
+
+  /* Chaque rang est un bouton : le pseudo mène au profil, ce qui donne enfin une raison de
+     cliquer sur un nom qu'on regarde depuis des semaines. */
+  .saison-rangs{display:flex;flex-direction:column}
+  .saison-rang{
+    display:flex;align-items:center;gap:13px;width:100%;padding:11px 0;cursor:pointer;
+    border:0;border-bottom:1px solid rgba(179,161,121,.4);background:transparent;
+    font-family:var(--f-label);text-align:left;color:var(--ink-2);
+  }
+  .saison-rang:last-child{border-bottom:0}
+  .saison-rang:hover{color:var(--ink)}
+  .saison-rang:hover .nom{text-decoration:underline;text-underline-offset:3px}
+  .saison-rang .pos{width:20px;font-size:11px;color:var(--ink-3)}
+  .saison-rang.podium .pos{color:var(--ochre);font-weight:600}
+  .saison-rang .nom{width:88px;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .saison-rang .piste{flex:1;height:7px;background:var(--paper-lo);position:relative;min-width:60px}
+  .saison-rang .piste i{position:absolute;inset:0 auto 0 0;background:var(--rule-hi)}
+  .saison-rang .pts{width:46px;text-align:right;font-size:13px}
+  .saison-rang.moi{color:var(--ink)}
+  .saison-rang.moi .nom,.saison-rang.moi .pts{font-weight:600;color:var(--ochre)}
+  .saison-rang.moi .piste i{background:var(--ochre)}
+
+  .saison-bareme{display:flex;flex-direction:column}
+  .saison-ligne{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(179,161,121,.4)}
+  .saison-ligne:last-child{border-bottom:0}
+  .saison-ligne .pastille{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+  .saison-ligne .quoi{flex:1;font-size:12.5px;color:var(--ink-2)}
+  .saison-ligne .pts{font-size:13.5px}
+  .saison-ligne .sous{width:56px;text-align:right;font-size:11px;color:var(--ink-3)}
+
+  .saison-etagere{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:18px 12px}
+  .saison-socle{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .saison-socle .qd{font-size:10px;color:var(--ink-3)}
+  .saison-socle .rg{font-size:11px;color:var(--ink)}
+  .saison-socle.vide .rg{color:var(--ink-3)}
+  /* Le socle vide est gravé, pas absent : il dit qu'une place existait et n'a pas été prise. */
+  .socle-vide{
+    width:46px;height:46px;border-radius:50%;border:1px dashed var(--rule-hi);opacity:.65;
+    background:radial-gradient(circle at 50% 42%, rgba(44,38,32,.06), transparent 62%);
+  }

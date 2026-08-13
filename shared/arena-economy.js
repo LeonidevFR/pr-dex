@@ -89,3 +89,30 @@ export function seasonOf(date = new Date()) {
   const d = new Date(date)
   return `${d.getFullYear()}-S${Math.ceil((d.getMonth() + 1) / 2)}`
 }
+
+/**
+ * Les bornes d'une saison, déduites de son seul nom : `2026-S4` couvre juillet et août 2026.
+ *
+ * Rien n'est stocké en base pour ça, et rien ne doit l'être — une date de début consignée
+ * pourrait diverger du découpage qui, lui, est un calcul. La règle est déjà écrite deux fois,
+ * ici et en SQL ; l'écrire une troisième fois en données inviterait la contradiction.
+ *
+ * La fin est le dernier instant de la saison et non le premier de la suivante : `31 août
+ * 23 h 59 m 59 s` se lit et s'affiche, `1er septembre 00 h 00` ferait dire à l'écran qu'il
+ * reste un jour de plus qu'en réalité.
+ */
+export function seasonBounds(season) {
+  const [annee, numero] = season.split('-S').map(Number)
+  const debut = new Date(annee, (numero - 1) * 2, 1)
+  const fin = new Date(annee, numero * 2, 0, 23, 59, 59, 999)
+  return { start: debut, end: fin }
+}
+
+/**
+ * Ce qu'il reste à jouer, en jours entiers. Le jour courant compte : à 8 h du matin le dernier
+ * jour, il reste bien un jour pour engager, pas zéro.
+ */
+export function daysLeftInSeason(season, now = new Date()) {
+  const { end } = seasonBounds(season)
+  return Math.max(0, Math.ceil((end - now) / 86_400_000))
+}

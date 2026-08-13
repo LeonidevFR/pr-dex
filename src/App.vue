@@ -9,6 +9,7 @@ import SettingsPanel from './components/SettingsPanel.vue'
 import ArenaPanel from './components/ArenaPanel.vue'
 import ShopPanel from './components/ShopPanel.vue'
 import ProfilePanel from './components/ProfilePanel.vue'
+import SeasonPanel from './components/SeasonPanel.vue'
 import DuelOverlay from './components/DuelOverlay.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
@@ -44,6 +45,7 @@ const selected = computed(() => (route.value.name === 'collection' ? route.value
 const arenaOpen = computed(() => route.value.name === 'arena')
 const shopOpen = computed(() => route.value.name === 'shop')
 const profileOpen = computed(() => route.value.name === 'profile')
+const seasonOpen = computed(() => route.value.name === 'season')
 
 /**
  * Le dossier affiché. Sans pseudo dans l'URL c'est le sien, avec c'est celui d'un collègue —
@@ -325,6 +327,7 @@ useKeyboardNav({
       :filters-open="filters.open.value" :filters-active="filters.active.value"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
       @arena="router.go('arena')" @shop="router.go('shop')" @profile="router.go('profile')"
+      @season="router.go('season')"
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
@@ -386,6 +389,15 @@ useKeyboardNav({
         v-if="shopOpen && arena"
         :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
         @close="router.go('collection')" @buy="onBuy"
+      />
+    </transition>
+
+    <transition name="fade">
+      <SeasonPanel
+        v-if="seasonOpen && arena"
+        :season="arena.season.value" :leaderboard="arena.leaderboard.value"
+        :seasons="arena.seasons.value" :user-id="userId"
+        @close="router.go('collection')" @profile="(p) => router.go('profile', p)"
       />
     </transition>
 

@@ -18,14 +18,9 @@ describe('parseRoute', () => {
   })
 
   it('reconnaît les lieux qui ont un écran', () => {
-    for (const nom of ['collection', 'arena', 'shop', 'profile']) {
+    for (const nom of ['collection', 'arena', 'season', 'shop', 'profile']) {
       expect(parse(`/pr-dex/${nom}`)).toEqual({ name: nom, param: null })
     }
-  })
-
-  // Spécifiée, pas encore construite : mieux vaut ramener à la planche qu'ouvrir du vide.
-  it('ramène à la planche un lieu pas encore construit', () => {
-    expect(parse('/pr-dex/season')).toEqual({ name: 'collection', param: null })
   })
 
   // Le seul lien qu'on ait envie d'envoyer à un collègue, avec la fiche d'une espèce.
@@ -82,6 +77,7 @@ describe('routePath', () => {
       { name: 'collection', param: null }, { name: 'collection', param: 25 },
       { name: 'arena', param: null }, { name: 'shop', param: null },
       { name: 'profile', param: null }, { name: 'profile', param: 'marion' },
+      { name: 'season', param: null },
     ]
     for (const r of routes) expect(parseRoute(routePath(r, '/pr-dex/'), '/pr-dex/')).toEqual(r)
   })

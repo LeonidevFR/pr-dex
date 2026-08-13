@@ -18,11 +18,8 @@ import { DEX } from '../../shared/species.js'
  * dans l'URL sans jamais faire partie de la route, et c'est `BASE_URL` qui le porte, pour que
  * le jour où un vrai domaine arrive il n'y ait qu'une ligne de configuration à changer.
  */
-/**
- * Les lieux qui ont un écran. `season` reste dehors tant que sa vue n'existe pas : une URL qui
- * s'ouvre sur du vide est pire qu'une URL inconnue — celle-là au moins ramène à la planche.
- */
-export const ROUTES = ['collection', 'arena', 'shop', 'profile']
+/** Les cinq lieux de l'application, chacun avec son écran. */
+export const ROUTES = ['collection', 'arena', 'season', 'shop', 'profile']
 
 /** Seuls ces deux lieux désignent quelque chose de précis : une espèce, une personne. */
 const AVEC_PARAM = { collection: 'species', profile: 'pseudo' }
