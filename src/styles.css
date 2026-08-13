@@ -780,10 +780,6 @@
 .evo-btn.confirming { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
   /* ───────── profil ───────── */
-  .prof-bascule{
-    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-    padding:14px 26px;border-bottom:1.5px solid var(--rule);background:var(--plate-hi);
-  }
   /* Un filet d'un pixel et demi entre les cases, obtenu par la couleur de fond de la grille :
      plus net qu'une bordure par case, qui doublerait aux jointures. */
   .prof-cases{

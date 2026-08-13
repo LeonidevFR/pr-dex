@@ -269,7 +269,6 @@ describe('le profil', () => {
     await flushPromises()
     expect(w.find('.panel-name').text()).toBe('bob')
     expect(w.findAll('.prof-case.secret')).toHaveLength(4)
-    expect(w.find('.prof-bascule').exists()).toBe(false)
   })
 
   it('explique un pseudonyme qui ne joue pas, au lieu d’un dossier vide', async () => {

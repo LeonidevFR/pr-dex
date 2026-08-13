@@ -27,7 +27,7 @@ describe('ProfilePanel', () => {
     const w = monter()
     expect(valeurDe(w, 'Exemplaires').find('b').text()).toBe('243')
     expect(valeurDe(w, 'Pokédollars').find('b').text()).toBe('1250 ₽')
-    expect(valeurDe(w, 'Crédits').find('b').text()).toBe('3')
+    expect(valeurDe(w, 'Crédits d’arène').find('b').text()).toBe('3')
     expect(valeurDe(w, 'Exemplaires perdus').find('b').text()).toBe('4')
   })
 
@@ -35,7 +35,7 @@ describe('ProfilePanel', () => {
   // reviendrait à afficher un classement de productivité.
   it('caviarde chez un collègue ce qui ne se publie pas', () => {
     const w = monter({ pseudo: 'marion', prive: null })
-    for (const l of ['Exemplaires', 'Pokédollars', 'Crédits', 'Exemplaires perdus']) {
+    for (const l of ['Exemplaires', 'Pokédollars', 'Crédits d’arène', 'Exemplaires perdus']) {
       expect(valeurDe(w, l).classes()).toContain('secret')
       expect(valeurDe(w, l).find('b').text()).toBe('—')
     }
@@ -57,19 +57,19 @@ describe('ProfilePanel', () => {
   })
 
   /**
-   * La question que tout le monde se pose une fois — qu'est-ce que les autres voient de moi ? —
-   * mérite une réponse d'un clic plutôt qu'une note de bas de page.
+   * Chez soi, on veut voir ses affaires — pas les trous qu'un tiers verrait à leur place. Aucun
+   * caviardage, et aucun bouton pour en demander : la règle de visibilité se lit en une phrase
+   * sous le tableau, elle n'a pas à abîmer l'écran de son propriétaire.
    */
-  it('permet de relire son propre dossier avec les yeux d’un collègue', async () => {
+  it('ne caviarde jamais son propre dossier, et n’offre pas de le faire', () => {
     const w = monter()
     expect(w.findAll('.prof-case.secret')).toHaveLength(0)
-    await w.find('.prof-bascule .filter-chip').trigger('click')
-    expect(w.findAll('.prof-case.secret')).toHaveLength(4)
-    expect(valeurDe(w, 'Espèces').find('b').text()).toBe('087')
+    expect(w.text()).not.toContain('Caviarder')
   })
 
-  it('n’offre pas ce miroir chez quelqu’un d’autre, où il n’a aucun sens', () => {
-    expect(monter({ pseudo: 'marion' }).find('.prof-bascule').exists()).toBe(false)
+  // Le mot « crédits » seul se lisait comme des plis à ouvrir : ce sont des engagements d'arène.
+  it('dit de quels crédits il s’agit', () => {
+    expect(monter().text()).toContain('Crédits d’arène')
   })
 
   it('dresse l’étagère des podiums, et d’eux seuls', () => {

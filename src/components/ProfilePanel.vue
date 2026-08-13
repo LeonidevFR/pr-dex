@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 import SeasonBadge from './SeasonBadge.vue'
 
@@ -26,15 +26,12 @@ defineEmits(['close'])
 const cestMoi = computed(() => !props.pseudo)
 
 /**
- * Le caviardage. On regarde son propre dossier avec les yeux d'un collègue, d'un seul geste.
- *
- * Ce n'est pas une démonstration : c'est le MÊME gabarit que celui d'un profil visité. Le
- * montrer sous un bouton répond à la question que tout le monde se pose une fois — qu'est-ce
- * que les autres voient de moi ? — et il vaut mieux y répondre d'un clic que par une note de
- * bas de page que personne ne lit.
+ * Le caviardage ne concerne QUE le dossier d'un collègue. On avait offert de relire le sien
+ * avec les yeux des autres, sous un bouton : chez soi, on veut voir ses affaires, pas les
+ * trous qu'un tiers verrait à leur place. La règle de visibilité se lit en une phrase sous le
+ * tableau ; elle n'a pas besoin d'abîmer l'écran de son propriétaire pour se faire comprendre.
  */
-const caviarde = ref(false)
-const public_ = computed(() => !cestMoi.value || caviarde.value)
+const public_ = computed(() => !cestMoi.value)
 
 /**
  * Le dossier, dans l'ordre où on le lit. `secret` marque ce qui ne sort jamais de chez soi —
@@ -48,7 +45,9 @@ const cases = computed(() => {
     { v: String(d.species ?? 0).padStart(3, '0'), l: 'Espèces' },
     { v: p.copies ?? '—', l: 'Exemplaires', secret: true },
     { v: p.pokedollars != null ? `${p.pokedollars} ₽` : '—', l: 'Pokédollars', secret: true },
-    { v: p.credits ?? '—', l: 'Crédits', secret: true },
+    // « Crédits » tout court se lisait comme des plis à ouvrir. Ce sont des engagements
+    // d'arène : un par jour, cinq au plus, perdus le dimanche soir.
+    { v: p.credits ?? '—', l: 'Crédits d’arène', secret: true },
     { v: d.wins ?? 0, l: 'Duels gagnés' },
     { v: d.losses ?? 0, l: 'Perdus' },
     { v: props.points, l: `Points · ${props.season}` },
@@ -95,14 +94,6 @@ const palmares = computed(() => {
       </div>
 
       <template v-else>
-        <div v-if="cestMoi" class="prof-bascule">
-          <span class="muted" style="flex:1">Voir ton dossier comme un collègue le voit</span>
-          <button
-            class="filter-chip" :class="{ active: caviarde }" :aria-pressed="caviarde"
-            style="--tier:var(--stamp)" @click="caviarde = !caviarde"
-          >{{ caviarde ? 'Revenir à ta vue' : 'Caviarder' }}</button>
-        </div>
-
         <div class="prof-cases">
           <div
             v-for="c in cases" :key="c.l"
@@ -114,12 +105,17 @@ const palmares = computed(() => {
         </div>
 
         <div class="sect">
-          <p class="muted">
-            <b>Les espèces se publient, les exemplaires jamais.</b> Le nombre d’espèces plafonne
-            à 151 et sature vite ; le nombre d’exemplaires, lui, ne plafonne pas — c’est un
-            compteur brut de PR mergées, et l’afficher reviendrait à publier un classement de
-            productivité. La règle est tenue en base : l’agrégat public est une vue qui ne
-            contient pas ces colonnes.
+          <p v-if="cestMoi" class="muted">
+            <b>Ce tableau n’est visible que par toi.</b> Les collègues voient tes espèces, tes
+            victoires et tes défaites — jamais tes exemplaires, ta caisse ni tes crédits. Le
+            nombre d’exemplaires est un compteur brut de PR mergées, et l’afficher reviendrait à
+            publier un classement de productivité. La règle est tenue en base : l’agrégat public
+            est une vue qui ne contient pas ces colonnes.
+          </p>
+          <p v-else class="muted">
+            <b>Les cases barrées ne se publient pas</b>, et personne ne les voit — pas plus toi
+            chez les autres qu’eux chez toi. Les espèces, elles, plafonnent à 151 et saturent
+            vite : elles ne disent rien du volume de travail de personne.
           </p>
         </div>
 
