@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { badgeOf } from '../lib/badges.js'
 
 const props = defineProps({
   season: { type: String, required: true },
@@ -8,50 +9,39 @@ const props = defineProps({
 })
 
 /**
- * Un badge dessiné plutôt qu'une image.
+ * Le badge d'arène de la saison.
  *
- * Les badges d'arène officiels existent en SVG sous licence libre, mais ils sont quarante et
- * demandent un découpage — et surtout ils épuisent leur stock au bout de six ans de saisons.
- * Une forme dérivée du nom de la saison ne s'épuise jamais, ne pèse rien, et donne à la saison
- * 12 un badge aussi distinct qu'à la première.
+ * Il était dessiné par le programme jusqu'ici — une étoile dont le nombre de branches dérivait
+ * du nom de la saison. C'était une solution au manque de badges ; il n'y a plus de manque, et
+ * une vraie médaille vaut mieux qu'une forme dérivée d'un hachage.
  *
- * Le hachage est volontairement trivial : ce n'est pas une empreinte, c'est un moyen d'obtenir
- * deux formes qui ne se ressemblent pas.
+ * Le rang ne colore pas le badge : les huit ont leurs couleurs propres, les repeindre en or,
+ * argent et bronze les rendrait méconnaissables et ferait de huit médailles distinctes trois
+ * nuances de la même. Il est porté à côté, par une pastille, et écrit en clair — la couleur
+ * seule ne se lit pas de la même façon par tout le monde.
  */
-const graine = computed(() =>
-  [...props.season].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9973, 7))
+const badge = computed(() => badgeOf(props.season))
+
+/**
+ * Le style de la planche d'origine voyage AVEC le dessin, dans le contenu injecté : un
+ * `<style>` écrit dans le gabarit serait intercepté par le compilateur de composant, qui le
+ * prendrait pour la feuille de style du fichier.
+ */
+const contenu = computed(() => `<style>${badge.value.css}</style>${badge.value.body}`)
 
 const OR = ['#c9a227', '#9aa0a6', '#a9713b']
-const couleur = computed(() => OR[Math.min(props.rank, 3) - 1])
+const teinte = computed(() => OR[Math.min(Math.max(props.rank, 1), 3) - 1])
 
-/** Entre cinq et huit branches : en deçà ce n'est plus une médaille, au-delà c'est un soleil. */
-const branches = computed(() => 5 + (graine.value % 4))
-const rotation = computed(() => graine.value % 40)
-
-const points = computed(() => {
-  const n = branches.value
-  const r = 16
-  const petit = 7 + (graine.value % 4)
-  return Array.from({ length: n * 2 }, (_, i) => {
-    const rayon = i % 2 ? petit : r
-    const angle = (Math.PI * i) / n - Math.PI / 2
-    return `${20 + rayon * Math.cos(angle)},${20 + rayon * Math.sin(angle)}`
-  }).join(' ')
-})
+const RANG = { 1: '1er', 2: '2e', 3: '3e' }
+const rangCourt = computed(() => RANG[props.rank] ?? `${props.rank}e`)
 </script>
 
 <template>
-  <svg
-    :width="size" :height="size" viewBox="0 0 40 40" role="img"
-    :aria-label="`Badge de la saison ${season}, rang ${rank}`"
+  <span
+    class="sbadge" :style="{ '--taille': size + 'px', '--medaille': teinte }"
+    role="img" :aria-label="`Badge de la saison ${season}, rang ${rank}`"
   >
-    <g :transform="`rotate(${rotation} 20 20)`">
-      <polygon :points="points" :fill="couleur" fill-opacity=".22" :stroke="couleur" stroke-width="1.4" />
-    </g>
-    <circle cx="20" cy="20" r="7.5" :fill="couleur" fill-opacity=".9" />
-    <text
-      x="20" y="20" text-anchor="middle" dominant-baseline="central"
-      font-family="ui-monospace, monospace" font-size="8" font-weight="700" fill="#fdfaf3"
-    >{{ rank }}</text>
-  </svg>
+    <svg :viewBox="badge.viewBox" :width="size" :height="size" aria-hidden="true" v-html="contenu"></svg>
+    <span class="sbadge-rang mono" aria-hidden="true">{{ rangCourt }}</span>
+  </span>
 </template>

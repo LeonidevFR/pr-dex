@@ -279,7 +279,7 @@ describe('saison', () => {
 
   it('donne au badge le rang réellement obtenu', async () => {
     const w = await enSaison({ seasons: closes })
-    expect(w.find('.arena-badge svg').attributes('aria-label')).toContain('rang 2')
+    expect(w.find('.arena-badge .sbadge').attributes('aria-label')).toContain('rang 2')
   })
 
   it('ne montre aucune section de badges à qui n’en a pas', async () => {
