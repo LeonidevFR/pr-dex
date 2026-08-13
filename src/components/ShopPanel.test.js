@@ -86,7 +86,7 @@ describe('confirmation d’achat', () => {
   it('renonce si on clique ailleurs', async () => {
     const w = panel()
     await article(w).trigger('click')
-    await w.find('.panel').trigger('click')
+    await w.find('.page').trigger('click')
     await article(w).trigger('click')
     expect(w.emitted('buy')).toBeUndefined()
   })

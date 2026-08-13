@@ -31,16 +31,20 @@ afterEach(() => {
  * reste figé sur `<body>` et toute la discipline de focus testée ici devient invérifiable.
  * Le chargement de la démo passe par un `import()` dynamique : au tout premier montage, Vite
  * doit encore transformer le module, ce qui coûte du vrai temps et non un simple tour de boucle
- * de microtâches — vider les promesses ne suffit donc pas. On sonde jusqu'à voir la planche
+ * de microtâches — vider les promesses ne suffit donc pas. On sonde jusqu'à voir le rail
  * plutôt que d'attendre un délai fixe, qui serait tantôt trop court tantôt gaspillé.
+ *
+ * Le rail et non la planche : depuis que les lieux sont des pages, la planche n'existe que sur
+ * `/collection`, alors que le rail surmonte les cinq. Sonder la planche revenait à exiger d'être
+ * arrivé sur un écran précis pour considérer l'application montée.
  */
 async function mountApp() {
   wrapper = mount(App, { attachTo: document.body })
-  for (let i = 0; i < 50 && wrapper.findAll('.cell').length === 0; i++) {
+  for (let i = 0; i < 50 && wrapper.findAll('.tab').length === 0; i++) {
     await new Promise((r) => setTimeout(r, 5))
     await flushPromises()
   }
-  expect(wrapper.findAll('.cell').length).toBeGreaterThan(0)
+  expect(wrapper.findAll('.tab').length).toBeGreaterThan(0)
   return wrapper
 }
 
@@ -201,11 +205,14 @@ describe('les lieux ont une URL', () => {
     await onglet(w, 'Arène').trigger('click')
     await flushPromises()
     expect(chemin()).toBe('/arena')
+    // La planche n'est plus dessous : un lieu remplace l'autre, il ne se pose pas par-dessus.
+    expect(w.findAll('.cell')).toHaveLength(0)
 
-    await w.find('.panel .x').trigger('click')
+    // On quitte un lieu en allant dans un autre, plus en refermant une croix.
+    await onglet(w, 'Planche').trigger('click')
     await flushPromises()
     expect(chemin()).toBe('/')
-    expect(w.find('.panel-plate').exists()).toBe(false)
+    expect(w.findAll('.cell').length).toBeGreaterThan(0)
   })
 
   it('donne son adresse à la fiche d’une espèce', async () => {

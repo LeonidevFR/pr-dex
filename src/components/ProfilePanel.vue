@@ -21,7 +21,6 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   introuvable: { type: Boolean, default: false },
 })
-defineEmits(['close'])
 
 const cestMoi = computed(() => !props.pseudo)
 
@@ -67,77 +66,74 @@ const palmares = computed(() => {
 </script>
 
 <template>
-  <div class="scrim" @click.self="$emit('close')">
-    <div class="panel" style="width:min(620px,100%)">
-      <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
-        <button class="x" @click="$emit('close')"><AppIcon name="close" :size="13" /></button>
-        <div>
-          <span class="panel-plate mono">PROFIL</span>
-          <h2 class="panel-name" style="font-size:26px;margin-bottom:0">
-            {{ pseudo ?? 'toi' }}
-          </h2>
-          <p v-if="rank && !loading" class="muted" style="margin-top:6px">
-            {{ rank }}<sup>{{ rank === 1 ? 'er' : 'e' }}</sup> de la saison {{ season }}
-          </p>
-        </div>
-      </div>
-
-      <div v-if="loading" class="sect">
-        <div class="arena-wait"><span></span><span></span><span></span></div>
-      </div>
-
-      <div v-else-if="introuvable" class="sect">
-        <p class="muted">
-          Personne ne joue sous ce nom. Un pseudonyme se change — le lien que tu as suivi
-          désigne peut-être quelqu’un qui s’est renommé depuis.
-        </p>
-      </div>
-
-      <template v-else>
-        <div class="prof-cases">
-          <div
-            v-for="c in cases" :key="c.l"
-            class="prof-case" :class="{ secret: c.secret && public_ }"
-          >
-            <b>{{ c.secret && public_ ? '—' : c.v }}</b>
-            <span>{{ c.l }}</span>
-          </div>
-        </div>
-
-        <div class="sect">
-          <p v-if="cestMoi" class="muted">
-            <b>Ce tableau n’est visible que par toi.</b> Les collègues voient tes espèces, tes
-            victoires et tes défaites — jamais tes exemplaires, ta caisse ni tes crédits. Le
-            nombre d’exemplaires est un compteur brut de PR mergées, et l’afficher reviendrait à
-            publier un classement de productivité. La règle est tenue en base : l’agrégat public
-            est une vue qui ne contient pas ces colonnes.
-          </p>
-          <p v-else class="muted">
-            <b>Les cases barrées ne se publient pas</b>, et personne ne les voit — pas plus toi
-            chez les autres qu’eux chez toi. Les espèces, elles, plafonnent à 151 et saturent
-            vite : elles ne disent rien du volume de travail de personne.
-          </p>
-        </div>
-
-        <div class="sect">
-          <div class="eyebrow sect-h">
-            <span>Palmarès</span>
-            <span class="mono" style="font-size:11px;color:var(--ink-3)">
-              {{ palmares.length }} podium{{ palmares.length > 1 ? 's' : '' }}
-            </span>
-          </div>
-          <div v-if="palmares.length" class="prof-badges">
-            <div v-for="p in palmares" :key="p.season" class="prof-badge">
-              <SeasonBadge :season="p.season" :rank="p.rank" :size="46" />
-              <span class="mono">{{ p.season }}</span>
-            </div>
-          </div>
-          <p v-else class="muted">
-            Aucune saison sur le podium pour l’instant. Les trois premiers d’une saison gardent
-            son badge — une saison ne se rejoue pas.
-          </p>
-        </div>
-      </template>
+  <section class="page">
+  <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
+    <div>
+      <span class="panel-plate mono">PROFIL</span>
+      <h2 class="panel-name" style="font-size:26px;margin-bottom:0">
+        {{ pseudo ?? 'toi' }}
+      </h2>
+      <p v-if="rank && !loading" class="muted" style="margin-top:6px">
+        {{ rank }}<sup>{{ rank === 1 ? 'er' : 'e' }}</sup> de la saison {{ season }}
+      </p>
     </div>
   </div>
+
+  <div v-if="loading" class="sect">
+    <div class="arena-wait"><span></span><span></span><span></span></div>
+  </div>
+
+  <div v-else-if="introuvable" class="sect">
+    <p class="muted">
+      Personne ne joue sous ce nom. Un pseudonyme se change — le lien que tu as suivi
+      désigne peut-être quelqu’un qui s’est renommé depuis.
+    </p>
+  </div>
+
+  <template v-else>
+    <div class="prof-cases">
+      <div
+        v-for="c in cases" :key="c.l"
+        class="prof-case" :class="{ secret: c.secret && public_ }"
+      >
+        <b>{{ c.secret && public_ ? '—' : c.v }}</b>
+        <span>{{ c.l }}</span>
+      </div>
+    </div>
+
+    <div class="sect">
+      <p v-if="cestMoi" class="muted">
+        <b>Ce tableau n’est visible que par toi.</b> Les collègues voient tes espèces, tes
+        victoires et tes défaites — jamais tes exemplaires, ta caisse ni tes crédits. Le
+        nombre d’exemplaires est un compteur brut de PR mergées, et l’afficher reviendrait à
+        publier un classement de productivité. La règle est tenue en base : l’agrégat public
+        est une vue qui ne contient pas ces colonnes.
+      </p>
+      <p v-else class="muted">
+        <b>Les cases barrées ne se publient pas</b>, et personne ne les voit — pas plus toi
+        chez les autres qu’eux chez toi. Les espèces, elles, plafonnent à 151 et saturent
+        vite : elles ne disent rien du volume de travail de personne.
+      </p>
+    </div>
+
+    <div class="sect">
+      <div class="eyebrow sect-h">
+        <span>Palmarès</span>
+        <span class="mono" style="font-size:11px;color:var(--ink-3)">
+          {{ palmares.length }} podium{{ palmares.length > 1 ? 's' : '' }}
+        </span>
+      </div>
+      <div v-if="palmares.length" class="prof-badges">
+        <div v-for="p in palmares" :key="p.season" class="prof-badge">
+          <SeasonBadge :season="p.season" :rank="p.rank" :size="46" />
+          <span class="mono">{{ p.season }}</span>
+        </div>
+      </div>
+      <p v-else class="muted">
+        Aucune saison sur le podium pour l’instant. Les trois premiers d’une saison gardent
+        son badge — une saison ne se rejoue pas.
+      </p>
+    </div>
+  </template>
+  </section>
 </template>

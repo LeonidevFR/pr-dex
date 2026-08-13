@@ -884,3 +884,13 @@
     width:46px;height:46px;border-radius:50%;border:1px dashed var(--rule-hi);opacity:.65;
     background:radial-gradient(circle at 50% 42%, rgba(44,38,32,.06), transparent 62%);
   }
+
+  /* ───────── une page, pas une couche ─────────
+     Les lieux étaient des panneaux flottants au-dessus de la planche, avec une croix pour les
+     refermer. Un onglet ne mène pas à une couche : il mène à un endroit. La page occupe donc le
+     flux, sans scrim ni bord de carte — c'est le rail qui la surmonte et les filets de section
+     qui la structurent, comme sur un document. On en sort par un autre onglet, pas par une croix. */
+  .page{display:block;padding-bottom:40px}
+  .page > .panel-top{padding:0 0 18px;border-bottom:1.5px solid var(--rule);gap:22px}
+  .page > .sect{padding:20px 0}
+  .page .panel-name{margin-top:5px}

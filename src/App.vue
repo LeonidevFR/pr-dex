@@ -331,6 +331,7 @@ useKeyboardNav({
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
+      v-if="route.name === 'collection'"
       :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
       :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
       :caught-filter="filters.caughtFilter.value" :gen="gen"
@@ -371,48 +372,39 @@ useKeyboardNav({
       />
     </transition>
 
-    <transition name="fade">
-      <ArenaPanel
-        v-if="arenaOpen && arena"
-        :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
-        :challenges="arena.challenges.value" :engageable="arena.engageable.value"
-        :my-open="arena.myOpen.value" :level-of="arena.levelOf"
-        :form-of-key="arena.formOfKey" :busy="arenaBusy"
-        :preselect="arenaPreselect" :leaderboard="arena.leaderboard.value"
-        :seasons="arena.seasons.value" :season="arena.season.value" :user-id="userId"
-        @close="quitterArene" @engage="onEngage" @accept="onAccept"
-      />
-    </transition>
+    <ArenaPanel
+      v-if="arenaOpen && arena"
+      :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
+      :challenges="arena.challenges.value" :engageable="arena.engageable.value"
+      :my-open="arena.myOpen.value" :level-of="arena.levelOf"
+      :form-of-key="arena.formOfKey" :busy="arenaBusy"
+      :preselect="arenaPreselect" :leaderboard="arena.leaderboard.value"
+      :seasons="arena.seasons.value" :season="arena.season.value" :user-id="userId"
+      @engage="onEngage" @accept="onAccept"
+    />
 
-    <transition name="fade">
-      <ShopPanel
-        v-if="shopOpen && arena"
-        :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
-        @close="router.go('collection')" @buy="onBuy"
-      />
-    </transition>
+    <ShopPanel
+      v-if="shopOpen && arena"
+      :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
+      @buy="onBuy"
+    />
 
-    <transition name="fade">
-      <SeasonPanel
-        v-if="seasonOpen && arena"
-        :season="arena.season.value" :leaderboard="arena.leaderboard.value"
-        :seasons="arena.seasons.value" :user-id="userId"
-        @close="router.go('collection')" @profile="(p) => router.go('profile', p)"
-      />
-    </transition>
+    <SeasonPanel
+      v-if="seasonOpen && arena"
+      :season="arena.season.value" :leaderboard="arena.leaderboard.value"
+      :seasons="arena.seasons.value" :user-id="userId"
+      @profile="(p) => router.go('profile', p)"
+    />
 
-    <transition name="fade">
-      <ProfilePanel
-        v-if="profileOpen"
-        :dossier="dossier" :pseudo="route.param" :prive="dossierPrive"
-        :seasons="arena ? arena.seasons.value : []"
-        :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.points ?? 0) : 0"
-        :rank="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.rank ?? null) : null"
-        :season="arena ? arena.season.value : ''"
-        :loading="!dossierCharge" :introuvable="dossierCharge && !dossier"
-        @close="router.go('collection')"
-      />
-    </transition>
+    <ProfilePanel
+      v-if="profileOpen"
+      :dossier="dossier" :pseudo="route.param" :prive="dossierPrive"
+      :seasons="arena ? arena.seasons.value : []"
+      :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.points ?? 0) : 0"
+      :rank="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.rank ?? null) : null"
+      :season="arena ? arena.season.value : ''"
+      :loading="!dossierCharge" :introuvable="dossierCharge && !dossier"
+    />
 
     <transition name="fade">
       <DuelOverlay
