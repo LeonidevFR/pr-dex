@@ -1204,6 +1204,24 @@ grant select on public.arena_public_profile to authenticated;
 -- Les pokédollars du podium sont modestes et partagés à dessein (spec § 4) : à cinq joueurs,
 -- presque tout le monde touche quelque chose, et le meilleur ne creuse pas un écart matériel
 -- saison après saison. Le badge est la vraie récompense.
+/**
+ * La première saison qui compte pour de bon.
+ *
+ * Le découpage des saisons est un calcul sur le calendrier, pas une date de lancement : la
+ * mise en service tombe donc au milieu d'une saison déjà commencée, dont il ne reste que
+ * quelques jours. Fermer celle-là distribuerait un podium permanent — des badges qui ne se
+ * rejouent pas, gagnés sur deux semaines par des joueurs qui découvrent le mode.
+ *
+ * D'où ce plancher : les saisons antérieures se jouent, marquent des points et s'affichent au
+ * classement, mais ne se ferment jamais et ne décernent rien. C'est un rodage.
+ *
+ * Une seule ligne à changer le jour où la date de mise en service se précise.
+ */
+create or replace function public.arena_first_season()
+returns text language sql immutable as $$ select '2026-S5' $$;
+
+grant execute on function public.arena_first_season() to authenticated;
+
 create or replace function public.arena_close_finished_seasons()
 returns int
 language plpgsql
@@ -1220,6 +1238,9 @@ begin
   for v_season in
     select distinct p.season from public.arena_season_points p
     where p.season <> public.arena_season(now())
+      -- Comparaison textuelle : le format `AAAA-SN` se trie dans l'ordre chronologique tant
+      -- que le numéro tient sur un chiffre, ce que six saisons par an garantissent.
+      and p.season >= public.arena_first_season()
       and not exists (select 1 from public.arena_seasons s where s.season = p.season)
     order by 1
   loop

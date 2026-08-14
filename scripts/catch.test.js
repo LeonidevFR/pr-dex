@@ -98,12 +98,17 @@ describe('main', () => {
     const inserted = []
     const claimed = []
     const expired = []
+    const closed = []
     const fn = vi.fn(async (url, init = {}) => {
       if (url.includes('/rest/v1/identities')) {
         return { ok: true, status: 200, json: async () => identities, headers: new Headers() }
       }
       if (url.includes('/rest/v1/rpc/arena_resolve_expired')) {
         expired.push(url)
+        return { ok: true, status: 200, json: async () => 0, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/rpc/arena_close_finished_seasons')) {
+        closed.push(url)
         return { ok: true, status: 200, json: async () => 0, headers: new Headers() }
       }
       if (url.includes('/rest/v1/arena_packs') && (!init.method || init.method === 'GET')) {
@@ -131,6 +136,7 @@ describe('main', () => {
       return next
     })
     fn.inserted = inserted
+    fn.closed = closed
     fn.claimed = claimed
     fn.expired = expired
     return fn
@@ -371,6 +377,35 @@ describe('main', () => {
     await main()
 
     expect(fetchMock.expired).toHaveLength(1)
+  })
+
+
+  /**
+   * La clôture des saisons se greffe sur le même passage que le reste : l'arène n'a pas son
+   * propre planificateur. Sans cet appel, `arena_close_finished_seasons` existait sans que rien
+   * ne la déclenche — aucune saison ne se serait jamais fermée, et aucun badge n'aurait atterri
+   * sur une étagère.
+   */
+  describe('clôture des saisons', () => {
+    it('demande la clôture à chaque passage de la collecte', async () => {
+      const fetchMock = makeFetch({ identities: [], github: [] })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      expect(fetchMock.closed).toHaveLength(1)
+    })
+
+    // Le podium verse des pokédollars : mieux vaut qu'ils soient en caisse avant que les plis
+    // gagnés ne se matérialisent, pour que le joueur trouve tout en arrivant.
+    it('ferme les saisons avant de matérialiser les plis', async () => {
+      const fetchMock = makeFetch({ identities: [], github: [] })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      const urls = fetchMock.mock.calls.map(([u]) => u)
+      const cloture = urls.findIndex((u) => u.includes('arena_close_finished_seasons'))
+      const plis = urls.findIndex((u) => u.includes('/rest/v1/arena_packs'))
+      expect(cloture).toBeGreaterThanOrEqual(0)
+      expect(cloture).toBeLessThan(plis)
+    })
   })
 
 })

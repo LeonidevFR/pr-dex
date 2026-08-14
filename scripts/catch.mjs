@@ -116,6 +116,27 @@ export async function resolveExpiredDuels(supabaseUrl, serviceKey, fetchFn = fet
   return res.json()
 }
 
+/**
+ * Ferme les saisons révolues : podium consigné, pokédollars versés, badges acquis.
+ *
+ * Comme la péremption des défis, l'arène se greffe sur le planificateur qui existe déjà plutôt
+ * que d'en réclamer un. Une saison finit à minuit le dernier jour du mois et se ferme au
+ * premier passage suivant — quelques heures de décalage sur deux mois de jeu ne changent rien,
+ * et le classement affiché est de toute façon exact avant comme après.
+ *
+ * Sans cet appel, la fonction existait sans que rien ne la déclenche : aucune saison ne se
+ * serait jamais fermée, et aucun badge n'aurait atterri sur une étagère.
+ */
+export async function closeFinishedSeasons(supabaseUrl, serviceKey, fetchFn = fetch) {
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/rpc/arena_close_finished_seasons`, {
+    method: 'POST',
+    headers: sbHeaders(serviceKey),
+    body: '{}',
+  })
+  if (!res.ok) throw new Error(`arena_close_finished_seasons a répondu ${res.status}`)
+  return res.json()
+}
+
 /** Toutes les espèces déjà possédées par un joueur — base des plis « inédit garanti ». */
 export async function fetchAllCatches(supabaseUrl, serviceKey, userId, fetchFn = fetch) {
   const res = await fetchFn(
@@ -244,6 +265,11 @@ export async function main() {
   // un pli, et on préfère le donner tout de suite plutôt qu'au passage suivant.
   const expires = await resolveExpiredDuels(supabaseUrl, serviceKey)
   if (expires) console.log(`arène : ${expires} défi(s) périmé(s) résolu(s) contre l'ordinateur.`)
+
+  // La clôture avant la matérialisation elle aussi : le podium verse des pokédollars, autant
+  // qu'ils soient en caisse quand le joueur revient voir.
+  const closes = await closeFinishedSeasons(supabaseUrl, serviceKey)
+  if (closes) console.log(`arène : ${closes} saison(s) close(s), podium consigné.`)
 
   // Les plis d'arène après les captures de travail, et dans le même run : l'arène n'a pas
   // besoin de son propre déclencheur, elle profite de celui qui existe déjà — y compris du
