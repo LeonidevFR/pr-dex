@@ -91,6 +91,25 @@ export function seasonOf(date = new Date()) {
 }
 
 /**
+ * La première saison qui compte pour de bon.
+ *
+ * Le découpage des saisons est un calcul sur le calendrier, pas une date de lancement : la mise
+ * en service tombe au milieu d'une saison déjà commencée. Celles d'avant se jouent et marquent
+ * des points, mais ne se ferment jamais et ne décernent rien — un rodage.
+ *
+ * Écrite ici ET dans `arena_first_season` côté SQL, avec un test de parité qui les aligne : le
+ * front doit pouvoir dire « ça ne compte pas encore » sans demander l'avis du serveur.
+ */
+export const FIRST_SEASON = '2026-S5'
+
+/**
+ * Vrai tant que la saison ne décerne rien. Comparaison textuelle : le format `AAAA-SN` se trie
+ * dans l'ordre chronologique tant que le numéro tient sur un chiffre, ce que six saisons par an
+ * garantissent.
+ */
+export const isWarmup = (season) => String(season) < FIRST_SEASON
+
+/**
  * Les bornes d'une saison, déduites de son seul nom : `2026-S4` couvre juillet et août 2026.
  *
  * Rien n'est stocké en base pour ça, et rien ne doit l'être — une date de début consignée

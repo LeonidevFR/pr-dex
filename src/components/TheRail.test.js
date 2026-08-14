@@ -232,4 +232,16 @@ describe('le rail prend la couleur du lieu', () => {
     const marques = lieux.map((l) => mountRail({ place: l }).find('.rail').attributes('data-place'))
     expect(new Set(marques).size).toBe(lieux.length)
   })
+
+  /**
+   * Le rail ne peint rien. Un bandeau collé en haut doit peindre un fond sous lui, sinon le
+   * contenu défile au travers — et ce fond se voyait comme une bande, le corps portant un grain
+   * et un halo de lumière que l'aplat recouvrait. Le rail redevient le haut du document : même
+   * papier, même grain, aucune jointure.
+   */
+  it('ne pose aucun fond sur le haut de la page', () => {
+    const rail = mountRail().find('.rail')
+    expect(rail.attributes('style') ?? '').not.toContain('background')
+  })
 })
+

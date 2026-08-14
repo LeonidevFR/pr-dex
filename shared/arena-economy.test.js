@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason } from './arena-economy.js'
+import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason, isWarmup, FIRST_SEASON } from './arena-economy.js'
 import { TIER_ORDER } from './species.js'
 
 describe('coveredTier', () => {
@@ -139,5 +139,21 @@ describe('jours restants', () => {
   it('donne la durée entière au premier jour', () => {
     // Juillet et août : 62 jours.
     expect(daysLeftInSeason('2026-S4', new Date(2026, 6, 1, 0, 0))).toBe(62)
+  })
+})
+
+describe('rodage', () => {
+  it('range les saisons d’avant le lancement du bon côté', () => {
+    expect(isWarmup('2026-S4')).toBe(true)
+    expect(isWarmup('2019-S1')).toBe(true)
+    expect(isWarmup(FIRST_SEASON)).toBe(false)
+    expect(isWarmup('2027-S1')).toBe(false)
+  })
+
+  // Le format se trie chronologiquement tant que le numéro tient sur un chiffre : six saisons
+  // par an le garantissent, et c'est ce qui autorise la comparaison textuelle.
+  it('trie les saisons dans l’ordre du temps, en simple comparaison de texte', () => {
+    const melange = ['2027-S1', '2026-S6', '2026-S1', '2099-S3', '2026-S5']
+    expect([...melange].sort()).toEqual(['2026-S1', '2026-S5', '2026-S6', '2027-S1', '2099-S3'])
   })
 })

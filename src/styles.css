@@ -57,8 +57,16 @@
      Le lieu se dit par le trait, pas par une surface : le filet du bas et le point du sigle
      prennent sa couleur. Deux repères fins valent mieux qu'un aplat, et ils tombent aux deux
      endroits que l'œil vise déjà. */
+  /* AUCUN fond, et donc plus de `position:sticky`. Les deux allaient ensemble : un bandeau
+     collé en haut doit peindre quelque chose sous lui, sinon le contenu défile au travers — et
+     ce quelque chose se voyait comme une bande, parce que le corps porte un grain et un halo de
+     lumière que l'aplat de papier recouvrait.
+
+     Le rail redevient donc le haut du document : même papier, même grain, même lumière, aucune
+     jointure. Il défile avec la page. Ce qu'on y perd est réel — les onglets sortent du champ
+     quand on descend — et ce qu'on y gagne est que le haut de l'écran cesse d'être une pièce
+     rapportée. */
   .rail{
-    position:sticky;top:0;z-index:20;background:var(--paper);
     border-bottom:2px solid var(--lieu, var(--rule-hi));
     padding:18px 0 0;margin-bottom:26px;
     transition:border-color .4s ease;

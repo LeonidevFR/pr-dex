@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { seasonOf } from '../shared/arena-economy.js'
+import { seasonOf, FIRST_SEASON } from '../shared/arena-economy.js'
 import { withDb, dbAvailable } from './db-test-helper.mjs'
 
 const disponible = await dbAvailable()
@@ -30,4 +30,16 @@ describe.skipIf(!disponible)('parité des saisons entre JavaScript et SQL', () =
     })
     expect(obtenus).toEqual(attendus)
   })
+
+  /**
+   * Le plancher de la première saison vit lui aussi en double. Une divergence serait sournoise :
+   * l'écran annoncerait un rodage pendant que le serveur distribuerait des badges, ou l'inverse
+   * — et personne ne s'en apercevrait avant la clôture, au moment où c'est irréversible.
+   */
+  it('accorde le plancher de la première saison', async () => {
+    const enBase = await withDb((c) => c.query('select public.arena_first_season() as s')
+      .then((r) => r.rows[0].s))
+    expect(enBase).toBe(FIRST_SEASON)
+  })
 })
+
