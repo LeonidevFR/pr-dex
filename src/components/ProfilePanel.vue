@@ -2,12 +2,15 @@
 import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 import SeasonBadge from './SeasonBadge.vue'
+import { seasonLabel } from '../../shared/arena-economy.js'
 
 const props = defineProps({
   /** Le dossier public tel que la base le rend : espèces, victoires, défaites. */
   dossier: { type: Object, default: null },
   /** Le pseudo regardé. Absent : c'est le sien. */
   pseudo: { type: String, default: null },
+  /** Son propre pseudonyme, pour titrer son dossier autrement que « toi ». */
+  monPseudo: { type: String, default: null },
   /**
    * Ce qui ne se publie jamais, et n'est donc fourni que pour son propre dossier :
    * `{ copies, pokedollars, credits, destroyed }`.
@@ -48,7 +51,7 @@ const cases = computed(() => {
     { v: p.credits ?? '—', l: 'Crédits d’arène', secret: true },
     { v: d.wins ?? 0, l: 'Duels gagnés' },
     { v: d.losses ?? 0, l: 'Perdus' },
-    { v: props.points, l: `Points · ${props.season}` },
+    { v: props.points, l: `Points · ${seasonLabel(props.season)}` },
     { v: p.destroyed ?? '—', l: 'Exemplaires perdus', secret: true },
   ]
 })
@@ -69,9 +72,17 @@ const palmares = computed(() => {
   <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
     <div>
       <span class="panel-plate mono">PROFIL</span>
+      <!--
+        Son propre dossier porte son nom d'arène : c'est sous celui-là qu'on apparaît partout
+        ailleurs, et le voir ici confirme qu'il est bien posé. « toi » ne subsiste que tant
+        qu'aucun nom n'a été choisi.
+      -->
       <h2 class="panel-name" style="font-size:26px;margin-bottom:0">
-        {{ pseudo ?? 'toi' }}
+        {{ pseudo ?? monPseudo ?? 'toi' }}
       </h2>
+      <p v-if="cestMoi && !monPseudo" class="muted" style="margin-top:6px">
+        Tu n’as pas encore de nom d’arène — les autres ne peuvent pas ouvrir ton profil.
+      </p>
     </div>
   </div>
 
@@ -122,7 +133,7 @@ const palmares = computed(() => {
       <div v-if="palmares.length" class="prof-badges">
         <div v-for="p in palmares" :key="p.season" class="prof-badge">
           <SeasonBadge :season="p.season" :rank="p.rank" :size="46" />
-          <span class="mono">{{ p.season }}</span>
+          <span class="mono">{{ seasonLabel(p.season) }}</span>
         </div>
       </div>
       <p v-else class="muted">

@@ -130,6 +130,29 @@ export function seasonBounds(season) {
  * Ce qu'il reste à jouer, en jours entiers. Le jour courant compte : à 8 h du matin le dernier
  * jour, il reste bien un jour pour engager, pas zéro.
  */
+/**
+ * Le NUMÉRO d'une saison, compté depuis la première. `2026-S5` est la saison 1, `2026-S6` la 2.
+ *
+ * Le code `AAAA-SN` reste la clé en base — il se trie, se calcule et ne dépend d'aucune
+ * convention — mais il ne dit rien à personne. Un joueur retient « la saison 3 », pas
+ * « 2027-S1 ». Les saisons antérieures au lancement rendent 0 : elles n'ont pas de numéro
+ * puisqu'elles n'ont pas eu lieu.
+ */
+export function seasonNumber(season) {
+  const rang = (code) => {
+    const [annee, numero] = String(code).split('-S').map(Number)
+    return Number.isInteger(annee) && Number.isInteger(numero) ? annee * 6 + numero : NaN
+  }
+  const n = rang(season) - rang(FIRST_SEASON) + 1
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
+/** « Saison 3 » quand elle en est une, son code sinon — mieux vaut un code qu'un vide. */
+export const seasonLabel = (season) => {
+  const n = seasonNumber(season)
+  return n ? `Saison ${n}` : String(season)
+}
+
 export const arenaOpensAt = () => seasonBounds(FIRST_SEASON).start
 export const arenaIsOpen = (now = new Date()) => now >= arenaOpensAt()
 

@@ -99,6 +99,14 @@ create table public.arena_duels (
 
 create index arena_duels_open_idx on public.arena_duels (created_at) where status = 'open';
 
+-- Les duels d'un joueur, quel que soit le camp qu'il occupait. `arena_public_profile` compte
+-- ses victoires et ses défaites en balayant la table entière à chaque lecture d'un profil ;
+-- deux index partiels valent mieux qu'un index composite, un duel n'ayant jamais les deux
+-- colonnes utiles à la fois — on cherche « ses » duels, pas une paire précise.
+create index arena_duels_challenger_idx on public.arena_duels (challenger_id);
+create index arena_duels_opponent_idx on public.arena_duels (opponent_id)
+  where opponent_id is not null;
+
 -- Portefeuille persistant, jamais remis à zéro : c'est ce qui rend la thésaurisation possible
 -- sur plusieurs saisons. Le score de saison, lui, repart de zéro — d'où deux tables et non
 -- deux colonnes.

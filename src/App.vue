@@ -20,7 +20,7 @@ import { useTrayFilters } from './composables/useTrayFilters.js'
 import { entryKey } from '../shared/entry.js'
 import { createRouter } from './composables/useRoute.js'
 import { parisDay } from '../shared/battle.js'
-import { arenaIsOpen } from '../shared/arena-economy.js'
+import { arenaIsOpen, FIRST_SEASON } from '../shared/arena-economy.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
@@ -323,7 +323,7 @@ onMounted(async () => {
     client = loadDemoClient()
     demo.value = true
     userId.value = 'demo-moi'
-    arena = useArena(client, collection.dex.claimed, collection.dex.consumedKeys)
+    arena = useArena(client, collection.dex.claimed, collection.dex.consumedKeys, FIRST_SEASON)
     await collection.load(client)
     await arena.load()
     reporterLesPertes()
@@ -513,7 +513,7 @@ useKeyboardNav({
 
     <ProfilePanel
       v-if="profileOpen"
-      :dossier="dossier" :pseudo="route.param" :prive="dossierPrive"
+      :dossier="dossier" :pseudo="route.param" :mon-pseudo="pseudo" :prive="dossierPrive"
       :seasons="arena ? arena.seasons.value : []"
       :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.points ?? 0) : 0"
       :season="arena ? arena.season.value : ''"

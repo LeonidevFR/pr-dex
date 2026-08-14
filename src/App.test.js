@@ -303,7 +303,8 @@ describe('la saison', () => {
     await onglet(w, 'Saison').trigger('click')
     await flushPromises()
     expect(location.pathname).toBe('/season')
-    expect(w.findAll('.panel-plate').some((p) => p.text().startsWith('SAISON'))).toBe(true)
+    // La plaque porte désormais le nom de la saison et son code : « SAISON 1 · 2026-S5 ».
+    expect(w.findAll('.panel-plate').some((p) => /SAISON/.test(p.text()))).toBe(true)
   })
 
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.

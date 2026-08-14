@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason, FIRST_SEASON, arenaIsOpen, arenaOpensAt } from './arena-economy.js'
+import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason, FIRST_SEASON, arenaIsOpen, arenaOpensAt, seasonNumber, seasonLabel } from './arena-economy.js'
 import { TIER_ORDER } from './species.js'
 
 describe('coveredTier', () => {
@@ -163,3 +163,31 @@ describe('ouverture de l’arène', () => {
   })
 })
 
+
+/**
+ * Le code `AAAA-SN` reste la clé en base — il se trie, se calcule, ne dépend d'aucune
+ * convention — mais il ne dit rien à personne. On retient « la saison 3 », pas « 2027-S1 ».
+ */
+describe('nom des saisons', () => {
+  it('compte à partir de la première, qui est la 1', () => {
+    expect(seasonNumber(FIRST_SEASON)).toBe(1)
+    expect(seasonLabel(FIRST_SEASON)).toBe('Saison 1')
+  })
+
+  it('enchaîne d’une année sur l’autre sans repartir de zéro', () => {
+    expect(seasonLabel('2026-S6')).toBe('Saison 2')
+    expect(seasonLabel('2027-S1')).toBe('Saison 3')
+    expect(seasonLabel('2027-S6')).toBe('Saison 8')
+  })
+
+  // Les saisons d'avant le lancement n'ont pas eu lieu : elles n'ont pas de numéro, et mieux
+  // vaut montrer leur code qu'un vide ou un numéro négatif.
+  it('ne numérote pas ce qui n’a pas eu lieu', () => {
+    expect(seasonNumber('2026-S4')).toBe(0)
+    expect(seasonLabel('2026-S4')).toBe('2026-S4')
+  })
+
+  it('ne rend jamais rien, même sur un code illisible', () => {
+    expect(seasonLabel('nawak')).toBe('nawak')
+  })
+})

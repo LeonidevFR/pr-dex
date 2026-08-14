@@ -89,3 +89,23 @@ describe('ProfilePanel', () => {
     expect(w.findAll('.prof-case')).toHaveLength(0)
   })
 })
+
+/**
+ * Son propre dossier porte son nom d'arène : c'est sous celui-là qu'on apparaît partout
+ * ailleurs, et le voir ici confirme qu'il est bien posé.
+ */
+describe('le titre du dossier', () => {
+  it('porte son nom d’arène plutôt que « toi »', () => {
+    expect(monter({ monPseudo: 'leo' }).find('.panel-name').text()).toBe('leo')
+  })
+
+  it('retombe sur « toi » tant qu’aucun nom n’est choisi, et le signale', () => {
+    const w = monter({ monPseudo: null })
+    expect(w.find('.panel-name').text()).toBe('toi')
+    expect(w.text()).toContain('pas encore de nom d’arène')
+  })
+
+  it('porte le nom du collègue quand on visite le sien', () => {
+    expect(monter({ pseudo: 'marion', monPseudo: 'leo' }).find('.panel-name').text()).toBe('marion')
+  })
+})

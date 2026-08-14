@@ -12,7 +12,7 @@ import { seasonOf } from '../../shared/arena-economy.js'
  * @param {Object} client — le client Supabase de `createSupabaseClient`
  * @param {import('vue').Ref<Array>} claimed — les exemplaires ouverts, source de ce qu'on peut engager
  */
-export function useArena(client, claimed, consumed = computed(() => new Set())) {
+export function useArena(client, claimed, consumed = computed(() => new Set()), saison = null) {
   const credits = ref(0)
   const pokedollars = ref(0)
   const exemplars = ref([])
@@ -20,7 +20,12 @@ export function useArena(client, claimed, consumed = computed(() => new Set())) 
   const shop = ref([])
   const leaderboard = ref([])
   const seasons = ref([])
-  const season = ref(seasonOf())
+  /**
+   * La saison en cours. Forçable, pour la démonstration : elle montre l'arène telle qu'elle
+   * sera, et une saison antérieure au lancement n'a pas de numéro — l'écran y afficherait un
+   * code brut là où un joueur lira « Saison 1 ».
+   */
+  const season = ref(saison ?? seasonOf())
   const myOpen = ref(null)
   /** Les duels résolus récents, pour repérer ceux qui se sont joués sans nous. */
   const recentDuels = ref([])

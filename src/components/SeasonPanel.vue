@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 import SeasonBadge from './SeasonBadge.vue'
 import {
-  REWARD, SEASON_PODIUM, TIER_ORDER, seasonBounds, daysLeftInSeason,
+  REWARD, SEASON_PODIUM, TIER_ORDER, seasonBounds, daysLeftInSeason, seasonLabel,
 } from '../../shared/arena-economy.js'
 import { TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 
@@ -70,7 +70,9 @@ const palmares = computed(() => props.seasons.map((s) => ({
   <section class="page">
   <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
     <div>
-      <span class="panel-plate mono">SAISON {{ season }}</span>
+      <span class="panel-plate mono">
+        {{ seasonLabel(season).toUpperCase() }}<template v-if="seasonLabel(season) !== season"> · {{ season }}</template>
+      </span>
       <h2 class="panel-name" style="font-size:26px;margin-bottom:0">{{ periode }}</h2>
       <p class="muted" style="margin-top:6px">
         Deux mois pour marquer des points. À la clôture, les trois premiers gardent le badge
