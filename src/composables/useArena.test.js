@@ -151,3 +151,29 @@ describe('useArena', () => {
     expect(a.shop.value).toEqual(articles)
   })
 })
+
+/**
+ * Les exemplaires qu'une évolution a consommés. Le trou était l'exact miroir de celui de la
+ * collection : la ligne `catches` d'un exemplaire évolué subsiste, donc le serveur l'accepte
+ * encore. On pouvait faire évoluer son Pikachu puis engager le Pikachu disparu — un duel sans
+ * rien à perdre. Le serveur ne peut pas s'en défendre seul : les évolutions vivent dans l'état
+ * du joueur, qu'il n'inspecte pas.
+ */
+describe('exemplaires consommés par une évolution', () => {
+  const claimed = ref([
+    { key: 'github:a', species: 25 },
+    { key: 'github:b', species: 25 },
+  ])
+
+  it('les retire de ce qu’on peut engager', async () => {
+    const arene = useArena(fauxClient(), claimed, ref(new Set(['github:a'])))
+    await arene.load()
+    expect(arene.engageable.value.map((e) => e.key)).toEqual(['github:b'])
+  })
+
+  it('laisse passer les autres', async () => {
+    const arene = useArena(fauxClient(), claimed, ref(new Set()))
+    await arene.load()
+    expect(arene.engageable.value).toHaveLength(2)
+  })
+})

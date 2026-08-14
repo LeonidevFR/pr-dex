@@ -12,7 +12,7 @@ import { seasonOf } from '../../shared/arena-economy.js'
  * @param {Object} client — le client Supabase de `createSupabaseClient`
  * @param {import('vue').Ref<Array>} claimed — les exemplaires ouverts, source de ce qu'on peut engager
  */
-export function useArena(client, claimed) {
+export function useArena(client, claimed, consumed = computed(() => new Set())) {
   const credits = ref(0)
   const pokedollars = ref(0)
   const exemplars = ref([])
@@ -32,12 +32,21 @@ export function useArena(client, claimed) {
     new Set(exemplars.value.filter((e) => e.destroyed_at).map((e) => e.entry_key)))
 
   /**
-   * Ce qu'on peut engager maintenant : tout exemplaire ouvert, sauf ceux qu'un duel a détruits
-   * et celui qui est déjà sur la table. Un exemplaire engagé reste visible dans la collection —
-   * il n'est pas perdu, il est immobilisé — mais l'arène doit le refuser.
+   * Ce qu'on peut engager maintenant : tout exemplaire ouvert, sauf ceux qu'un duel a détruits,
+   * ceux qu'une évolution a consommés, et celui qui est déjà sur la table. Un exemplaire engagé
+   * reste visible dans la collection — il n'est pas perdu, il est immobilisé — mais l'arène
+   * doit le refuser.
+   *
+   * Les consommés manquaient, et le trou était l'exact miroir du précédent : la ligne `catches`
+   * d'un exemplaire évolué subsiste, donc le serveur l'accepte encore. On pouvait faire évoluer
+   * son Pikachu puis engager le Pikachu disparu — un duel sans rien à perdre, puisque
+   * l'exemplaire n'était déjà plus là. Le serveur ne peut pas s'en défendre seul : les
+   * évolutions vivent dans l'état du joueur, qu'il n'inspecte pas.
    */
   const engageable = computed(() => claimed.value.filter((c) =>
-    !destroyed.value.has(c.key) && c.key !== myOpen.value?.challenger_key))
+    !destroyed.value.has(c.key)
+    && !consumed.value.has(c.key)
+    && c.key !== myOpen.value?.challenger_key))
 
   const levelOf = (key) => levels.value[key] ?? 1
 

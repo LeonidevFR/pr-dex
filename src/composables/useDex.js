@@ -128,6 +128,6 @@ export function useDex(catches, state, destroyed = ref(new Set())) {
 
   return {
     claimed, pending, evolved, bySpecies, caughtCount, candies, canEvolve, isDeadEnd, evolvableIds,
-    availableEntries, copyCount, isNewSpecies,
+    availableEntries, copyCount, isNewSpecies, consumedKeys,
   }
 }
