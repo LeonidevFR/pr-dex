@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { DEX, familyOf, hasEvoInFamily, CANDY_PER_CATCH } from '../../shared/species.js'
 import { entryKey } from '../../shared/entry.js'
 
@@ -8,8 +8,9 @@ import { entryKey } from '../../shared/entry.js'
  *
  * @param {import('vue').Ref<Array>} catches — entrées écrites par l'Action, append-only
  * @param {import('vue').Ref<Object>} state  — { claimed, spent, evolutions } écrit par le front
+ * @param {import('vue').Ref<Set<string>>} destroyed — clés des exemplaires perdus à l'arène
  */
-export function useDex(catches, state) {
+export function useDex(catches, state, destroyed = ref(new Set())) {
   const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
 
   const claimedSet = computed(() => new Set(state.value.claimed))
@@ -61,8 +62,21 @@ export function useDex(catches, state) {
     () => new Set(state.value.evolutions.map((e) => e.fromKey ?? e.fromSha).filter(Boolean)),
   )
 
+  /**
+   * Le stock réellement disponible : ni consommé par une évolution, ni détruit à l'arène.
+   *
+   * La destruction manquait, et le trou n'était pas qu'un compteur faux. Un exemplaire évolué
+   * reçoit une clé NEUVE (`evo:0`) : on pouvait donc perdre un duel, faire évoluer le mort, et
+   * ressortir avec un Pokémon plus fort portant une clé que l'arène croit vierge. La perte
+   * était annulée, et récompensée.
+   *
+   * L'espèce et les bonbons restent acquis, eux — c'est la règle du mode : « l'exemplaire est
+   * détruit, l'espèce et les bonbons sont conservés ». On perd ce qu'on avait en main, pas ce
+   * qu'on a rencontré.
+   */
   function availableEntries(id) {
-    return (bySpecies.value[id] ?? []).filter((e) => !consumedKeys.value.has(e.key))
+    return (bySpecies.value[id] ?? [])
+      .filter((e) => !consumedKeys.value.has(e.key) && !destroyed.value.has(e.key))
   }
 
   function copyCount(id) {

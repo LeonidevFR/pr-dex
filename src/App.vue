@@ -117,6 +117,19 @@ let client = null
 
 const filters = useTrayFilters()
 
+/**
+ * La collection ignore l'arène : les destructions vivent dans `arena_exemplars`, que seul
+ * `useArena` lit. On les lui verse donc après chaque chargement de l'arène, sinon un exemplaire
+ * perdu continuerait de compter à la planche — et pourrait même servir à une évolution, qui lui
+ * donnerait une clé neuve et annulerait la perte.
+ *
+ * Recopié plutôt que surveillé : `arena` n'est pas une référence réactive mais une simple
+ * variable, assignée à la connexion. Un `watch` posé avant elle ne s'abonnerait à rien.
+ */
+function reporterLesPertes() {
+  if (arena) collection.destroyed.value = arena.destroyed.value
+}
+
 // Stock disponible par espèce (une évolution passée a pu en consommer un) — recalculé sur
 // les seules espèces déjà rencontrées, pas les 151 : les autres n'ont de toute façon rien à afficher.
 const copiesById = computed(() => {
@@ -143,6 +156,7 @@ async function connectSession(s) {
   }
   await collection.load(client)
   await arena.load()
+  reporterLesPertes()
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
@@ -157,6 +171,9 @@ async function playArena(fn) {
   arenaBusy.value = true
   try {
     const duel = await fn()
+    // Le duel vient peut-être de détruire un exemplaire : la planche doit cesser de le compter
+    // avant même que la collection ne se relise.
+    reporterLesPertes()
     // Poster un défi ne produit aucun duel : il reste ouvert jusqu'à ce que quelqu'un le
     // relève. Il faut néanmoins que quelque chose se passe à l'écran — une action qui réussit
     // en silence se lit comme un bouton mort. On ouvre donc l'arène, où le défi en attente est
@@ -239,6 +256,7 @@ onMounted(async () => {
     arena = useArena(client, collection.dex.claimed)
     await collection.load(client)
     await arena.load()
+    reporterLesPertes()
     connected.value = true
   }
 })

@@ -379,3 +379,55 @@ describe('réactivité', () => {
     expect(d.candies(1)).toBe(3)
   })
 })
+
+/**
+ * Les exemplaires perdus à l'arène.
+ *
+ * Le trou n'était pas qu'un compteur faux : un exemplaire évolué reçoit une clé NEUVE
+ * (`evo:0`), si bien qu'on pouvait perdre un duel, faire évoluer le mort, et ressortir avec un
+ * Pokémon plus fort portant une clé que l'arène croit vierge. La perte était annulée, et
+ * récompensée.
+ */
+describe('exemplaires détruits à l’arène', () => {
+  const troisPikachu = [
+    { source: 'github', external_id: 'a', species: 25, shiny: false, date: '2026-08-01' },
+    { source: 'github', external_id: 'b', species: 25, shiny: false, date: '2026-08-02' },
+    { source: 'github', external_id: 'c', species: 25, shiny: false, date: '2026-08-03' },
+  ]
+  const etat = { claimed: ['github:a', 'github:b', 'github:c'], spent: {}, evolutions: [] }
+
+  const dex = (perdus = []) => useDex(
+    ref(troisPikachu), ref(etat), ref(new Set(perdus)),
+  )
+
+  it('ne compte plus un exemplaire détruit dans le stock', () => {
+    expect(dex().copyCount(25)).toBe(3)
+    expect(dex(['github:b']).copyCount(25)).toBe(2)
+  })
+
+  it('le retire des exemplaires qu’on peut choisir', () => {
+    const cles = dex(['github:b']).availableEntries(25).map((e) => e.key)
+    expect(cles).toEqual(['github:a', 'github:c'])
+  })
+
+  /**
+   * Le cœur du défaut : sans ce filtre, le dernier exemplaire détruit restait évoluable, et
+   * l'évolution lui rendait une clé neuve — la destruction s'annulait.
+   */
+  it('empêche de faire évoluer un exemplaire détruit', () => {
+    const tous = ['github:a', 'github:b', 'github:c']
+    expect(dex(tous).availableEntries(25)).toHaveLength(0)
+    expect(dex(tous).canEvolve(25)).toBe(false)
+  })
+
+  /**
+   * L'espèce reste acquise et les bonbons conservés : c'est la règle du mode — on perd ce
+   * qu'on avait en main, pas ce qu'on a rencontré.
+   */
+  it('garde l’espèce au dex et les bonbons, comme le veut la règle', () => {
+    const d = dex(['github:a', 'github:b', 'github:c'])
+    expect(d.caughtCount.value).toBe(1)
+    expect(d.isNewSpecies(25)).toBe(false)
+    expect(d.candies(25)).toBe(dex().candies(25))
+  })
+})

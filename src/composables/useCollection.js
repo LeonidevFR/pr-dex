@@ -17,7 +17,15 @@ export function useCollection() {
   const loading = ref(false)
   let client = null
 
-  const dex = useDex(catches, state)
+  /**
+   * Les exemplaires perdus à l'arène. La collection ne les connaît pas d'elle-même — ils vivent
+   * dans `arena_exemplars`, que seul `useArena` lit — donc c'est l'application qui les verse
+   * ici. Vide tant que l'arène n'est pas chargée : mieux vaut afficher un exemplaire de trop
+   * pendant une seconde que d'en cacher un qui existe.
+   */
+  const destroyed = ref(new Set())
+
+  const dex = useDex(catches, state, destroyed)
 
   async function load(githubClient) {
     client = githubClient ?? client
@@ -190,5 +198,5 @@ export function useCollection() {
     )
   }
 
-  return { catches, state, error, loading, dex, load, refresh, claim, evolve }
+  return { catches, state, error, loading, dex, destroyed, load, refresh, claim, evolve }
 }
