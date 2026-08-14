@@ -459,3 +459,48 @@ describe.skipIf(!disponible)('relever un défi', () => {
     expect(message).toMatch(/permission denied/)
   })
 })
+
+/**
+ * La forme est figée à l'engagement, pas à la résolution.
+ *
+ * Elle change à minuit et entre dans le calcul de puissance. Un défi posté lundi à 23 h et
+ * relevé mardi à 22 h se résolvait sur la forme de MARDI pour les deux camps : le challengeur
+ * avait misé en voyant celle de lundi, et se retrouvait à combattre avec une autre sans avoir
+ * rien fait ni pu s'en douter. Chacun combat désormais avec la forme qu'il avait sous les yeux.
+ */
+describe.skipIf(!disponible)('la forme du challengeur ne bouge plus après l’engagement', () => {
+  it('résout un défi de la veille sur la forme de la veille', async () => {
+    await withDb(async (c) => {
+      await c.query('begin')
+      try {
+        const hier = '2026-08-13'
+        const aujourdhui = '2026-08-14'
+        // Une clé dont la forme DIFFÈRE entre les deux jours : sur cinq formes possibles, une
+        // clé prise au hasard en donne la même une fois sur cinq, et le cas ne prouverait alors
+        // rien. On la cherche plutôt que de la supposer.
+        const { rows: candidates } = await c.query(
+          `select k, public.arena_form_index(k, $1) as hier, public.arena_form_index(k, $2) as auj
+           from unnest(array['github:a','github:b','github:c','github:d','github:e']) as k
+           where public.arena_form_index(k, $1) <> public.arena_form_index(k, $2)
+           limit 1`,
+          [hier, aujourdhui],
+        )
+        expect(candidates).toHaveLength(1)
+        const { k: cle, hier: formeHier } = candidates[0]
+        const f = [{ hier: formeHier }]
+
+        // Résolu avec le jour d'hier pour le camp gauche : c'est la forme d'hier qui doit servir.
+        const { rows } = await c.query(
+          `select left_power from public.arena_resolve($1, 6, 1, $2, 'x', 9, 1, $3, 'graine')`,
+          [cle, hier, aujourdhui],
+        )
+        const { rows: attendu } = await c.query(
+          'select public.arena_power(6, 1, $1) as p', [f[0].hier],
+        )
+        expect(Number(rows[0].left_power)).toBeCloseTo(Number(attendu[0].p), 10)
+      } finally {
+        await c.query('rollback')
+      }
+    })
+  })
+})

@@ -194,8 +194,9 @@ describe.skipIf(!disponible)('parité de la résolution d’un duel', () => {
       const rows = []
       for (const { seed, left, right } of cas) {
         const { rows: r } = await c.query(
-          `select * from arena_resolve($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [left.key, left.species, left.level, right.key, right.species, right.level, jour, seed])
+          `select * from arena_resolve($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [left.key, left.species, left.level, jour,
+           right.key, right.species, right.level, jour, seed])
         rows.push(r[0])
       }
       return rows
@@ -227,10 +228,10 @@ describe.skipIf(!disponible)('parité de la résolution d’un duel', () => {
         const g = { key: `github:sym-g${i}`, species: [1, 4, 6, 16, 19, 145, 150][i % 7], level: (i % 10) + 1 }
         const d = { key: `github:sym-d${i}`, species: [20, 83, 129, 130, 6, 4, 1][i % 7], level: ((i * 3) % 10) + 1 }
         const seed = `sym-${i}`
-        const direct = (await c.query('select * from arena_resolve($1,$2,$3,$4,$5,$6,$7,$8)',
-          [g.key, g.species, g.level, d.key, d.species, d.level, jour, seed])).rows[0]
-        const inverse = (await c.query('select * from arena_resolve($1,$2,$3,$4,$5,$6,$7,$8)',
-          [d.key, d.species, d.level, g.key, g.species, g.level, jour, seed])).rows[0]
+        const direct = (await c.query('select * from arena_resolve($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+          [g.key, g.species, g.level, jour, d.key, d.species, d.level, jour, seed])).rows[0]
+        const inverse = (await c.query('select * from arena_resolve($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+          [d.key, d.species, d.level, jour, g.key, g.species, g.level, jour, seed])).rows[0]
         // Vu depuis l'appel inversé, « left » désigne l'autre camp : les deux issues se
         // correspondent si elles se lisent en miroir.
         const memeGagnant = direct.winner === (inverse.winner === 'left' ? 'right' : 'left')
@@ -283,8 +284,9 @@ describe.skipIf(!disponible)('parité en masse', () => {
           seed,
         })
         const { rows } = await c.query(
-          `select * from arena_resolve($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [left.key, left.species, left.level, right.key, right.species, right.level, jour, seed])
+          `select * from arena_resolve($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [left.key, left.species, left.level, jour,
+           right.key, right.species, right.level, jour, seed])
         const sql = rows[0]
         if (sql.winner !== attendu.winner || sql.gain !== attendu.gain
             || sql.level_after !== attendu.levelAfter) {

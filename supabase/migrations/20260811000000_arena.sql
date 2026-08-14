@@ -69,6 +69,12 @@ create table public.arena_duels (
   opponent_id uuid references auth.users (id) on delete cascade,
   opponent_key text,
   status text not null default 'open' check (status in ('open', 'resolved', 'computer')),
+  -- Le jour où le challengeur a engagé, en heure de Paris. La forme du jour entre dans le
+  -- calcul de puissance et change à minuit : sans cette colonne, un défi posté lundi à 23 h et
+  -- relevé mardi à 22 h se résoudrait sur la forme de MARDI pour les deux camps. Le challengeur
+  -- aurait alors misé sur une information qu'il a vue et qui n'existe plus, sans avoir rien fait
+  -- ni pu s'en douter. Chacun combat avec la forme qu'il avait sous les yeux en engageant.
+  challenger_day text,
   winner_id uuid references auth.users (id),
   stake_tier text check (stake_tier in ('c', 'u', 'r', 'l')),
   challenger_power numeric,
@@ -358,18 +364,24 @@ $$;
 --     côtés, et l'anti-symétrie se retournerait contre nous.
 --
 -- `stable` : la puissance dépend de `species_stats`.
+/**
+ * Un jour PAR CAMP, et non un jour pour le duel. La forme du jour change à minuit ; un défi
+ * posté lundi soir et relevé mardi soir se résoudrait sinon sur la forme de mardi pour les
+ * deux, alors que le challengeur a misé en voyant celle de lundi. Chacun combat avec la forme
+ * qu'il avait sous les yeux au moment d'engager.
+ */
 create or replace function public.arena_resolve(
-  left_key text, left_species int, left_level int,
-  right_key text, right_species int, right_level int,
-  day text, seed text)
+  left_key text, left_species int, left_level int, left_day text,
+  right_key text, right_species int, right_level int, right_day text,
+  seed text)
 returns table (
   winner text, probability double precision, roll double precision,
   left_power double precision, right_power double precision,
   gain int, level_after int)
 language sql stable strict as $$
   with f as (
-    select public.arena_form_index(arena_resolve.left_key, arena_resolve.day) as lf,
-           public.arena_form_index(arena_resolve.right_key, arena_resolve.day) as rf
+    select public.arena_form_index(arena_resolve.left_key, arena_resolve.left_day) as lf,
+           public.arena_form_index(arena_resolve.right_key, arena_resolve.right_day) as rf
   ),
   p as (
     select f.lf, f.rf,
@@ -696,8 +708,8 @@ begin
   if not p_vs_computer then
     -- Un défi ouvert porte sa mise en base sans la rendre lisible : la policy exclut les duels
     -- ouverts et la vue `arena_open_challenges` n'expose pas la colonne. On relève à l'aveugle.
-    insert into public.arena_duels (challenger_id, challenger_key, status, stake_tier)
-    values (v_uid, p_entry_key, 'open', v_tier)
+    insert into public.arena_duels (challenger_id, challenger_key, status, stake_tier, challenger_day)
+    values (v_uid, p_entry_key, 'open', v_tier, v_day)
     returning id into v_duel_id;
     return v_duel_id;
   end if;
@@ -719,9 +731,9 @@ begin
   select * into v_foe from public.arena_computer_pick(v_seed, public.arena_field_level_cap());
 
   select * into v_out from public.arena_resolve(
-    p_entry_key, v_species, v_level,
-    v_foe_key, v_foe.foe_species, v_foe.foe_level,
-    v_day, v_seed);
+    p_entry_key, v_species, v_level, v_day,
+    v_foe_key, v_foe.foe_species, v_foe.foe_level, v_day,
+    v_seed);
 
   -- L'enjeu, et non la mise du joueur : engager un légendaire contre un terrain de peu communs
   -- ne rapporte que le peu commun, exactement comme contre un humain.
@@ -945,9 +957,9 @@ begin
   -- l'identifiant du duel, dérivé d'une clé d'identité : stable une fois écrite, elle laisse
   -- le client rejouer le combat et retomber sur le même vainqueur.
   select * into v_out from public.arena_resolve(
-    v_duel.challenger_key, v_foe_species, v_foe_level,
-    p_entry_key, v_species, v_level,
-    v_day, 'duel:' || v_duel.id);
+    v_duel.challenger_key, v_foe_species, v_foe_level, coalesce(v_duel.challenger_day, v_day),
+    p_entry_key, v_species, v_level, v_day,
+    'duel:' || v_duel.id);
 
   -- L'enjeu : le plus PETIT des deux engagements. Battre un rare ne rapporte 250 que si les
   -- DEUX ont engagé un rare.
@@ -1018,7 +1030,10 @@ begin
     opponent_species = v_species,
     challenger_level = v_foe_level,
     opponent_level = v_level,
-    challenger_form = public.arena_form_index(v_duel.challenger_key, v_day),
+    -- Deux jours, et c'est voulu : chacun combat avec la forme qu'il avait sous les yeux au
+    -- moment d'engager. `coalesce` pour les défis postés avant l'existence de la colonne.
+    challenger_form = public.arena_form_index(
+      v_duel.challenger_key, coalesce(v_duel.challenger_day, v_day)),
     opponent_form = public.arena_form_index(p_entry_key, v_day),
     probability = v_out.probability,
     roll = v_out.roll,
@@ -1097,9 +1112,9 @@ begin
     select * into v_foe from public.arena_computer_pick(v_seed, public.arena_field_level_cap());
 
     select * into v_out from public.arena_resolve(
-      v_duel.challenger_key, v_species, v_level,
-      v_foe_key, v_foe.foe_species, v_foe.foe_level,
-      v_day, v_seed);
+      v_duel.challenger_key, v_species, v_level, coalesce(v_duel.challenger_day, v_day),
+      v_foe_key, v_foe.foe_species, v_foe.foe_level, v_day,
+      v_seed);
 
     v_stake := public.arena_covered_tier(v_tier, v_foe.foe_tier);
 
@@ -1114,7 +1129,8 @@ begin
       opponent_species = v_foe.foe_species,
       challenger_level = v_level,
       opponent_level = v_foe.foe_level,
-      challenger_form = public.arena_form_index(v_duel.challenger_key, v_day),
+      challenger_form = public.arena_form_index(
+        v_duel.challenger_key, coalesce(v_duel.challenger_day, v_day)),
       opponent_form = public.arena_form_index(v_foe_key, v_day),
       probability = v_out.probability,
       roll = v_out.roll,
