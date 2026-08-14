@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  TIER_POWER, LEVEL_MAX, FORMS, NORMAL_FORM, levelFactor, power, formOf,
-  P_FLOOR, P_CEIL, winProbability, levelGain, resolveDuel,
-} from './battle.js'
+import { TIER_POWER, LEVEL_MAX, FORMS, NORMAL_FORM, levelFactor, power, formOf, P_FLOOR, P_CEIL, winProbability, levelGain, resolveDuel, parisDay } from './battle.js'
 import { DEX } from './species.js'
 import { STATS } from './species-stats.js'
 
@@ -300,5 +297,38 @@ describe('resolveDuel', () => {
     })
     expect(r.probability).toBeGreaterThan(0.5)
     expect(r.left.form).toBe(forte)
+  })
+})
+
+/**
+ * La forme du jour se calcule des deux côtés à partir d'une date, et le serveur la prend en
+ * heure de Paris. Un client qui prendrait la sienne montrerait à qui joue tard une forme que le
+ * duel n'appliquerait pas — et le résumé de combat, qui rejoue le calcul, le contredirait.
+ */
+describe('parisDay', () => {
+  it('rend la date au format qu’attend le SQL en face', () => {
+    expect(parisDay(new Date('2026-08-14T12:00:00Z'))).toBe('2026-08-14')
+  })
+
+  // 22 h 30 UTC un soir d'été, c'est déjà le lendemain à Paris. C'est exactement l'heure à
+  // laquelle quelqu'un engage un dernier duel avant de se coucher.
+  it('bascule à minuit à Paris, pas à minuit UTC', () => {
+    expect(parisDay(new Date('2026-08-14T21:30:00Z'))).toBe('2026-08-14')
+    expect(parisDay(new Date('2026-08-14T22:30:00Z'))).toBe('2026-08-15')
+  })
+
+  // L'heure d'hiver décale la bascule d'une heure : une date figée à « UTC + 2 » se tromperait
+  // six mois par an.
+  it('suit l’heure d’hiver comme l’heure d’été', () => {
+    expect(parisDay(new Date('2026-01-14T22:30:00Z'))).toBe('2026-01-14')
+    expect(parisDay(new Date('2026-01-14T23:30:00Z'))).toBe('2026-01-15')
+  })
+
+  // Le tirage se fait sur la chaîne : deux instants du même jour parisien doivent donner la
+  // même forme, et deux jours voisins des formes indépendantes.
+  it('donne une forme stable sur toute la journée parisienne', () => {
+    const matin = formOf('github:abc', parisDay(new Date('2026-08-14T06:00:00Z')))
+    const soir = formOf('github:abc', parisDay(new Date('2026-08-14T20:00:00Z')))
+    expect(matin).toEqual(soir)
   })
 })

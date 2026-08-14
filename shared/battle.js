@@ -46,6 +46,21 @@ export const NORMAL_FORM = FORMS.find((f) => f.factor === 1)
  * ici et en SQL, avec un test de parité. Elle doit être répliquée caractère pour caractère
  * côté SQL — un deux-points de différence donne une autre forme pour le même exemplaire.
  */
+/**
+ * Le jour, tel que le serveur l'entend : à Paris, jamais dans le fuseau de qui regarde.
+ *
+ * La forme du jour se calcule des deux côtés à partir de cette date, et le serveur la prend
+ * en heure de Paris (`now() at time zone 'Europe/Paris'`). Un client qui prendrait la sienne
+ * afficherait la forme du lendemain à quiconque joue tard depuis un fuseau en avance — ou celle
+ * de la veille depuis un fuseau en retard. Le duel se résoudrait alors sur une forme que le
+ * joueur n'a jamais vue, et le résumé de combat, qui rejoue le calcul, le contredirait.
+ *
+ * `sv-SE` n'est pas un caprice : c'est la seule locale courante dont le format court est
+ * précisément `AAAA-MM-JJ`, celui qu'attend `to_char(..., 'YYYY-MM-DD')` en face.
+ */
+export const parisDay = (now = new Date()) =>
+  now.toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' })
+
 export const formOf = (key, day) => FORMS[fnv1a(`${key}:forme:${day}`) % FORMS.length]
 
 export const levelFactor = (level) => 1 + 0.05 * (level - 1)

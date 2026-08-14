@@ -18,6 +18,7 @@ import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
 import { entryKey } from '../shared/entry.js'
 import { createRouter } from './composables/useRoute.js'
+import { parisDay } from '../shared/battle.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
@@ -266,7 +267,9 @@ async function onEvolve({ from, to, key }) {
   // après la dépense — d'où leur absence de cet instantané.
   const isNew = collection.dex.isNewSpecies(to)
   router.go('collection')
-  const written = await collection.evolve(from, to, key, new Date().toISOString().slice(0, 10))
+  // Datée à Paris comme tout le reste : en UTC, une évolution faite à 00 h 30 un soir d'été
+  // s'inscrivait à la veille, et la fiche affichait une date que le joueur ne reconnaissait pas.
+  const written = await collection.evolve(from, to, key, parisDay())
   // L'écriture a échoué, ou n'a rien eu à faire (exemplaire déjà consommé ailleurs,
   // bonbons insuffisants sur l'état frais) : pas de cérémonie pour une évolution qui n'a pas eu lieu.
   if (!written || collection.error.value) return

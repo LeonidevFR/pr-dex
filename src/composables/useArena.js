@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { formOf } from '../../shared/battle.js'
+import { formOf, parisDay } from '../../shared/battle.js'
 import { seasonOf } from '../../shared/arena-economy.js'
 
 /**
@@ -46,10 +46,11 @@ export function useArena(client, claimed) {
    * le niveau, et le joueur doit la voir avant de choisir : engager son champion un jour où il
    * est épuisé, sans l'avoir su, c'est perdre sans comprendre.
    *
-   * Calculée ici comme côté serveur, à partir de la clé et de la date — jamais stockée.
+   * Calculée ici comme côté serveur, à partir de la clé et de la date — jamais stockée. Et sur
+   * la date de PARIS, celle que le serveur emploie : prendre celle du navigateur montrerait à
+   * qui joue tard une forme que le duel n'appliquerait pas.
    */
-  const today = () => new Date().toLocaleDateString('sv-SE')
-  const formOfKey = (key) => formOf(key, today())
+  const formOfKey = (key) => formOf(key, parisDay())
 
   async function load() {
     loading.value = true

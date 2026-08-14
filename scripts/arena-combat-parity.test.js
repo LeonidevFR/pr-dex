@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  FORMS, LEVEL_MAX, TIER_POWER, formOf, power, winProbability, levelGain, resolveDuel,
-} from '../shared/battle.js'
+import { FORMS, LEVEL_MAX, TIER_POWER, formOf, power, winProbability, levelGain, resolveDuel, parisDay } from '../shared/battle.js'
 import { DEX } from '../shared/species.js'
 import { withDb, dbAvailable } from './db-test-helper.mjs'
 
@@ -12,6 +10,33 @@ const CLES = [
   'arene:1', 'arene:2', 'boutique:7', 'github:0123456789abcdef',
 ]
 const JOURS = ['2026-08-11', '2026-08-12', '2026-09-01', '2027-01-01']
+
+/**
+ * Le JOUR lui-même, avant l'indice de forme. Les deux implémentations peuvent s'accorder sur le
+ * calcul et diverger sur la date qu'elles lui donnent à manger : c'est le cas s'il en est un où
+ * la parité des fonctions ne prouve rien du tout.
+ */
+describe.skipIf(!disponible)('parité de la date du jour', () => {
+  it('donne la même journée que le SQL, des deux côtés de minuit à Paris', async () => {
+    // Les bascules d'été et d'hiver, à une minute près de part et d'autre.
+    const instants = [
+      '2026-08-14T21:59:00Z', '2026-08-14T22:01:00Z',
+      '2026-01-14T22:59:00Z', '2026-01-14T23:01:00Z',
+      '2026-03-29T00:30:00Z', '2026-10-25T00:30:00Z',
+    ]
+    const enBase = await withDb(async (c) => {
+      const out = []
+      for (const t of instants) {
+        const { rows } = await c.query(
+          `select to_char($1::timestamptz at time zone 'Europe/Paris', 'YYYY-MM-DD') as j`, [t],
+        )
+        out.push(rows[0].j)
+      }
+      return out
+    })
+    expect(instants.map((t) => parisDay(new Date(t)))).toEqual(enBase)
+  })
+})
 
 describe.skipIf(!disponible)('parité de la forme du jour', () => {
   it('rend le même indice de forme que le JavaScript', async () => {

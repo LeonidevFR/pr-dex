@@ -1,7 +1,7 @@
 import { fnv1a, drawFrom, drawFromPool } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
 import { DEX, poolOf } from '../../shared/species.js'
-import { FORMS, formOf, power, resolveDuel } from '../../shared/battle.js'
+import { FORMS, formOf, parisDay, power, resolveDuel } from '../../shared/battle.js'
 import { REWARD, SHOP, coveredTier } from '../../shared/arena-economy.js'
 
 const FAKE_PRS = [
@@ -344,7 +344,7 @@ export function demoArena(catches) {
       // collecte ; ici l'attente n'apprendrait rien à personne.
       catches.push({
         source: 'boutique', external_id: String(id), label: 'Acheté en boutique',
-        ref: null, url: null, date: new Date().toLocaleDateString('sv-SE'), species, shiny,
+        ref: null, url: null, date: parisDay(), species, shiny,
       })
       return id
     },
