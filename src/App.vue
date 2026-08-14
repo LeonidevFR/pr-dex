@@ -10,6 +10,7 @@ import ArenaPanel from './components/ArenaPanel.vue'
 import ShopPanel from './components/ShopPanel.vue'
 import ProfilePanel from './components/ProfilePanel.vue'
 import SeasonPanel from './components/SeasonPanel.vue'
+import ArenaTeaser from './components/ArenaTeaser.vue'
 import DuelOverlay from './components/DuelOverlay.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
@@ -19,6 +20,7 @@ import { useTrayFilters } from './composables/useTrayFilters.js'
 import { entryKey } from '../shared/entry.js'
 import { createRouter } from './composables/useRoute.js'
 import { parisDay } from '../shared/battle.js'
+import { arenaIsOpen } from '../shared/arena-economy.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
@@ -47,6 +49,22 @@ const arenaOpen = computed(() => route.value.name === 'arena')
 const shopOpen = computed(() => route.value.name === 'shop')
 const profileOpen = computed(() => route.value.name === 'profile')
 const seasonOpen = computed(() => route.value.name === 'season')
+
+/**
+ * L'arène n'ouvre qu'au premier jour de la saison 1. Avant, ses trois écrans — duels, saison,
+ * boutique — annoncent sa venue au lieu de fonctionner à vide : un classement sans points et
+ * une boutique sans monnaie ne se comprennent pas, ils inquiètent.
+ *
+ * La collection et le profil, eux, continuent : ils existaient avant l'arène et n'en dépendent
+ * pas.
+ *
+ * La démonstration fait exception, et c'est sa raison d'être : elle existe pour essayer ce qui
+ * n'est pas encore ouvert. Lui appliquer la date de lancement reviendrait à cacher la
+ * fonctionnalité à ceux qui viennent précisément la voir.
+ */
+const demo = ref(false)
+const areneOuverte = computed(() => demo.value || arenaIsOpen())
+const teaser = computed(() => !areneOuverte.value && ['arena', 'season', 'shop'].includes(route.value.name))
 
 /**
  * Le dossier affiché. Sans pseudo dans l'URL c'est le sien, avec c'est celui d'un collègue —
@@ -216,6 +234,7 @@ onMounted(async () => {
     const { loadDemoClient } = await import('./fixtures/demo.js')
     githubLogin.value = 'démo'
     client = loadDemoClient()
+    demo.value = true
     userId.value = 'demo-moi'
     arena = useArena(client, collection.dex.claimed)
     await collection.load(client)
@@ -375,8 +394,10 @@ useKeyboardNav({
       />
     </transition>
 
+    <ArenaTeaser v-if="teaser" />
+
     <ArenaPanel
-      v-if="arenaOpen && arena"
+      v-if="arenaOpen && arena && areneOuverte"
       :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
       :challenges="arena.challenges.value" :engageable="arena.engageable.value"
       :my-open="arena.myOpen.value" :level-of="arena.levelOf"
@@ -387,13 +408,13 @@ useKeyboardNav({
     />
 
     <ShopPanel
-      v-if="shopOpen && arena"
+      v-if="shopOpen && arena && areneOuverte"
       :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
       @buy="onBuy"
     />
 
     <SeasonPanel
-      v-if="seasonOpen && arena"
+      v-if="seasonOpen && arena && areneOuverte"
       :season="arena.season.value" :leaderboard="arena.leaderboard.value"
       :seasons="arena.seasons.value" :user-id="userId"
       @profile="(p) => router.go('profile', p)"
@@ -404,7 +425,6 @@ useKeyboardNav({
       :dossier="dossier" :pseudo="route.param" :prive="dossierPrive"
       :seasons="arena ? arena.seasons.value : []"
       :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.points ?? 0) : 0"
-      :rank="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.rank ?? null) : null"
       :season="arena ? arena.season.value : ''"
       :loading="!dossierCharge" :introuvable="dossierCharge && !dossier"
     />

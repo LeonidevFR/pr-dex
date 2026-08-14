@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
 import SeasonBadge from './SeasonBadge.vue'
 import {
-  REWARD, SEASON_PODIUM, TIER_ORDER, seasonBounds, daysLeftInSeason, isWarmup, FIRST_SEASON,
+  REWARD, SEASON_PODIUM, TIER_ORDER, seasonBounds, daysLeftInSeason,
 } from '../../shared/arena-economy.js'
 import { TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 
@@ -35,13 +35,6 @@ const ecoule = computed(() => {
   const part = (Date.now() - start) / (end - start)
   return Math.round(Math.min(1, Math.max(0, part)) * 100)
 })
-
-/**
- * Le rodage. L'écran doit le dire : promettre un badge aux trois premiers d'une saison qui n'en
- * décernera aucun serait un mensonge, et il se découvrirait à la clôture — au moment où la
- * promesse devait être tenue.
- */
-const rodage = computed(() => isWarmup(props.season))
 
 const moi = computed(() => props.leaderboard.find((l) => l.user_id === props.userId) ?? null)
 
@@ -79,12 +72,7 @@ const palmares = computed(() => props.seasons.map((s) => ({
     <div>
       <span class="panel-plate mono">SAISON {{ season }}</span>
       <h2 class="panel-name" style="font-size:26px;margin-bottom:0">{{ periode }}</h2>
-      <p v-if="rodage" class="muted" style="margin-top:6px">
-        <b>Saison de rodage.</b> Les points se marquent et le classement compte les coups, mais
-        aucun badge n’est décerné à la clôture. La première saison qui compte pour de bon est
-        <span class="mono">{{ FIRST_SEASON }}</span>.
-      </p>
-      <p v-else class="muted" style="margin-top:6px">
+      <p class="muted" style="margin-top:6px">
         Deux mois pour marquer des points. À la clôture, les trois premiers gardent le badge
         de la saison — elle ne se rejoue pas.
       </p>
@@ -98,12 +86,8 @@ const palmares = computed(() => props.seasons.map((s) => ({
   <div class="sect saison-prix">
     <SeasonBadge :season="season" :rank="0" :size="84" />
     <div>
-      <div class="eyebrow">{{ rodage ? 'Le badge de la saison' : 'Le badge en jeu' }}</div>
-      <p v-if="rodage" class="muted" style="margin-top:7px">
-        Celui-ci ne se gagne pas : le rodage sert à essayer l’arène, pas à décrocher une
-        médaille. La suivante en met une sur la table.
-      </p>
-      <p v-else class="muted" style="margin-top:7px">
+      <div class="eyebrow">Le badge en jeu</div>
+      <p class="muted" style="margin-top:7px">
         Les trois premiers l’épinglent à leur profil à la clôture. Il change à chaque saison,
         et une saison ne se rejoue pas.
       </p>

@@ -143,6 +143,7 @@ describe('navigation au clavier', () => {
  * lit comme un bouton mort, et c'est exactement ce qui a été signalé à l'essai.
  */
 describe('envoi à l’arène depuis la fiche', () => {
+
   it('referme la fiche et ouvre l’arène sur le défi en attente', async () => {
     const w = await mountApp()
     const caseAvecExemplaire = w.findAll('.cell').find((c) => !c.classes().includes('cell-no'))
@@ -168,6 +169,7 @@ describe('envoi à l’arène depuis la fiche', () => {
  * autre pli — ou rien de visible du tout. On avait payé et l'écran ne bougeait pas.
  */
 describe('achat en boutique', () => {
+
   const ouvrirBoutique = async (w) => {
     await onglet(w, 'Boutique').trigger('click')
     await flushPromises()
@@ -198,6 +200,7 @@ describe('achat en boutique', () => {
  * qui ne menait nulle part.
  */
 describe('les lieux ont une URL', () => {
+
   const chemin = () => location.pathname
 
   it('écrit l’adresse de l’arène en y entrant, et revient à la planche en sortant', async () => {
@@ -294,6 +297,7 @@ describe('le profil', () => {
  * que le sien, et donc le seul endroit d'où un pseudonyme devient une adresse.
  */
 describe('la saison', () => {
+
   it('s’ouvre à son adresse depuis le rail', async () => {
     const w = await mountApp()
     await onglet(w, 'Saison').trigger('click')

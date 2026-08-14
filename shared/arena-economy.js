@@ -91,23 +91,22 @@ export function seasonOf(date = new Date()) {
 }
 
 /**
- * La première saison qui compte pour de bon.
+ * La première saison, et la seule date qui compte : l'arène ouvre avec elle.
  *
- * Le découpage des saisons est un calcul sur le calendrier, pas une date de lancement : la mise
- * en service tombe au milieu d'une saison déjà commencée. Celles d'avant se jouent et marquent
- * des points, mais ne se ferment jamais et ne décernent rien — un rodage.
+ * Le découpage des saisons est un calcul sur le calendrier, pas une date de lancement — la mise
+ * en service tomberait donc au milieu d'une saison déjà entamée, dont il ne resterait que
+ * quelques jours. Plutôt que de faire jouer une saison tronquée qui ne vaudrait pas les
+ * suivantes, l'arène reste fermée jusqu'au premier jour de celle-ci. La saison 1 est alors une
+ * saison entière, comme toutes celles qui suivront.
  *
- * Écrite ici ET dans `arena_first_season` côté SQL, avec un test de parité qui les aligne : le
- * front doit pouvoir dire « ça ne compte pas encore » sans demander l'avis du serveur.
+ * Écrite ici ET dans `arena_first_season` côté SQL, avec un test de parité qui les aligne.
  */
 export const FIRST_SEASON = '2026-S5'
 
 /**
- * Vrai tant que la saison ne décerne rien. Comparaison textuelle : le format `AAAA-SN` se trie
- * dans l'ordre chronologique tant que le numéro tient sur un chiffre, ce que six saisons par an
- * garantissent.
+ * L'arène est-elle ouverte ? Avant, ses écrans annoncent sa venue ; après, plus rien ne
+ * distingue la première saison des autres.
  */
-export const isWarmup = (season) => String(season) < FIRST_SEASON
 
 /**
  * Les bornes d'une saison, déduites de son seul nom : `2026-S4` couvre juillet et août 2026.
@@ -131,6 +130,9 @@ export function seasonBounds(season) {
  * Ce qu'il reste à jouer, en jours entiers. Le jour courant compte : à 8 h du matin le dernier
  * jour, il reste bien un jour pour engager, pas zéro.
  */
+export const arenaOpensAt = () => seasonBounds(FIRST_SEASON).start
+export const arenaIsOpen = (now = new Date()) => now >= arenaOpensAt()
+
 export function daysLeftInSeason(season, now = new Date()) {
   const { end } = seasonBounds(season)
   return Math.max(0, Math.ceil((end - now) / 86_400_000))

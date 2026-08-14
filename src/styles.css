@@ -941,3 +941,15 @@
   /* Un gain nul se lit au premier coup d'œil comme une absence, pas comme un zéro perdu au
      milieu de chiffres qui, eux, comptent. */
   .arena-reward .v.nul{color:var(--ink-3)}
+
+  /* ───────── l'arène à venir ───────── */
+  .teaser-tete{display:flex;align-items:center;gap:34px;flex-wrap:wrap}
+  .teaser-badge{display:flex;flex-direction:column;align-items:center;gap:9px;margin-left:auto}
+  .teaser-badge span{font-size:10.5px;color:var(--ink-2)}
+  .teaser-liste{display:flex;flex-direction:column}
+  .teaser-liste p{
+    font-size:13px;line-height:1.65;color:var(--ink-2);
+    padding:11px 0;border-bottom:1px solid rgba(179,161,121,.4);
+  }
+  .teaser-liste p:last-child{border-bottom:0}
+  .teaser-liste b{color:var(--ink)}

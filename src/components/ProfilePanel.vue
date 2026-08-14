@@ -16,7 +16,6 @@ const props = defineProps({
   /** Les saisons closes, avec leur podium, pour dresser l'étagère. */
   seasons: { type: Array, default: () => [] },
   points: { type: Number, default: 0 },
-  rank: { type: Number, default: null },
   season: { type: String, default: '' },
   loading: { type: Boolean, default: false },
   introuvable: { type: Boolean, default: false },
@@ -45,7 +44,7 @@ const cases = computed(() => {
     { v: p.copies ?? '—', l: 'Exemplaires', secret: true },
     { v: p.pokedollars != null ? `${p.pokedollars} ₽` : '—', l: 'Pokédollars', secret: true },
     // « Crédits » tout court se lisait comme des plis à ouvrir. Ce sont des engagements
-    // d'arène : un par jour, cinq au plus, perdus le dimanche soir.
+    // d'arène : un par jour ouvré, cinq au plus, perdus le dimanche soir.
     { v: p.credits ?? '—', l: 'Crédits d’arène', secret: true },
     { v: d.wins ?? 0, l: 'Duels gagnés' },
     { v: d.losses ?? 0, l: 'Perdus' },
@@ -73,9 +72,6 @@ const palmares = computed(() => {
       <h2 class="panel-name" style="font-size:26px;margin-bottom:0">
         {{ pseudo ?? 'toi' }}
       </h2>
-      <p v-if="rank && !loading" class="muted" style="margin-top:6px">
-        {{ rank }}<sup>{{ rank === 1 ? 'er' : 'e' }}</sup> de la saison {{ season }}
-      </p>
     </div>
   </div>
 

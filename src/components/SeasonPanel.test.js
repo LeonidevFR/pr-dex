@@ -109,23 +109,3 @@ describe('le badge en jeu', () => {
     expect(a).not.toBe(b)
   })
 })
-
-/**
- * Le rodage. Promettre un badge aux trois premiers d'une saison qui n'en décernera aucun serait
- * un mensonge, et il se découvrirait à la clôture — au moment précis où la promesse devait être
- * tenue.
- */
-describe('les saisons de rodage', () => {
-  it('annonce qu’une saison antérieure au lancement ne décerne rien', () => {
-    const w = monter({ season: '2026-S4' })
-    expect(w.text()).toContain('rodage')
-    expect(w.text()).toContain('2026-S5')
-    expect(w.text()).not.toContain('l’épinglent à leur profil')
-  })
-
-  it('promet à nouveau le badge dès la première saison qui compte', () => {
-    const w = monter({ season: '2026-S5' })
-    expect(w.text()).not.toContain('rodage')
-    expect(w.text()).toContain('gardent le badge')
-  })
-})

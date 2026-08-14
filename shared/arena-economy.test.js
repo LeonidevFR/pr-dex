@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason, isWarmup, FIRST_SEASON } from './arena-economy.js'
+import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason, FIRST_SEASON, arenaIsOpen, arenaOpensAt } from './arena-economy.js'
 import { TIER_ORDER } from './species.js'
 
 describe('coveredTier', () => {
@@ -142,18 +142,24 @@ describe('jours restants', () => {
   })
 })
 
-describe('rodage', () => {
-  it('range les saisons d’avant le lancement du bon côté', () => {
-    expect(isWarmup('2026-S4')).toBe(true)
-    expect(isWarmup('2019-S1')).toBe(true)
-    expect(isWarmup(FIRST_SEASON)).toBe(false)
-    expect(isWarmup('2027-S1')).toBe(false)
+/**
+ * L'arène ouvre au premier jour de la saison 1, et pas avant. Les saisons se découpant sur le
+ * calendrier, ouvrir en cours de route donnerait une première saison tronquée qui ne vaudrait
+ * pas les suivantes — alors qu'elle décernerait les mêmes badges.
+ */
+describe('ouverture de l’arène', () => {
+  it('ouvre le premier jour de la première saison, pas la veille', () => {
+    expect(arenaIsOpen(new Date(2026, 7, 31, 23, 59))).toBe(false)
+    expect(arenaIsOpen(new Date(2026, 8, 1, 0, 0))).toBe(true)
   })
 
-  // Le format se trie chronologiquement tant que le numéro tient sur un chiffre : six saisons
-  // par an le garantissent, et c'est ce qui autorise la comparaison textuelle.
-  it('trie les saisons dans l’ordre du temps, en simple comparaison de texte', () => {
-    const melange = ['2027-S1', '2026-S6', '2026-S1', '2099-S3', '2026-S5']
-    expect([...melange].sort()).toEqual(['2026-S1', '2026-S5', '2026-S6', '2027-S1', '2099-S3'])
+  it('reste ouverte ensuite, saison après saison', () => {
+    expect(arenaIsOpen(new Date(2027, 5, 1))).toBe(true)
+  })
+
+  // La date se déduit de la première saison : deux constantes se contrediraient un jour.
+  it('déduit sa date de la première saison, sans la répéter', () => {
+    expect(arenaOpensAt()).toEqual(seasonBounds(FIRST_SEASON).start)
   })
 })
+
