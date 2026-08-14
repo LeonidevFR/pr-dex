@@ -69,12 +69,20 @@ const zoomFlipped = ref(false)
  * Le dos de la carte en grand porte la capture la plus récente. Une espèce peut avoir
  * plusieurs exemplaires ; en montrer un seul est un choix assumé — le journal, juste en
  * dessous, les liste tous. Une évolution n'a pas de PR d'origine, d'où le repli sur la
- * capture la plus récente qui en soit une.
+ * capture la plus récente qui en soit une — et, à défaut de toute capture (Léviator, ou
+ * n'importe quelle forme jamais tirée au paquet), sur l'évolution elle-même : elle a bien
+ * une origine à raconter, la même que celle du journal. Sans ça la carte se retournait
+ * sur une face vide alors que l'écran proposait d'en voir le dos.
  */
 const lastProvenance = computed(() => {
-  const captures = (props.entries ?? []).filter((e) => e.label)
+  const entries = props.entries ?? []
+  const captures = entries.filter((e) => e.label)
   const derniere = captures[captures.length - 1]
-  return derniere ? { ref: derniere.ref ?? null, label: derniere.label, date: derniere.date } : null
+  if (derniere) return { ref: derniere.ref ?? null, label: derniere.label, date: derniere.date }
+
+  const evolution = entries.filter((e) => e.via === 'evo').at(-1)
+  if (!evolution) return null
+  return { ref: null, label: `Évolué depuis ${DEX[evolution.from].name}`, date: evolution.date }
 })
 const targets = computed(() => {
   const to = species.value.to

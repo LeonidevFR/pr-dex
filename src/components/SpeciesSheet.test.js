@@ -79,6 +79,18 @@ describe('la carte en grand', () => {
     expect(grande.props('provenance')).toMatchObject({ label: 'feat: dernière', date: '2026-03-09' })
   })
 
+  // Une espèce obtenue par évolution n'a pas de PR d'origine, mais elle a une origine :
+  // sans dos, la carte se retournait sur une face vide alors que l'écran promettait un dos.
+  it('donne un dos à la carte d’un exemplaire évolué', async () => {
+    const w = mountSheet({ id: 130, entries: [evo(130, 129)] })
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+    const grande = w.findAll('.zoom-card')[0].findComponent({ name: 'PokeCard' })
+    expect(grande.props('provenance')).toMatchObject({
+      ref: null, label: 'Évolué depuis Magicarpe', date: '2026-07-14',
+    })
+    expect(grande.find('.pkc-back').exists()).toBe(true)
+  })
+
   it('se retourne au clic, et revient', async () => {
     const w = mountSheet({ id: 25, entries: [capture('a', 25)] })
     await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
