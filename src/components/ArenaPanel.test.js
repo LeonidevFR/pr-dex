@@ -292,3 +292,21 @@ describe('saison', () => {
     expect(w.text()).toContain('c’est le badge qui reste')
   })
 })
+
+/**
+ * Sans nom, on n'existe pas dans l'arène : les vues publiques écartent les profils anonymes. Le
+ * rappel se pose ici, à l'endroit où le manque a une conséquence — on ne va pas chercher un
+ * réglage dont on ignore l'existence.
+ */
+describe('jouer sans nom', () => {
+  it('prévient qu’on n’apparaîtra ni sur ses défis ni au classement', async () => {
+    const w = await monter({ pseudo: null })
+    expect(w.find('.sans-nom').exists()).toBe(true)
+    expect(w.text()).toContain('Sans nom')
+    expect(w.text()).toContain('classement')
+  })
+
+  it('se tait dès qu’un nom est posé', async () => {
+    expect((await monter({ pseudo: 'leo' })).find('.sans-nom').exists()).toBe(false)
+  })
+})

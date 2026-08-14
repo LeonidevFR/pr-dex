@@ -13,6 +13,8 @@ const props = defineProps({
   myOpen: { type: Object, default: null },
   levelOf: { type: Function, required: true },
   formOfKey: { type: Function, required: true },
+  /** Le nom sous lequel on apparaît, ou `null` tant qu'on n'en a pas choisi. */
+  pseudo: { type: String, default: null },
   busy: { type: Boolean, default: false },
   preselect: { type: String, default: null },
   leaderboard: { type: Array, default: () => [] },
@@ -120,6 +122,19 @@ function take(duelId) {
       <span class="panel-plate mono">ARÈNE</span>
       <h2 class="panel-name" style="font-size:23px;margin-bottom:0">Duels</h2>
     </div>
+  </div>
+
+  <!--
+    Sans nom, on n'existe pas dans l'arène : les vues publiques écartent les profils anonymes.
+    Le rappel se pose ici plutôt que dans les réglages, à l'endroit où le manque a une
+    conséquence — on ne va pas chercher un réglage dont on ignore l'existence.
+  -->
+  <div v-if="!pseudo" class="sect sans-nom">
+    <p class="muted">
+      <b>Tu joues encore sans nom.</b> Les autres te verront « Sans nom » sur tes défis, et tu
+      n’apparaîtras pas au classement de la saison. Choisis-le dans les réglages — c’est la
+      seule chose qu’ils verront de toi.
+    </p>
   </div>
 
   <div class="sect">

@@ -71,3 +71,36 @@ describe('le nom dans l’arène', () => {
     expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
   })
 })
+
+/**
+ * Le champ démarrait vide. Au lancement, personne n'aurait eu de nom tant qu'il n'aurait pas
+ * trouvé cet écran — donc un classement vide et des défis anonymes, alors que tout le monde est
+ * déjà connu au travail sous son login GitHub.
+ */
+describe('la suggestion du login GitHub', () => {
+  const reglages = (props = {}) => mount(SettingsPanel, {
+    props: { githubLogin: 'leo', ...props },
+  })
+
+  it('propose le login GitHub tant qu’aucun nom n’est choisi', () => {
+    expect(reglages().find('.pseudo-input').element.value).toBe('leo')
+  })
+
+  // Proposé, jamais imposé : c'est la seule donnée qu'un adversaire lira, et la publier reste
+  // un geste volontaire. Rien n'est écrit tant qu'on n'a pas confirmé.
+  it('ne l’enregistre pas tout seul', () => {
+    expect(reglages().emitted('set-pseudo')).toBeUndefined()
+  })
+
+  it('laisse la main au nom déjà choisi', () => {
+    expect(reglages({ pseudo: 'marion' }).find('.pseudo-input').element.value).toBe('marion')
+  })
+
+  // Un login GitHub peut porter des signes que la borne refuse : la suggestion doit rester
+  // soumissible telle quelle, sinon elle propose une impasse.
+  it('nettoie une suggestion que la règle refuserait', () => {
+    const w = reglages({ githubLogin: 'leo@guest suite' })
+    expect(w.find('.pseudo-input').element.value).toBe('leoguestsuite')
+    expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
+  })
+})

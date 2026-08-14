@@ -22,7 +22,19 @@ const emit = defineEmits(['close', 'disconnect', 'set-pseudo'])
  */
 const MOTIF = /^[a-zA-Z0-9À-ÿ._-]{2,20}$/
 
-const saisie = ref(props.pseudo ?? '')
+/**
+ * Pré-rempli avec le login GitHub quand aucun nom n'a encore été choisi.
+ *
+ * Le champ démarrait vide, et la conséquence n'était pas anodine : au lancement, personne
+ * n'aurait de nom tant qu'il n'aurait pas trouvé cet écran — donc un classement vide et des
+ * défis anonymes, alors que tout le monde est déjà connu au travail sous ce login-là.
+ *
+ * Proposé, jamais imposé : c'est la seule donnée qu'un adversaire lira, et la publier reste un
+ * geste volontaire. Un clic suffit à confirmer, une frappe à changer.
+ */
+const suggere = (nom) => (nom ?? '').replace(/[^a-zA-Z0-9À-ÿ._-]/g, '').slice(0, 20)
+
+const saisie = ref(props.pseudo ?? suggere(props.githubLogin))
 watch(() => props.pseudo, (p) => { if (p) saisie.value = p })
 
 const valide = () => MOTIF.test(saisie.value.trim())

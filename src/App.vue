@@ -492,7 +492,7 @@ useKeyboardNav({
       :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
       :challenges="arena.challenges.value" :engageable="arena.engageable.value"
       :my-open="arena.myOpen.value" :level-of="arena.levelOf"
-      :form-of-key="arena.formOfKey" :busy="arenaBusy"
+      :form-of-key="arena.formOfKey" :busy="arenaBusy" :pseudo="pseudo"
       :preselect="arenaPreselect" :leaderboard="arena.leaderboard.value"
       :seasons="arena.seasons.value" :season="arena.season.value" :user-id="userId"
       @engage="onEngage" @accept="onAccept"

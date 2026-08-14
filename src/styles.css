@@ -978,3 +978,7 @@
   .pseudo-input:focus{outline:none;border-color:var(--ochre)}
   .pseudo-input:disabled{color:var(--ink-3)}
   .pseudo-err{margin-top:10px;color:var(--stamp)}
+
+  /* Le rappel du nom manquant : un filet rouge, pas un bandeau — il informe, il n'interdit rien. */
+  .sans-nom{border-left:3px solid var(--stamp);padding-left:16px}
+  .sans-nom b{color:var(--stamp)}
