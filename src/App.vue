@@ -111,6 +111,47 @@ const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
 const gen = ref(1)
 const duelShown = ref(null)
+
+/**
+ * Les duels qui se sont joués sans nous.
+ *
+ * Un défi que personne ne relève est résolu par la maison au bout de vingt-quatre heures : on
+ * peut donc perdre un Pokémon pendant la nuit. Rien ne le disait — on le découvrait en
+ * constatant une absence, ce qui se lit comme une panne plutôt que comme une défaite. La
+ * cérémonie se rejoue donc à la connexion, pour ceux qu'on n'a pas vus.
+ *
+ * Les identifiants vus sont consignés dans l'état du joueur : sans cette mémoire, le même duel
+ * se rejouerait à chaque visite.
+ */
+const aVoir = ref([])
+
+function duelsNonVus() {
+  if (!arena) return []
+  const vus = new Set(collection.state.value.seenDuels ?? [])
+  return arena.recentDuels.value.filter((d) => !vus.has(d.id))
+}
+
+async function marquerVu(id) {
+  await collection.markDuelSeen(id)
+}
+
+/** Enchaîne les duels non vus, un par un : chacun mérite sa cérémonie. */
+async function montrerSuivant() {
+  const suivant = aVoir.value.shift()
+  duelShown.value = suivant ?? null
+  if (suivant) await marquerVu(suivant.id)
+}
+
+/**
+ * Au retour, on rejoue les duels manqués. Les plus anciens d'abord : on les a vécus dans cet
+ * ordre-là, même sans les avoir regardés.
+ */
+async function rattraperLesDuels() {
+  const manques = duelsNonVus()
+  if (!manques.length) return
+  aVoir.value = [...manques].reverse()
+  await montrerSuivant()
+}
 const userId = ref('')
 let arena = null
 let client = null
@@ -180,6 +221,9 @@ async function playArena(fn) {
     // rappelé, plutôt qu'un résumé de combat qui n'a pas eu lieu.
     if (duel) {
       duelShown.value = duel
+      // Vu à l'instant : sans ça, le duel qu'on vient de jouer se rejouerait à la connexion
+      // suivante, au milieu de ceux qu'on a réellement manqués.
+      await marquerVu(duel.id)
       router.go('collection')
     } else {
       router.go('arena')
@@ -258,6 +302,7 @@ onMounted(async () => {
     await arena.load()
     reporterLesPertes()
     connected.value = true
+    await rattraperLesDuels()
   }
 })
 
@@ -392,6 +437,7 @@ useKeyboardNav({
         :caught-ids="caughtIds"
         :arena-credits="arena ? arena.credits.value : 0"
         :arena-level-of="arena ? arena.levelOf : () => 1"
+        :arena-form-of="arena && areneOuverte ? arena.formOfKey : null"
         @close="router.go('collection')" @evolve="onEvolve" @engage="onEngageFromSheet"
       />
     </transition>
@@ -449,8 +495,8 @@ useKeyboardNav({
 
     <transition name="fade">
       <DuelOverlay
-        v-if="duelShown" :duel="duelShown" :user-id="userId"
-        @close="duelShown = null"
+        v-if="duelShown" :key="duelShown.id" :duel="duelShown" :user-id="userId"
+        @close="montrerSuivant"
       />
     </transition>
 

@@ -22,6 +22,12 @@ const props = defineProps({
   available: { type: Array, default: () => [] },
   arenaCredits: { type: Number, default: 0 },
   arenaLevelOf: { type: Function, default: () => 1 },
+  /**
+   * La forme du jour d'un exemplaire, ou `null` tant que l'arène n'a pas ouvert. Elle entre dans
+   * le calcul de puissance au même titre que le niveau : la lire ici, là où l'on regarde ses
+   * Pokémon, évite d'avoir à ouvrir l'arène pour savoir si le moment est bon.
+   */
+  arenaFormOf: { type: Function, default: null },
 })
 const emit = defineEmits(['close', 'evolve', 'engage'])
 
@@ -156,6 +162,23 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         <div class="eyebrow sect-h">
           <span>Arène</span>
           <span class="mono muted">niv. {{ arenaLevelOf(available[0].key) }}</span>
+        </div>
+
+        <!--
+          Un exemplaire par ligne avec sa forme : à plusieurs exemplaires, elles diffèrent — la
+          forme se tire de la clé, pas de l'espèce — et c'est précisément ce qui décide lequel
+          engager aujourd'hui.
+        -->
+        <div v-if="arenaFormOf" class="formes">
+          <div v-for="(e, i) in available" :key="e.key" class="forme-ligne">
+            <span class="mono no">{{ i + 1 }}</span>
+            <span class="quoi">niv. {{ arenaLevelOf(e.key) }}</span>
+            <span
+              class="forme-nom"
+              :class="{ up: arenaFormOf(e.key).factor > 1, down: arenaFormOf(e.key).factor < 1 }"
+            >{{ arenaFormOf(e.key).name }}</span>
+            <span class="mono coef">×{{ arenaFormOf(e.key).factor.toFixed(2) }}</span>
+          </div>
         </div>
         <p class="muted">
           <template v-if="arenaCredits">

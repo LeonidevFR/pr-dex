@@ -11,7 +11,7 @@ const clone = (o) => JSON.parse(JSON.stringify(o))
  */
 export function useCollection() {
   const catches = ref([])
-  const state = ref({ claimed: [], spent: {}, evolutions: [] })
+  const state = ref({ claimed: [], spent: {}, evolutions: [], seenDuels: [] })
   const blobSha = ref(null)
   const error = ref(null)
   const loading = ref(false)
@@ -138,6 +138,21 @@ export function useCollection() {
   }
 
   /**
+   * Retient qu'un duel a déjà été montré. Sans cette mémoire, la cérémonie d'un duel résolu par
+   * la maison se rejouerait à chaque visite — la première fois on apprend quelque chose, la
+   * dixième on ferme l'application.
+   *
+   * `seenDuels` peut manquer sur un état écrit avant son existence : on le recrée plutôt que de
+   * planter sur un ancien blob.
+   */
+  async function markDuelSeen(id) {
+    await persist((s) => {
+      const vus = s.seenDuels ?? []
+      return vus.includes(id) ? null : { ...s, seenDuels: [...vus, id] }
+    }, `duel vu ${id}`)
+  }
+
+  /**
    * Exemplaires disponibles de `fromId` sur un état `s` donné (pas nécessairement `state.value`
    * — `persist` rejoue ce calcul sur l'état frais après un conflit). Réplique volontairement la
    * logique de `useDex` (clé, exemplaires consommés) sur un objet simple plutôt que sur des refs,
@@ -198,5 +213,7 @@ export function useCollection() {
     )
   }
 
-  return { catches, state, error, loading, dex, destroyed, load, refresh, claim, evolve }
+  return {
+    catches, state, error, loading, dex, destroyed, load, refresh, claim, evolve, markDuelSeen,
+  }
 }

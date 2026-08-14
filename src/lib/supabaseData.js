@@ -152,6 +152,24 @@ export function createSupabaseClient(userId) {
       .order('season', { ascending: false }))
 
   /**
+   * Les duels récemment résolus où l'on figurait, le plus frais d'abord.
+   *
+   * Un défi que personne ne relève est résolu par la maison au bout de vingt-quatre heures : on
+   * peut donc perdre un Pokémon pendant la nuit. Sans cette lecture, rien ne le dit — on le
+   * découvre en constatant une absence, ce qui se lit comme une panne plutôt que comme une
+   * défaite.
+   *
+   * La politique RLS ne rend que les duels résolus où l'on est l'un des deux camps : la requête
+   * n'a donc pas à filtrer, elle ne peut pas voir autre chose.
+   */
+  const readMyDuels = (limite = 10) =>
+    query(() => supabase.from('arena_duels')
+      .select('*')
+      .neq('status', 'open')
+      .order('resolved_at', { ascending: false })
+      .limit(limite))
+
+  /**
    * Le dossier public d'un joueur : le sien, ou celui d'un collègue.
    *
    * La vue ne porte QUE ce que la spec § 5 autorise à publier — espèces, victoires, défaites.
@@ -190,6 +208,6 @@ export function createSupabaseClient(userId) {
   return {
     checkAccess, readCatches, readState, writeState, triggerCatch,
     readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readLeaderboard, readSeasons, engage, accept,
-    readPublicProfile, readMyProfile, readDestroyed,
+    readPublicProfile, readMyProfile, readDestroyed, readMyDuels,
   }
 }

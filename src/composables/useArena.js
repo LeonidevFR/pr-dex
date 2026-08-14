@@ -22,6 +22,8 @@ export function useArena(client, claimed, consumed = computed(() => new Set())) 
   const seasons = ref([])
   const season = ref(seasonOf())
   const myOpen = ref(null)
+  /** Les duels résolus récents, pour repérer ceux qui se sont joués sans nous. */
+  const recentDuels = ref([])
   const loading = ref(false)
   const error = ref(null)
 
@@ -65,10 +67,14 @@ export function useArena(client, claimed, consumed = computed(() => new Set())) 
     loading.value = true
     error.value = null
     try {
-      const [arena, open, mien, articles, classement, closes] = await Promise.all([
+      const [arena, open, mien, articles, classement, closes, duels] = await Promise.all([
         client.readArena(), client.readOpenChallenges(), client.readMyOpen(), client.readShop(),
         client.readLeaderboard(season.value), client.readSeasons(),
+        // Optionnel : un client de démonstration ancien peut ne pas l'avoir, et l'absence de
+        // duels récents ne doit pas empêcher l'arène entière de se charger.
+        client.readMyDuels ? client.readMyDuels() : [],
       ])
+      recentDuels.value = duels ?? []
       shop.value = articles ?? []
       leaderboard.value = classement ?? []
       seasons.value = closes ?? []
@@ -122,6 +128,6 @@ export function useArena(client, claimed, consumed = computed(() => new Set())) 
 
   return {
     credits, pokedollars, exemplars, challenges, shop, leaderboard, seasons, season, myOpen, loading, error,
-    levels, destroyed, engageable, levelOf, formOfKey, load, engage, accept, buy,
+    levels, destroyed, engageable, levelOf, formOfKey, recentDuels, load, engage, accept, buy,
   }
 }

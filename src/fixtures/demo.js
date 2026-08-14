@@ -308,6 +308,15 @@ export function demoArena(catches) {
       entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: JOUR,
     })),
 
+    /**
+     * Les duels résolus, du plus frais au plus ancien. En démonstration, un défi que l'on a
+     * posté reste ouvert — personne d'autre ne joue — donc cette liste ne contient que ce qu'on
+     * a soi-même provoqué.
+     */
+    readMyDuels: async () => [...duels.values()]
+      .sort((a, b) => b.id - a.id)
+      .map((d) => ({ ...d })),
+
     readLeaderboard: async () => [
       { user_id: 'demo-bob', pseudo: 'bob', points: 275, rank: 1 },
       { user_id: MOI, pseudo: 'toi', points: points, rank: 2 },

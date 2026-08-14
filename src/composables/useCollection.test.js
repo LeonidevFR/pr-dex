@@ -426,3 +426,38 @@ describe('erreur périmée', () => {
     expect(c.error.value).toBeNull()
   })
 })
+
+/**
+ * La mémoire des duels vus. Un défi que personne ne relève est résolu par la maison au bout de
+ * vingt-quatre heures : on peut perdre un Pokémon pendant la nuit, et la cérémonie se rejoue au
+ * retour pour l'apprendre. Sans mémoire, elle se rejouerait à CHAQUE retour — la première fois
+ * on apprend quelque chose, la dixième on ferme l'application.
+ */
+describe('duels déjà vus', () => {
+  const chargee = async (state = { claimed: [], spent: {}, evolutions: [], seenDuels: [] }) => {
+    const c = useCollection()
+    await c.load(fakeClient({ state }))
+    return c
+  }
+
+  it('retient un duel montré', async () => {
+    const c = await chargee()
+    await c.markDuelSeen(42)
+    expect(c.state.value.seenDuels).toContain(42)
+  })
+
+  it('ne le retient qu’une fois', async () => {
+    const c = await chargee()
+    await c.markDuelSeen(42)
+    await c.markDuelSeen(42)
+    expect(c.state.value.seenDuels.filter((x) => x === 42)).toHaveLength(1)
+  })
+
+  // Les états écrits avant l'existence de ce champ n'ont pas la clé : on la recrée plutôt que
+  // de planter sur un ancien blob.
+  it('survit à un état d’avant sa propre existence', async () => {
+    const c = await chargee({ claimed: [], spent: {}, evolutions: [] })
+    await c.markDuelSeen(7)
+    expect(c.state.value.seenDuels).toEqual([7])
+  })
+})

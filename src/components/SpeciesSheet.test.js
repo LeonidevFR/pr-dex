@@ -505,3 +505,44 @@ describe('envoi à l’arène depuis la fiche', () => {
     expect(w.find('.arena-send').exists()).toBe(false)
   })
 })
+
+/**
+ * La forme du jour, sur la fiche. Elle entre dans le calcul de puissance au même titre que le
+ * niveau, et n'était lisible que dans l'arène : il fallait donc ouvrir un autre écran pour
+ * savoir si le moment était bon pour engager celui qu'on avait sous les yeux.
+ */
+describe('la forme du jour sur la fiche', () => {
+  const FORMES = {
+    'github:a': { name: 'vaillant', factor: 1.05 },
+    'github:b': { name: 'épuisé', factor: 0.9 },
+  }
+  const deuxExemplaires = [capture('a', 1), capture('b', 1)]
+  const monterAvecFormes = (props = {}) => mountSheet({
+    entries: deuxExemplaires, available: deuxExemplaires,
+    arenaFormOf: (key) => FORMES[key] ?? { name: 'normal', factor: 1 },
+    ...props,
+  })
+
+  // À plusieurs exemplaires, les formes diffèrent — elle se tire de la clé, pas de l'espèce —
+  // et c'est précisément ce qui décide lequel engager aujourd'hui.
+  it('donne sa forme à chaque exemplaire, pas une pour l’espèce', () => {
+    const w = monterAvecFormes()
+    const lignes = w.findAll('.forme-ligne')
+    expect(lignes).toHaveLength(2)
+    const noms = lignes.map((l) => l.find('.forme-nom').text())
+    expect(new Set(noms).size).toBeGreaterThan(1)
+  })
+
+  it('distingue à l’œil ce qui aide de ce qui handicape', () => {
+    const w = monterAvecFormes()
+    expect(w.findAll('.forme-nom.up').length).toBeGreaterThan(0)
+    expect(w.findAll('.forme-nom.down').length).toBeGreaterThan(0)
+  })
+
+  // Avant l'ouverture de l'arène, la forme ne veut encore rien dire : l'afficher poserait une
+  // question à laquelle rien ne répond.
+  it('ne montre rien tant que l’arène n’a pas ouvert', () => {
+    const w = mountSheet({ entries: deuxExemplaires, available: deuxExemplaires })
+    expect(w.find('.formes').exists()).toBe(false)
+  })
+})
