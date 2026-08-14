@@ -215,3 +215,21 @@ describe('icônes du rail', () => {
     expect(w.find('.gear.sync').classes()).not.toContain('spinning')
   })
 })
+
+/**
+ * La couleur du lieu doit se VOIR. Un premier essai la posait en voile à 9 % d'opacité :
+ * présente dans le code, invisible à l'écran — et une couleur qu'on ne remarque pas ne sert à
+ * rien. Elle porte désormais trois marques, dont deux que l'œil vise d'emblée.
+ */
+describe('le rail prend la couleur du lieu', () => {
+  it('déclare le lieu courant, pour que la feuille de style s’y accroche', () => {
+    expect(mountRail({ place: 'arena' }).find('.rail').attributes('data-place')).toBe('arena')
+    expect(mountRail({ place: 'shop' }).find('.rail').attributes('data-place')).toBe('shop')
+  })
+
+  it('donne une teinte différente à chaque lieu', () => {
+    const lieux = ['collection', 'arena', 'season', 'profile']
+    const marques = lieux.map((l) => mountRail({ place: l }).find('.rail').attributes('data-place'))
+    expect(new Set(marques).size).toBe(lieux.length)
+  })
+})

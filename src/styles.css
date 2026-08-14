@@ -49,30 +49,27 @@
   .mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
 
   /* ───────── rail ───────── */
-  /* Le rail portait un dégradé et un flou d'arrière-plan : il fallait qu'il se détache de la
-     planche qui défilait dessous, et que les panneaux flottants s'en distinguent. Les lieux
-     étant devenus des pages posées à plat sur le parchemin, ce traitement n'avait plus d'objet
-     et faisait du haut de l'écran une pièce rapportée.
+  /* Le rail a porté successivement un dégradé avec flou d'arrière-plan — utile au temps où une
+     planche défilait dessous — puis un voile teinté de la couleur du lieu. Les deux étaient de
+     trop : sur des pages posées à plat, toute matière ajoutée en haut de l'écran se lit comme
+     une pièce rapportée. Il tient donc sur le papier nu, comme le reste.
 
-     Il tient désormais sur la même matière que le reste, et c'est le LIEU qui lui donne sa
-     teinte : un voile de la couleur de l'écran ouvert, et le filet de l'onglet actif dans la
-     même. Le haut de la page dit alors où l'on est, au lieu de flotter au-dessus. */
+     Le lieu se dit par le trait, pas par une surface : le filet du bas et le point du sigle
+     prennent sa couleur. Deux repères fins valent mieux qu'un aplat, et ils tombent aux deux
+     endroits que l'œil vise déjà. */
   .rail{
-    position:sticky;top:0;z-index:20;
-    background:
-      linear-gradient(180deg, var(--lieu-voile, transparent), transparent 70%),
-      var(--paper);
-    border-bottom:1.5px solid var(--rule-hi);
+    position:sticky;top:0;z-index:20;background:var(--paper);
+    border-bottom:2px solid var(--lieu, var(--rule-hi));
     padding:18px 0 0;margin-bottom:26px;
-    transition:background .4s ease;
+    transition:border-color .4s ease;
   }
   /* Les couleurs sont celles que chaque écran emploie déjà : le vert de la progression, le
      rouge du risque, l'ocre de l'argent. Rien de nouveau — le rail cite, il n'invente pas. */
-  .rail[data-place="collection"]{--lieu:var(--herb);--lieu-voile:rgba(92,122,82,.09)}
-  .rail[data-place="arena"]{--lieu:var(--stamp);--lieu-voile:rgba(158,59,46,.09)}
-  .rail[data-place="season"]{--lieu:var(--ochre);--lieu-voile:rgba(184,134,43,.10)}
-  .rail[data-place="shop"]{--lieu:var(--ochre);--lieu-voile:rgba(184,134,43,.10)}
-  .rail[data-place="profile"]{--lieu:var(--ink-2);--lieu-voile:rgba(111,99,80,.09)}
+  .rail[data-place="collection"]{--lieu:var(--herb)}
+  .rail[data-place="arena"]{--lieu:var(--stamp)}
+  .rail[data-place="season"]{--lieu:var(--ochre)}
+  .rail[data-place="shop"]{--lieu:var(--ochre)}
+  .rail[data-place="profile"]{--lieu:var(--ink-2)}
   .rail-haut{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap}
   .rail-bas{
     display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap;
@@ -108,7 +105,9 @@
     .tab span:not(.pip){display:none}
   }
   .wordmark{font-family:var(--f-display);font-weight:700;font-size:23px;letter-spacing:-.02em;line-height:1}
-  .wordmark span{color:var(--stamp)}
+  /* Le point du sigle suit le lieu, comme le filet : deux repères valent mieux qu'un, et
+     celui-ci se trouve à l'endroit que l'œil vise en premier. */
+  .wordmark span{color:var(--lieu,var(--stamp));transition:color .4s ease}
   .rail-sub{margin-top:6px}
   .progress{flex:1;min-width:220px}
   .progress-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
