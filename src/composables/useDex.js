@@ -9,8 +9,12 @@ import { entryKey } from '../../shared/entry.js'
  * @param {import('vue').Ref<Array>} catches — entrées écrites par l'Action, append-only
  * @param {import('vue').Ref<Object>} state  — { claimed, spent, evolutions } écrit par le front
  * @param {import('vue').Ref<Set<string>>} destroyed — clés des exemplaires perdus à l'arène
+ * @param {import('vue').Ref<Array>} evolutions — lignes `{ id, from_species, to_species, from_key }`
+ *   telles que le serveur les tient. Elles vivaient dans `state.evolutions` ; le serveur les
+ *   écrit désormais, et sa clé (`evo:<id>`) remplace l'index du tableau — un identifiant
+ *   attribué par la base est stable, un rang dans un tableau ne l'est pas.
  */
-export function useDex(catches, state, destroyed = ref(new Set())) {
+export function useDex(catches, state, destroyed = ref(new Set()), evolutions = ref([])) {
   const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
 
   const claimedSet = computed(() => new Set(state.value.claimed))
@@ -38,14 +42,24 @@ export function useDex(catches, state, destroyed = ref(new Set())) {
   // antérieure (avant l'introduction de `fromKey`).
   const evolved = computed(() => {
     const result = []
-    state.value.evolutions.forEach((e, i) => {
+    for (const e of evolutions.value) {
       const pool = [...claimed.value, ...result]
-      const fromKey = e.fromKey ?? e.fromSha
-      const origin = fromKey ? pool.find((c) => c.key === fromKey) : pool.find((c) => c.species === e.from)
-      result.push({ ...e, via: 'evo', shiny: origin?.shiny ?? false, key: `evo:${i}` })
-    })
+      const origin = pool.find((c) => c.key === e.from_key)
+      result.push({
+        species: e.to_species, from: e.from_species, date: e.day,
+        via: 'evo', shiny: origin?.shiny ?? false, key: `evo:${e.id}`,
+      })
+    }
     return result
   })
+
+  /**
+   * Ce qui peut descendre dans l'arène : les captures ouvertes ET les Pokémon obtenus par
+   * évolution. Ces derniers en étaient exclus tant que le serveur cherchait l'espèce dans
+   * `catches` — une exclusion que personne n'avait décidée, et qui écartait justement les plus
+   * belles bêtes.
+   */
+  const engageables = computed(() => [...claimed.value, ...evolved.value])
 
   const bySpecies = computed(() => {
     const map = {}
@@ -59,7 +73,7 @@ export function useDex(catches, state, destroyed = ref(new Set())) {
   // l'espèce reste acquise pour toujours dans `bySpecies` (le Pokédex garde ce qui a été vu,
   // même si le dernier exemplaire a servi à évoluer).
   const consumedKeys = computed(
-    () => new Set(state.value.evolutions.map((e) => e.fromKey ?? e.fromSha).filter(Boolean)),
+    () => new Set(evolutions.value.map((e) => e.from_key).filter(Boolean)),
   )
 
   /**
@@ -93,8 +107,14 @@ export function useDex(catches, state, destroyed = ref(new Set())) {
    */
   function candies(id) {
     const fam = familyOf(id)
+    // Dépensés : la somme des coûts des évolutions faites dans la famille. `state.spent` n'en
+    // était que la valeur matérialisée, et une somme stockée finit toujours par diverger de ses
+    // termes — ici elle se recalcule, donc elle ne peut plus mentir.
     const earned = claimed.value.filter((e) => familyOf(e.species) === fam).length * CANDY_PER_CATCH
-    return earned - (state.value.spent[fam] ?? 0)
+    const spent = evolutions.value
+      .filter((e) => familyOf(e.from_species) === fam)
+      .reduce((somme, e) => somme + (DEX[e.from_species]?.cost ?? 0), 0)
+    return earned - spent
   }
 
   // Une évolution consomme un exemplaire précis : sans stock disponible, plus de matière à
@@ -128,6 +148,6 @@ export function useDex(catches, state, destroyed = ref(new Set())) {
 
   return {
     claimed, pending, evolved, bySpecies, caughtCount, candies, canEvolve, isDeadEnd, evolvableIds,
-    availableEntries, copyCount, isNewSpecies, consumedKeys,
+    availableEntries, copyCount, isNewSpecies, consumedKeys, engageables,
   }
 }

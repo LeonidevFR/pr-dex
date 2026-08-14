@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
 import { useDex } from './useDex.js'
+import { DEX } from '../../shared/species.js'
 import { entryKey } from '../../shared/entry.js'
 
 /** Clé d'exemplaire telle que `useDex` la dérive — ce que `state.claimed` référence. */
@@ -13,7 +14,18 @@ const catchOf = (id, species, extra = {}) => ({
 })
 
 const setup = (catches, state) =>
-  useDex(ref(catches), ref({ claimed: [], spent: {}, evolutions: [], ...state }))
+  useDex(
+    ref(catches),
+    ref({ claimed: [], spent: {}, evolutions: [], ...state }),
+    ref(new Set()),
+    // Les évolutions viennent du serveur : `{ id, from_species, to_species, from_key }`. Les
+    // cas ci-dessous les décrivent encore dans l'ancienne forme, plus lisible ; on convertit
+    // ici plutôt que de les réécrire un par un.
+    ref((state?.evolutions ?? []).map((e, i) => ({
+      id: i, from_species: e.from, to_species: e.species,
+      from_key: e.fromKey ?? e.fromSha ?? null, day: e.date,
+    }))),
+  )
 
 describe('file d’attente', () => {
   it('sépare les captures ouvertes de celles qui attendent', () => {
@@ -65,7 +77,7 @@ describe('collection', () => {
   it('intègre les évolutions comme des entrées de la collection', () => {
     const d = setup([catchOf('a', 129)], {
       claimed: [K('a')],
-      evolutions: [{ species: 130, from: 129, date: '2026-07-14' }],
+      evolutions: [{ species: 130, from: 129, fromKey: K('a'), date: '2026-07-14' }],
     })
     expect(d.bySpecies.value[130]).toHaveLength(1)
     expect(d.bySpecies.value[130][0].via).toBe('evo')
@@ -75,7 +87,7 @@ describe('collection', () => {
   it('hérite le chromatique de la source lors d’une évolution', () => {
     const d = setup([catchOf('a', 129, { shiny: true })], {
       claimed: [K('a')],
-      evolutions: [{ species: 130, from: 129, date: '2026-07-14' }],
+      evolutions: [{ species: 130, from: 129, fromKey: K('a'), date: '2026-07-14' }],
     })
     expect(d.bySpecies.value[130][0].shiny).toBe(true)
   })
@@ -113,12 +125,22 @@ describe('collection', () => {
     expect(d.bySpecies.value[130][0].shiny).toBe(true)
   })
 
-  it('résout via l’espèce source quand aucune clé n’est enregistrée (chemin legacy)', () => {
-    const d = setup([catchOf('a', 129, { shiny: true })], {
-      claimed: [K('a')],
-      evolutions: [{ species: 130, from: 129, date: '2026-07-14' }],
+  /**
+   * Le chemin « sans clé » n'existe plus : `evolutions.from_key` est NOT NULL en base, et le
+   * serveur refuse une évolution qui ne désigne pas un exemplaire précis. Ce que ce cas
+   * vérifiait — retrouver la source par l'espèce — n'a plus de situation où s'appliquer.
+   */
+  it('rattache l’évolution à l’exemplaire que sa clé désigne, et à aucun autre', () => {
+    const d = setup([
+      catchOf('vieux', 129, { shiny: false, date: '2026-01-01' }),
+      catchOf('neuf', 129, { shiny: true, date: '2026-02-01' }),
+    ], {
+      claimed: [K('vieux'), K('neuf')],
+      evolutions: [{ species: 130, from: 129, fromKey: K('vieux'), date: '2026-07-14' }],
     })
-    expect(d.bySpecies.value[130][0].shiny).toBe(true)
+    expect(d.bySpecies.value[130][0].shiny).toBe(false)
+    // L'autre exemplaire n'a pas été consommé : il reste disponible.
+    expect(d.availableEntries(129).map((e) => e.key)).toEqual([K('neuf')])
   })
 
   it('ne lève pas et retombe à non chromatique quand fromKey ne correspond à rien', () => {
@@ -153,20 +175,30 @@ describe('bonbons', () => {
     expect(d.candies(1)).toBe(3)
   })
 
-  it('ne crédite aucun bonbon pour une évolution', () => {
-    const d = setup([catchOf('a', 129)], {
-      claimed: [K('a')],
-      evolutions: [{ species: 130, from: 129, date: '2026-07-14' }],
+  /**
+   * Une évolution consomme, elle ne crédite pas : le Pokémon obtenu n'ajoute aucun bonbon à la
+   * famille. Son COÛT, lui, est déduit — c'est ce que `state.spent` matérialisait, et qui se
+   * recalcule désormais depuis les évolutions elles-mêmes.
+   */
+  it('ne crédite aucun bonbon pour une évolution, et en déduit le coût', () => {
+    const d = setup([catchOf('a', 1), catchOf('b', 1), catchOf('c', 1)], {
+      claimed: [K('a'), K('b'), K('c')],
+      evolutions: [{ species: 2, from: 1, fromKey: K('a'), date: '2026-07-14' }],
     })
-    expect(d.candies(129)).toBe(3)
+    // Trois captures font neuf bonbons ; l'évolution de Bulbizarre en coûte huit.
+    expect(d.candies(1)).toBe(9 - DEX[1].cost)
+    // Et Herbizarre, obtenu par évolution, n'en crédite aucun.
+    expect(d.candies(2)).toBe(9 - DEX[1].cost)
   })
 
-  it('déduit les bonbons dépensés', () => {
+  // `state.spent` n'est plus lu : une somme stockée finit toujours par diverger de ses termes,
+  // et ces termes sont désormais en base.
+  it('ignore l’ancien compteur de dépenses, qui ne fait plus autorité', () => {
     const d = setup([catchOf('a', 1), catchOf('b', 1), catchOf('c', 1)], {
       claimed: [K('a'), K('b'), K('c')],
       spent: { 1: 8 },
     })
-    expect(d.candies(1)).toBe(1)
+    expect(d.candies(1)).toBe(9)
   })
 
   it('partage le compteur entre toutes les espèces d’une famille', () => {
@@ -247,12 +279,15 @@ describe('évolutions disponibles (mise en avant grille)', () => {
     expect(d.evolvableIds.value.has(1)).toBe(false)
   })
 
-  it('recalcule quand des bonbons sont dépensés', () => {
+  // Les bonbons se déduisent des évolutions : en faire une retire son coût de la réserve, et
+  // la mise en avant doit suivre sans qu'on ait à toucher un compteur séparé.
+  it('recalcule quand une évolution vient de dépenser', () => {
     const catches = ref(Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1)))
     const state = ref({ claimed: [K('s0'), K('s1'), K('s2')], spent: {}, evolutions: [] })
-    const d = useDex(catches, state)
+    const evolutions = ref([])
+    const d = useDex(catches, state, ref(new Set()), evolutions)
     expect(d.evolvableIds.value.has(1)).toBe(true)
-    state.value = { ...state.value, spent: { 1: 8 } }
+    evolutions.value = [{ id: 1, from_species: 1, to_species: 2, from_key: K('s0'), day: '2026-07-01' }]
     expect(d.evolvableIds.value.has(1)).toBe(false)
   })
 })
@@ -291,7 +326,10 @@ describe('exemplaires consommés par une évolution', () => {
         ],
       },
     )
-    expect(d.candies(1)).toBeGreaterThanOrEqual(0)
+    // Trois évolutions à huit bonbons pour neuf gagnés : la réserve est à découvert, ce qui
+    // n'arrive que sur un cas construit — le serveur refuserait la troisième. Ce qui se vérifie
+    // ici est ailleurs : plus un seul exemplaire ne reste à évoluer.
+    expect(d.copyCount(1)).toBe(0)
     expect(d.copyCount(1)).toBe(0)
     expect(d.canEvolve(1)).toBe(false)
   })
@@ -429,5 +467,32 @@ describe('exemplaires détruits à l’arène', () => {
     expect(d.caughtCount.value).toBe(1)
     expect(d.isNewSpecies(25)).toBe(false)
     expect(d.candies(25)).toBe(dex().candies(25))
+  })
+})
+
+/**
+ * Ce qui peut descendre dans l'arène. Les Pokémon obtenus par évolution en étaient exclus tant
+ * que le serveur cherchait l'espèce dans `catches` — une exclusion que personne n'avait décidée,
+ * et qui écartait justement les plus belles bêtes.
+ */
+describe('ce qui peut être engagé', () => {
+  it('comprend les captures ouvertes et les formes évoluées', () => {
+    const d = setup([catchOf('a', 1), catchOf('b', 1)], {
+      claimed: [K('a'), K('b')],
+      evolutions: [{ species: 2, from: 1, fromKey: K('a'), date: '2026-07-14' }],
+    })
+    const cles = d.engageables.value.map((e) => e.key)
+    expect(cles).toContain(K('b'))
+    expect(cles).toContain('evo:0')
+  })
+
+  // La capture consommée y figure encore : c'est le serveur qui la refuse, et l'arène l'écarte
+  // de son côté. Ce qui se vérifie ici est que la liste ne perde pas les évolutions.
+  it('ne perd pas les évolutions au profit des seules captures', () => {
+    const d = setup([catchOf('a', 1)], {
+      claimed: [K('a')],
+      evolutions: [{ species: 2, from: 1, fromKey: K('a'), date: '2026-07-14' }],
+    })
+    expect(d.engageables.value.some((e) => e.species === 2)).toBe(true)
   })
 })

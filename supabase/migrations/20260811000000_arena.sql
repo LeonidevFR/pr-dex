@@ -1,6 +1,11 @@
 -- Socle base de données du mode arène : la fonction de hachage partagée, les tables, leurs
 -- policies et les vues qui exposent ce qu'un adversaire a le droit de voir.
 --
+-- ORDRE D'APPLICATION : cette migration, puis `20260814000000_evolutions.sql`, puis le seed.
+-- L'arène appelle `dex_species_of`, que la seconde crée — un appel résolu à l'exécution, donc
+-- sans erreur au chargement, mais qui échouerait au premier engagement si l'ordre n'était pas
+-- respecté.
+--
 -- À coller dans l'éditeur SQL du dashboard pour la mise en service, comme la bascule de
 -- juillet. Tout est dans une transaction : en cas d'échec en cours de route, rien n'est
 -- appliqué.
@@ -668,14 +673,23 @@ begin
   perform pg_advisory_xact_lock(hashtextextended(v_uid :: text, 0));
 
   -- La propriété se lit dans `catches`, seule source de vérité sur ce qu'un joueur possède.
-  -- `user_id` fait partie de la condition : sans lui, on vérifierait que la clé existe et non
-  -- qu'elle est à l'appelant.
-  select c.species into v_species
-  from public.catches c
-  where c.user_id = v_uid and c.source || ':' || c.external_id = p_entry_key;
+  -- `dex_species_of` et non une lecture directe de `catches` : un Pokémon obtenu par évolution
+  -- n'a pas de ligne de capture, et l'arène l'excluait donc du jeu sans que personne l'ait
+  -- décidé — les formes évoluées, souvent les plus belles bêtes, ne pouvaient pas combattre.
+  -- La fonction cherche dans les deux endroits, et vérifie l'appartenance dans les deux.
+  v_species := public.dex_species_of(v_uid, p_entry_key);
 
   if v_species is null then
     raise exception 'arene : exemplaire non possédé (%)', p_entry_key;
+  end if;
+
+  -- Consommé par une évolution : sa ligne de capture subsiste, mais l'exemplaire n'existe plus.
+  -- Sans ce contrôle, on pouvait faire évoluer son Pikachu puis engager le Pikachu disparu — un
+  -- duel sans rien à perdre, puisqu'il n'était déjà plus là.
+  if exists (
+    select 1 from public.evolutions where user_id = v_uid and from_key = p_entry_key
+  ) then
+    raise exception 'arene : exemplaire déjà évolué (%)', p_entry_key;
   end if;
 
   -- Aucune ligne `arena_exemplars` pour un exemplaire jamais engagé : c'est le cas NORMAL, et
@@ -885,14 +899,23 @@ begin
   perform pg_advisory_xact_lock(hashtextextended(v_uid :: text, 0));
 
   -- 4. La propriété se lit dans `catches`, seule source de vérité sur ce qu'un joueur possède.
-  -- `user_id` fait partie de la condition : sans lui, on vérifierait que la clé existe et non
-  -- qu'elle est à l'appelant.
-  select c.species into v_species
-  from public.catches c
-  where c.user_id = v_uid and c.source || ':' || c.external_id = p_entry_key;
+  -- `dex_species_of` et non une lecture directe de `catches` : un Pokémon obtenu par évolution
+  -- n'a pas de ligne de capture, et l'arène l'excluait donc du jeu sans que personne l'ait
+  -- décidé — les formes évoluées, souvent les plus belles bêtes, ne pouvaient pas combattre.
+  -- La fonction cherche dans les deux endroits, et vérifie l'appartenance dans les deux.
+  v_species := public.dex_species_of(v_uid, p_entry_key);
 
   if v_species is null then
     raise exception 'arene : exemplaire non possédé (%)', p_entry_key;
+  end if;
+
+  -- Consommé par une évolution : sa ligne de capture subsiste, mais l'exemplaire n'existe plus.
+  -- Sans ce contrôle, on pouvait faire évoluer son Pikachu puis engager le Pikachu disparu — un
+  -- duel sans rien à perdre, puisqu'il n'était déjà plus là.
+  if exists (
+    select 1 from public.evolutions where user_id = v_uid and from_key = p_entry_key
+  ) then
+    raise exception 'arene : exemplaire déjà évolué (%)', p_entry_key;
   end if;
 
   select e.level, e.destroyed_at into v_level, v_destroyed

@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises'
-import { SPECIES, DEX } from '../shared/species.js'
+import { SPECIES, DEX, familyOf } from '../shared/species.js'
 import { SPECIES_GEN2, STATS_GEN2 } from '../shared/species-gen2.js'
 import { SHOP } from '../shared/arena-economy.js'
 
@@ -73,11 +73,25 @@ export function seedSql(statsById) {
   const articles = SHOP.map((a) =>
     `  ('${a.slug}', ${a.gen}, '${a.tier}', ${a.fresh}, ${a.price})`).join(',\n')
 
+  /**
+   * Les lignées, pour que le serveur puisse valider une évolution sans croire le client sur
+   * parole : qui évolue en quoi, à quel prix, et dans quelle famille les bonbons se mettent en
+   * commun. Ces trois faits vivent dans `shared/species.js` ; ils sont recopiés en base plutôt
+   * que réinventés, et un test de parité interdit qu'ils divergent.
+   */
+  const lignees = Object.values(DEX).map((s) => {
+    const cibles = s.to ? (Array.isArray(s.to) ? s.to : [s.to]) : []
+    return `  (${s.id}, ${familyOf(s.id)}, ${s.cost ?? 'null'}, '{${cibles.join(',')}}')`
+  }).join(',\n')
+
   return `${SEED_HEADER}\ninsert into public.species_stats (species, stats, tier) values\n` +
     `${rows.join(',\n')}\non conflict (species) do update set ` +
     'stats = excluded.stats, tier = excluded.tier;\n\n' +
     'insert into public.arena_shop (slug, gen, tier, fresh, price) values\n' +
-    `${articles}\non conflict (slug) do update set price = excluded.price;\n`
+    `${articles}\non conflict (slug) do update set price = excluded.price;\n\n` +
+    'insert into public.species_evo (species, family, cost, targets) values\n' +
+    `${lignees}\non conflict (species) do update set ` +
+    'family = excluded.family, cost = excluded.cost, targets = excluded.targets;\n'
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

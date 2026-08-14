@@ -212,7 +212,7 @@ async function connectSession(s) {
   githubLogin.value = s.user.user_metadata?.user_name ?? ''
   client = createSupabaseClient(s.user.id)
   userId.value = s.user.id
-  arena = useArena(client, collection.dex.claimed, collection.dex.consumedKeys)
+  arena = useArena(client, collection.dex.engageables, collection.dex.consumedKeys)
   try {
     await client.checkAccess()
   } catch (e) {
@@ -323,7 +323,7 @@ onMounted(async () => {
     client = loadDemoClient()
     demo.value = true
     userId.value = 'demo-moi'
-    arena = useArena(client, collection.dex.claimed, collection.dex.consumedKeys, FIRST_SEASON)
+    arena = useArena(client, collection.dex.engageables, collection.dex.consumedKeys, FIRST_SEASON)
     await collection.load(client)
     await arena.load()
     reporterLesPertes()

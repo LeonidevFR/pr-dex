@@ -1,6 +1,6 @@
 import { fnv1a, drawFrom, drawFromPool } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
-import { DEX, poolOf } from '../../shared/species.js'
+import { DEX, poolOf, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import { FORMS, formOf, parisDay, power, resolveDuel } from '../../shared/battle.js'
 import { REWARD, SHOP, coveredTier } from '../../shared/arena-economy.js'
 
@@ -197,6 +197,7 @@ export function demoArena(catches) {
   const MOI = 'demo-moi'
 
   let credits = 5
+  const evolutions = []
   let pseudo = null
   // De quoi essayer tous les articles, légendaire inédit compris : la démo sert à voir.
   let pokedollars = 14000
@@ -314,6 +315,40 @@ export function demoArena(catches) {
      * posté reste ouvert — personne d'autre ne joue — donc cette liste ne contient que ce qu'on
      * a soi-même provoqué.
      */
+    /**
+     * Les évolutions, comme le serveur les tient — avec ses refus, pas seulement ses succès.
+     * Une démonstration qui accepterait tout laisserait croire que la validation a disparu, et
+     * c'est justement elle que cette bascule apporte.
+     */
+    readEvolutions: async () => evolutions.map((e) => ({ ...e })),
+    evolve: async (fromKey, to, day) => {
+      const source = catches.find((c) => entryKey(c.source, c.external_id) === fromKey)
+        ?? evolutions.find((e) => `evo:${e.id}` === fromKey)
+      const espece = source ? (source.species ?? source.to_species) : null
+      if (espece == null) throw new Error(`dex : exemplaire inconnu (${fromKey})`)
+      if (evolutions.some((e) => e.from_key === fromKey)) {
+        throw new Error(`dex : exemplaire déjà évolué (${fromKey})`)
+      }
+      if (destroyed.has(fromKey)) throw new Error(`dex : exemplaire détruit (${fromKey})`)
+
+      const cibles = DEX[espece]?.to
+      const permises = cibles ? (Array.isArray(cibles) ? cibles : [cibles]) : []
+      if (!permises.includes(to)) throw new Error(`dex : ${espece} n'évolue pas en ${to}`)
+
+      const fam = familyOf(espece)
+      const gagnes = catches.filter((c) => familyOf(c.species) === fam).length * CANDY_PER_CATCH
+      const depenses = evolutions
+        .filter((e) => familyOf(e.from_species) === fam)
+        .reduce((somme, e) => somme + (DEX[e.from_species]?.cost ?? 0), 0)
+      if (gagnes - depenses < DEX[espece].cost) {
+        throw new Error(`dex : bonbons insuffisants (${DEX[espece].cost} requis)`)
+      }
+
+      const id = evolutions.length + 1
+      evolutions.push({ id, from_species: espece, to_species: to, from_key: fromKey, day })
+      return id
+    },
+
     readPseudo: async () => pseudo,
     setPseudo: async (nom) => {
       // Les deux adversaires de la démonstration occupent déjà leur nom : c'est ce qui permet

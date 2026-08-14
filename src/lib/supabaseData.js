@@ -152,6 +152,22 @@ export function createSupabaseClient(userId) {
       .order('season', { ascending: false }))
 
   /**
+   * Les évolutions, telles que le serveur les tient. Elles vivaient dans `state.evolutions`,
+   * que le client réécrivait en entier ; il ne les écrit plus, il les lit.
+   */
+  const readEvolutions = () =>
+    query(() => supabase.from('evolutions')
+      .select('id, from_species, to_species, from_key, day')
+      .order('id'))
+
+  /**
+   * Fait évoluer un exemplaire. Le serveur vérifie tout — propriété, disponibilité, lignée,
+   * bonbons — et rend l'identifiant de l'évolution créée, qui devient la clé du Pokémon obtenu.
+   */
+  const evolve = (fromKey, to, day) =>
+    query(() => supabase.rpc('dex_evolve', { p_from_key: fromKey, p_to: to, p_day: day }))
+
+  /**
    * Le pseudonyme : la seule donnée personnelle qu'un adversaire lira.
    *
    * Sans lui, on n'existe pas dans l'arène — les vues publiques écartent les profils anonymes,
@@ -238,5 +254,6 @@ export function createSupabaseClient(userId) {
     checkAccess, readCatches, readState, writeState, triggerCatch,
     readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readLeaderboard, readSeasons, engage, accept,
     readPublicProfile, readMyProfile, readDestroyed, readMyDuels, readPseudo, setPseudo,
+    readEvolutions, evolve,
   }
 }
