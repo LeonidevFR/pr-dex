@@ -152,6 +152,35 @@ export function createSupabaseClient(userId) {
       .order('season', { ascending: false }))
 
   /**
+   * Le pseudonyme : la seule donnée personnelle qu'un adversaire lira.
+   *
+   * Sans lui, on n'existe pas dans l'arène — les vues publiques écartent les profils anonymes,
+   * si bien qu'on n'apparaît ni au classement, ni dans les défis autrement que « Sans nom », et
+   * qu'aucun profil ne s'ouvre. C'est donc la première chose à faire en entrant.
+   */
+  const readPseudo = async () => {
+    const rows = await query(() => supabase.from('profiles').select('pseudo').eq('user_id', userId).maybeSingle())
+    return rows?.pseudo ?? null
+  }
+
+  /**
+   * L'unicité est vérifiée par la base, sur `lower(trim(pseudo))` : deux joueurs ne peuvent pas
+   * s'appeler `Leo` et `leo` dans une arène où l'on choisit son adversaire sur la foi d'un nom.
+   * Le conflit remonte donc en erreur PostgREST, qu'on traduit ici plutôt que de la laisser
+   * passer pour une panne.
+   */
+  const setPseudo = async (pseudo) => {
+    try {
+      return await query(() => supabase.from('profiles').update({ pseudo }).eq('user_id', userId))
+    } catch (e) {
+      if (String(e?.detail ?? e?.message ?? '').match(/duplicate key|profiles_pseudo_unique/i)) {
+        throw new SupabaseDataError('taken', 'Ce pseudonyme est déjà pris.')
+      }
+      throw e
+    }
+  }
+
+  /**
    * Les duels récemment résolus où l'on figurait, le plus frais d'abord.
    *
    * Un défi que personne ne relève est résolu par la maison au bout de vingt-quatre heures : on
@@ -208,6 +237,6 @@ export function createSupabaseClient(userId) {
   return {
     checkAccess, readCatches, readState, writeState, triggerCatch,
     readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readLeaderboard, readSeasons, engage, accept,
-    readPublicProfile, readMyProfile, readDestroyed, readMyDuels,
+    readPublicProfile, readMyProfile, readDestroyed, readMyDuels, readPseudo, setPseudo,
   }
 }

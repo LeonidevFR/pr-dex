@@ -1,6 +1,32 @@
 <script setup>
-defineProps({ githubLogin: { type: String, required: true } })
-defineEmits(['close', 'disconnect'])
+import { ref, watch } from 'vue'
+
+const props = defineProps({
+  githubLogin: { type: String, required: true },
+  /** Le pseudonyme actuel, ou `null` tant qu'on n'en a pas choisi. */
+  pseudo: { type: String, default: null },
+  saving: { type: Boolean, default: false },
+  /** `taken` quand le nom est déjà pris, `server` pour le reste. */
+  pseudoError: { type: String, default: null },
+})
+const emit = defineEmits(['close', 'disconnect', 'set-pseudo'])
+
+/**
+ * Le pseudonyme est la seule donnée personnelle qu'un adversaire lira, et sans lui on n'existe
+ * pas dans l'arène : les vues publiques écartent les profils anonymes, si bien qu'on
+ * n'apparaît ni au classement, ni dans les défis autrement que « Sans nom ».
+ *
+ * Bornes volontairement étroites — lettres, chiffres, tiret, point souligné, de 2 à 20 signes.
+ * Un nom qui se lit à voix haute et se retape sans hésiter : c'est ce qu'on va coller à côté
+ * d'un badge et dans une URL de profil.
+ */
+const MOTIF = /^[a-zA-Z0-9À-ÿ._-]{2,20}$/
+
+const saisie = ref(props.pseudo ?? '')
+watch(() => props.pseudo, (p) => { if (p) saisie.value = p })
+
+const valide = () => MOTIF.test(saisie.value.trim())
+const soumettre = () => { if (valide()) emit('set-pseudo', saisie.value.trim()) }
 </script>
 
 <template>
@@ -16,6 +42,39 @@ defineEmits(['close', 'disconnect'])
       <div class="sect">
         <div class="eyebrow sect-h"><span>Connecté avec GitHub</span></div>
         <div class="repo-ptr"><span class="dot"></span>{{ githubLogin }}</div>
+      </div>
+
+      <div class="sect">
+        <div class="eyebrow sect-h">
+          <span>Ton nom dans l’arène</span>
+          <span v-if="!pseudo" class="chip" style="--tier:var(--stamp)">à choisir</span>
+        </div>
+        <p class="muted" style="margin-bottom:12px">
+          C’est la seule chose que les autres verront de toi. Sans lui tu n’apparais ni au
+          classement ni dans les défis, et personne ne peut ouvrir ton profil.
+        </p>
+        <form class="pseudo-form" @submit.prevent="soumettre">
+          <input
+            v-model="saisie" class="pseudo-input" type="text" maxlength="20"
+            placeholder="deux à vingt signes" aria-label="Ton nom dans l’arène"
+            :disabled="saving"
+          >
+          <button class="evo-btn" type="submit" :disabled="saving || !valide() || saisie.trim() === pseudo">
+            {{ pseudo ? 'Changer' : 'Choisir' }}
+          </button>
+        </form>
+        <p v-if="pseudoError === 'taken'" class="muted pseudo-err">
+          Ce nom est déjà pris. L’unicité ignore la casse et les espaces : <b>Leo</b> et
+          <b>leo</b> comptent pour le même — dans une arène où l’on choisit son adversaire sur
+          la foi d’un nom, deux joueurs qui se ressemblent suffisent à se faire passer l’un pour
+          l’autre.
+        </p>
+        <p v-else-if="pseudoError" class="muted pseudo-err">
+          L’enregistrement a échoué. Réessaie.
+        </p>
+        <p v-else-if="saisie.trim() && !valide()" class="muted pseudo-err">
+          Lettres, chiffres, tiret, point souligné. De deux à vingt signes.
+        </p>
       </div>
       <div class="sect">
         <div class="front-actions" style="margin-top:12px">

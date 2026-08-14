@@ -197,6 +197,7 @@ export function demoArena(catches) {
   const MOI = 'demo-moi'
 
   let credits = 5
+  let pseudo = null
   // De quoi essayer tous les articles, légendaire inédit compris : la démo sert à voir.
   let pokedollars = 14000
   let points = 120
@@ -313,6 +314,18 @@ export function demoArena(catches) {
      * posté reste ouvert — personne d'autre ne joue — donc cette liste ne contient que ce qu'on
      * a soi-même provoqué.
      */
+    readPseudo: async () => pseudo,
+    setPseudo: async (nom) => {
+      // Les deux adversaires de la démonstration occupent déjà leur nom : c'est ce qui permet
+      // d'essayer le refus, qui est la moitié intéressante de cet écran.
+      if (['bob', 'ada'].includes(nom.trim().toLowerCase())) {
+        const err = new Error('Ce pseudonyme est déjà pris.')
+        err.kind = 'taken'
+        throw err
+      }
+      pseudo = nom
+    },
+
     readMyDuels: async () => [...duels.values()]
       .sort((a, b) => b.id - a.id)
       .map((d) => ({ ...d })),

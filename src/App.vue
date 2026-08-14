@@ -107,6 +107,31 @@ const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
+
+/**
+ * Le pseudonyme. Sans lui on n'existe pas dans l'arène : les vues publiques écartent les
+ * profils anonymes. C'est donc la première chose à régler en entrant, et l'écran des réglages
+ * le réclame tant qu'il manque.
+ */
+const pseudo = ref(null)
+const pseudoBusy = ref(false)
+const pseudoError = ref(null)
+
+async function onSetPseudo(nom) {
+  pseudoBusy.value = true
+  pseudoError.value = null
+  try {
+    await client.setPseudo(nom)
+    pseudo.value = nom
+    // Le classement et les défis portent le pseudo : ils doivent le refléter sans attendre un
+    // rechargement de page.
+    if (arena) await arena.load()
+  } catch (e) {
+    pseudoError.value = e.kind === 'taken' ? 'taken' : 'server'
+  } finally {
+    pseudoBusy.value = false
+  }
+}
 const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
 const gen = ref(1)
@@ -198,6 +223,7 @@ async function connectSession(s) {
   await collection.load(client)
   await arena.load()
   reporterLesPertes()
+  pseudo.value = await client.readPseudo()
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
@@ -301,6 +327,7 @@ onMounted(async () => {
     await collection.load(client)
     await arena.load()
     reporterLesPertes()
+    pseudo.value = await client.readPseudo()
     connected.value = true
     await rattraperLesDuels()
   }
@@ -502,7 +529,9 @@ useKeyboardNav({
 
     <transition name="fade">
       <SettingsPanel
-        v-if="settingsOpen" :github-login="githubLogin" @close="settingsOpen = false" @disconnect="disconnect"
+        v-if="settingsOpen" :github-login="githubLogin"
+        :pseudo="pseudo" :saving="pseudoBusy" :pseudo-error="pseudoError"
+        @close="settingsOpen = false" @disconnect="disconnect" @set-pseudo="onSetPseudo"
       />
     </transition>
   </template>
