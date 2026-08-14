@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import PokeCard from './PokeCard.vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
-import { FORMS, TIER_POWER, levelFactor } from '../../shared/battle.js'
+import { FORMS, TIER_POWER, LEVEL_MAX, levelFactor, levelGain } from '../../shared/battle.js'
 import { REWARD, COMPUTER_REWARD } from '../../shared/arena-economy.js'
 import { STATS } from '../../shared/species-stats.js'
 
@@ -101,6 +101,23 @@ const reward = computed(() => {
   if (versusComputer.value) return { dollars: Math.round(COMPUTER_REWARD[t]), points: 0, pack: false }
   return { dollars: REWARD[t].dollars, points: REWARD[t].points, pack: true }
 })
+
+/**
+ * Les niveaux gagnés par le vainqueur. Recalculés depuis les deux puissances écrites dans la
+ * ligne du duel : la même fonction que le serveur, sur les mêmes nombres, donc le même
+ * résultat — et rien de plus à stocker.
+ *
+ * Ils n'étaient affichés nulle part, et le texte promettait « un niveau » alors que le gain va
+ * de zéro à cinq selon l'écart de force. Écraser un adversaire faible ne fait pas progresser :
+ * c'est la règle qui rend stérile le harcèlement des petits joueurs, et un vainqueur qui la
+ * découvre sans explication croit à une panne.
+ */
+const gagnant = computed(() => (iWon.value ? mine.value : theirs.value))
+const perdant = computed(() => (iWon.value ? theirs.value : mine.value))
+const niveauxGagnes = computed(() => levelGain(gagnant.value.power, perdant.value.power))
+
+/** Le plafond bloque le gain : l'annoncer sans le dire ferait passer un maximum pour un bug. */
+const auPlafond = computed(() => gagnant.value.level >= LEVEL_MAX)
 
 const tierOf = (species) => DEX[species]?.tier ?? 'c'
 const nameOf = (species) => DEX[species]?.name ?? '—'
@@ -222,7 +239,7 @@ const breakdown = (s) => [
               à gagner — seulement des pokédollars, au cinquième du tarif.
             </template>
             <template v-else-if="iWon">
-              Son exemplaire est détruit. Tu gardes le tien, il gagne un niveau, et un pli
+              Son exemplaire est détruit. Tu gardes le tien, et un pli
               {{ TIER_LABEL[duel.stake_tier].toLowerCase() }} t’attend au prochain passage.
             </template>
             <template v-else>
@@ -236,6 +253,15 @@ const breakdown = (s) => [
           <div class="eyebrow sect-h"><span>Ce que tu remportes</span></div>
           <div class="arena-reward">
             <div>
+              <span class="v" :class="{ nul: !niveauxGagnes }">
+                {{ niveauxGagnes ? `+${niveauxGagnes}` : '—' }}
+              </span>
+              <span class="arena-unit">
+                {{ niveauxGagnes > 1 ? 'niveaux' : 'niveau' }}
+                <template v-if="niveauxGagnes"> · {{ gagnant.level }} → {{ Math.min(gagnant.level + niveauxGagnes, LEVEL_MAX) }}</template>
+              </span>
+            </div>
+            <div>
               <span class="v">{{ reward.dollars }} ₽</span>
               <span class="arena-unit">gagnés</span>
             </div>
@@ -248,6 +274,24 @@ const breakdown = (s) => [
               <span class="arena-unit">pli {{ TIER_LABEL[duel.stake_tier].toLowerCase() }}</span>
             </div>
           </div>
+        </div>
+
+        <!--
+          Un gain nul n'est pas une panne, c'est la règle : elle doit se lire là où elle
+          s'applique, pas dans une page de règles qu'on relit une fois.
+        -->
+        <div v-if="iWon && !niveauxGagnes" class="sect">
+          <p class="muted">
+            <b>Aucun niveau gagné.</b> Ton exemplaire était nettement plus fort que le sien :
+            écraser plus faible que soi ne fait pas progresser. Le gain démarre quand
+            l'adversaire approche ta puissance, et monte jusqu'à cinq niveaux quand il la double.
+          </p>
+        </div>
+        <div v-else-if="iWon && auPlafond" class="sect">
+          <p class="muted">
+            <b>Niveau {{ LEVEL_MAX }} atteint</b>, le maximum. Cet exemplaire ne gagnera plus de
+            niveaux — il reste au sommet de sa puissance.
+          </p>
         </div>
 
         <div class="sect">

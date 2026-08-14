@@ -260,4 +260,49 @@ describe('DuelOverlay', () => {
     expect(w.find('.duel-piste .moi').attributes('style')).toContain('width: 38%')
     expect(w.find('.duel-chances').text()).toContain('38 %')
   })
+
+  /**
+   * Le gain de niveaux n'était affiché nulle part, et le texte promettait « un niveau » alors
+   * qu'il va de zéro à cinq selon l'écart de force. Un vainqueur qui progresse de trois niveaux
+   * sans le voir ne saura jamais que c'est en affrontant plus fort que soi qu'on monte.
+   */
+  it('annonce les niveaux gagnés, et la progression qu’ils produisent', async () => {
+    // 700 contre 610 : l'adversaire vaut 87 % de ma puissance, soit un niveau.
+    const w = await revele(monter({ challenger_power: 700, opponent_power: 610, challenger_level: 4 }))
+    const recompense = w.find('.arena-reward').text()
+    expect(recompense).toContain('+1')
+    expect(recompense).toContain('4 → 5')
+  })
+
+  it('monte jusqu’à cinq niveaux face à bien plus fort que soi', async () => {
+    const w = await revele(monter({ challenger_power: 300, opponent_power: 900 }))
+    expect(w.find('.arena-reward').text()).toContain('+5')
+  })
+
+  /**
+   * Écraser plus faible que soi ne fait pas progresser : c'est la règle qui rend stérile le
+   * harcèlement des petits joueurs. Un vainqueur qui la découvre sans explication croit à une
+   * panne, donc elle se lit là où elle s'applique.
+   */
+  it('explique un gain nul plutôt que de le laisser passer pour une panne', async () => {
+    const w = await revele(monter({ challenger_power: 900, opponent_power: 300 }))
+    expect(w.find('.arena-reward .v.nul').exists()).toBe(true)
+    expect(w.text()).toContain('Aucun niveau gagné')
+    expect(w.text()).toContain('écraser plus faible que soi ne fait pas progresser')
+  })
+
+  // Le plafond bloque le gain : l'annoncer sans le dire ferait passer un maximum pour un bug.
+  it('signale le plafond quand l’exemplaire y est déjà', async () => {
+    const w = await revele(monter({
+      challenger_power: 700, opponent_power: 610, challenger_level: 10,
+    }))
+    expect(w.text()).toContain('le maximum')
+  })
+
+  // Le perdant ne gagne rien : lui montrer un gain de niveaux serait absurde.
+  it('ne parle pas de niveaux à qui vient de perdre', async () => {
+    const w = await revele(monter({ winner_id: LUI }))
+    expect(w.find('.arena-reward').exists()).toBe(false)
+  })
 })
+

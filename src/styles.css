@@ -937,3 +937,7 @@
   .saison-prix{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
   .saison-prix .sbadge{flex-shrink:0}
   .saison-prix > div{flex:1;min-width:210px}
+
+  /* Un gain nul se lit au premier coup d'œil comme une absence, pas comme un zéro perdu au
+     milieu de chiffres qui, eux, comptent. */
+  .arena-reward .v.nul{color:var(--ink-3)}
