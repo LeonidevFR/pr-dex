@@ -190,16 +190,30 @@ describe.skipIf(!disponible)('engager un exemplaire', () => {
     expect(message).toMatch(/exemplaire déjà engagé/)
   })
 
-  // Le second engagement porte sur un AUTRE exemplaire de la même espèce : le verrou porte sur
-  // l'exemplaire, pas sur l'espèce.
+  /**
+   * Le second engagement porte sur un AUTRE exemplaire de la même espèce : le verrou porte sur
+   * l'exemplaire, pas sur l'espèce.
+   *
+   * Les crédits plafonnent à `min(5, jour de la semaine)` : le lundi il n'en existe qu'un, et
+   * ce cas échouait alors sur un refus de crédit — un test rouge un jour sur sept, pour une
+   * raison sans rapport avec ce qu'il vérifie. On lit donc la réserve avant, et l'on affirme la
+   * bonne chose selon ce qu'elle permet : deux duels distincts quand deux crédits existent, et
+   * un refus qui parle bien de CRÉDITS quand il n'y en a qu'un — jamais d'espèce déjà engagée.
+   */
   it('laisse engager un autre exemplaire de la même espèce', async () => {
-    const deux = await enTransaction(async (c) => {
+    const resultat = await enTransaction(async (c) => {
       await devenir(c, ENGAGEANT)
+      const { rows } = await c.query('select public.arena_credits($1) as n', [ENGAGEANT])
+      const credits = Number(rows[0].n)
+
       const a = await engager(c, 'github:engage-rare')
-      const b = await engager(c, 'github:engage-rare-2')
-      return [a, b]
+      if (credits >= 2) return { credits, a, b: await engager(c, 'github:engage-rare-2') }
+      return { credits, a, refus: await refus(c, 'github:engage-rare-2') }
     })
-    expect(deux[0]).not.toBe(deux[1])
+
+    expect(resultat.a).toBeTruthy()
+    if (resultat.credits >= 2) expect(resultat.a).not.toBe(resultat.b)
+    else expect(resultat.refus).toMatch(/crédit/)
   })
 
   it('refuse un exemplaire détruit', async () => {
