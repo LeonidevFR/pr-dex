@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import TheRail from './components/TheRail.vue'
+import AppIcon from './components/AppIcon.vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
 import RitualOverlay from './components/RitualOverlay.vue'
@@ -19,6 +20,7 @@ import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
 import { entryKey } from '../shared/entry.js'
 import { createRouter } from './composables/useRoute.js'
+import { messageDErreur } from './lib/erreurs.js'
 import { parisDay } from '../shared/battle.js'
 import { arenaIsOpen, FIRST_SEASON } from '../shared/arena-economy.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
@@ -28,6 +30,21 @@ const collection = useCollection()
 const { session, ready, signInWithGithub, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
+
+/**
+ * Ce qui a échoué pendant qu'on jouait.
+ *
+ * `connectError` n'est rendu que par l'écran de connexion : une fois connecté, un engagement
+ * refusé, un achat impossible ou une panne réseau ne produisaient RIEN à l'écran. Le bouton
+ * semblait mort, ce qui est exactement le défaut qu'on a déjà corrigé deux fois ailleurs.
+ *
+ * On garde le message du serveur plutôt qu'un « une erreur est survenue » : c'est lui qui est
+ * utile — « aucun crédit d'engagement disponible cette semaine » dit quoi faire, pas une
+ * formule générique. Les refus du serveur sont écrits pour être lus.
+ */
+const avis = ref(null)
+
+const signaler = (e) => { avis.value = messageDErreur(e) }
 const connecting = ref(false)
 const githubLogin = ref('')
 
@@ -235,6 +252,7 @@ async function connectSession(s) {
  * doit le refléter sans qu'on ait à recharger la page.
  */
 async function playArena(fn) {
+  avis.value = null
   arenaBusy.value = true
   try {
     const duel = await fn()
@@ -256,7 +274,7 @@ async function playArena(fn) {
     }
     await collection.refresh()
   } catch (e) {
-    connectError.value = e.kind ?? 'server'
+    signaler(e)
   } finally {
     arenaBusy.value = false
   }
@@ -296,6 +314,7 @@ const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
  * rien — le pli reste dû et s'ouvrira au prochain passage.
  */
 async function onBuy(slug) {
+  avis.value = null
   arenaBusy.value = true
   try {
     const id = await arena.buy(slug)
@@ -303,7 +322,7 @@ async function onBuy(slug) {
     const achete = collection.dex.pending.value.find((e) => e.key === entryKey('boutique', id))
     if (achete) { router.go('collection'); showPacket(achete) }
   } catch (e) {
-    connectError.value = e.kind ?? 'server'
+    signaler(e)
   } finally {
     arenaBusy.value = false
   }
@@ -432,6 +451,18 @@ useKeyboardNav({
   />
 
   <template v-else>
+    <!--
+      Ce qui vient d'échouer. En haut du contenu et non en surimpression : on doit pouvoir
+      continuer à jouer en le lisant, et il disparaît au geste suivant plutôt que de réclamer
+      qu'on le referme.
+    -->
+    <div v-if="avis" class="avis" role="status">
+      <span>{{ avis }}</span>
+      <button class="avis-x" aria-label="Masquer" @click="avis = null">
+        <AppIcon name="close" :size="12" />
+      </button>
+    </div>
+
     <TheRail
       :caught-count="collection.dex.caughtCount.value"
       :pending-count="collection.dex.pending.value.length"

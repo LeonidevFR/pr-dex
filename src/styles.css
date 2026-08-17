@@ -982,3 +982,19 @@
   /* Le rappel du nom manquant : un filet rouge, pas un bandeau — il informe, il n'interdit rien. */
   .sans-nom{border-left:3px solid var(--stamp);padding-left:16px}
   .sans-nom b{color:var(--stamp)}
+
+  /* ───────── avis d'échec ─────────
+     En haut du contenu et non en surimpression : on doit pouvoir continuer à jouer en le
+     lisant. Il porte le message du serveur, qui dit quoi faire, plutôt qu'un « une erreur est
+     survenue » qui n'apprend rien. */
+  .avis{
+    display:flex;align-items:flex-start;gap:14px;
+    border:1.5px solid var(--stamp);border-left-width:4px;background:rgba(158,59,46,.07);
+    padding:12px 16px;margin-bottom:20px;
+    font-size:13px;line-height:1.55;color:var(--ink);
+  }
+  .avis span{flex:1}
+  .avis-x{
+    border:0;background:none;cursor:pointer;color:var(--stamp);padding:2px;display:flex;
+  }
+  .avis-x:hover{color:var(--ink)}
