@@ -10,7 +10,7 @@ const monter = (props = {}) => mount(ArenaPanel, {
     pokedollars: 250,
     challenges: [],
     engageable: [exemplaire('github:a', 6), exemplaire('github:b', 25)],
-    myOpen: null,
+    myOpen: [],
     levelOf: (k) => (k === 'github:a' ? 4 : 1),
     formOfKey: () => ({ name: 'Normal', factor: 1 }),
     ...props,
@@ -111,7 +111,7 @@ describe('ArenaPanel', () => {
   it('sort son propre défi de la liste des défis relevables', () => {
     const w = monter({
       challenges: [{ id: 7, pseudo: 'moi', created_at: 'x' }],
-      myOpen: { id: 7, challenger_key: 'github:a', species: 6 },
+      myOpen: [{ id: 7, challenger_key: 'github:a', species: 6 }],
     })
     expect(w.findAll('.evo-btn')).toHaveLength(0)
     expect(w.text()).toContain('Dracaufeu est sur la table')

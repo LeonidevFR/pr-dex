@@ -357,3 +357,43 @@ describe('duels déjà vus', () => {
     expect(c.state.value.seenDuels).toEqual([7])
   })
 })
+
+/**
+ * « Tout ouvrir sans cérémonie » enchaîne autant d'écritures qu'il reste de plis. Chacune
+ * repose sur la version lue à la précédente : si l'une d'elles ne met pas la version à jour, la
+ * suivante est rejetée pour conflit et la file cesse de se vider — le bouton semble mort après
+ * le premier pli.
+ */
+describe('ouvrir toute la file', () => {
+  const clientVersionne = (catches) => {
+    let state = { claimed: [], spent: {}, evolutions: [], seenDuels: [] }
+    let version = 1
+    return {
+      checkAccess: vi.fn().mockResolvedValue(true),
+      readCatches: vi.fn(async () => catches),
+      readState: vi.fn(async () => ({ state: JSON.parse(JSON.stringify(state)), blobSha: version })),
+      readEvolutions: vi.fn(async () => []),
+      writeState: vi.fn(async (next, attendue) => {
+        // Exactement ce que fait Supabase : l'écriture n'est acceptée que si la version
+        // présentée est la version courante.
+        if (attendue !== version) throw new SupabaseDataError('conflict', 'version périmée')
+        state = JSON.parse(JSON.stringify(next))
+        version += 1
+        return { blobSha: version }
+      }),
+    }
+  }
+
+  it('vide la file entière, pli après pli', async () => {
+    const catches = [catchOf('a', 1), catchOf('b', 2), catchOf('c', 3)]
+    const client = clientVersionne(catches)
+    const c = useCollection()
+    await c.load(client)
+    expect(c.dex.pending.value).toHaveLength(3)
+
+    for (const e of [...c.dex.pending.value]) await c.claim(e.key)
+
+    expect(c.dex.pending.value).toHaveLength(0)
+    expect(c.error.value).toBeNull()
+  })
+})

@@ -7,7 +7,7 @@ const exemplaire = (key, over = {}) => ({ key, species: 6, shiny: false, ...over
 const fauxClient = (over = {}) => ({
   readArena: vi.fn(async () => ({ credits: 3, pokedollars: 250, exemplars: [] })),
   readOpenChallenges: vi.fn(async () => []),
-  readMyOpen: vi.fn(async () => null),
+  readMyOpen: vi.fn(async () => []),
   readShop: vi.fn(async () => []),
   readLeaderboard: vi.fn(async () => []),
   readSeasons: vi.fn(async () => []),
@@ -72,7 +72,7 @@ describe('useArena', () => {
   // Immobilisé, pas perdu : il reste dans la collection, mais on ne peut pas le miser deux fois.
   it('exclut l’exemplaire déjà posé sur la table', async () => {
     const claimed = ref([exemplaire('github:engage'), exemplaire('github:libre')])
-    const client = fauxClient({ readMyOpen: async () => ({ id: 5, challenger_key: 'github:engage' }) })
+    const client = fauxClient({ readMyOpen: async () => [{ id: 5, challenger_key: 'github:engage' }] })
     const a = useArena(client, claimed)
     await a.load()
 
@@ -83,11 +83,35 @@ describe('useArena', () => {
   // retrouve dans sa propre collection — la seule qu'on ait le droit de lire.
   it('retrouve l’espèce de son défi en attente dans sa collection', async () => {
     const claimed = ref([exemplaire('github:engage', { species: 25 })])
-    const client = fauxClient({ readMyOpen: async () => ({ id: 5, challenger_key: 'github:engage' }) })
+    const client = fauxClient({ readMyOpen: async () => [{ id: 5, challenger_key: 'github:engage' }] })
     const a = useArena(client, claimed)
     await a.load()
 
-    expect(a.myOpen.value.species).toBe(25)
+    expect(a.myOpen.value[0].species).toBe(25)
+  })
+
+  /**
+   * On peut poster autant de défis qu'on a de crédits. La lecture s'arrêtait au premier : les
+   * autres restaient invisibles à leur auteur, qui ne savait plus lesquels de ses Pokémon
+   * étaient immobilisés.
+   */
+  it('retrouve TOUS ses défis en attente, pas seulement le premier', async () => {
+    const claimed = ref([
+      exemplaire('github:a', { species: 25 }),
+      exemplaire('github:b', { species: 6 }),
+    ])
+    const client = fauxClient({
+      readMyOpen: async () => [
+        { id: 5, challenger_key: 'github:a' },
+        { id: 6, challenger_key: 'github:b' },
+      ],
+    })
+    const a = useArena(client, claimed)
+    await a.load()
+
+    expect(a.myOpen.value.map((d) => d.species)).toEqual([25, 6])
+    // Et aucun des deux ne peut être réengagé : ils sont immobilisés, pas disponibles.
+    expect(a.engageable.value).toHaveLength(0)
   })
 
   /**

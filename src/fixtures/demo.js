@@ -206,7 +206,8 @@ export function demoArena(catches) {
   const levels = new Map()
   const destroyed = new Set()
   const duels = new Map()
-  let mine_ouverte = null
+  /** Ses propres défis postés. Pluriel : on peut en poster autant qu'on a de crédits. */
+  const miens = []
   const challenges = RIVAUX.map((r, i) => ({
     id: i + 1, challenger_id: r.id, pseudo: r.pseudo, created_at: JOUR, rival: r,
   }))
@@ -406,9 +407,9 @@ export function demoArena(catches) {
       return id
     },
     readDuel: async (id) => duels.get(id) ?? null,
-    readMyOpen: async () => (mine_ouverte
-      ? { id: mine_ouverte.id, challenger_key: mine_ouverte.key, species: especeDe(mine_ouverte.key) }
-      : null),
+    readMyOpen: async () => miens.map((d) => ({
+      id: d.id, challenger_key: d.key, species: especeDe(d.key),
+    })),
     /**
      * Poster un défi ne le résout pas : il reste ouvert, comme en vrai, et c'est l'ordinateur
      * qui le relèvera au bout de 24 h si personne ne s'en charge. La démo le rend visible dans
@@ -418,14 +419,21 @@ export function demoArena(catches) {
       if (!vsComputer) {
         credits = Math.max(0, credits - 1)
         const id = ++seq
-        mine_ouverte = { id, key }
-        challenges.push({ id, challenger_id: MOI, pseudo: 'toi', created_at: JOUR, rival: null })
+        // Le défi posté ne rejoint PAS la liste publique : c'est celle des autres, et le serveur
+        // refuse qu'on relève le sien. Il rejoignait `challenges` avec un adversaire nul, si
+        // bien qu'au second défi posté — le premier n'étant plus « le sien » — on pouvait le
+        // relever, et la démonstration plantait faute d'adversaire.
+        miens.push({ id, key })
         return id
       }
       return jouer(key, { species: 20, level: 2 }, 'computer', null).id
     },
     accept: async (duelId, key) => {
       const defi = challenges.find((c) => c.id === duelId)
+      if (!defi) throw new Error('arene : défi introuvable')
+      // Relever coûte un crédit, comme poster : la démonstration l'oubliait, si bien qu'on
+      // pouvait enchaîner les duels sans jamais épuiser sa réserve.
+      credits = Math.max(0, credits - 1)
       const duel = jouer(key, defi.rival, 'resolved', defi.challenger_id)
       challenges.splice(challenges.indexOf(defi), 1)
       return duel.id

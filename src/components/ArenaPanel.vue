@@ -9,7 +9,8 @@ const props = defineProps({
   pokedollars: { type: Number, required: true },
   challenges: { type: Array, required: true },
   engageable: { type: Array, required: true },
-  myOpen: { type: Object, default: null },
+  /** Ses propres défis en attente. Pluriel : on peut en poster autant qu'on a de crédits. */
+  myOpen: { type: Array, default: () => [] },
   levelOf: { type: Function, required: true },
   formOfKey: { type: Function, required: true },
   /** Le nom sous lequel on apparaît, ou `null` tant qu'on n'en a pas choisi. */
@@ -43,7 +44,13 @@ watch(() => props.preselect, (key) => { if (key) { chosen.value = key; picking.v
  */
 const canPlay = computed(() => props.credits > 0)
 
-const others = computed(() => props.challenges.filter((c) => c.id !== props.myOpen?.id))
+/**
+ * Les défis des AUTRES. Les siens en sont retirés — on ne relève pas son propre défi, et le
+ * serveur le refuse — mais ils ne disparaissent pas pour autant : ils s'affichent à part, avec
+ * ce qu'on y a engagé.
+ */
+const miens = computed(() => new Set(props.myOpen.map((d) => d.id)))
+const others = computed(() => props.challenges.filter((c) => !miens.value.has(c.id)))
 
 const found = (key) => props.engageable.find((e) => e.key === key)
 const tierOf = (key) => DEX[found(key)?.species]?.tier ?? 'c'
@@ -182,13 +189,26 @@ function take(duelId) {
     </div>
   </div>
 
-  <div v-if="myOpen" class="sect">
-    <div class="eyebrow sect-h"><span>Ton défi en cours</span></div>
-    <div class="repo-ptr">
-      <span class="dot"></span>
-      {{ DEX[myOpen.species]?.name }} est sur la table. Personne ne voit lequel tu as engagé —
-      et s’il reste sans preneur, l’ordinateur le relèvera demain.
+  <!--
+    Ses propres défis, tous. On n'en montrait qu'un, alors qu'on peut en poster autant qu'on a
+    de crédits : les autres restaient invisibles à leur auteur, qui ne savait plus lesquels de
+    ses Pokémon étaient immobilisés ni combien de défis il avait laissés traîner.
+  -->
+  <div v-if="myOpen.length" class="sect">
+    <div class="eyebrow sect-h">
+      <span>{{ myOpen.length > 1 ? 'Tes défis en cours' : 'Ton défi en cours' }}</span>
+      <span v-if="myOpen.length > 1" class="mono" style="font-size:11px;color:var(--ink-3)">
+        {{ myOpen.length }} exemplaires immobilisés
+      </span>
     </div>
+    <div v-for="d in myOpen" :key="d.id" class="repo-ptr" style="margin-bottom:8px">
+      <span class="dot"></span>
+      <b>{{ DEX[d.species]?.name ?? 'Un exemplaire' }}</b> est sur la table.
+    </div>
+    <p class="muted">
+      Personne ne voit ce que tu as engagé. Un défi sans preneur au bout de vingt-quatre heures
+      est relevé par l’ordinateur, et ton exemplaire redevient libre — gagnant ou perdant.
+    </p>
   </div>
 
   <div class="sect">

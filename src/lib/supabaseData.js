@@ -112,16 +112,22 @@ export function createSupabaseClient(userId) {
    * Son propre défi en attente. Lisible par son seul auteur : le secret de la mise protège le
    * pari contre l'adversaire, pas contre celui dont le Pokémon est immobilisé.
    */
+  /**
+   * TOUS ses défis en attente, et non le premier.
+   *
+   * Un joueur peut en poster autant qu'il a de crédits — jusqu'à cinq. La lecture s'arrêtait au
+   * premier : les autres restaient invisibles à leur auteur, qui ne savait plus lesquels de ses
+   * Pokémon étaient immobilisés ni combien de défis il avait laissés traîner.
+   */
   async function readMyOpen() {
-    const rows = await query(() =>
+    return query(() =>
       supabase
         .from('arena_duels')
-        .select('id, challenger_key')
+        .select('id, challenger_key, created_at')
         .eq('challenger_id', userId)
         .eq('status', 'open')
-        .limit(1),
-    )
-    return rows?.[0] ?? null
+        .order('created_at'),
+    ) ?? []
   }
 
   /** Un duel résolu, avec de quoi rejouer le combat plutôt que d'avoir à croire son résultat. */

@@ -26,7 +26,8 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
    * code brut là où un joueur lira « Saison 1 ».
    */
   const season = ref(saison ?? seasonOf())
-  const myOpen = ref(null)
+  /** Ses propres défis en attente. Pluriel : on peut en poster autant qu'on a de crédits. */
+  const myOpen = ref([])
   /** Les duels résolus récents, pour repérer ceux qui se sont joués sans nous. */
   const recentDuels = ref([])
   const loading = ref(false)
@@ -53,7 +54,7 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
   const engageable = computed(() => claimed.value.filter((c) =>
     !destroyed.value.has(c.key)
     && !consumed.value.has(c.key)
-    && c.key !== myOpen.value?.challenger_key))
+    && !myOpen.value.some((d) => d.challenger_key === c.key)))
 
   const levelOf = (key) => levels.value[key] ?? 1
 
@@ -89,9 +90,10 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
       challenges.value = open
       // L'espèce ne figure pas dans un duel ouvert — elle n'y est écrite qu'à la résolution.
       // On la retrouve dans sa propre collection, la seule qu'on ait le droit de lire.
-      myOpen.value = mien
-        ? { ...mien, species: claimed.value.find((c) => c.key === mien.challenger_key)?.species }
-        : null
+      myOpen.value = (mien ?? []).map((d) => ({
+        ...d,
+        species: claimed.value.find((c) => c.key === d.challenger_key)?.species,
+      }))
     } catch (e) {
       error.value = e
     } finally {
