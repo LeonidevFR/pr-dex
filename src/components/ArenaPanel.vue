@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { REWARD } from '../../shared/arena-economy.js'
 import { spriteUrl } from '../lib/sprites.js'
-import SeasonBadge from './SeasonBadge.vue'
 
 const props = defineProps({
   credits: { type: Number, required: true },
@@ -17,28 +16,11 @@ const props = defineProps({
   pseudo: { type: String, default: null },
   busy: { type: Boolean, default: false },
   preselect: { type: String, default: null },
-  leaderboard: { type: Array, default: () => [] },
-  seasons: { type: Array, default: () => [] },
-  season: { type: String, default: '' },
-  userId: { type: String, default: '' },
 })
 const emit = defineEmits(['engage', 'accept'])
 
 const chosen = ref(null)
 const rulesOpen = ref(false)
-
-/** Deux onglets : le panneau porte déjà beaucoup, et acheter n'est pas se battre. */
-const tab = ref('duels')
-
-/** Les saisons closes où ce joueur est monté sur le podium, du plus récent au plus ancien. */
-const mesBadges = computed(() => props.seasons
-  .map((s) => ({
-    season: s.season,
-    rank: [s.first_id, s.second_id, s.third_id].indexOf(props.userId) + 1,
-  }))
-  .filter((b) => b.rank > 0))
-
-
 
 /**
  * L'espèce dont on est en train de choisir l'exemplaire. Deux temps plutôt qu'un : une liste à
@@ -151,14 +133,6 @@ function take(duelId) {
         {{ rulesOpen ? 'Masquer les règles' : 'Comment ça marche' }}
       </button>
     </div>
-    <div class="gen-tabs" style="padding:10px 0 0">
-      <button
-        class="filter-chip" :class="{ active: tab === 'duels' }" @click="tab = 'duels'"
-      >Duels</button>
-      <button
-        class="filter-chip" :class="{ active: tab === 'saison' }" @click="tab = 'saison'"
-      >Saison</button>
-    </div>
     <p v-if="!credits" class="muted">
       Tu as joué tous tes engagements. Il en revient <b>un par jour ouvré</b>, et ils
       s’accumulent jusqu’à cinq — reviens demain.
@@ -208,7 +182,7 @@ function take(duelId) {
     </div>
   </div>
 
-  <div v-if="tab === 'duels' && myOpen" class="sect">
+  <div v-if="myOpen" class="sect">
     <div class="eyebrow sect-h"><span>Ton défi en cours</span></div>
     <div class="repo-ptr">
       <span class="dot"></span>
@@ -217,7 +191,7 @@ function take(duelId) {
     </div>
   </div>
 
-  <div v-if="tab === 'duels'" class="sect">
+  <div class="sect">
     <div class="eyebrow sect-h">
       <span>Ce que tu engages</span>
       <span class="mono muted">{{ engageable.length }} exemplaire{{ engageable.length > 1 ? 's' : '' }}</span>
@@ -276,7 +250,7 @@ function take(duelId) {
     sortait de l'écran au moment précis où l'on venait de choisir. On cliquait, rien ne
     semblait se produire — parce que ce qui avait changé n'était plus visible.
   -->
-  <div v-if="tab === 'duels' && chosen" class="arena-bar">
+  <div v-if="chosen" class="arena-bar">
     <div class="arena-bar-txt">
       <div class="line-name">
         {{ nameOf(chosen) }} · niv. {{ levelOf(chosen) }} ·
@@ -293,7 +267,7 @@ function take(duelId) {
     </div>
   </div>
 
-  <div v-if="tab === 'duels'" class="sect">
+  <div class="sect">
     <div class="eyebrow sect-h"><span>Défis ouverts</span></div>
     <p v-if="!others.length" class="muted">
       Personne n’attend de preneur. Poste le tien — s’il reste seul, l’ordinateur le relèvera
@@ -316,35 +290,19 @@ function take(duelId) {
       </button>
     </div>
   </div>
-  <div v-if="tab === 'saison'" class="sect">
-    <div class="eyebrow sect-h">
-      <span>Classement · saison {{ season }}</span>
-    </div>
-    <p v-if="!leaderboard.length" class="muted">
-      Personne n’a encore marqué cette saison. Les points ne viennent que des duels entre
-      joueurs — l’ordinateur n’en donne jamais.
-    </p>
-    <div v-for="l in leaderboard" :key="l.user_id" class="log-row">
-      <span class="log-sha mono">{{ l.rank }}</span>
-      <span class="log-title">
-        {{ l.pseudo ?? 'Sans nom' }}
-        <b v-if="l.user_id === userId" class="mult">toi</b>
-      </span>
-      <span class="log-date mono">{{ l.points }} pts</span>
-    </div>
-    <p class="muted" style="margin-top:12px">
-      Les points repartent à zéro à chaque saison — c’est le badge qui reste.
+  <!--
+    Le classement et les badges vivaient ici, en onglet. Ils montraient un sous-ensemble de ce
+    que la page Saison montre désormais — sans le compte à rebours, le badge en jeu, le barème
+    ni l'étagère — et deux écrans qui disent la même chose finissent par ne plus la dire
+    pareil. L'arène est le lieu où l'on se bat ; on y renvoie vers la saison plutôt que de la
+    résumer.
+  -->
+  <div class="sect">
+    <p class="muted">
+      Le classement, le badge en jeu et ce qui reste à jouer sont sur l’écran
+      <b>Saison</b>.
     </p>
   </div>
 
-  <div v-if="tab === 'saison' && mesBadges.length" class="sect">
-    <div class="eyebrow sect-h"><span>Tes badges</span></div>
-    <div class="arena-badges">
-      <div v-for="b in mesBadges" :key="b.season" class="arena-badge">
-        <SeasonBadge :season="b.season" :rank="b.rank" />
-        <span class="mono muted">{{ b.season }}</span>
-      </div>
-    </div>
-  </div>
   </section>
 </template>
