@@ -1,5 +1,6 @@
 -- PR-DEX — schéma Supabase. À coller dans SQL Editor (Supabase dashboard) et exécuter une fois.
--- Base déjà en service : ne pas rejouer ce fichier, appliquer `supabase/migrations/` à la place.
+-- Base déjà en service : ne pas rejouer ce fichier, appliquer `supabase/migrations-appliquees/` à la place.
+-- Copie fidèle sous `supabase/migrations/` pour la CLI, qui fabrique la base de test locale.
 
 -- profiles : une ligne par personne connectée, créée automatiquement à la première connexion.
 create table public.profiles (

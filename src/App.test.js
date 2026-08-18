@@ -31,18 +31,25 @@ afterEach(() => {
  * reste figé sur `<body>` et toute la discipline de focus testée ici devient invérifiable.
  * Le chargement de la démo passe par un `import()` dynamique : au tout premier montage, Vite
  * doit encore transformer le module, ce qui coûte du vrai temps et non un simple tour de boucle
- * de microtâches — vider les promesses ne suffit donc pas. On sonde jusqu'à voir la planche
+ * de microtâches — vider les promesses ne suffit donc pas. On sonde jusqu'à voir le rail
  * plutôt que d'attendre un délai fixe, qui serait tantôt trop court tantôt gaspillé.
+ *
+ * Le rail et non la planche : depuis que les lieux sont des pages, la planche n'existe que sur
+ * `/collection`, alors que le rail surmonte les cinq. Sonder la planche revenait à exiger d'être
+ * arrivé sur un écran précis pour considérer l'application montée.
  */
 async function mountApp() {
   wrapper = mount(App, { attachTo: document.body })
-  for (let i = 0; i < 50 && wrapper.findAll('.cell').length === 0; i++) {
+  for (let i = 0; i < 50 && wrapper.findAll('.tab').length === 0; i++) {
     await new Promise((r) => setTimeout(r, 5))
     await flushPromises()
   }
-  expect(wrapper.findAll('.cell').length).toBeGreaterThan(0)
+  expect(wrapper.findAll('.tab').length).toBeGreaterThan(0)
   return wrapper
 }
+
+/** Les lieux se rejoignent par leur onglet dans le rail. */
+const onglet = (w, libelle) => w.findAll('.tab').find((t) => t.text().includes(libelle))
 
 const press = (key, over = {}) =>
   window.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true, ...over }))
@@ -67,12 +74,12 @@ describe('évolution', () => {
     const w = await mountApp()
 
     await cellOf(w, CHENIPAN).trigger('click')
-    expect(w.find('.evo-btn').exists()).toBe(true)
+    expect(w.find('.evo-btn:not(.arena-send)').exists()).toBe(true)
 
     // Deux clics sur le même bouton : le premier ouvre le sélecteur d'exemplaire, le second
     // confirme. Chenipan n'a qu'un exemplaire disponible, donc il est pré-coché.
-    await w.find('.evo-btn').trigger('click')
-    await w.find('.evo-btn').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evo-btn:not(.arena-send)').trigger('click')
     await flushPromises()
 
     expect(w.find('.evostage').exists()).toBe(true)
@@ -127,5 +134,188 @@ describe('navigation au clavier', () => {
 
     expect(w.find('.packet').exists()).toBe(false)
     expect(w.find('.panel').exists()).toBe(true)
+  })
+})
+
+/**
+ * Poster un défi ne produit aucun duel — il reste ouvert jusqu'à ce que quelqu'un le relève.
+ * Il faut néanmoins que quelque chose se passe à l'écran : une action qui réussit en silence se
+ * lit comme un bouton mort, et c'est exactement ce qui a été signalé à l'essai.
+ */
+describe('envoi à l’arène depuis la fiche', () => {
+
+  it('referme la fiche et ouvre l’arène sur le défi en attente', async () => {
+    const w = await mountApp()
+    const caseAvecExemplaire = w.findAll('.cell').find((c) => !c.classes().includes('cell-no'))
+    await caseAvecExemplaire.trigger('click')
+    await flushPromises()
+
+    const envoyer = w.find('.arena-send')
+    if (!envoyer.exists()) return // espèce sans exemplaire disponible : rien à prouver ici
+
+    await envoyer.trigger('click')
+    await flushPromises()
+    await new Promise((r) => setTimeout(r, 30))
+    await flushPromises()
+
+    expect(w.find('.sheet').exists()).toBe(false)
+    expect(w.find('.arena-pick').exists() || w.text().includes('sur la table')).toBe(true)
+  })
+})
+
+/**
+ * Le pli acheté doit s'ouvrir, pas se ranger. La file est triée par date : un achat arrive
+ * derrière tous les plis laissés fermés, et ouvrir « le premier de la file » ouvrait donc un
+ * autre pli — ou rien de visible du tout. On avait payé et l'écran ne bougeait pas.
+ */
+describe('achat en boutique', () => {
+
+  const ouvrirBoutique = async (w) => {
+    await onglet(w, 'Boutique').trigger('click')
+    await flushPromises()
+  }
+
+  it('ouvre le pli qu’on vient d’acheter, pas le premier de la file', async () => {
+    const w = await mountApp()
+    await ouvrirBoutique(w)
+
+    const acheter = w.findAll('.log-row')[0].find('button')
+    await acheter.trigger('click')   // confirmation
+    await acheter.trigger('click')
+    for (let i = 0; i < 50 && !w.find('.ritual').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+
+    expect(w.find('.ritual').exists()).toBe(true)
+    // La boutique s'efface : deux couches empilées cacheraient la révélation.
+    expect(w.findAll('.panel-plate').some((p) => p.text() === 'BOUTIQUE')).toBe(false)
+  })
+})
+
+/**
+ * Les lieux ont désormais une adresse. Ce qui se teste ici n'est pas le routeur — il a ses
+ * propres tests — mais le fait que l'écran et l'URL ne puissent plus diverger : c'est la
+ * divergence qui produisait une couche ouverte après un retour navigateur, et un lien partagé
+ * qui ne menait nulle part.
+ */
+describe('les lieux ont une URL', () => {
+
+  const chemin = () => location.pathname
+
+  it('écrit l’adresse de l’arène en y entrant, et revient à la planche en sortant', async () => {
+    const w = await mountApp()
+    await onglet(w, 'Arène').trigger('click')
+    await flushPromises()
+    expect(chemin()).toBe('/arena')
+    // La planche n'est plus dessous : un lieu remplace l'autre, il ne se pose pas par-dessus.
+    expect(w.findAll('.cell')).toHaveLength(0)
+
+    // On quitte un lieu en allant dans un autre, plus en refermant une croix.
+    await onglet(w, 'Collection').trigger('click')
+    await flushPromises()
+    expect(chemin()).toBe('/')
+    expect(w.findAll('.cell').length).toBeGreaterThan(0)
+  })
+
+  it('donne son adresse à la fiche d’une espèce', async () => {
+    const w = await mountApp()
+    await cellOf(w, CHENIPAN).trigger('click')
+    await flushPromises()
+    expect(chemin()).toBe('/collection/010')
+  })
+
+  /**
+   * Le geste que tout le monde fait sur téléphone. Avant, il quittait l'application : la fiche
+   * n'ayant pas d'adresse, le navigateur n'avait rien à défaire.
+   */
+  it('referme la fiche au retour du navigateur, sans quitter l’application', async () => {
+    const w = await mountApp()
+    await cellOf(w, CHENIPAN).trigger('click')
+    await flushPromises()
+    expect(w.find('.panel-name').exists()).toBe(true)
+
+    window.history.replaceState({}, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    await flushPromises()
+    expect(w.find('.panel-name').exists()).toBe(false)
+  })
+
+  // Le cas du lien partagé, et celui du rechargement : l'écran doit se reconstituer seul.
+  it('ouvre directement le bon écran depuis l’adresse', async () => {
+    window.history.replaceState({}, '', '/shop?demo')
+    const w = await mountApp()
+    expect(w.findAll('.panel-plate').some((p) => p.text() === 'BOUTIQUE')).toBe(true)
+  })
+})
+
+/**
+ * Le profil, de bout en bout. Deux dossiers pour un seul gabarit : le sien, complet, et celui
+ * d'un collègue, caviardé. C'est la vue SQL qui garantit la règle ; ce qui se vérifie ici est
+ * que l'écran sait lequel des deux il regarde.
+ */
+describe('le profil', () => {
+  const ouvrir = async (w) => {
+    await onglet(w, 'Profil').trigger('click')
+    await flushPromises()
+    return w
+  }
+
+  it('s’ouvre sur son propre dossier, à son adresse', async () => {
+    const w = await ouvrir(await mountApp())
+    expect(location.pathname).toBe('/profile')
+    expect(w.find('.panel-name').text()).toBe('toi')
+    expect(w.findAll('.prof-case.secret')).toHaveLength(0)
+  })
+
+  it('compte les exemplaires depuis la collection, et non depuis le dossier public', async () => {
+    const w = await ouvrir(await mountApp())
+    const exemplaires = w.findAll('.prof-case')
+      .find((c) => c.find('span').text() === 'Exemplaires').find('b').text()
+    expect(Number(exemplaires)).toBeGreaterThan(0)
+  })
+
+  // Un lien reçu d'un collègue : l'écran doit se reconstituer seul, et caviarder.
+  it('ouvre le dossier d’un collègue depuis l’adresse, caviardé', async () => {
+    window.history.replaceState({}, '', '/profile/bob?demo')
+    const w = await mountApp()
+    await flushPromises()
+    expect(w.find('.panel-name').text()).toBe('bob')
+    expect(w.findAll('.prof-case.secret')).toHaveLength(4)
+  })
+
+  it('explique un pseudonyme qui ne joue pas, au lieu d’un dossier vide', async () => {
+    window.history.replaceState({}, '', '/profile/fantome?demo')
+    const w = await mountApp()
+    await flushPromises()
+    expect(w.text()).toContain('Personne ne joue sous ce nom')
+  })
+})
+
+/**
+ * La saison ferme la boucle des cinq lieux : c'est le seul écran qui mène à un autre profil
+ * que le sien, et donc le seul endroit d'où un pseudonyme devient une adresse.
+ */
+describe('la saison', () => {
+
+  it('s’ouvre à son adresse depuis le rail', async () => {
+    const w = await mountApp()
+    await onglet(w, 'Saison').trigger('click')
+    await flushPromises()
+    expect(location.pathname).toBe('/season')
+    // La plaque porte désormais le nom de la saison et son code : « SAISON 1 · 2026-S5 ».
+    expect(w.findAll('.panel-plate').some((p) => /SAISON/.test(p.text()))).toBe(true)
+  })
+
+  // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
+  it('emmène au profil d’un joueur du classement', async () => {
+    window.history.replaceState({}, '', '/season?demo')
+    const w = await mountApp()
+    await flushPromises()
+    const autre = w.findAll('.saison-rang').find((r) => r.find('.nom').text() !== 'toi')
+    await autre.trigger('click')
+    await flushPromises()
+    expect(location.pathname).toMatch(/^\/profile\//)
+    expect(w.find('.panel-name').exists()).toBe(true)
   })
 })

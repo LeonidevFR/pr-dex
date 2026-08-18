@@ -77,5 +77,189 @@ export function createSupabaseClient(userId) {
     return { blobSha: data[0].version }
   }
 
-  return { checkAccess, readCatches, readState, writeState, triggerCatch }
+  /**
+   * L'état d'arène du joueur, en une fois : son solde de crédits, son portefeuille, et les
+   * niveaux de ses exemplaires. Trois lectures parce que ce sont trois tables — mais un seul
+   * aller-retour utile côté ressenti, elles partent ensemble.
+   */
+  async function readArena() {
+    const [credits, wallet, exemplars] = await Promise.all([
+      query(() => supabase.rpc('arena_credits', { uid: userId })),
+      query(() => supabase.from('arena_wallet').select('pokedollars').eq('user_id', userId).maybeSingle()),
+      query(() => supabase.from('arena_exemplars').select('entry_key, level, wins, destroyed_at').eq('user_id', userId)),
+    ])
+    return {
+      credits: credits ?? 0,
+      pokedollars: wallet?.pokedollars ?? 0,
+      exemplars: exemplars ?? [],
+    }
+  }
+
+  /**
+   * Les défis ouverts, sans leur mise — la vue ne l'expose pas, et c'est tout le sel du mode :
+   * on choisit qui l'on affronte, jamais ce que l'on affronte.
+   */
+  async function readOpenChallenges() {
+    return query(() =>
+      supabase
+        .from('arena_open_challenges')
+        .select('id, challenger_id, pseudo, created_at')
+        .order('created_at', { ascending: true }),
+    )
+  }
+
+  /**
+   * Son propre défi en attente. Lisible par son seul auteur : le secret de la mise protège le
+   * pari contre l'adversaire, pas contre celui dont le Pokémon est immobilisé.
+   */
+  /**
+   * TOUS ses défis en attente, et non le premier.
+   *
+   * Un joueur peut en poster autant qu'il a de crédits — jusqu'à cinq. La lecture s'arrêtait au
+   * premier : les autres restaient invisibles à leur auteur, qui ne savait plus lesquels de ses
+   * Pokémon étaient immobilisés ni combien de défis il avait laissés traîner.
+   */
+  async function readMyOpen() {
+    return query(() =>
+      supabase
+        .from('arena_duels')
+        .select('id, challenger_key, created_at')
+        .eq('challenger_id', userId)
+        .eq('status', 'open')
+        .order('created_at'),
+    ) ?? []
+  }
+
+  /** Un duel résolu, avec de quoi rejouer le combat plutôt que d'avoir à croire son résultat. */
+  async function readDuel(id) {
+    return query(() =>
+      supabase
+        .from('arena_duels')
+        .select('id, challenger_id, challenger_key, opponent_id, opponent_key, status, winner_id, ' +
+                'stake_tier, challenger_power, opponent_power, probability, roll, resolved_at')
+        .eq('id', id)
+        .single(),
+    )
+  }
+
+  /**
+   * Le classement de la saison en cours, et les saisons closes avec leur podium.
+   *
+   * Deux lectures parce que ce sont deux choses : ce qui se joue et ce qui est acquis. Un badge
+   * ne se recalcule pas depuis les points — ceux-ci repartent à zéro à chaque saison, et c'est
+   * précisément pour ça que les podiums sont consignés à part.
+   */
+  const readLeaderboard = (season) =>
+    query(() => supabase.from('arena_leaderboard').select('user_id, pseudo, points, rank')
+      .eq('season', season).order('rank'))
+
+  const readSeasons = () =>
+    query(() => supabase.from('arena_seasons').select('season, first_id, second_id, third_id')
+      .order('season', { ascending: false }))
+
+  /**
+   * Les évolutions, telles que le serveur les tient. Elles vivaient dans `state.evolutions`,
+   * que le client réécrivait en entier ; il ne les écrit plus, il les lit.
+   */
+  const readEvolutions = () =>
+    query(() => supabase.from('evolutions')
+      .select('id, from_species, to_species, from_key, day')
+      .order('id'))
+
+  /**
+   * Fait évoluer un exemplaire. Le serveur vérifie tout — propriété, disponibilité, lignée,
+   * bonbons — et rend l'identifiant de l'évolution créée, qui devient la clé du Pokémon obtenu.
+   */
+  const evolve = (fromKey, to, day) =>
+    query(() => supabase.rpc('dex_evolve', { p_from_key: fromKey, p_to: to, p_day: day }))
+
+  /**
+   * Le pseudonyme : la seule donnée personnelle qu'un adversaire lira.
+   *
+   * Sans lui, on n'existe pas dans l'arène — les vues publiques écartent les profils anonymes,
+   * si bien qu'on n'apparaît ni au classement, ni dans les défis autrement que « Sans nom », et
+   * qu'aucun profil ne s'ouvre. C'est donc la première chose à faire en entrant.
+   */
+  const readPseudo = async () => {
+    const rows = await query(() => supabase.from('profiles').select('pseudo').eq('user_id', userId).maybeSingle())
+    return rows?.pseudo ?? null
+  }
+
+  /**
+   * L'unicité est vérifiée par la base, sur `lower(trim(pseudo))` : deux joueurs ne peuvent pas
+   * s'appeler `Leo` et `leo` dans une arène où l'on choisit son adversaire sur la foi d'un nom.
+   * Le conflit remonte donc en erreur PostgREST, qu'on traduit ici plutôt que de la laisser
+   * passer pour une panne.
+   */
+  const setPseudo = async (pseudo) => {
+    try {
+      return await query(() => supabase.from('profiles').update({ pseudo }).eq('user_id', userId))
+    } catch (e) {
+      if (String(e?.detail ?? e?.message ?? '').match(/duplicate key|profiles_pseudo_unique/i)) {
+        throw new SupabaseDataError('taken', 'Ce pseudonyme est déjà pris.')
+      }
+      throw e
+    }
+  }
+
+  /**
+   * Les duels récemment résolus où l'on figurait, le plus frais d'abord.
+   *
+   * Un défi que personne ne relève est résolu par la maison au bout de vingt-quatre heures : on
+   * peut donc perdre un Pokémon pendant la nuit. Sans cette lecture, rien ne le dit — on le
+   * découvre en constatant une absence, ce qui se lit comme une panne plutôt que comme une
+   * défaite.
+   *
+   * La politique RLS ne rend que les duels résolus où l'on est l'un des deux camps : la requête
+   * n'a donc pas à filtrer, elle ne peut pas voir autre chose.
+   */
+  const readMyDuels = (limite = 10) =>
+    query(() => supabase.from('arena_duels')
+      .select('*')
+      .neq('status', 'open')
+      .order('resolved_at', { ascending: false })
+      .limit(limite))
+
+  /**
+   * Le dossier public d'un joueur : le sien, ou celui d'un collègue.
+   *
+   * La vue ne porte QUE ce que la spec § 5 autorise à publier — espèces, victoires, défaites.
+   * Les exemplaires, la caisse et les crédits n'y sont pas, et c'est voulu : un écran peut
+   * oublier de cacher une colonne, une colonne absente de la vue ne peut pas fuir. Le dossier
+   * complet du joueur courant se compose donc à côté, avec ses propres lectures.
+   */
+  const readPublicProfile = (pseudo) =>
+    query(() => supabase.from('arena_public_profile').select('user_id, pseudo, species, wins, losses')
+      .eq('pseudo', pseudo).maybeSingle())
+
+  const readMyProfile = (uid) =>
+    query(() => supabase.from('arena_public_profile').select('user_id, pseudo, species, wins, losses')
+      .eq('user_id', uid).maybeSingle())
+
+  /**
+   * Les exemplaires perdus à l'arène. Ils ne sortent jamais du dossier public : c'est une
+   * information à soi, et elle ne regarde personne d'autre.
+   */
+  const readDestroyed = () =>
+    query(() => supabase.from('arena_exemplars').select('entry_key, level, wins, destroyed_at')
+      .not('destroyed_at', 'is', null).order('destroyed_at', { ascending: false }))
+
+  /** Le catalogue vient de la base, jamais des constantes du front : c'est elle qui débite. */
+  const readShop = () =>
+    query(() => supabase.from('arena_shop').select('slug, gen, tier, fresh, price').order('price'))
+
+  const buy = (slug) => query(() => supabase.rpc('arena_buy', { p_slug: slug }))
+
+  const engage = (entryKey, vsComputer = false) =>
+    query(() => supabase.rpc('arena_engage', { p_entry_key: entryKey, p_vs_computer: vsComputer }))
+
+  const accept = (duelId, entryKey) =>
+    query(() => supabase.rpc('arena_accept', { p_duel_id: duelId, p_entry_key: entryKey }))
+
+  return {
+    checkAccess, readCatches, readState, writeState, triggerCatch,
+    readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readLeaderboard, readSeasons, engage, accept,
+    readPublicProfile, readMyProfile, readDestroyed, readMyDuels, readPseudo, setPseudo,
+    readEvolutions, evolve,
+  }
 }

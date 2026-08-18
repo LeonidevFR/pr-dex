@@ -20,8 +20,16 @@ const props = defineProps({
   // Exemplaires consommables par une évolution, chacun avec sa `key` et son statut `shiny` —
   // sert au sélecteur, distinct de `entries` qui garde tout le journal (y compris consommé).
   available: { type: Array, default: () => [] },
+  arenaCredits: { type: Number, default: 0 },
+  arenaLevelOf: { type: Function, default: () => 1 },
+  /**
+   * La forme du jour d'un exemplaire, ou `null` tant que l'arène n'a pas ouvert. Elle entre dans
+   * le calcul de puissance au même titre que le niveau : la lire ici, là où l'on regarde ses
+   * Pokémon, évite d'avoir à ouvrir l'arène pour savoir si le moment est bon.
+   */
+  arenaFormOf: { type: Function, default: null },
 })
-const emit = defineEmits(['close', 'evolve'])
+const emit = defineEmits(['close', 'evolve', 'engage'])
 
 // Cible d'évolution en cours de sélection (id de l'espèce), ou `null` hors sélection.
 const pickingTarget = ref(null)
@@ -150,6 +158,49 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               </div>
             </div>
           </template>
+        </div>
+      </div>
+
+      <!--
+        Engager depuis la fiche : c'est le geste naturel — on regarde son Dracaufeu, on décide
+        de l'envoyer. Le passage par l'écran d'arène restait possible, mais il obligeait à
+        retrouver dans une grille le Pokémon qu'on avait justement sous les yeux.
+      -->
+      <div v-if="caught && available.length" class="sect">
+        <div class="eyebrow sect-h">
+          <span>Arène</span>
+          <span class="mono muted">niv. {{ arenaLevelOf(available[0].key) }}</span>
+        </div>
+
+        <!--
+          Un exemplaire par ligne avec sa forme : à plusieurs exemplaires, elles diffèrent — la
+          forme se tire de la clé, pas de l'espèce — et c'est précisément ce qui décide lequel
+          engager aujourd'hui.
+        -->
+        <div v-if="arenaFormOf" class="formes">
+          <div v-for="(e, i) in available" :key="e.key" class="forme-ligne">
+            <span class="mono no">{{ i + 1 }}</span>
+            <span class="quoi">niv. {{ arenaLevelOf(e.key) }}</span>
+            <span
+              class="forme-nom"
+              :class="{ up: arenaFormOf(e.key).factor > 1, down: arenaFormOf(e.key).factor < 1 }"
+            >{{ arenaFormOf(e.key).name }}</span>
+            <span class="mono coef">×{{ arenaFormOf(e.key).factor.toFixed(2) }}</span>
+          </div>
+        </div>
+        <p class="muted">
+          <template v-if="arenaCredits">
+            Ouvre l’arène avec cet exemplaire retenu : tu choisiras ensuite de poster un défi,
+            d’affronter l’ordinateur ou de relever celui d’un autre.
+          </template>
+          <template v-else>
+            Aucun engagement disponible — il en revient un par jour ouvré.
+          </template>
+        </p>
+        <div class="front-actions" style="margin-top:12px">
+          <button class="evo-btn arena-send" :disabled="!arenaCredits" @click="$emit('engage', available[0].key)">
+            Choisir pour l’arène
+          </button>
         </div>
       </div>
 

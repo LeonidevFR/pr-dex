@@ -49,16 +49,73 @@
   .mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
 
   /* ───────── rail ───────── */
+  /* Le rail a porté successivement un dégradé avec flou d'arrière-plan — utile au temps où une
+     planche défilait dessous — puis un voile teinté de la couleur du lieu. Les deux étaient de
+     trop : sur des pages posées à plat, toute matière ajoutée en haut de l'écran se lit comme
+     une pièce rapportée. Il tient donc sur le papier nu, comme le reste.
+
+     Le lieu se dit par le trait, pas par une surface : le filet du bas et le point du sigle
+     prennent sa couleur. Deux repères fins valent mieux qu'un aplat, et ils tombent aux deux
+     endroits que l'œil vise déjà. */
+  /* AUCUN fond, et donc plus de `position:sticky`. Les deux allaient ensemble : un bandeau
+     collé en haut doit peindre quelque chose sous lui, sinon le contenu défile au travers — et
+     ce quelque chose se voyait comme une bande, parce que le corps porte un grain et un halo de
+     lumière que l'aplat de papier recouvrait.
+
+     Le rail redevient donc le haut du document : même papier, même grain, même lumière, aucune
+     jointure. Il défile avec la page. Ce qu'on y perd est réel — les onglets sortent du champ
+     quand on descend — et ce qu'on y gagne est que le haut de l'écran cesse d'être une pièce
+     rapportée. */
   .rail{
-    position:sticky;top:0;z-index:20;
-    background:linear-gradient(180deg, var(--paper) 55%, rgba(231,221,199,.85));
-    backdrop-filter:blur(6px);
-    border-bottom:1.5px solid var(--rule-hi);
-    padding:20px 0 15px;margin-bottom:26px;
+    border-bottom:2px solid var(--lieu, var(--rule-hi));
+    padding:18px 0 0;margin-bottom:26px;
+    transition:border-color .4s ease;
+  }
+  /* Les couleurs sont celles que chaque écran emploie déjà : le vert de la progression, le
+     rouge du risque, l'ocre de l'argent. Rien de nouveau — le rail cite, il n'invente pas. */
+  .rail[data-place="collection"]{--lieu:var(--herb)}
+  .rail[data-place="arena"]{--lieu:var(--stamp)}
+  .rail[data-place="season"]{--lieu:var(--ochre)}
+  .rail[data-place="shop"]{--lieu:var(--ochre)}
+  .rail[data-place="profile"]{--lieu:var(--ink-2)}
+  .rail-haut{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap}
+  .rail-bas{
     display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap;
+    padding:14px 0 15px;border-top:1px solid rgba(179,161,121,.45);margin-top:12px;
+  }
+
+  /* ───────── onglets ─────────
+     Le marqueur est un filet sous l'onglet actif, pas un fond plein : un fond ferait une
+     seconde surface à lire au-dessus du parchemin, alors que le filet reprend celui du rail. */
+  .tabs{display:flex;gap:2px;flex:1;align-self:flex-end;flex-wrap:wrap}
+  .tab{
+    position:relative;display:flex;align-items:center;gap:7px;
+    border:0;background:transparent;cursor:pointer;
+    font-family:var(--f-label);font-weight:600;font-size:11.5px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--ink-3);padding:10px 13px 14px;
+    transition:color .16s;
+  }
+  .tab:hover{color:var(--ink-2)}
+  .tab::after{
+    content:"";position:absolute;left:8px;right:8px;bottom:-1.5px;height:3px;
+    background:transparent;transition:background .18s;
+  }
+  .tab[aria-current="page"]{color:var(--ink)}
+  .tab[aria-current="page"]::after{background:var(--lieu,var(--stamp))}
+  .tab .pip{
+    min-width:17px;padding:0 5px;background:var(--stamp);color:var(--plate);
+    font-family:var(--f-data);font-size:10px;font-weight:600;border-radius:9px;line-height:16px;
+  }
+  /* Sur un écran étroit, le libellé s'efface et l'icône suffit : cinq onglets en toutes
+     lettres passeraient à la ligne et pousseraient la planche hors de vue. */
+  @media (max-width:620px){
+    .tab{padding:10px 9px 14px}
+    .tab span:not(.pip){display:none}
   }
   .wordmark{font-family:var(--f-display);font-weight:700;font-size:23px;letter-spacing:-.02em;line-height:1}
-  .wordmark span{color:var(--stamp)}
+  /* Le point du sigle suit le lieu, comme le filet : deux repères valent mieux qu'un, et
+     celui-ci se trouve à l'endroit que l'œil vise en premier. */
+  .wordmark span{color:var(--lieu,var(--stamp));transition:color .4s ease}
   .rail-sub{margin-top:6px}
   .progress{flex:1;min-width:220px}
   .progress-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
@@ -67,7 +124,9 @@
   .progress-count i{font-style:normal;color:var(--ink-3)}
   .bar{height:3px;background:var(--rule);position:relative;overflow:hidden}
   .bar-fill{position:absolute;inset:0 auto 0 0;background:var(--herb);transition:width .8s cubic-bezier(.2,.8,.2,1)}
-  .rail-tools{display:flex;align-items:center;gap:10px}
+  .rail-tools{display:flex;align-items:center;gap:10px;padding-bottom:11px}
+  .rail-bas .rail-tools{padding-bottom:0}
+  .gear svg{display:block}
   .gear{
     position:relative;display:inline-flex;align-items:center;justify-content:center;
     border:1px solid var(--rule-hi);background:transparent;color:var(--ink-2);width:38px;height:38px;
@@ -76,12 +135,14 @@
   .gear:hover:not(:disabled){background:var(--plate);color:var(--ink)}
   .gear:disabled{cursor:default}
   /* La rotation est sur le glyphe (span), pas sur le bouton entier : sinon la pastille
-     d'erreur, positionnée dans un coin du bouton, tournait avec tout le bloc. */
-  /* Le glyphe ⟳ tournait de travers : la boîte du span fait la hauteur de la ligne de texte,
-     donc son centre — le pivot de la rotation — tombait à côté du centre du dessin. Un SVG
-     carré et symétrique cale le pivot sur le centre de l'anneau. */
+     d'erreur, positionnée dans un coin du bouton, tournerait avec tout le bloc — d'où le
+     `:not(.err-dot)`, qui laisse la pastille en dehors de la règle.
+     Le glyphe tournait de travers : la boîte d'un span en ligne fait la hauteur d'une ligne de
+     texte, donc son centre — le pivot — tombait à côté du centre du dessin. `inline-flex` et
+     `line-height:0` la resserrent sur le SVG ; `transform-origin` la fixe explicitement plutôt
+     que de dépendre du calcul de boîte. */
   .gear.sync span:not(.err-dot){display:inline-flex;line-height:0}
-  .gear.sync span.spinning{color:var(--herb);animation:spin .8s linear infinite}
+  .gear.sync span.spinning{color:var(--herb);transform-origin:50% 50%;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .err-dot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--stamp);box-shadow:0 0 0 1.5px var(--paper)}
   .filter-toggle.active{border-color:var(--herb);color:var(--herb)}
@@ -166,7 +227,7 @@
 
   /* ───────── fiche ───────── */
   .scrim{position:fixed;inset:0;z-index:40;background:rgba(44,38,32,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px}
-  .panel{
+  .panel{overflow-x:hidden;
     width:min(560px,100%);max-height:88vh;overflow:auto;background:var(--paper);
     border:1.5px solid var(--rule-hi);box-shadow:0 24px 60px rgba(44,38,32,.35);
   }
@@ -573,3 +634,367 @@
     .reveal-name{font-size:26px}
     .reveal-note{margin-top:10px}
   }
+
+  .gen-tabs{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:0 26px 14px}
+
+  /* ───────── arène ───────── */
+  /* Le solde d'engagements est la contrainte qui structure tout le mode : il se lit d'un coup
+     d'œil, pas en petits caractères. */
+  .arena-head{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+  .arena-big{font-family:var(--f-display);font-size:34px;font-weight:600;color:var(--ink);line-height:1}
+  .arena-big.spent{color:var(--ink-3)}
+  .arena-unit{font-family:var(--f-label);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+
+  /* La sélection encadre la vignette sans toucher au texte : le nom et le niveau doivent rester
+     lisibles au moment précis où l'on décide de miser. */
+  .arena-pick{position:relative;background:var(--plate);border:1px solid var(--rule);padding:9px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px;width:88px;
+    font-family:var(--f-label);font-size:10px;color:var(--ink-2);transition:border-color .15s,box-shadow .15s,color .15s}
+  .arena-pick:hover:not(:disabled){border-color:var(--ochre);color:var(--ink)}
+  .arena-pick:disabled{opacity:.4;cursor:default}
+  .arena-pick img{width:46px;height:46px}
+  .arena-pick .nm{color:var(--ink);font-size:10.5px;text-align:center;line-height:1.25}
+  .arena-pick .lv{font-family:var(--f-data);font-size:9px;color:var(--ink-3)}
+  .arena-pick.on{border-color:var(--ochre);box-shadow:inset 0 0 0 2px var(--ochre);color:var(--ink)}
+  .arena-pick.on .lv{color:var(--ochre)}
+
+  /* Pas de défilement propre : le panneau défile déjà, et une fenêtre dans une fenêtre
+     réduisait la grille à quelques rangées tout en donnant deux barres à manœuvrer. La barre
+     d'action étant collée en bas, on peut dérouler la liste entière sans jamais la perdre. */
+  .arena-list{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+
+  .arena-rule{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
+  .arena-rule b{color:var(--ink);font-family:var(--f-label);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;min-width:96px;padding-top:2px}
+
+  /* L'attente n'est pas décorative : elle sépare le moment où l'on voit les deux Pokémon de
+     celui où l'on apprend lequel tombe. Sans elle, le duel s'affiche au lieu de se jouer. */
+  .arena-wait{display:flex;gap:6px;align-items:center;justify-content:center;padding:18px 0}
+  .arena-wait span{width:7px;height:7px;background:var(--ochre);border-radius:50%;opacity:.25;
+    animation:arena-pulse 1s infinite}
+  .arena-wait span:nth-child(2){animation-delay:.16s}
+  .arena-wait span:nth-child(3){animation-delay:.32s}
+  @keyframes arena-pulse{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+
+  /* ───────── la cérémonie du duel ─────────
+     Le seul endroit de l'application où quelque chose cesse d'exister. Il avait jusqu'ici moins
+     d'égards qu'un pli commun qu'on ouvre : deux sprites côte à côte et un filtre sépia. */
+  .duel-scene{
+    position:relative;overflow:hidden;padding:26px 22px 18px;
+    border-bottom:1.5px solid var(--rule);
+    background:radial-gradient(ellipse 82% 62% at 50% 8%, #2a2419, #17140f 74%);
+  }
+  /* Le sol : une ellipse de lumière très basse, pour que les deux camps posent sur quelque chose. */
+  .duel-scene::after{
+    content:"";position:absolute;left:50%;bottom:52px;width:76%;height:74px;transform:translateX(-50%);
+    background:radial-gradient(ellipse 50% 50% at 50% 50%, rgba(240,231,212,.07), transparent 70%);
+    pointer-events:none;
+  }
+  .duel-camps{position:relative;display:flex;align-items:flex-start;justify-content:center;gap:26px}
+  .duel-camp{display:flex;flex-direction:column;align-items:center;gap:11px;width:165px}
+
+  /* La carte fait 266×372 : trop pour deux de front dans un panneau de 560. On la réduit
+     depuis le contenant plutôt que depuis `.pkc`, dont la transformation porte déjà le
+     retournement et l'inclinaison. */
+  .duel-slot{position:relative;width:165px;height:231px;perspective:900px}
+  .duel-flip{
+    position:absolute;top:50%;left:50%;width:266px;height:372px;margin:-186px 0 0 -133px;
+    transform-style:preserve-3d;transform:scale(.62) rotateY(0deg);
+    transition:transform .62s cubic-bezier(.2,.8,.2,1);
+  }
+  /* Les deux mises se retournent EN MÊME TEMPS : personne n'ajuste la sienne en voyant l'autre,
+     et c'est la règle centrale du jeu — une animation simultanée la dit sans une ligne de texte. */
+  .duel-flip.dos{transform:scale(.62) rotateY(180deg)}
+  .duel-dos,.duel-front{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  .duel-dos{
+    transform:rotateY(180deg);display:grid;place-items:center;
+    background:linear-gradient(168deg,#2f2820,#221c15 46%,#191410);
+    border:1px solid #4a4033;
+    box-shadow:0 18px 40px rgba(0,0,0,.6),inset 0 0 0 4px rgba(255,255,255,.06);
+  }
+  .duel-cire{
+    width:92px;height:92px;border-radius:50%;display:grid;place-items:center;
+    background:radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--t) 78%, #fff), var(--t) 62%, #000 190%);
+    font-family:var(--f-display);font-weight:700;font-size:25px;color:rgba(255,247,230,.86);
+    box-shadow:inset 0 -4px 10px rgba(0,0,0,.4);
+  }
+  /* Le cachet respire tant qu'il tient : une mise en attente est vivante. Il s'arrête net au
+     retournement — l'animation ne vaut que pour l'état scellé. */
+  .duel-scene[data-etat="scelle"] .duel-cire{animation:duel-respire 2.4s ease-in-out infinite}
+  @keyframes duel-respire{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+  .duel-nom{text-align:center;transition:opacity .6s ease}
+  .duel-nom b{display:block;font-family:var(--f-display);font-size:15px;font-weight:600;color:#f0e7d4}
+  .duel-nom span{display:block;margin-top:3px;font-size:10.5px;color:#8a7f68}
+
+  /* Le vainqueur s'auréole. */
+  .duel-camp.gagne .duel-front{filter:drop-shadow(0 0 22px rgba(255,214,140,.5))}
+  /* Le perdant ne se sépie pas : il s'éteint. Il blanchit comme à l'évolution — mais
+     l'évolution blanchit pour faire naître, celle-ci ne laisse rien. La carte reste en place,
+     éteinte : la retirer ferait sauter la mise en page au moment le plus lu de l'écran. */
+  .duel-camp.perd .duel-flip{animation:duel-extinction 1.5s cubic-bezier(.4,0,.75,0) .25s forwards}
+  @keyframes duel-extinction{
+    0%{filter:none}
+    26%{filter:brightness(4.5) saturate(.15)}
+    52%{filter:brightness(1.05) saturate(0) contrast(.72);opacity:.5}
+    100%{filter:brightness(.45) saturate(0) blur(6px);opacity:.12}
+  }
+  .duel-camp.perd .duel-nom{opacity:.34}
+  /* Face à l'ordinateur, rien n'est détruit : il perd le combat, pas un exemplaire — il n'en
+     possède aucun. Il s'efface donc sans brûler. */
+  .duel-camp.rien .duel-flip{animation:none;filter:saturate(.3);opacity:.42;transition:opacity .7s ease .25s,filter .7s ease .25s}
+
+  .duel-cendre{
+    position:absolute;left:calc(24% + var(--i) * 8%);top:38%;width:3px;height:3px;border-radius:50%;
+    background:#a99a7f;opacity:0;pointer-events:none;
+  }
+  .duel-camp.perd .duel-cendre{animation:duel-cendre 1.9s ease-in calc(.45s + var(--i) * .09s) forwards}
+  @keyframes duel-cendre{
+    0%{opacity:0;transform:translate(0,0) scale(1)}
+    18%{opacity:.7}
+    100%{opacity:0;transform:translate(calc(var(--i) * 3px - 11px),70px) scale(.35)}
+  }
+
+  /* La balance reste après le verdict : elle ne dit pas qui gagne, elle dit ce qui était en
+     jeu. À 95 contre 5, gagner n'est pas un exploit et perdre en est un rare — sans elle, un
+     joueur battu ne peut pas savoir s'il a joué ou subi. */
+  .duel-balance{
+    position:relative;margin:18px auto 0;max-width:330px;opacity:0;transform:translateY(8px);
+    transition:opacity .5s ease,transform .5s ease;
+  }
+  .duel-balance.vu{opacity:1;transform:none}
+  .duel-piste{display:flex;height:5px;background:#2b251c;border:1px solid #3a3226;overflow:hidden}
+  .duel-piste i{display:block;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .duel-piste .moi{background:var(--ochre)}
+  .duel-piste .lui{background:#6d6250}
+  .duel-cotes{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font-size:12px;color:#a99a7f}
+  .duel-chances{font-size:10.5px;letter-spacing:.06em;color:#f0e7d4}
+
+  .duel-eclat{
+    position:absolute;left:50%;top:38%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;
+    background:#fff5e6;opacity:0;pointer-events:none;z-index:3;
+  }
+  .duel-scene[data-etat="verdict"] .duel-eclat{animation:duel-eclat .62s ease-out forwards}
+  @keyframes duel-eclat{0%{transform:scale(.12);opacity:.85}100%{transform:scale(6);opacity:0}}
+
+  .duel-annonce{
+    position:relative;text-align:center;margin-top:16px;
+    font-family:var(--f-label);font-weight:700;font-size:10.5px;letter-spacing:.38em;text-transform:uppercase;
+    color:#6d6250;transition:color .5s ease;
+  }
+  .duel-annonce.vif{color:var(--ochre);animation:duel-annonce .55s cubic-bezier(.2,.9,.3,1.45) both}
+  .duel-scene{cursor:pointer}
+  .duel-passer{
+    position:relative;text-align:center;margin-top:7px;
+    font-family:var(--f-data);font-size:9.5px;letter-spacing:.1em;color:#5a5142;
+  }
+  @keyframes duel-annonce{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+
+  .arena-vs-mark{font-family:var(--f-label);font-size:11px;letter-spacing:.14em;color:var(--ink-3)}
+
+  .arena-pick .mult{color:var(--ochre);font-family:var(--f-data);font-size:10px;margin-left:3px}
+
+  /* Collée au bas du panneau : sans ça, la barre d'action sortait de l'écran juste après le
+     clic qui l'avait fait apparaître. */
+  /* Même retrait horizontal que `.sect` : à 2 px, la barre était collée aux bords du panneau
+     pendant que tout le reste respirait à 26. Et deux lignes plutôt qu'une — l'information
+     au-dessus, les boutons en dessous — parce que les tasser côte à côte ne tient sur aucune
+     largeur d'écran. */
+  .arena-bar{position:sticky;bottom:0;z-index:2;background:var(--paper);
+    border-top:1.5px solid var(--rule);padding:18px 26px 20px}
+  .arena-bar .line-name{line-height:1.6;font-size:13px}
+  .arena-bar .muted{line-height:1.6;margin-top:2px}
+  .arena-bar-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+  .arena-bar-actions button{flex:1 1 190px;white-space:nowrap}
+
+  /* La forme du jour se lit d'un coup d'œil : au-dessus de la normale ou en dessous. */
+  .form-up{color:var(--herb)}
+  .form-down{color:var(--stamp)}
+
+  /* L'issue arrive après l'attente : elle doit s'imposer une seconde, pas apparaître comme une
+     ligne de plus. */
+  .arena-verdict{font-family:var(--f-display);font-size:30px;font-weight:600;letter-spacing:.02em;
+    text-align:center;padding:10px 0;animation:arena-verdict .5s cubic-bezier(.2,.9,.3,1.4) both}
+  .arena-verdict.won{color:var(--t)}
+  .arena-verdict.lost{color:var(--ink-3)}
+  @keyframes arena-verdict{0%{opacity:0;transform:scale(.82)}100%{opacity:1;transform:scale(1)}}
+
+  /* Les trois chiffres qui ont décidé du duel, au-dessus du détail qui les explique. */
+  .arena-duel-nums{display:flex;gap:22px;flex-wrap:wrap;margin-top:8px}
+  .arena-duel-nums div{display:flex;flex-direction:column;gap:2px}
+  .arena-duel-nums .v{font-family:var(--f-display);font-size:26px;font-weight:600;color:var(--ink);line-height:1}
+  .arena-duel-nums .v.win{color:var(--ochre)}
+
+  .arena-badges{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px}
+  .arena-badge{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px}
+
+  .arena-reward{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .arena-reward div{display:flex;flex-direction:column;gap:2px}
+  .arena-reward .v{font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--ink);line-height:1}
+
+
+/* Un achat à confirmer : le bouton change d'état, pas seulement de libellé — le libellé seul
+   se lit après coup, la couleur se voit avant de recliquer. */
+.evo-btn.confirming { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* ───────── profil ───────── */
+  /* Un filet d'un pixel et demi entre les cases, obtenu par la couleur de fond de la grille :
+     plus net qu'une bordure par case, qui doublerait aux jointures. */
+  .prof-cases{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1.5px;
+    background:var(--rule);border-bottom:1.5px solid var(--rule);
+  }
+  .prof-case{background:var(--plate);padding:16px 18px}
+  .prof-case b{
+    display:block;font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .prof-case span{
+    display:block;margin-top:7px;font-family:var(--f-label);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-2);
+  }
+  /* Hachurée plutôt que retirée : une case barrée montre où passe la règle, une case absente
+     laisse croire qu'il n'y avait rien à dire. */
+  .prof-case.secret{background:repeating-linear-gradient(135deg,var(--plate) 0 7px,var(--paper-lo) 7px 8px)}
+  .prof-case.secret b{color:var(--ink-3)}
+
+  .prof-badges{display:flex;gap:20px;flex-wrap:wrap}
+  .prof-badge{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .prof-badge span{font-size:10.5px;color:var(--ink-2)}
+
+  /* ───────── saison ───────── */
+  .saison-sablier{
+    height:6px;background:var(--paper-lo);border:1px solid var(--rule);position:relative;
+    overflow:hidden;margin-top:16px;
+  }
+  .saison-sablier i{position:absolute;inset:0 auto 0 0;background:var(--herb)}
+
+  /* Chaque rang est un bouton : le pseudo mène au profil, ce qui donne enfin une raison de
+     cliquer sur un nom qu'on regarde depuis des semaines. */
+  .saison-rangs{display:flex;flex-direction:column}
+  .saison-rang{
+    display:flex;align-items:center;gap:13px;width:100%;padding:11px 0;cursor:pointer;
+    border:0;border-bottom:1px solid rgba(179,161,121,.4);background:transparent;
+    font-family:var(--f-label);text-align:left;color:var(--ink-2);
+  }
+  .saison-rang:last-child{border-bottom:0}
+  .saison-rang:hover{color:var(--ink)}
+  .saison-rang:hover .nom{text-decoration:underline;text-underline-offset:3px}
+  .saison-rang .pos{width:20px;font-size:11px;color:var(--ink-3)}
+  .saison-rang.podium .pos{color:var(--ochre);font-weight:600}
+  .saison-rang .nom{width:88px;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .saison-rang .piste{flex:1;height:7px;background:var(--paper-lo);position:relative;min-width:60px}
+  .saison-rang .piste i{position:absolute;inset:0 auto 0 0;background:var(--rule-hi)}
+  .saison-rang .pts{width:46px;text-align:right;font-size:13px}
+  .saison-rang.moi{color:var(--ink)}
+  .saison-rang.moi .nom,.saison-rang.moi .pts{font-weight:600;color:var(--ochre)}
+  .saison-rang.moi .piste i{background:var(--ochre)}
+
+  .saison-bareme{display:flex;flex-direction:column}
+  .saison-ligne{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(179,161,121,.4)}
+  .saison-ligne:last-child{border-bottom:0}
+  .saison-ligne .pastille{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+  .saison-ligne .quoi{flex:1;font-size:12.5px;color:var(--ink-2)}
+  .saison-ligne .pts{font-size:13.5px}
+  .saison-ligne .sous{width:56px;text-align:right;font-size:11px;color:var(--ink-3)}
+
+  .saison-etagere{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:18px 12px}
+  .saison-socle{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .saison-socle .qd{font-size:10px;color:var(--ink-3)}
+  .saison-socle .rg{font-size:11px;color:var(--ink)}
+  .saison-socle.vide .rg{color:var(--ink-3)}
+  /* Le socle vide est gravé, pas absent : il dit qu'une place existait et n'a pas été prise. */
+  .socle-vide{
+    width:46px;height:46px;border-radius:50%;border:1px dashed var(--rule-hi);opacity:.65;
+    background:radial-gradient(circle at 50% 42%, rgba(44,38,32,.06), transparent 62%);
+  }
+
+  /* ───────── une page, pas une couche ─────────
+     Les lieux étaient des panneaux flottants au-dessus de la planche, avec une croix pour les
+     refermer. Un onglet ne mène pas à une couche : il mène à un endroit. La page occupe donc le
+     flux, sans scrim ni bord de carte — c'est le rail qui la surmonte et les filets de section
+     qui la structurent, comme sur un document. On en sort par un autre onglet, pas par une croix. */
+  .page{display:block;padding-bottom:40px}
+  .page > .panel-top{padding:0 0 18px;border-bottom:1.5px solid var(--rule);gap:22px}
+  .page > .sect{padding:20px 0}
+  .page .panel-name{margin-top:5px}
+
+  /* ───────── badge de saison ───────── */
+  .sbadge{position:relative;display:inline-flex;width:var(--taille);height:var(--taille)}
+  .sbadge svg{display:block;overflow:visible}
+  /* Le rang est une pastille posée sur le badge, pas une teinte appliquée dessus : les huit
+     médailles ont leurs couleurs propres, et les repeindre en or, argent et bronze ferait de
+     huit dessins distincts trois nuances de la même. */
+  .sbadge-rang{
+    position:absolute;right:-4px;bottom:-4px;
+    background:var(--medaille);color:#fdfaf3;
+    font-size:9px;font-weight:600;line-height:1;padding:2px 4px;border-radius:8px;
+    box-shadow:0 0 0 1.5px var(--plate);
+  }
+
+  /* Le badge en jeu, en tête de la saison : assez grand pour donner envie, posé à côté de ce
+     qu'il coûte d'obtenir plutôt qu'en vignette au milieu d'un tableau. */
+  .saison-prix{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .saison-prix .sbadge{flex-shrink:0}
+  .saison-prix > div{flex:1;min-width:210px}
+
+  /* Un gain nul se lit au premier coup d'œil comme une absence, pas comme un zéro perdu au
+     milieu de chiffres qui, eux, comptent. */
+  .arena-reward .v.nul{color:var(--ink-3)}
+
+  /* ───────── l'arène à venir ───────── */
+  .teaser-tete{display:flex;align-items:center;gap:34px;flex-wrap:wrap}
+  .teaser-badge{display:flex;flex-direction:column;align-items:center;gap:9px;margin-left:auto}
+  .teaser-badge span{font-size:10.5px;color:var(--ink-2)}
+  .teaser-liste{display:flex;flex-direction:column}
+  .teaser-liste p{
+    font-size:13px;line-height:1.65;color:var(--ink-2);
+    padding:11px 0;border-bottom:1px solid rgba(179,161,121,.4);
+  }
+  .teaser-liste p:last-child{border-bottom:0}
+  .teaser-liste b{color:var(--ink)}
+
+  /* La forme du jour, exemplaire par exemplaire : à plusieurs, elles diffèrent — la forme se
+     tire de la clé, pas de l'espèce — et c'est ce qui décide lequel engager aujourd'hui. */
+  .formes{display:flex;flex-direction:column;margin-bottom:12px}
+  .forme-ligne{
+    display:flex;align-items:baseline;gap:12px;padding:8px 0;
+    border-bottom:1px solid rgba(179,161,121,.4);
+  }
+  .forme-ligne:last-child{border-bottom:0}
+  .forme-ligne .no{font-size:10px;color:var(--ink-3);width:14px}
+  .forme-ligne .quoi{font-size:12px;color:var(--ink-2);width:52px}
+  .forme-nom{flex:1;font-size:12.5px;color:var(--ink-2)}
+  .forme-nom.up{color:var(--herb)}
+  .forme-nom.down{color:var(--stamp)}
+  .forme-ligne .coef{font-size:11.5px;color:var(--ink-3)}
+
+  /* ───────── pseudonyme ───────── */
+  .pseudo-form{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+  .pseudo-input{
+    flex:1;min-width:160px;font-family:var(--f-data);font-size:14px;color:var(--ink);
+    background:var(--plate-hi);border:1.5px solid var(--rule-hi);padding:10px 12px;
+  }
+  .pseudo-input:focus{outline:none;border-color:var(--ochre)}
+  .pseudo-input:disabled{color:var(--ink-3)}
+  .pseudo-err{margin-top:10px;color:var(--stamp)}
+
+  /* Le rappel du nom manquant : un filet rouge, pas un bandeau — il informe, il n'interdit rien. */
+  .sans-nom{border-left:3px solid var(--stamp);padding-left:16px}
+  .sans-nom b{color:var(--stamp)}
+
+  /* ───────── avis d'échec ─────────
+     En haut du contenu et non en surimpression : on doit pouvoir continuer à jouer en le
+     lisant. Il porte le message du serveur, qui dit quoi faire, plutôt qu'un « une erreur est
+     survenue » qui n'apprend rien. */
+  .avis{
+    display:flex;align-items:flex-start;gap:14px;
+    border:1.5px solid var(--stamp);border-left-width:4px;background:rgba(158,59,46,.07);
+    padding:12px 16px;margin-bottom:20px;
+    font-size:13px;line-height:1.55;color:var(--ink);
+  }
+  .avis span{flex:1}
+  .avis-x{
+    border:0;background:none;cursor:pointer;color:var(--stamp);padding:2px;display:flex;
+  }
+  .avis-x:hover{color:var(--ink)}

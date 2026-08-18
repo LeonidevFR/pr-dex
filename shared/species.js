@@ -1,3 +1,9 @@
+import { SPECIES_GEN2 } from './species-gen2.js'
+
+// Réexporté ici : `species.js` est le point d'entrée de tout ce qui touche aux espèces, et un
+// appelant n'a pas à savoir que la seconde génération vit dans son propre fichier généré.
+export { SPECIES_GEN2 }
+
 // [id, nom, palier, évolueVers, coût en bonbons]
 // palier : c=commun u=peu commun r=rare l=légendaire
 export const SPECIES = [
@@ -68,9 +74,18 @@ export const SPECIES = [
   [150, 'Mewtwo', 'l'], [151, 'Mew', 'l'],
 ]
 
+/**
+ * `SPECIES` reste la planche — les 151, et elles seules. C'est elle que compte le rail, elle
+ * que dessine la grille, elle qui définit ce qu'« avoir fini » veut dire.
+ *
+ * `DEX` va plus loin : il décrit toute espèce que le jeu sait afficher, Gen 2 comprise. La
+ * distinction n'est pas cosmétique — verser la Gen 2 dans la planche ferait passer le compteur
+ * à 251 et afficherait cent cases vides pour toujours, alors qu'on ne les obtient qu'en
+ * boutique et qu'elles n'ont rien à faire dans une progression tirée du travail.
+ */
 export const DEX = {}
-for (const [id, name, tier, to, cost] of SPECIES) {
-  DEX[id] = { id, name, tier, to: to ?? null, cost: cost ?? null }
+for (const [id, name, tier, to, cost] of [...SPECIES, ...SPECIES_GEN2]) {
+  DEX[id] = { id, name, tier, to: to ?? null, cost: cost ?? null, gen: id > 151 ? 2 : 1 }
 }
 
 export const PARENT = {}
@@ -142,13 +157,34 @@ export function familyLine(id) {
 // Léviator ne se tire jamais : seul accès, faire évoluer Magicarpe (40 bonbons, cf. son coût
 // volontairement élevé). Exception ciblée, pas une règle générale sur les 3e évolutions —
 // celles-ci (Dracaufeu, Tortank...) restent tirables normalement.
-export const NOT_DRAWABLE = new Set([130])
+// La Gen 2 entière s'ajoute à l'exception : ces espèces ne s'obtiennent qu'en boutique, avec
+// des pokédollars gagnés en arène. C'est ce qui les garde désirables sans toucher aux cotes de
+// personne — le tirage du travail reste exactement celui qu'il a toujours été.
+export const NOT_DRAWABLE = new Set([130, ...SPECIES_GEN2.map(([id]) => id)])
 
 export const POOL = { c: [], u: [], r: [], l: [] }
 for (const s of Object.values(DEX)) {
   if (NOT_DRAWABLE.has(s.id)) continue
   POOL[s.tier].push(s.id)
 }
+
+/**
+ * Les espèces d'un palier dans une génération donnée, Léviator excepté.
+ *
+ * `POOL` ne contient que ce que le travail peut tirer — la Gen 2 en est exclue par
+ * construction. La boutique, elle, a besoin de l'inverse : tirer dans une génération précise
+ * qu'aucun travail ne donne. D'où cette fonction plutôt qu'un second pool figé, qui aurait
+ * dupliqué la règle d'exclusion de Léviator et fini par en diverger.
+ */
+export function poolOf(tier, gen = 1) {
+  return Object.values(DEX)
+    .filter((s) => s.tier === tier && s.gen === gen && s.id !== 130)
+    .map((s) => s.id)
+}
+
+// Du plus commun au plus rare. Sert partout où l'ordre des paliers compte — l'enjeu d'un
+// duel, les filtres de la grille — et pas seulement à l'économie de l'arène, d'où il vient.
+export const TIER_ORDER = ['c', 'u', 'r', 'l']
 
 export const TIER_LABEL = { c: 'Commun', u: 'Peu commun', r: 'Rare', l: 'Légendaire' }
 export const TIER_VAR = { c: 'var(--t-c)', u: 'var(--t-u)', r: 'var(--t-r)', l: 'var(--t-l)' }

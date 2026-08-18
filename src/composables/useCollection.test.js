@@ -19,6 +19,10 @@ function fakeClient({ catches = [], state = { claimed: [], spent: {}, evolutions
     checkAccess: vi.fn().mockResolvedValue(true),
     readCatches: vi.fn().mockResolvedValue(catches),
     readState: vi.fn().mockResolvedValue({ state, blobSha }),
+    readEvolutions: vi.fn().mockResolvedValue([]),
+    // Refus par défaut : le serveur valide tout, et un client de test qui accepterait tout
+    // laisserait croire que la validation a disparu.
+    evolve: vi.fn().mockRejectedValue(new Error('dex : bonbons insuffisants (8 requis)')),
     writeState: vi.fn().mockResolvedValue({ blobSha: 'blob2' }),
     triggerCatch: vi.fn().mockResolvedValue(undefined),
   }
@@ -217,197 +221,89 @@ describe('claim', () => {
   })
 })
 
+/**
+ * L'évolution appartient au serveur. Elle s'écrivait ici, dans un blob d'état que le serveur
+ * n'inspectait pas : il ne pouvait donc rien valider, et acceptait notamment d'engager à l'arène
+ * un exemplaire déjà consommé. Ce composable ne fait plus que demander et relire.
+ */
 describe('évolution', () => {
-  const threeBulbizarre = Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1))
-  const claimedThree = { claimed: keysOf(threeBulbizarre), spent: {}, evolutions: [] }
-
-  it('dépense les bonbons et enregistre l’évolution avec la clé choisie', async () => {
-    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
-    const c = useCollection()
-    await c.load(client)
-    const written = await c.evolve(1, 2, K('s0'), '2026-07-20')
-    expect(written).toBe(true)
-    expect(c.state.value.spent[1]).toBe(8)
-    expect(c.state.value.evolutions).toEqual([
-      { species: 2, from: 1, fromKey: K('s0'), date: '2026-07-20' },
-    ])
-    expect(client.writeState).toHaveBeenCalledOnce()
-  })
-
-  it('consomme l’exemplaire choisi explicitement, y compris un chromatique', async () => {
-    const catches = [catchOf('s0', 1), catchOf('s1', 1, { shiny: true }), catchOf('s2', 1)]
-    const client = fakeClient({ catches, state: claimedThree })
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(1, 2, K('s1'), '2026-07-20')
-    expect(c.state.value.evolutions[0].fromKey).toBe(K('s1'))
-  })
-
-  it('consomme l’exemplaire choisi même non chromatique, alors qu’un chromatique existe', async () => {
-    // Le choix appartient au joueur : la couche données ne force plus la priorité au shiny,
-    // elle valide seulement que la clé demandée correspond à un exemplaire disponible.
-    const catches = [catchOf('s0', 1), catchOf('s1', 1, { shiny: true }), catchOf('s2', 1)]
-    const client = fakeClient({ catches, state: claimedThree })
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(1, 2, K('s2'), '2026-07-20')
-    expect(c.state.value.evolutions[0].fromKey).toBe(K('s2'))
-  })
-
-  it('refuse une clé d’exemplaire qui n’est plus disponible', async () => {
-    const catches = [catchOf('s0', 1), catchOf('s1', 1, { shiny: true }), catchOf('s2', 1)]
-    const client = fakeClient({ catches, state: claimedThree })
-    const c = useCollection()
-    await c.load(client)
-    const written = await c.evolve(1, 2, K('inconnue'), '2026-07-20')
-    expect(written).toBe(false)
-    expect(c.state.value.evolutions).toEqual([])
-    expect(client.writeState).not.toHaveBeenCalled()
-  })
-
-  it('consomme l’exemplaire évolué : plus disponible pour une évolution suivante, mais l’espèce reste acquise', async () => {
-    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(1, 2, K('s0'), '2026-07-20')
-    expect(c.dex.copyCount(1)).toBe(2)
-    expect(c.dex.bySpecies.value[1]).toHaveLength(3) // toujours dans le journal / la grille
-  })
-
-  it('compte les bonbons de toutes les sources confondues', async () => {
-    // Deux captures GitHub et une capture d'une autre source dans la même famille : le coût
-    // est atteint et l'évolution passe. Le jeu ne trie pas ses bonbons par pôle.
-    const catches = [catchOf('s0', 1), catchOf('s1', 2), catchOf('x', 3, { source: 'crm' })]
-    const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(1, 2, K('s0'), '2026-07-20')
-    expect(c.state.value.spent[1]).toBe(8)
-  })
-
-  it('refuse d’évoluer sans exemplaire disponible, même avec assez de bonbons', async () => {
-    // Une seule capture, mais suffisamment de doublons dans le reste de la famille pour
-    // financer le coût — les bonbons ne sont pas liés à un exemplaire précis.
-    const catches = [
-      catchOf('only', 1),
-      ...Array.from({ length: 5 }, (_, i) => catchOf('extra' + i, 2)),
-    ]
-    const client = fakeClient({
-      catches,
-      state: {
-        claimed: keysOf(catches),
-        spent: {},
-        evolutions: [{ species: 2, from: 1, fromKey: K('only'), date: '2026-07-01' }],
-      },
-    })
-    const c = useCollection()
-    await c.load(client)
-    expect(c.dex.copyCount(1)).toBe(0)
-    const written = await c.evolve(1, 2, K('only'), '2026-07-20')
-    expect(written).toBe(false)
-    expect(client.writeState).not.toHaveBeenCalled()
-  })
-
-  it('refuse l’évolution sans bonbons suffisants et n’écrit rien', async () => {
-    const client = fakeClient({ catches: [catchOf('a', 1)], state: { claimed: [K('a')], spent: {}, evolutions: [] } })
-    const c = useCollection()
-    await c.load(client)
-    const written = await c.evolve(1, 2, K('a'), '2026-07-20')
-    expect(written).toBe(false)
-    expect(c.state.value.evolutions).toEqual([])
-    expect(client.writeState).not.toHaveBeenCalled()
-  })
-
-  it('refuse une cible qui n’est pas une évolution de la source', async () => {
-    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(1, 130, K('s0'), '2026-07-20')
-    expect(client.writeState).not.toHaveBeenCalled()
-  })
-
-  it('refuse d’évoluer une espèce terminale', async () => {
-    const catches = Array.from({ length: 3 }, (_, i) => catchOf('r' + i, 143))
-    const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(143, 999, K('r0'), '2026-07-20')
-    expect(client.writeState).not.toHaveBeenCalled()
-  })
-
-  it('accepte chacune des trois évolutions d’Évoli', async () => {
-    for (const target of [134, 135, 136]) {
-      const catches = Array.from({ length: 3 }, (_, i) => catchOf('e' + i, 133))
-      const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
-      const c = useCollection()
-      await c.load(client)
-      await c.evolve(133, target, K('e0'), '2026-07-20')
-      expect(c.state.value.evolutions[0].species).toBe(target)
+  const clientEvolutif = (over = {}) => {
+    const evolutions = []
+    return {
+      ...fakeClient({ catches: [catchOf('a', 1), catchOf('b', 1), catchOf('c', 1)],
+        state: { claimed: [K('a'), K('b'), K('c')], spent: {}, evolutions: [] } }),
+      readEvolutions: vi.fn(async () => [...evolutions]),
+      evolve: vi.fn(async (fromKey, to, day) => {
+        const id = evolutions.length + 1
+        evolutions.push({ id, from_species: 1, to_species: to, from_key: fromKey, day })
+        return id
+      }),
+      ...over,
     }
-  })
+  }
 
-  it('restaure l’état si l’écriture échoue', async () => {
-    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
-    client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))
+  const chargee = async (client) => {
     const c = useCollection()
     await c.load(client)
-    await c.evolve(1, 2, K('s0'), '2026-07-20')
-    expect(c.state.value.spent[1]).toBeUndefined()
-    expect(c.state.value.evolutions).toEqual([])
-    expect(c.error.value).toBe('offline')
+    return c
+  }
+
+  it('demande l’évolution au serveur, avec l’exemplaire choisi', async () => {
+    const client = clientEvolutif()
+    const c = await chargee(client)
+    await c.evolve(1, 2, K('b'), '2026-08-14')
+    expect(client.evolve).toHaveBeenCalledWith(K('b'), 2, '2026-08-14')
   })
 
-  it('abandonne le rejeu si l’autre appareil a déjà dépensé les mêmes bonbons', async () => {
-    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
-    client.writeState.mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
-    client.readState
-      .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob1' })
-      .mockResolvedValueOnce({
-        state: {
-          claimed: keysOf(threeBulbizarre),
-          spent: { 1: 8 },
-          evolutions: [{ species: 2, from: 1, fromKey: K('s1'), date: '2026-07-19' }],
-        },
-        blobSha: 'blob8',
-      })
+  // Relire plutôt que déduire : le serveur vient d'écrire, et lui seul connaît l'identifiant
+  // qui devient la clé du Pokémon obtenu.
+  it('relit ce que le serveur a écrit', async () => {
+    const client = clientEvolutif()
+    const c = await chargee(client)
+    await c.evolve(1, 2, K('a'), '2026-08-14')
+    expect(c.evolutions.value).toHaveLength(1)
+    expect(c.dex.bySpecies.value[2]).toHaveLength(1)
+    expect(c.dex.bySpecies.value[2][0].key).toBe('evo:1')
+  })
 
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(1, 2, K('s0'), '2026-07-20')
+  it('n’envoie rien pour une cible hors de la lignée', async () => {
+    const client = clientEvolutif()
+    const c = await chargee(client)
+    expect(await c.evolve(1, 25, K('a'), '2026-08-14')).toBe(false)
+    expect(client.evolve).not.toHaveBeenCalled()
+  })
 
-    expect(c.state.value.spent[1]).toBe(8)
-    expect(c.state.value.evolutions).toHaveLength(1)
-    expect(c.dex.candies(1)).toBeGreaterThanOrEqual(0)
+  /**
+   * Un refus du serveur n'est pas une panne : bonbons manquants ou exemplaire déjà consommé se
+   * lisent comme « rien à faire ». Les signaler comme une erreur ferait clignoter un message
+   * d'échec là où la règle s'applique normalement.
+   */
+  it('traite un refus comme un non-événement, pas comme une panne', async () => {
+    const client = clientEvolutif({
+      evolve: vi.fn(async () => { throw new Error('dex : bonbons insuffisants (8 requis)') }),
+    })
+    const c = await chargee(client)
+    expect(await c.evolve(1, 2, K('a'), '2026-08-14')).toBe(false)
     expect(c.error.value).toBeNull()
-    expect(client.writeState).toHaveBeenCalledOnce()
   })
 
-  it('rejoue et écrit quand l’état frais permet toujours l’évolution', async () => {
-    const client = fakeClient({ catches: threeBulbizarre, state: claimedThree })
-    client.writeState
-      .mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
-      .mockResolvedValueOnce({ blobSha: 'blob9' })
-    client.readState
-      .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob1' })
-      .mockResolvedValueOnce({ state: claimedThree, blobSha: 'blob8' })
-
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(1, 2, K('s0'), '2026-07-20')
-
-    expect(c.state.value.spent[1]).toBe(8)
-    expect(c.state.value.evolutions).toHaveLength(1)
-    expect(c.error.value).toBeNull()
-    expect(client.writeState).toHaveBeenCalledTimes(2)
+  it('signale en revanche une vraie panne', async () => {
+    const client = clientEvolutif({
+      evolve: vi.fn(async () => { throw new SupabaseDataError('server', 'boum') }),
+    })
+    const c = await chargee(client)
+    expect(await c.evolve(1, 2, K('a'), '2026-08-14')).toBe(false)
+    expect(c.error.value).toBe('server')
   })
 
-  it('facture 40 bonbons à Magicarpe', async () => {
-    const catches = Array.from({ length: 14 }, (_, i) => catchOf('m' + i, 129))
-    const client = fakeClient({ catches, state: { claimed: keysOf(catches), spent: {}, evolutions: [] } })
-    const c = useCollection()
-    await c.load(client)
-    await c.evolve(129, 130, K('m0'), '2026-07-20')
-    expect(c.state.value.spent[129]).toBe(40)
+  // L'exemplaire consommé quitte le stock, mais l'espèce reste acquise : le dex garde ce qui a
+  // été vu, même si le dernier exemplaire a servi à évoluer.
+  it('retire l’exemplaire consommé du stock sans retirer l’espèce', async () => {
+    const client = clientEvolutif()
+    const c = await chargee(client)
+    await c.evolve(1, 2, K('a'), '2026-08-14')
+    expect(c.dex.availableEntries(1).map((e) => e.key)).toEqual([K('b'), K('c')])
+    expect(c.dex.bySpecies.value[1]).toHaveLength(3)
   })
 })
 
@@ -423,6 +319,81 @@ describe('erreur périmée', () => {
     // Cette évolution est un no-op silencieux (bonbons insuffisants) : elle ne doit pas
     // laisser l'erreur du claim précédent traîner sous les yeux de l'utilisateur.
     await c.evolve(1, 2, K('a'), '2026-07-20')
+    expect(c.error.value).toBeNull()
+  })
+})
+
+/**
+ * La mémoire des duels vus. Un défi que personne ne relève est résolu par la maison au bout de
+ * vingt-quatre heures : on peut perdre un Pokémon pendant la nuit, et la cérémonie se rejoue au
+ * retour pour l'apprendre. Sans mémoire, elle se rejouerait à CHAQUE retour — la première fois
+ * on apprend quelque chose, la dixième on ferme l'application.
+ */
+describe('duels déjà vus', () => {
+  const chargee = async (state = { claimed: [], spent: {}, evolutions: [], seenDuels: [] }) => {
+    const c = useCollection()
+    await c.load(fakeClient({ state }))
+    return c
+  }
+
+  it('retient un duel montré', async () => {
+    const c = await chargee()
+    await c.markDuelSeen(42)
+    expect(c.state.value.seenDuels).toContain(42)
+  })
+
+  it('ne le retient qu’une fois', async () => {
+    const c = await chargee()
+    await c.markDuelSeen(42)
+    await c.markDuelSeen(42)
+    expect(c.state.value.seenDuels.filter((x) => x === 42)).toHaveLength(1)
+  })
+
+  // Les états écrits avant l'existence de ce champ n'ont pas la clé : on la recrée plutôt que
+  // de planter sur un ancien blob.
+  it('survit à un état d’avant sa propre existence', async () => {
+    const c = await chargee({ claimed: [], spent: {}, evolutions: [] })
+    await c.markDuelSeen(7)
+    expect(c.state.value.seenDuels).toEqual([7])
+  })
+})
+
+/**
+ * « Tout ouvrir sans cérémonie » enchaîne autant d'écritures qu'il reste de plis. Chacune
+ * repose sur la version lue à la précédente : si l'une d'elles ne met pas la version à jour, la
+ * suivante est rejetée pour conflit et la file cesse de se vider — le bouton semble mort après
+ * le premier pli.
+ */
+describe('ouvrir toute la file', () => {
+  const clientVersionne = (catches) => {
+    let state = { claimed: [], spent: {}, evolutions: [], seenDuels: [] }
+    let version = 1
+    return {
+      checkAccess: vi.fn().mockResolvedValue(true),
+      readCatches: vi.fn(async () => catches),
+      readState: vi.fn(async () => ({ state: JSON.parse(JSON.stringify(state)), blobSha: version })),
+      readEvolutions: vi.fn(async () => []),
+      writeState: vi.fn(async (next, attendue) => {
+        // Exactement ce que fait Supabase : l'écriture n'est acceptée que si la version
+        // présentée est la version courante.
+        if (attendue !== version) throw new SupabaseDataError('conflict', 'version périmée')
+        state = JSON.parse(JSON.stringify(next))
+        version += 1
+        return { blobSha: version }
+      }),
+    }
+  }
+
+  it('vide la file entière, pli après pli', async () => {
+    const catches = [catchOf('a', 1), catchOf('b', 2), catchOf('c', 3)]
+    const client = clientVersionne(catches)
+    const c = useCollection()
+    await c.load(client)
+    expect(c.dex.pending.value).toHaveLength(3)
+
+    for (const e of [...c.dex.pending.value]) await c.claim(e.key)
+
+    expect(c.dex.pending.value).toHaveLength(0)
     expect(c.error.value).toBeNull()
   })
 })

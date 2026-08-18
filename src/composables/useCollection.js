@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useDex } from './useDex.js'
-import { DEX, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
+import { DEX } from '../../shared/species.js'
 import { entryKey } from '../../shared/entry.js'
 
 const clone = (o) => JSON.parse(JSON.stringify(o))
@@ -11,22 +11,41 @@ const clone = (o) => JSON.parse(JSON.stringify(o))
  */
 export function useCollection() {
   const catches = ref([])
-  const state = ref({ claimed: [], spent: {}, evolutions: [] })
+  const state = ref({ claimed: [], spent: {}, evolutions: [], seenDuels: [] })
   const blobSha = ref(null)
   const error = ref(null)
   const loading = ref(false)
   let client = null
 
-  const dex = useDex(catches, state)
+  /**
+   * Les exemplaires perdus à l'arène. La collection ne les connaît pas d'elle-même — ils vivent
+   * dans `arena_exemplars`, que seul `useArena` lit — donc c'est l'application qui les verse
+   * ici. Vide tant que l'arène n'est pas chargée : mieux vaut afficher un exemplaire de trop
+   * pendant une seconde que d'en cacher un qui existe.
+   */
+  const destroyed = ref(new Set())
+
+  /**
+   * Les évolutions, telles que le serveur les tient. Elles vivaient dans `state.evolutions`,
+   * que ce composable réécrivait en entier à chaque évolution : le serveur ne les inspectait
+   * pas et ne pouvait donc rien valider. Il les écrit désormais, et le front les lit.
+   */
+  const evolutions = ref([])
+
+  const dex = useDex(catches, state, destroyed, evolutions)
 
   async function load(githubClient) {
     client = githubClient ?? client
     loading.value = true
     error.value = null
     try {
-      const [c, s] = await Promise.all([client.readCatches(), client.readState()])
+      const [c, s, evos] = await Promise.all([
+        client.readCatches(), client.readState(),
+        client.readEvolutions ? client.readEvolutions() : [],
+      ])
       catches.value = c
       state.value = s.state
+      evolutions.value = evos ?? []
       blobSha.value = s.blobSha
     } catch (e) {
       error.value = e.kind ?? 'server'
@@ -130,65 +149,52 @@ export function useCollection() {
   }
 
   /**
-   * Exemplaires disponibles de `fromId` sur un état `s` donné (pas nécessairement `state.value`
-   * — `persist` rejoue ce calcul sur l'état frais après un conflit). Réplique volontairement la
-   * logique de `useDex` (clé, exemplaires consommés) sur un objet simple plutôt que sur des refs,
-   * `s` n'étant qu'un clone en cours de mutation. Le choix de l'exemplaire précis revient au
-   * joueur (`specimenKey` dans `evolve`) : cette fonction énumère, elle ne priorise rien.
+   * Retient qu'un duel a déjà été montré. Sans cette mémoire, la cérémonie d'un duel résolu par
+   * la maison se rejouerait à chaque visite — la première fois on apprend quelque chose, la
+   * dixième on ferme l'application.
+   *
+   * `seenDuels` peut manquer sur un état écrit avant son existence : on le recrée plutôt que de
+   * planter sur un ancien blob.
    */
-  function availableFor(fromId, s) {
-    const claimedSet = new Set(s.claimed)
-    const claimedEntries = catches.value
-      .map((c) => ({ ...c, key: entryKey(c.source, c.external_id) }))
-      .filter((c) => claimedSet.has(c.key))
-    const evolvedEntries = []
-    s.evolutions.forEach((e, i) => {
-      const pool = [...claimedEntries, ...evolvedEntries]
-      const fromKey = e.fromKey ?? e.fromSha
-      const src = fromKey ? pool.find((c) => c.key === fromKey) : pool.find((c) => c.species === e.from)
-      evolvedEntries.push({ species: e.species, shiny: src?.shiny ?? false, key: `evo:${i}` })
-    })
-    const consumed = new Set(s.evolutions.map((e) => e.fromKey ?? e.fromSha).filter(Boolean))
-    return [...claimedEntries, ...evolvedEntries]
-      .filter((c) => c.species === fromId && !consumed.has(c.key))
+  async function markDuelSeen(id) {
+    await persist((s) => {
+      const vus = s.seenDuels ?? []
+      return vus.includes(id) ? null : { ...s, seenDuels: [...vus, id] }
+    }, `duel vu ${id}`)
   }
 
+  /**
+   * Fait évoluer un exemplaire précis. Toute la validation appartient au serveur — propriété,
+   * disponibilité, lignée, bonbons — et il n'y a plus rien à revalider ici : la course entre
+   * deux appareils qui obligeait à rejouer le calcul sur l'état frais n'existe plus, l'unicité
+   * `(user_id, from_key)` et le verrou de ligne s'en chargent en base.
+   *
+   * Rend l'identifiant de l'évolution, ou `false` si elle a été refusée.
+   */
   async function evolve(fromId, toId, specimenKey, date) {
     error.value = null
     const source = DEX[fromId]
     if (!source?.to) return false
     const targets = Array.isArray(source.to) ? source.to : [source.to]
     if (!targets.includes(toId)) return false
-    if (!dex.canEvolve(fromId)) return false
 
-    const fam = familyOf(fromId)
-    return await persist(
-      (s) => {
-        // Revalidation sur l'état reçu, et non sur l'état d'avant l'appel : `persist` rejoue
-        // ce mutateur sur l'état frais après un conflit. Sans ce recalcul, deux appareils
-        // dépensent les mêmes bonbons, ou évoluent le même dernier exemplaire, et l'un des
-        // deux devrait échouer plutôt que de passer en double. Si la clé demandée n'est plus
-        // disponible sur l'état frais (déjà consommée par l'autre appareil), le mutateur
-        // devient sans objet — même traitement que des bonbons insuffisants, sans repli
-        // automatique sur un autre exemplaire.
-        const claimedKeys = new Set(s.claimed)
-        const earned = catches.value.filter(
-          (c) => claimedKeys.has(entryKey(c.source, c.external_id)) && familyOf(c.species) === fam,
-        ).length * CANDY_PER_CATCH
-        if (earned - (s.spent[fam] ?? 0) < source.cost) return null
-
-        const picked = availableFor(fromId, s).find((c) => c.key === specimenKey)
-        if (!picked) return null
-
-        return {
-          ...s,
-          spent: { ...s.spent, [fam]: (s.spent[fam] ?? 0) + source.cost },
-          evolutions: [...s.evolutions, { species: toId, from: fromId, fromKey: picked.key, date }],
-        }
-      },
-      `evolve ${source.name} → ${DEX[toId].name}`,
-    )
+    try {
+      const id = await client.evolve(specimenKey, toId, date)
+      // Relire plutôt que déduire : le serveur vient d'écrire, c'est lui qui sait ce qu'il a
+      // écrit — et notamment l'identifiant qui devient la clé du Pokémon obtenu.
+      evolutions.value = await client.readEvolutions()
+      return id
+    } catch (e) {
+      // Un refus du serveur n'est pas une panne : bonbons manquants ou exemplaire déjà
+      // consommé se lisent comme « rien à faire », exactement comme l'ancien mutateur sans objet.
+      if (e?.message && /bonbons|déjà évolué|détruit|engagé|inconnu/.test(e.message)) return false
+      error.value = e.kind ?? 'server'
+      return false
+    }
   }
 
-  return { catches, state, error, loading, dex, load, refresh, claim, evolve }
+  return {
+    catches, state, error, loading, dex, destroyed, evolutions,
+    load, refresh, claim, evolve, markDuelSeen,
+  }
 }

@@ -1,15 +1,28 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import TheRail from './components/TheRail.vue'
+import AppIcon from './components/AppIcon.vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
 import RitualOverlay from './components/RitualOverlay.vue'
 import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import ArenaPanel from './components/ArenaPanel.vue'
+import ShopPanel from './components/ShopPanel.vue'
+import ProfilePanel from './components/ProfilePanel.vue'
+import SeasonPanel from './components/SeasonPanel.vue'
+import ArenaTeaser from './components/ArenaTeaser.vue'
+import DuelOverlay from './components/DuelOverlay.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
+import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
+import { entryKey } from '../shared/entry.js'
+import { createRouter } from './composables/useRoute.js'
+import { messageDErreur } from './lib/erreurs.js'
+import { parisDay } from '../shared/battle.js'
+import { arenaIsOpen, FIRST_SEASON } from '../shared/arena-economy.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
@@ -17,17 +30,188 @@ const collection = useCollection()
 const { session, ready, signInWithGithub, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
+
+/**
+ * Ce qui a échoué pendant qu'on jouait.
+ *
+ * `connectError` n'est rendu que par l'écran de connexion : une fois connecté, un engagement
+ * refusé, un achat impossible ou une panne réseau ne produisaient RIEN à l'écran. Le bouton
+ * semblait mort, ce qui est exactement le défaut qu'on a déjà corrigé deux fois ailleurs.
+ *
+ * On garde le message du serveur plutôt qu'un « une erreur est survenue » : c'est lui qui est
+ * utile — « aucun crédit d'engagement disponible cette semaine » dit quoi faire, pas une
+ * formule générique. Les refus du serveur sont écrits pour être lus.
+ */
+const avis = ref(null)
+
+const signaler = (e) => { avis.value = messageDErreur(e) }
 const connecting = ref(false)
 const githubLogin = ref('')
 
-const selected = ref(null)
+const router = createRouter()
+const { route } = router
+onUnmounted(router.stop)
+
+/**
+ * L'écran courant se LIT dans l'URL, il ne s'écrit pas à côté. Trois refs (`selected`,
+ * `arenaOpen`, `shopOpen`) disaient auparavant la même chose que l'adresse : deux sources de
+ * vérité pour « où suis-je » finissent toujours par diverger — un retour navigateur laissait
+ * une couche ouverte, un lien partagé ne menait nulle part.
+ *
+ * Les couches qui n'ont pas de lieu (rituel, évolution, résumé de duel, réglages) gardent leur
+ * ref : un pli qu'on rouvrirait en collant un lien n'aurait aucun sens.
+ */
+const selected = computed(() => (route.value.name === 'collection' ? route.value.param : null))
+const arenaOpen = computed(() => route.value.name === 'arena')
+const shopOpen = computed(() => route.value.name === 'shop')
+const profileOpen = computed(() => route.value.name === 'profile')
+const seasonOpen = computed(() => route.value.name === 'season')
+
+/**
+ * L'arène n'ouvre qu'au premier jour de la saison 1. Avant, ses trois écrans — duels, saison,
+ * boutique — annoncent sa venue au lieu de fonctionner à vide : un classement sans points et
+ * une boutique sans monnaie ne se comprennent pas, ils inquiètent.
+ *
+ * La collection et le profil, eux, continuent : ils existaient avant l'arène et n'en dépendent
+ * pas.
+ *
+ * La démonstration fait exception, et c'est sa raison d'être : elle existe pour essayer ce qui
+ * n'est pas encore ouvert. Lui appliquer la date de lancement reviendrait à cacher la
+ * fonctionnalité à ceux qui viennent précisément la voir.
+ */
+const demo = ref(false)
+const areneOuverte = computed(() => demo.value || arenaIsOpen())
+const teaser = computed(() => !areneOuverte.value && ['arena', 'season', 'shop'].includes(route.value.name))
+
+/**
+ * Le dossier affiché. Sans pseudo dans l'URL c'est le sien, avec c'est celui d'un collègue —
+ * la même vue SQL dans les deux cas, ce qui garantit qu'aucun écran ne peut publier plus que
+ * ce qu'elle contient. Ce qui ne se publie jamais est composé à part, et seulement pour soi.
+ */
+const dossier = ref(null)
+const dossierCharge = ref(false)
+const detruits = ref([])
+
+/**
+ * `connected` fait partie des sources, et la surveillance est immédiate : arriver DIRECTEMENT
+ * sur /profile/bob — un lien reçu, un rechargement — ne produit aucun changement de route, donc
+ * une surveillance ordinaire ne se déclencherait jamais et l'écran resterait sur son attente.
+ * Le client, lui, n'existe qu'une fois la session ouverte : c'est son apparition qui donne le
+ * signal quand l'URL, elle, n'a pas bougé.
+ */
+watch([profileOpen, () => route.value.param, connected], async ([ouvert, pseudo, pret]) => {
+  if (!ouvert || !pret || !client) return
+  dossierCharge.value = false
+  dossier.value = null
+  try {
+    dossier.value = pseudo ? await client.readPublicProfile(pseudo) : await client.readMyProfile(userId.value)
+    detruits.value = pseudo ? [] : await client.readDestroyed()
+  } catch (e) {
+    connectError.value = e.kind ?? 'server'
+  } finally {
+    dossierCharge.value = true
+  }
+}, { immediate: true })
+
+const dossierPrive = computed(() => (route.value.param ? null : {
+  copies: collection.catches.value.length,
+  pokedollars: arena?.pokedollars.value ?? 0,
+  credits: arena?.credits.value ?? 0,
+  destroyed: detruits.value.length,
+}))
 const ritualEntry = ref(null)
 const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
 
+/**
+ * Le pseudonyme. Sans lui on n'existe pas dans l'arène : les vues publiques écartent les
+ * profils anonymes. C'est donc la première chose à régler en entrant, et l'écran des réglages
+ * le réclame tant qu'il manque.
+ */
+const pseudo = ref(null)
+const pseudoBusy = ref(false)
+const pseudoError = ref(null)
+
+async function onSetPseudo(nom) {
+  pseudoBusy.value = true
+  pseudoError.value = null
+  try {
+    await client.setPseudo(nom)
+    pseudo.value = nom
+    // Le classement et les défis portent le pseudo : ils doivent le refléter sans attendre un
+    // rechargement de page.
+    if (arena) await arena.load()
+  } catch (e) {
+    pseudoError.value = e.kind === 'taken' ? 'taken' : 'server'
+  } finally {
+    pseudoBusy.value = false
+  }
+}
+const arenaBusy = ref(false)
+const arenaPreselect = ref(null)
+const gen = ref(1)
+const duelShown = ref(null)
+
+/**
+ * Les duels qui se sont joués sans nous.
+ *
+ * Un défi que personne ne relève est résolu par la maison au bout de vingt-quatre heures : on
+ * peut donc perdre un Pokémon pendant la nuit. Rien ne le disait — on le découvrait en
+ * constatant une absence, ce qui se lit comme une panne plutôt que comme une défaite. La
+ * cérémonie se rejoue donc à la connexion, pour ceux qu'on n'a pas vus.
+ *
+ * Les identifiants vus sont consignés dans l'état du joueur : sans cette mémoire, le même duel
+ * se rejouerait à chaque visite.
+ */
+const aVoir = ref([])
+
+function duelsNonVus() {
+  if (!arena) return []
+  const vus = new Set(collection.state.value.seenDuels ?? [])
+  return arena.recentDuels.value.filter((d) => !vus.has(d.id))
+}
+
+async function marquerVu(id) {
+  await collection.markDuelSeen(id)
+}
+
+/** Enchaîne les duels non vus, un par un : chacun mérite sa cérémonie. */
+async function montrerSuivant() {
+  const suivant = aVoir.value.shift()
+  duelShown.value = suivant ?? null
+  if (suivant) await marquerVu(suivant.id)
+}
+
+/**
+ * Au retour, on rejoue les duels manqués. Les plus anciens d'abord : on les a vécus dans cet
+ * ordre-là, même sans les avoir regardés.
+ */
+async function rattraperLesDuels() {
+  const manques = duelsNonVus()
+  if (!manques.length) return
+  aVoir.value = [...manques].reverse()
+  await montrerSuivant()
+}
+const userId = ref('')
+let arena = null
+let client = null
+
 const filters = useTrayFilters()
+
+/**
+ * La collection ignore l'arène : les destructions vivent dans `arena_exemplars`, que seul
+ * `useArena` lit. On les lui verse donc après chaque chargement de l'arène, sinon un exemplaire
+ * perdu continuerait de compter à la planche — et pourrait même servir à une évolution, qui lui
+ * donnerait une clé neuve et annulerait la perte.
+ *
+ * Recopié plutôt que surveillé : `arena` n'est pas une référence réactive mais une simple
+ * variable, assignée à la connexion. Un `watch` posé avant elle ne s'abonnerait à rien.
+ */
+function reporterLesPertes() {
+  if (arena) collection.destroyed.value = arena.destroyed.value
+}
 
 // Stock disponible par espèce (une évolution passée a pu en consommer un) — recalculé sur
 // les seules espèces déjà rencontrées, pas les 151 : les autres n'ont de toute façon rien à afficher.
@@ -43,7 +227,9 @@ async function connectSession(s) {
   connecting.value = true
   connectError.value = null
   githubLogin.value = s.user.user_metadata?.user_name ?? ''
-  const client = createSupabaseClient(s.user.id)
+  client = createSupabaseClient(s.user.id)
+  userId.value = s.user.id
+  arena = useArena(client, collection.dex.engageables, collection.dex.consumedKeys)
   try {
     await client.checkAccess()
   } catch (e) {
@@ -52,9 +238,94 @@ async function connectSession(s) {
     return
   }
   await collection.load(client)
+  await arena.load()
+  reporterLesPertes()
+  pseudo.value = await client.readPseudo()
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
+}
+
+/**
+ * Engager et relever passent par le serveur, qui décide seul. On rouvre ensuite la collection
+ * en même temps que l'arène : un duel gagné peut avoir détruit un exemplaire, et la planche
+ * doit le refléter sans qu'on ait à recharger la page.
+ */
+async function playArena(fn) {
+  avis.value = null
+  arenaBusy.value = true
+  try {
+    const duel = await fn()
+    // Le duel vient peut-être de détruire un exemplaire : la planche doit cesser de le compter
+    // avant même que la collection ne se relise.
+    reporterLesPertes()
+    // Poster un défi ne produit aucun duel : il reste ouvert jusqu'à ce que quelqu'un le
+    // relève. Il faut néanmoins que quelque chose se passe à l'écran — une action qui réussit
+    // en silence se lit comme un bouton mort. On ouvre donc l'arène, où le défi en attente est
+    // rappelé, plutôt qu'un résumé de combat qui n'a pas eu lieu.
+    if (duel) {
+      duelShown.value = duel
+      // Vu à l'instant : sans ça, le duel qu'on vient de jouer se rejouerait à la connexion
+      // suivante, au milieu de ceux qu'on a réellement manqués.
+      await marquerVu(duel.id)
+      router.go('collection')
+    } else {
+      router.go('arena')
+    }
+    await collection.refresh()
+  } catch (e) {
+    signaler(e)
+  } finally {
+    arenaBusy.value = false
+  }
+}
+
+const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComputer))
+
+/**
+ * Depuis la fiche, on ne s'engage pas : on choisit. Le bouton ouvre l'arène avec ce Pokémon
+ * déjà retenu, et c'est là qu'on décide de poster un défi, d'affronter l'ordinateur ou de
+ * relever celui d'un autre.
+ *
+ * Il postait un défi directement, et c'était une faute : le geste engageait un Pokémon pour de
+ * bon avant que le joueur ait vu ses options, et l'écran qui s'ouvrait n'avait plus aucun
+ * bouton à offrir puisque tout était déjà joué.
+ */
+function onEngageFromSheet(key) {
+  arenaPreselect.value = key
+  router.go('arena')
+}
+
+function quitterArene() {
+  arenaPreselect.value = null
+  router.go('collection')
+}
+const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
+
+/**
+ * Acheter ne produit pas de duel : on ouvre le pli, pas un résumé de combat.
+ *
+ * Et on ouvre CELUI-LÀ, pas le premier de la file : la file est triée par date, donc un pli
+ * acheté arrive derrière tous ceux qu'on avait laissés fermés. Il tombait bien dans la file,
+ * mais invisible — on avait payé et rien ne se passait à l'écran.
+ *
+ * `refresh` déclenche la collecte et attend qu'elle rapporte quelque chose : c'est elle qui
+ * matérialise le pli dû. Si elle rentre les mains vides (run lent, hors ligne), on ne force
+ * rien — le pli reste dû et s'ouvrira au prochain passage.
+ */
+async function onBuy(slug) {
+  avis.value = null
+  arenaBusy.value = true
+  try {
+    const id = await arena.buy(slug)
+    await collection.refresh()
+    const achete = collection.dex.pending.value.find((e) => e.key === entryKey('boutique', id))
+    if (achete) { router.go('collection'); showPacket(achete) }
+  } catch (e) {
+    signaler(e)
+  } finally {
+    arenaBusy.value = false
+  }
 }
 
 function disconnect() {
@@ -68,8 +339,16 @@ onMounted(async () => {
   if (new URLSearchParams(location.search).has('demo')) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
     githubLogin.value = 'démo'
-    await collection.load(loadDemoClient())
+    client = loadDemoClient()
+    demo.value = true
+    userId.value = 'demo-moi'
+    arena = useArena(client, collection.dex.engageables, collection.dex.consumedKeys, FIRST_SEASON)
+    await collection.load(client)
+    await arena.load()
+    reporterLesPertes()
+    pseudo.value = await client.readPseudo()
     connected.value = true
+    await rattraperLesDuels()
   }
 })
 
@@ -92,12 +371,13 @@ watch(
 // même la révélation, donc une liaison directe la dirait déjà rencontrée — le marqueur ne
 // s'allumerait jamais. Il se lit sur l'état d'avant l'ouverture, seul état où la question
 // « jamais rencontrée ? » a un sens.
-function showNextPacket() {
+function showPacket(entry) {
   const queue = collection.dex.pending.value
-  ritualEntry.value = queue[0] ?? null
+  ritualEntry.value = entry ?? null
   ritualRemaining.value = queue.length
   ritualIsNew.value = ritualEntry.value ? collection.dex.isNewSpecies(ritualEntry.value.species) : false
 }
+const showNextPacket = () => showPacket(collection.dex.pending.value[0])
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
 
@@ -114,8 +394,10 @@ async function onEvolve({ from, to, key }) {
   // toujours déjà rencontrée. Les bonbons suivent la règle inverse et se lisent au rendu,
   // après la dépense — d'où leur absence de cet instantané.
   const isNew = collection.dex.isNewSpecies(to)
-  selected.value = null
-  const written = await collection.evolve(from, to, key, new Date().toISOString().slice(0, 10))
+  router.go('collection')
+  // Datée à Paris comme tout le reste : en UTC, une évolution faite à 00 h 30 un soir d'été
+  // s'inscrivait à la veille, et la fiche affichait une date que le joueur ne reconnaissait pas.
+  const written = await collection.evolve(from, to, key, parisDay())
   // L'écriture a échoué, ou n'a rien eu à faire (exemplaire déjà consommé ailleurs,
   // bonbons insuffisants sur l'état frais) : pas de cérémonie pour une évolution qui n'a pas eu lieu.
   if (!written || collection.error.value) return
@@ -123,7 +405,9 @@ async function onEvolve({ from, to, key }) {
 }
 
 function finishEvo() {
-  selected.value = evoAnim.value.to
+  // La cérémonie finie, on rouvre la fiche de la forme OBTENUE : c'est elle qu'on veut lire,
+  // et l'URL doit la désigner pour que le retour navigateur ramène à la planche.
+  router.go('collection', evoAnim.value.to)
   evoAnim.value = null
 }
 
@@ -138,7 +422,7 @@ function closeTopOverlay() {
   if (evoAnim.value) finishEvo()
   else if (ritualEntry.value) ritualEntry.value = null
   else if (settingsOpen.value) settingsOpen.value = false
-  else if (selected.value) selected.value = null
+  else if (selected.value) router.go('collection')
   else return
 
   // La fiche et les réglages n'ont pas de discipline de focus : leur déclencheur (la case de la
@@ -167,20 +451,36 @@ useKeyboardNav({
   />
 
   <template v-else>
+    <!--
+      Ce qui vient d'échouer. En haut du contenu et non en surimpression : on doit pouvoir
+      continuer à jouer en le lisant, et il disparaît au geste suivant plutôt que de réclamer
+      qu'on le referme.
+    -->
+    <div v-if="avis" class="avis" role="status">
+      <span>{{ avis }}</span>
+      <button class="avis-x" aria-label="Masquer" @click="avis = null">
+        <AppIcon name="close" :size="12" />
+      </button>
+    </div>
+
     <TheRail
       :caught-count="collection.dex.caughtCount.value"
       :pending-count="collection.dex.pending.value.length"
       :syncing="collection.loading.value" :sync-error="collection.error.value"
       :filters-open="filters.open.value" :filters-active="filters.active.value"
+      :place="route.name"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
+      @go="(lieu) => router.go(lieu)"
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
+      v-if="route.name === 'collection'"
       :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
       :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
-      :caught-filter="filters.caughtFilter.value"
-      @select="(id) => (selected = id)"
+      :caught-filter="filters.caughtFilter.value" :gen="gen"
+      @select="(id) => router.go('collection', id)"
       @toggle-tier="filters.toggleTier" @set-caught-filter="filters.setCaughtFilter" @reset-filters="filters.reset"
+      @set-gen="gen = $event"
     />
 
     <transition name="fade">
@@ -193,7 +493,10 @@ useKeyboardNav({
         :can-evolve="collection.dex.canEvolve(selected)"
         :is-dead-end="collection.dex.isDeadEnd(selected)"
         :caught-ids="caughtIds"
-        @close="selected = null" @evolve="onEvolve"
+        :arena-credits="arena ? arena.credits.value : 0"
+        :arena-level-of="arena ? arena.levelOf : () => 1"
+        :arena-form-of="arena && areneOuverte ? arena.formOfKey : null"
+        @close="router.go('collection')" @evolve="onEvolve" @engage="onEngageFromSheet"
       />
     </transition>
 
@@ -213,9 +516,52 @@ useKeyboardNav({
       />
     </transition>
 
+    <ArenaTeaser v-if="teaser" />
+
+    <ArenaPanel
+      v-if="arenaOpen && arena && areneOuverte"
+      :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
+      :challenges="arena.challenges.value" :engageable="arena.engageable.value"
+      :my-open="arena.myOpen.value" :level-of="arena.levelOf"
+      :form-of-key="arena.formOfKey" :busy="arenaBusy" :pseudo="pseudo"
+      :preselect="arenaPreselect"
+      @engage="onEngage" @accept="onAccept"
+    />
+
+    <ShopPanel
+      v-if="shopOpen && arena && areneOuverte"
+      :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
+      @buy="onBuy"
+    />
+
+    <SeasonPanel
+      v-if="seasonOpen && arena && areneOuverte"
+      :season="arena.season.value" :leaderboard="arena.leaderboard.value"
+      :seasons="arena.seasons.value" :user-id="userId"
+      @profile="(p) => router.go('profile', p)"
+    />
+
+    <ProfilePanel
+      v-if="profileOpen"
+      :dossier="dossier" :pseudo="route.param" :mon-pseudo="pseudo" :prive="dossierPrive"
+      :seasons="arena ? arena.seasons.value : []"
+      :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.points ?? 0) : 0"
+      :season="arena ? arena.season.value : ''"
+      :loading="!dossierCharge" :introuvable="dossierCharge && !dossier"
+    />
+
+    <transition name="fade">
+      <DuelOverlay
+        v-if="duelShown" :key="duelShown.id" :duel="duelShown" :user-id="userId"
+        @close="montrerSuivant"
+      />
+    </transition>
+
     <transition name="fade">
       <SettingsPanel
-        v-if="settingsOpen" :github-login="githubLogin" @close="settingsOpen = false" @disconnect="disconnect"
+        v-if="settingsOpen" :github-login="githubLogin"
+        :pseudo="pseudo" :saving="pseudoBusy" :pseudo-error="pseudoError"
+        @close="settingsOpen = false" @disconnect="disconnect" @set-pseudo="onSetPseudo"
       />
     </transition>
   </template>
