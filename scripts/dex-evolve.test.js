@@ -300,10 +300,15 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
       await etat(c, AUTRE, [{ species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:c' }])
       await c.query('select public.dex_backfill_evolutions()')
 
+      // Compté sur les seuls joueurs de ce cas, et non sur toute la base : d'autres tests y
+      // écrivent, et surtout l'application elle-même écrira des évolutions NEUVES, absentes des
+      // états. Le contrôle global n'est juste qu'à un seul instant — juste après la reprise, en
+      // production — et c'est ainsi qu'il est décrit dans la migration.
       const { rows } = await c.query(`
-        select (select count(*) from public.evolutions) :: int as reprises,
-               (select coalesce(sum(jsonb_array_length(evolutions)), 0) from public.state) :: int as attendues
-      `)
+        select (select count(*) from public.evolutions where user_id = any($1)) :: int as reprises,
+               (select coalesce(sum(jsonb_array_length(evolutions)), 0)
+                  from public.state where user_id = any($1)) :: int as attendues
+      `, [[MOI, AUTRE]])
       expect(rows[0].reprises).toBe(rows[0].attendues)
     })
   })

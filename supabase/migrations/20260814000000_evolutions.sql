@@ -277,5 +277,9 @@ select public.dex_backfill_evolutions();
 --
 -- Un écart signifie qu'une entrée n'avait ni `fromKey` ni `fromSha` — donc écrite par une
 -- version antérieure à la clé d'exemplaire — et demande un examen à la main avant de merger.
+--
+-- Ce contrôle n'est juste qu'À CET INSTANT : dès que l'application tourne, elle écrit des
+-- évolutions neuves qui n'ont aucune contrepartie dans `state.evolutions`, laissé figé. Le
+-- relancer plus tard le montrerait en écart sans qu'il y ait le moindre problème.
 
 commit;

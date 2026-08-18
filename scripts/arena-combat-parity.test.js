@@ -266,7 +266,10 @@ describe.skipIf(!disponible)('parité en masse', () => {
   // formes, et des jours différents. Deux cents duels choisis à la main ne couvrent que ce à
   // quoi on a pensé ; celui-ci attrape le reste. Un désaccord sur un seul d'entre eux
   // signifierait qu'un joueur peut voir un résultat que le serveur n'a pas écrit.
-  it('ne diverge sur aucun de deux mille duels', async () => {
+  // Deux mille résolutions SQL coûtent une bonne minute : c'est le prix de la couverture, et
+  // le délai est posé en clair plutôt que laissé à la limite du défaut global — un cas lourd
+  // qui échoue selon la charge n'apprend rien sur ce qu'il teste.
+  it('ne diverge sur aucun de deux mille duels', { timeout: 180_000 }, async () => {
     const especes = Object.keys(DEX).map(Number)
     const cas = Array.from({ length: 2000 }, (_, i) => ({
       seed: `masse-${i}`,
@@ -275,19 +278,38 @@ describe.skipIf(!disponible)('parité en masse', () => {
       right: { key: `github:n${i}`, species: especes[(i * 7) % especes.length], level: ((i * 5) % 10) + 1 },
     }))
 
+    /**
+     * Un seul aller-retour pour les deux mille duels, et non deux mille.
+     *
+     * La boucle mettait près d'une minute et dépassait son délai dès que la machine travaillait
+     * ailleurs — un test rouge qui n'apprenait rien sur le portage, seulement sur la charge. Le
+     * calcul se fait aussi bien en un `join lateral` sur une table de cas, et le résultat est le
+     * même à un bit près, ce qui est justement l'objet du cas.
+     */
     const desaccords = await withDb(async (c) => {
       const ko = []
-      for (const { seed, jour, left, right } of cas) {
+      const { rows: resultats } = await c.query(`
+        select cas.i, r.*
+        from jsonb_to_recordset($1::jsonb)
+             as cas(i int, seed text, jour text,
+                    lk text, ls int, ll int, rk text, rs int, rl int),
+             lateral public.arena_resolve(
+               cas.lk, cas.ls, cas.ll, cas.jour,
+               cas.rk, cas.rs, cas.rl, cas.jour, cas.seed) r
+        order by cas.i
+      `, [JSON.stringify(cas.map((x, i) => ({
+        i, seed: x.seed, jour: x.jour,
+        lk: x.left.key, ls: x.left.species, ll: x.left.level,
+        rk: x.right.key, rs: x.right.species, rl: x.right.level,
+      })))])
+
+      for (const [i, { seed, jour, left, right }] of cas.entries()) {
         const attendu = resolveDuel({
           left: { ...left, form: formOf(left.key, jour) },
           right: { ...right, form: formOf(right.key, jour) },
           seed,
         })
-        const { rows } = await c.query(
-          `select * from arena_resolve($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [left.key, left.species, left.level, jour,
-           right.key, right.species, right.level, jour, seed])
-        const sql = rows[0]
+        const sql = resultats[i]
         if (sql.winner !== attendu.winner || sql.gain !== attendu.gain
             || sql.level_after !== attendu.levelAfter) {
           // On rapporte l'écart tirage / probabilité avec le désaccord : c'est lui qui dit si
