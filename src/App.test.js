@@ -319,3 +319,40 @@ describe('la saison', () => {
     expect(w.find('.panel-name').exists()).toBe(true)
   })
 })
+
+/**
+ * Enchaîner deux engagements.
+ *
+ * La collecte qui suit un duel déclenche un vrai run de l'Action et sonde jusqu'à trente
+ * secondes. Attendue à l'intérieur du verrou d'action, elle laissait l'arène gelée tout ce
+ * temps : on postait un défi, et pendant une demi-minute plus aucun bouton ne répondait, sans
+ * que rien ne l'explique. Elle est désormais lancée après avoir rendu la main.
+ */
+describe('enchaîner les engagements', () => {
+  const poster = (w) => w.findAll('button').find((b) => b.text().includes('Poster un défi'))
+
+  const choisir = async (w) => {
+    await w.findAll('.arena-pick')[0].trigger('click')
+    await flushPromises()
+    const radios = w.findAll('input[type="radio"]')
+    if (radios.length) { await radios[0].setValue(); await flushPromises() }
+  }
+
+  it('laisse poster un second défi dans la foulée du premier', async () => {
+    window.history.replaceState({}, '', '/arena?demo')
+    const w = await mountApp()
+
+    await choisir(w)
+    expect(poster(w).attributes('disabled')).toBeUndefined()
+    await poster(w).trigger('click')
+    await flushPromises()
+    expect(w.findAll('.sect .repo-ptr')).toHaveLength(1)
+
+    // Le point du défaut : ici, le bouton restait désactivé le temps de la collecte.
+    await choisir(w)
+    expect(poster(w).attributes('disabled')).toBeUndefined()
+    await poster(w).trigger('click')
+    await flushPromises()
+    expect(w.findAll('.sect .repo-ptr')).toHaveLength(2)
+  })
+})

@@ -272,12 +272,25 @@ async function playArena(fn) {
     } else {
       router.go('arena')
     }
-    await collection.refresh()
   } catch (e) {
     signaler(e)
   } finally {
     arenaBusy.value = false
   }
+
+  /**
+   * La collecte est lancée APRÈS avoir rendu la main, et sans être attendue.
+   *
+   * Elle déclenche un vrai run de l'Action et sonde jusqu'à trente secondes — c'est ce qu'il
+   * faut pour qu'un pli gagné se matérialise. Attendue à l'intérieur du verrou, elle laissait
+   * l'arène gelée tout ce temps : on postait un défi, et pendant une demi-minute plus aucun
+   * bouton ne répondait, sans que rien ne l'explique. On croyait l'application cassée.
+   *
+   * Le pli n'arrive de toute façon pas plus vite parce qu'on attend. Le compteur de plis et la
+   * planche se mettront à jour quand la collecte aura répondu, et le bouton de synchronisation
+   * signale déjà qu'elle travaille.
+   */
+  collection.refresh().catch(() => { /* signalée par l'indicateur de synchronisation */ })
 }
 
 const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComputer))
