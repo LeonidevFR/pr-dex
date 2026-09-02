@@ -266,7 +266,10 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
     })
   })
 
-  it('ne duplique rien si on la rejoue', async () => {
+  // Elle ne se rejoue pas : le remappage a changé les clés, un second passage ne les
+  // reconnaîtrait plus et les insérerait en double. Refuser franchement vaut mieux que
+  // promettre une idempotence qui n'existe pas.
+  it('ne fait rien si des évolutions sont déjà en base', async () => {
     await scene(async (c) => {
       await etat(c, MOI, [{ species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:x' }])
       await c.query('select public.dex_backfill_evolutions()')
@@ -310,6 +313,71 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
                   from public.state where user_id = any($1)) :: int as attendues
       `, [[MOI, AUTRE]])
       expect(rows[0].reprises).toBe(rows[0].attendues)
+    })
+  })
+
+  /**
+   * Les clés d'une évolution EN CHAÎNE changent de nature.
+   *
+   * L'ancien format désignait le Pokémon obtenu par son RANG dans le tableau — `evo:0` pour la
+   * première évolution du joueur. Le nouveau le désigne par l'identifiant que la base attribue.
+   * Reprises telles quelles, ces clés ne pointeraient sur rien : l'exemplaire consommé passerait
+   * pour disponible, on pourrait le faire évoluer une seconde fois ou l'engager à l'arène.
+   */
+  it('remappe les clés en chaîne vers les identifiants attribués', async () => {
+    await scene(async (c) => {
+      await etat(c, MOI, [
+        { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:a' },
+        { species: PAPILUSION, from: CHRYSACIER, fromKey: 'evo:0' },
+      ])
+      await c.query('select public.dex_backfill_evolutions()')
+
+      const lignes = await reprises(c, MOI)
+      expect(lignes).toHaveLength(2)
+      // La seconde désigne la PREMIÈRE par son identifiant, et non plus par son rang.
+      expect(lignes[1].from_key).toBe(`evo:${lignes[0].id}`)
+
+      // Et la clé désigne bien quelque chose : sans le remappage, elle ne résolvait rien.
+      const { rows } = await c.query(
+        'select public.dex_species_of($1, $2) as s', [MOI, lignes[1].from_key],
+      )
+      expect(rows[0].s).toBe(CHRYSACIER)
+    })
+  })
+
+  // Chaque joueur a sa propre numérotation de rangs : le remappage ne doit pas les mélanger.
+  it('remappe dans la numérotation de chaque joueur', async () => {
+    await scene(async (c) => {
+      await etat(c, MOI, [
+        { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:m1' },
+        { species: PAPILUSION, from: CHRYSACIER, fromKey: 'evo:0' },
+      ])
+      await etat(c, AUTRE, [
+        { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:a1' },
+        { species: PAPILUSION, from: CHRYSACIER, fromKey: 'evo:0' },
+      ])
+      await c.query('select public.dex_backfill_evolutions()')
+
+      const miennes = await reprises(c, MOI)
+      const siennes = await reprises(c, AUTRE)
+      expect(miennes[1].from_key).toBe(`evo:${miennes[0].id}`)
+      expect(siennes[1].from_key).toBe(`evo:${siennes[0].id}`)
+      expect(miennes[1].from_key).not.toBe(siennes[1].from_key)
+    })
+  })
+
+  // Rejouer la reprise n'insère rien, donc ne doit rien remapper : un second passage
+  // reprendrait sinon les clés déjà corrigées pour des rangs, et les casserait.
+  it('ne remappe pas une seconde fois ce qui l’a déjà été', async () => {
+    await scene(async (c) => {
+      await etat(c, MOI, [
+        { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:a' },
+        { species: PAPILUSION, from: CHRYSACIER, fromKey: 'evo:0' },
+      ])
+      await c.query('select public.dex_backfill_evolutions()')
+      const avant = (await reprises(c, MOI)).map((r) => r.from_key)
+      await c.query('select public.dex_backfill_evolutions()')
+      expect((await reprises(c, MOI)).map((r) => r.from_key)).toEqual(avant)
     })
   })
 })

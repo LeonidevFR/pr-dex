@@ -244,21 +244,67 @@ returns int language plpgsql security definer set search_path = public as $$
 declare
   v_n int;
 begin
-  insert into public.evolutions (user_id, from_species, to_species, from_key, day, created_at)
-  select s.user_id,
-         (e.item ->> 'from') :: int,
-         (e.item ->> 'species') :: int,
-         coalesce(e.item ->> 'fromKey', e.item ->> 'fromSha'),
-         coalesce(e.item ->> 'date', to_char(now() at time zone 'Europe/Paris', 'YYYY-MM-DD')),
-         -- Un instant croissant dans l'ordre du tableau : `created_at` ne sert qu'à départager,
-         -- et l'ordre est la seule chose que l'ancien format garantissait.
-         now() + (e.ord * interval '1 microsecond')
-  from public.state s,
-       lateral jsonb_array_elements(s.evolutions) with ordinality as e(item, ord)
-  where e.item ->> 'from' is not null
-    and coalesce(e.item ->> 'fromKey', e.item ->> 'fromSha') is not null
-  on conflict (user_id, from_key) do nothing;
+  /**
+   * Une seule fois, et pas « idempotente » au sens habituel.
+   *
+   * Le remappage des clés en chaîne change `evo:<rang>` en `evo:<identifiant>`. Un second
+   * passage ne reconnaîtrait donc plus les entrées déjà reprises — leur clé a changé — et les
+   * insérerait une seconde fois avant de buter sur l'unicité. Mieux vaut refuser franchement
+   * que promettre une idempotence qui n'existe pas : dès qu'une évolution est en base, la
+   * reprise a eu lieu, et il n'y a plus rien à reprendre.
+   */
+  if exists (select 1 from public.evolutions) then
+    return 0;
+  end if;
+
+  -- Les lignes créées par cet appel, pour ne remapper qu'elles.
+  create temporary table if not exists dex_reprises (id bigint primary key) on commit drop;
+  delete from dex_reprises;
+
+  with ajout as (
+    insert into public.evolutions (user_id, from_species, to_species, from_key, day, created_at)
+    select s.user_id,
+           (e.item ->> 'from') :: int,
+           (e.item ->> 'species') :: int,
+           coalesce(e.item ->> 'fromKey', e.item ->> 'fromSha'),
+           coalesce(e.item ->> 'date', to_char(now() at time zone 'Europe/Paris', 'YYYY-MM-DD')),
+           -- Un instant croissant dans l'ordre du tableau : `created_at` ne sert qu'à
+           -- départager, et l'ordre est la seule chose que l'ancien format garantissait.
+           now() + (e.ord * interval '1 microsecond')
+    from public.state s,
+         lateral jsonb_array_elements(s.evolutions) with ordinality as e(item, ord)
+    where e.item ->> 'from' is not null
+      and coalesce(e.item ->> 'fromKey', e.item ->> 'fromSha') is not null
+    on conflict (user_id, from_key) do nothing
+    returning id
+  )
+  insert into dex_reprises (id) select id from ajout;
   get diagnostics v_n = row_count;
+
+  /**
+   * Les clés d'une évolution en chaîne changent de nature.
+   *
+   * L'ancien format désignait le Pokémon obtenu par son RANG dans le tableau — `evo:0` pour la
+   * première évolution du joueur. Le nouveau le désigne par l'identifiant que la base lui
+   * attribue. Reprises telles quelles, ces clés ne pointeraient sur rien : l'exemplaire
+   * consommé passerait pour disponible, on pourrait le faire évoluer une seconde fois ou
+   * l'engager à l'arène, et le chromatique hérité de sa source serait perdu.
+   *
+   * Le rang se retrouve dans l'ordre d'insertion, que la reprise a conservé.
+   */
+  with rangs as (
+    select id, user_id, (row_number() over (partition by user_id order by id)) - 1 as rang
+    from public.evolutions
+  )
+  update public.evolutions v
+  set from_key = 'evo:' || cible.id
+  from rangs source, rangs cible
+  where v.id = source.id
+    and v.id in (select id from dex_reprises)
+    and v.from_key ~ '^evo:[0-9]+$'
+    and cible.user_id = v.user_id
+    and cible.rang = (substring(v.from_key from 5)) :: int;
+
   return v_n;
 end;
 $$;
