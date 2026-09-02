@@ -116,7 +116,9 @@ watch([profileOpen, () => route.value.param, connected], async ([ouvert, pseudo,
 }, { immediate: true })
 
 const dossierPrive = computed(() => (route.value.param ? null : {
-  copies: collection.catches.value.length,
+  // Les exemplaires qu'on a ENCORE : à côté de « Perdus à l'arène », un total qui compterait
+  // les disparus se lirait comme un stock, et se contredirait tout seul.
+  copies: Object.values(availableById.value).reduce((n, l) => n + l.length, 0),
   pokedollars: arena?.pokedollars.value ?? 0,
   credits: arena?.credits.value ?? 0,
   destroyed: detruits.value.length,
@@ -217,9 +219,13 @@ function reporterLesPertes() {
 
 // Stock disponible par espèce (une évolution passée a pu en consommer un) — recalculé sur
 // les seules espèces déjà rencontrées, pas les 151 : les autres n'ont de toute façon rien à afficher.
-const copiesById = computed(() => {
+// Les exemplaires encore en main, par espèce. La planche en tire son compteur ×N, mais aussi
+// le shiny et l'origine qu'elle affiche : ce qui a été perdu ne doit plus rien y raconter.
+const availableById = computed(() => {
   const map = {}
-  for (const id of Object.keys(collection.dex.bySpecies.value)) map[id] = collection.dex.copyCount(Number(id))
+  for (const id of Object.keys(collection.dex.bySpecies.value)) {
+    map[id] = collection.dex.availableEntries(Number(id))
+  }
   return map
 })
 
@@ -510,7 +516,7 @@ useKeyboardNav({
     />
     <TheTray
       v-if="route.name === 'collection'"
-      :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
+      :by-species="collection.dex.bySpecies.value" :available="availableById" :evolvable="collection.dex.evolvableIds.value"
       :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
       :caught-filter="filters.caughtFilter.value" :gen="gen"
       @select="(id) => router.go('collection', id)"

@@ -329,7 +329,11 @@ export function demoArena(catches) {
       return {
         user_id: MOI,
         pseudo: 'toi',
-        species: new Set(catches.map((c) => c.species)).size,
+        // Captures ET évolutions, comme la vue `arena_public_profile` : un Pokémon obtenu par
+        // évolution compte dans la collection, il doit compter dans le profil.
+        species: new Set([
+          ...catches.map((c) => c.species), ...evolutions.map((e) => e.to_species),
+        ]).size,
         wins: joues.filter((d) => d.winner_id === MOI).length,
         losses: joues.filter((d) => d.winner_id !== MOI).length,
       }

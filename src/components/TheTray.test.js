@@ -54,18 +54,63 @@ describe('TheTray', () => {
     expect(w.findAll('.cell')[24].find('.cell-dupes').exists()).toBe(false)
   })
 
-  it('affiche le stock disponible (prop copies) plutôt que le total brut quand fourni', () => {
+  it('affiche le stock disponible plutôt que le total brut quand il est fourni', () => {
+    const a = entry('a', 1)
     const w = mount(TheTray, {
-      props: { bySpecies: { 1: [entry('a', 1), entry('b', 1)] }, copies: { 1: 1 } },
+      props: { bySpecies: { 1: [a, entry('b', 1)] }, available: { 1: [a] } },
     })
     expect(w.findAll('.cell')[0].find('.cell-dupes').exists()).toBe(false) // 1 disponible : pas de badge
   })
 
-  it('remonte à ×N avec la prop copies quand du stock reste', () => {
+  it('remonte à ×N quand du stock reste', () => {
+    const a = entry('a', 1)
+    const b = entry('b', 1)
     const w = mount(TheTray, {
-      props: { bySpecies: { 1: [entry('a', 1), entry('b', 1), entry('c', 1)] }, copies: { 1: 2 } },
+      props: { bySpecies: { 1: [a, b, entry('c', 1)] }, available: { 1: [a, b] } },
     })
     expect(w.findAll('.cell')[0].find('.cell-dupes').text()).toBe('×2')
+  })
+
+  /**
+   * Une case dorée qu'on ouvre sur une fiche sans shiny : le seul shiny avait été détruit à
+   * l'arène, et la planche continuait de le montrer parce qu'elle lisait le total brut.
+   */
+  it('cesse de montrer un shiny quand le seul exemplaire shiny a disparu', () => {
+    const ordinaire = entry('a', 1)
+    const w = mount(TheTray, {
+      props: {
+        bySpecies: { 1: [entry('shiny', 1, { shiny: true }), ordinaire] },
+        available: { 1: [ordinaire] },
+      },
+    })
+    const cell = w.findAll('.cell')[0]
+    expect(cell.classes()).not.toContain('shiny')
+    expect(cell.find('img').attributes('src')).not.toContain('shiny')
+  })
+
+  it('nomme l’origine d’un exemplaire encore en main, pas celle d’un exemplaire perdu', () => {
+    const restant = entry('b', 1, { via: 'evo' })
+    const w = mount(TheTray, {
+      props: {
+        bySpecies: { 1: [entry('a', 1, { source: 'crm' }), restant] },
+        available: { 1: [restant] },
+      },
+    })
+    expect(w.findAll('.cell')[0].find('.cell-origin').text()).toBe('évolué')
+  })
+
+  /** Le Pokédex garde ce qu'il a rencontré : stock vide ne veut pas dire case grise. */
+  it('garde l’espèce et son sprite quand il ne reste plus aucun exemplaire', () => {
+    const w = mount(TheTray, {
+      props: {
+        bySpecies: { 1: [entry('a', 1, { shiny: true })] },
+        available: { 1: [] },
+      },
+    })
+    const cell = w.findAll('.cell')[0]
+    expect(cell.classes()).toContain('has')
+    expect(cell.classes()).toContain('shiny')
+    expect(cell.find('.cell-dupes').exists()).toBe(false)
   })
 
   it('marque une espèce dont au moins une capture est chromatique', () => {

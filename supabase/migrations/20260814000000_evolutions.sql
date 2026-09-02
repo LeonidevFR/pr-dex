@@ -329,3 +329,28 @@ select public.dex_backfill_evolutions();
 -- relancer plus tard le montrerait en écart sans qu'il y ait le moindre problème.
 
 commit;
+
+-- Le profil public comptait les espèces depuis les seules captures — la table des évolutions
+-- n'existait pas encore quand la vue a été écrite. Un Pokémon obtenu par évolution comptait donc
+-- dans la collection de son propriétaire et pas dans le chiffre que ses collègues lisaient.
+create or replace view public.arena_public_profile as
+  select pr.user_id,
+         pr.pseudo,
+         (
+           select count(*) :: int from (
+             select c.species from public.catches c where c.user_id = pr.user_id
+             union
+             select v.to_species from public.evolutions v where v.user_id = pr.user_id
+           ) vues
+         ) as species,
+         count(*) filter (where d.winner_id = pr.user_id) :: int as wins,
+         count(*) filter (
+           where d.status <> 'open' and d.winner_id is distinct from pr.user_id
+         ) :: int as losses
+  from public.profiles pr
+  left join public.arena_duels d
+    on d.challenger_id = pr.user_id or d.opponent_id = pr.user_id
+  where pr.pseudo is not null
+  group by pr.user_id, pr.pseudo;
+
+grant select on public.arena_public_profile to authenticated;

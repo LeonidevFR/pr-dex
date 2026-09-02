@@ -88,6 +88,36 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
     })
   })
 
+  /**
+   * La vue ne lisait que les captures. Un Mackogneur obtenu par évolution comptait donc dans la
+   * collection de son propriétaire et pas dans le chiffre que ses collègues lisaient.
+   */
+  it('compte aussi les espèces obtenues par évolution', async () => {
+    await scene(async (c) => {
+      await capture(c, MOI, 66, 1) // Machoc capturé
+      await c.query(
+        `insert into public.evolutions (user_id, from_species, to_species, from_key, day)
+         values ($1, 66, 67, 'github:sha-1', '2026-09-01')`,
+        [MOI],
+      )
+      expect((await dossier(c, 'moi')).species).toBe(2) // Machoc vu, Machopeur obtenu
+    })
+  })
+
+  // L'union ne doit pas compter deux fois une espèce qu'on a capturée ET obtenue par évolution.
+  it('ne compte qu’une fois une espèce à la fois capturée et évoluée', async () => {
+    await scene(async (c) => {
+      await capture(c, MOI, 66, 1)
+      await capture(c, MOI, 67, 2)
+      await c.query(
+        `insert into public.evolutions (user_id, from_species, to_species, from_key, day)
+         values ($1, 66, 67, 'github:sha-1', '2026-09-01')`,
+        [MOI],
+      )
+      expect((await dossier(c, 'moi')).species).toBe(2)
+    })
+  })
+
   it('compte les victoires des deux camps du duel', async () => {
     await scene(async (c) => {
       await duel(c, { challenger: MOI, opponent: LUI, status: 'resolved', winner: MOI })
