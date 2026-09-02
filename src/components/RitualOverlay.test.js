@@ -238,13 +238,13 @@ describe('espèce jamais rencontrée', () => {
   it('marque la révélation d’une espèce nouvelle', async () => {
     const w = await reveal({ isNew: true })
     expect(w.find('.new-chip').text()).toBe('Nouveau')
-    expect(w.find('.reveal-note').text()).toContain('Première entrée à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Première entrée à la collection')
   })
 
   it('ne marque rien pour une espèce déjà à la planche', async () => {
     const w = await reveal({ isNew: false })
     expect(w.find('.new-chip').exists()).toBe(false)
-    expect(w.find('.reveal-note').text()).toContain('Déjà à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Déjà à la collection')
   })
 
   it('ne suppose rien quand la propriété est absente', async () => {
@@ -271,7 +271,7 @@ describe('suite de la file', () => {
   it('propose le retour quand c’est le dernier', async () => {
     const w = mountRitual({ remaining: 1 })
     await reveler(w)
-    expect(w.find('.next-btn').text()).toBe('Retour à la planche')
+    expect(w.find('.next-btn').text()).toBe('Retour à la collection')
     expect(w.findAll('button.queue-note')).toHaveLength(0)
   })
 

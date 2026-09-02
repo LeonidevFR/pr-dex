@@ -307,8 +307,8 @@ async function playArena(fn) {
       if (arrives > 0) {
         avisBon.value = true
         avis.value = arrives > 1
-          ? `${arrives} plis t’attendent à la planche.`
-          : 'Ton pli t’attend à la planche.'
+          ? `${arrives} cartes t’attendent dans ta collection.`
+          : 'Ta carte t’attend dans ta collection.'
       }
     })
     .catch(() => { /* signalée par l'indicateur de synchronisation */ })

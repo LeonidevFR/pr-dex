@@ -126,7 +126,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
 
       <div v-if="!caught" class="sect">
         <p class="muted">
-          Pas encore à la planche. Sortira d'une capture<template v-if="PARENT[id]">, ou d'une évolution de
+          Pas encore à la collection. Sortira d'une capture<template v-if="PARENT[id]">, ou d'une évolution de
           <b>{{ DEX[PARENT[id]].name }}</b></template>.
         </p>
       </div>

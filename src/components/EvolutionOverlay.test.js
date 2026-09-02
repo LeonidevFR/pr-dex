@@ -85,13 +85,13 @@ describe('bloc d’informations', () => {
   it('marque une espèce cible jamais rencontrée', () => {
     const w = mountEvo({ isNew: true })
     expect(w.find('.new-chip').text()).toBe('Nouveau')
-    expect(w.find('.reveal-note').text()).toContain('Première entrée à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Première entrée à la collection')
   })
 
   it('ne marque rien pour une espèce déjà à la planche', () => {
     const w = mountEvo({ isNew: false })
     expect(w.find('.new-chip').exists()).toBe(false)
-    expect(w.find('.reveal-note').text()).toContain('Déjà à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Déjà à la collection')
   })
 
   it('ne suppose rien quand la propriété est absente', () => {

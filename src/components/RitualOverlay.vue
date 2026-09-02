@@ -158,7 +158,7 @@ watch(stage, async (s) => {
     :style="style"
   >
     <button
-      class="x ritual-close" aria-label="Revenir à la planche, garder les plis restants pour plus tard"
+      class="x ritual-close" aria-label="Revenir à la collection, garder les cartes restantes pour plus tard"
       @click="$emit('close')"
     >✕</button>
 
@@ -201,12 +201,12 @@ watch(stage, async (s) => {
           <span v-if="entry.shiny" class="chip shiny-chip">✦ Chromatique</span>
         </div>
         <div class="reveal-note mono">
-          {{ isNew ? 'Première entrée à la planche' : 'Déjà à la planche' }} ·
+          {{ isNew ? 'Première entrée à la collection' : 'Déjà à la collection' }} ·
           +{{ CANDY_PER_CATCH }} bonbons <b>{{ DEX[familyOf(entry.species)].name }}</b>
         </div>
       </div>
       <button ref="nextEl" class="next-btn" @click="$emit('next')">
-        {{ remaining > 1 ? `Suivant · ${remaining - 1} restant${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la planche' }}
+        {{ remaining > 1 ? `Suivant · ${remaining - 1} restant${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la collection' }}
       </button>
       <button
         v-if="remaining > 1" class="queue-note"

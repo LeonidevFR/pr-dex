@@ -20,8 +20,8 @@ describe('boutique', () => {
 
   it('nomme chaque article par ce qu’il donne', async () => {
     const w = await enBoutique()
-    expect(w.text()).toContain('Pli commun')
-    expect(w.text()).toContain('Pli rare · Gen 2 · inédit garanti')
+    expect(w.text()).toContain('Carte commune')
+    expect(w.text()).toContain('Carte rare · Gen 2 · inédite garantie')
   })
 
   it('achète l’article demandé', async () => {
@@ -42,9 +42,9 @@ describe('boutique', () => {
 
   // La promesse a changé : le pli s'ouvre dès que la collecte le rapporte, et l'écran ne doit
   // plus faire croire à une attente systématique.
-  it('dit quand le pli s’ouvre, et ce qu’il advient s’il tarde', async () => {
+  it('dit quand la carte s’ouvre, et ce qu’il advient s’il tarde', async () => {
     const w = await enBoutique()
-    expect(w.text()).toContain('s’ouvre dès que la collecte le rapporte')
+    expect(w.text()).toContain('s’ouvre dès que la collecte la rapporte')
     expect(w.text()).toContain('au prochain passage')
   })
 

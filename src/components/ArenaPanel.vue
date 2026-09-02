@@ -158,7 +158,7 @@ function take(duelId) {
     <div class="arena-rule">
       <b>Perdre</b>
       <span class="muted">
-        Le perdant perd son Pokémon, définitivement. L’espèce reste acquise à ta planche :
+        Le perdant perd son Pokémon, définitivement. L’espèce reste acquise à ta collection :
         c’est l’exemplaire qui disparaît, pas ce que tu as déjà découvert.
       </span>
     </div>
@@ -166,7 +166,7 @@ function take(duelId) {
       <b>Gagner</b>
       <span class="muted">
         Tu gardes le tien, il monte d’un niveau ou plus, et tu remportes des pokédollars,
-        des points de saison et un pli à ouvrir.
+        des points de saison et une carte à découvrir.
       </span>
     </div>
     <div class="arena-rule">

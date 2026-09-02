@@ -82,13 +82,13 @@ describe('DuelOverlay', () => {
   // L'espèce reste acquise : c'est l'exemplaire qui disparaît, pas ce qu'on a vu.
   it('dit ce qu’on perd exactement en cas de défaite', async () => {
     const w = await revele(monter({ winner_id: LUI }))
-    expect(w.text()).toContain('L’espèce reste à la planche')
+    expect(w.text()).toContain('L’espèce reste à la collection')
   })
 
   it('dit ce qu’on gagne en cas de victoire', async () => {
     const w = await revele(monter())
     expect(w.text()).toContain('Son exemplaire est détruit')
-    expect(w.text()).toContain('un pli rare')
+    expect(w.text()).toContain('une carte rare')
   })
 
   // L'ordinateur ne possède rien : il ne peut ni détruire ni offrir.
@@ -143,13 +143,13 @@ describe('DuelOverlay', () => {
     expect(w.text()).toContain('Ce que tu remportes')
     expect(w.text()).toContain('250')
     expect(w.text()).toContain('points de saison')
-    expect(w.text()).toContain('pli rare')
+    expect(w.text()).toContain('carte rare')
   })
 
   it('n’annonce ni pli ni point après un duel contre l’ordinateur', async () => {
     const w = await revele(monter({ status: 'computer', opponent_id: null }))
     expect(w.text()).not.toContain('points de saison')
-    expect(w.text()).not.toContain('pli rare')
+    expect(w.text()).not.toContain('carte rare')
     expect(w.text()).toContain('50')
   })
 

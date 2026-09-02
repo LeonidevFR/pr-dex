@@ -38,7 +38,7 @@ const jours = computed(() =>
         <h2 class="panel-name" style="font-size:28px;margin-bottom:0">L’arène ouvre le {{ quand }}</h2>
         <p class="muted" style="margin-top:8px">
           On y engage un de ses Pokémon contre celui d’un collègue. Le perdant est détruit — le
-          vainqueur garde le sien, gagne des niveaux, des pokédollars et un pli.
+          vainqueur garde le sien, gagne des niveaux, des pokédollars et une carte.
         </p>
       </div>
     </div>

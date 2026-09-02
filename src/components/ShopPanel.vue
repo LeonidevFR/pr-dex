@@ -9,11 +9,11 @@ defineProps({
 })
 const emit = defineEmits(['buy'])
 
-const ARTICLE = { c: 'commun', u: 'peu commun', r: 'rare', l: 'légendaire' }
+const ARTICLE = { c: 'commune', u: 'peu commune', r: 'rare', l: 'légendaire' }
 
 /** Le nom dit ce qu'on obtient, pas la référence du catalogue : personne n'achète un `gen2-r-inedit`. */
 const nomArticle = (a) =>
-  `Pli ${ARTICLE[a.tier]}${a.gen === 2 ? ' · Gen 2' : ''}${a.fresh ? ' · inédit garanti' : ''}`
+  `Carte ${ARTICLE[a.tier]}${a.gen === 2 ? ' · Gen 2' : ''}${a.fresh ? ' · inédite garantie' : ''}`
 
 /**
  * Un achat se confirme. Un pli légendaire coûte plusieurs semaines de duels et la dépense est
@@ -34,7 +34,7 @@ function cliquer(a) {
   <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
     <div>
       <span class="panel-plate mono">BOUTIQUE</span>
-      <h2 class="panel-name" style="font-size:23px;margin-bottom:0">Plis à acheter</h2>
+      <h2 class="panel-name" style="font-size:23px;margin-bottom:0">Cartes à acheter</h2>
     </div>
   </div>
 
@@ -50,7 +50,7 @@ function cliquer(a) {
   <div class="sect">
     <div class="eyebrow sect-h"><span>Ce que les pokédollars achètent</span></div>
     <p class="muted" style="margin-bottom:12px">
-      Un pli acheté s’ouvre comme les autres, aux mêmes cotes — seul l’ensemble dans lequel
+      Une carte achetée se découvre comme les autres, aux mêmes cotes — seul l’ensemble dans lequel
       il pioche est décidé d’avance. La <b>Gen 2</b> ne s’obtient que par ici ; l’<b>inédit
       garanti</b> ne tire que parmi les espèces qui te manquent encore.
     </p>
@@ -69,8 +69,8 @@ function cliquer(a) {
       La dépense est définitive. Clique ailleurs pour renoncer.
     </p>
     <p class="muted" style="margin-top:10px">
-      Le pli s’ouvre dès que la collecte le rapporte — dans la minute, en général. S’il
-      tarde, il t’est dû : il rejoindra ta file d’ouverture au prochain passage.
+      La carte s’ouvre dès que la collecte la rapporte — dans la minute, en général. S’il
+      tarde, elle t’est due : elle rejoindra ta file d’ouverture au prochain passage.
     </p>
   </div>
   </section>

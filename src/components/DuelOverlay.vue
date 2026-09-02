@@ -235,15 +235,15 @@ const breakdown = (s) => [
           >{{ iWon ? 'Victoire' : 'Défaite' }}</div>
           <p class="muted" style="margin-top:8px">
             <template v-if="versusComputer">
-              L’ordinateur ne possède rien : personne ne perd de Pokémon, et il n’y a pas de pli
+              L’ordinateur ne possède rien : personne ne perd de Pokémon, et il n’y a pas de carte
               à gagner — seulement des pokédollars, au cinquième du tarif.
             </template>
             <template v-else-if="iWon">
-              Son exemplaire est détruit. Tu gardes le tien, et un pli
+              Son exemplaire est détruit. Tu gardes le tien, et une carte
               {{ TIER_LABEL[duel.stake_tier].toLowerCase() }} t’attend au prochain passage.
             </template>
             <template v-else>
-              Ton exemplaire est détruit. L’espèce reste à la planche — c’est l’exemplaire qui
+              Ton exemplaire est détruit. L’espèce reste à la collection — c’est l’exemplaire qui
               disparaît, pas ce que tu as vu.
             </template>
           </p>
@@ -271,7 +271,7 @@ const breakdown = (s) => [
             </div>
             <div v-if="reward.pack">
               <span class="v">1</span>
-              <span class="arena-unit">pli {{ TIER_LABEL[duel.stake_tier].toLowerCase() }}</span>
+              <span class="arena-unit">carte {{ TIER_LABEL[duel.stake_tier].toLowerCase() }}</span>
             </div>
           </div>
         </div>
