@@ -967,7 +967,6 @@
   .forme-nom{flex:1;font-size:12.5px;color:var(--ink-2)}
   .forme-nom.up{color:var(--herb)}
   .forme-nom.down{color:var(--stamp)}
-  .forme-ligne .coef{font-size:11.5px;color:var(--ink-3)}
 
   /* ───────── pseudonyme ───────── */
   .pseudo-form{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}

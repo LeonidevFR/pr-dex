@@ -168,6 +168,12 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
           Un exemplaire par ligne avec sa forme : à plusieurs exemplaires, elles diffèrent — la
           forme se tire de la clé, pas de l'espèce — et c'est précisément ce qui décide lequel
           engager aujourd'hui.
+
+          Le NOM de la forme, jamais son coefficient. Afficher « ×1,05 » transforme une intuition
+          en calcul : chacun lit la table une fois, la retient, et le choix cesse d'être un pari
+          pour devenir une addition. La couleur suffit à dire si la forme aide ou handicape, et
+          l'ampleur se découvre à l'usage — c'est aux joueurs de se faire leur idée du poids que
+          ça pèse.
         -->
         <div v-if="arenaFormOf" class="formes">
           <div v-for="(e, i) in available" :key="e.key" class="forme-ligne">
@@ -177,7 +183,6 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               class="forme-nom"
               :class="{ up: arenaFormOf(e.key).factor > 1, down: arenaFormOf(e.key).factor < 1 }"
             >{{ arenaFormOf(e.key).name }}</span>
-            <span class="mono coef">×{{ arenaFormOf(e.key).factor.toFixed(2) }}</span>
           </div>
         </div>
         <p class="muted">

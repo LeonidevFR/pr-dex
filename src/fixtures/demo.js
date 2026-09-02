@@ -126,6 +126,17 @@ export function demoCatches() {
     'moi/atlas', 226, 'fix: timeout sur la génération du sprite', '2026-07-19', 10, true,
   ))
 
+  // Un second Mackogneur, qui restera au niveau 1.
+  //
+  // Le champion de la démo — le seul exemplaire aguerri, monté au niveau 5 — est un Mackogneur,
+  // et il était seul de son espèce : la liste des exemplaires d'une même espèce ne montrait donc
+  // jamais deux niveaux différents, qui est pourtant le cas où le choix compte. Avec ce cadet,
+  // on voit ce qu'on met en jeu : le vétéran ou le bleu.
+  drawn.splice(-3, 0, ghCatch(
+    'ev3m4ckogn3ur00000000000000000000000000',
+    'moi/atlas', 227, 'refactor: extraction du client Supabase', '2026-07-19', 68, false,
+  ))
+
   // Idem pour une légendaire : à 0,5 % par tirage, aucune ne sort naturellement sur 40-41
   // essais. Sulfura forcée pour que le halo légendaire de la grille soit visible en démo.
   drawn.splice(-3, 0, ghCatch(

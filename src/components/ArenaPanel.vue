@@ -94,13 +94,18 @@ function openSpecies(species) {
 function play(vsComputer) {
   if (!chosen.value) return
   emit('engage', chosen.value, vsComputer)
+  // La liste des exemplaires se referme avec l'engagement, sinon la grille des espèces reste
+  // masquée derrière celle de l'espèce qu'on vient de jouer : pour en engager un second, il
+  // fallait d'abord comprendre qu'il y avait une liste à refermer.
   chosen.value = null
+  picking.value = null
 }
 
 function take(duelId) {
   if (!chosen.value) return
   emit('accept', duelId, chosen.value)
   chosen.value = null
+  picking.value = null
 }
 </script>
 
@@ -153,6 +158,20 @@ function take(duelId) {
         Tu mets un Pokémon en jeu sans savoir ce que l’autre engagera : vous découvrez vos
         deux choix en même temps. C’est tout l’intérêt — sinon le second ajusterait toujours
         juste ce qu’il faut pour gagner.
+      </span>
+    </div>
+    <!--
+      La forme est nommée dans les règles, jamais chiffrée. Donner la table transformerait le
+      choix en addition : chacun la lirait une fois et calculerait. Dire qu'elle change chaque
+      jour et qu'on ne voit que la sienne suffit à ce qu'on la surveille — ce qu'elle pèse,
+      chacun se le figurera à l'usage.
+    -->
+    <div class="arena-rule">
+      <b>La forme du jour</b>
+      <span class="muted">
+        Chaque exemplaire a une forme qui change tous les jours et qui entre dans son résultat.
+        Tu la vois sur ta fiche d’espèce, pour tes Pokémon seulement : celle de ton adversaire
+        t’est cachée, comme sa mise. À toi de juger si le jour est bon.
       </span>
     </div>
     <div class="arena-rule">

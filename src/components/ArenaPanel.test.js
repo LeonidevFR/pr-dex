@@ -271,3 +271,51 @@ describe('jouer sans nom', () => {
     expect((await monter({ pseudo: 'leo' })).find('.sans-nom').exists()).toBe(false)
   })
 })
+
+/**
+ * Après un engagement, on revient à la grille des espèces.
+ *
+ * La liste des exemplaires d'une espèce REMPLACE la grille : ouverte, elle la masque. Laissée
+ * ouverte après l'engagement, elle obligeait à comprendre qu'il y avait une liste à refermer
+ * avant de pouvoir en engager un second — sur une espèce dont on venait justement de jouer un
+ * exemplaire.
+ */
+describe('retour à la grille après un engagement', () => {
+  const deuxMemes = [
+    exemplaire('github:mack-1', 68),
+    exemplaire('github:mack-2', 68),
+    exemplaire('github:autre', 25),
+  ]
+
+  // On vise l'espèce qui a DEUX exemplaires : une espèce unique se choisit d'un clic, sans
+  // liste — et c'est précisément la liste qu'on veut voir se refermer.
+  const ouvrirLaListe = async (w) => {
+    await w.findAll('.arena-pick').find((c) => c.text().includes('Mackogneur')).trigger('click')
+    await w.vm.$nextTick()
+    const radios = w.findAll('input[type="radio"]')
+    expect(radios.length).toBeGreaterThan(0)
+    await radios[0].setValue()
+    return w
+  }
+
+  it('referme la liste des exemplaires en postant un défi', async () => {
+    const w = await monter({ engageable: deuxMemes })
+    await ouvrirLaListe(w)
+    expect(w.findAll('.arena-pick')).toHaveLength(0)
+
+    await w.findAll('button').find((b) => b.text().includes('Poster un défi')).trigger('click')
+    expect(w.emitted('engage')).toHaveLength(1)
+    expect(w.findAll('.arena-pick').length).toBeGreaterThan(0)
+  })
+
+  it('la referme aussi en relevant un défi', async () => {
+    const w = await monter({
+      engageable: deuxMemes,
+      challenges: [{ id: 7, challenger_id: 'u-x', pseudo: 'bob', created_at: '2026-09-02' }],
+    })
+    await ouvrirLaListe(w)
+    await w.findAll('button').find((b) => b.text() === 'Relever').trigger('click')
+    expect(w.emitted('accept')).toHaveLength(1)
+    expect(w.findAll('.arena-pick').length).toBeGreaterThan(0)
+  })
+})
