@@ -989,12 +989,15 @@
      survenue » qui n'apprend rien. */
   .avis{
     display:flex;align-items:flex-start;gap:14px;
-    border:1.5px solid var(--stamp);border-left-width:4px;background:rgba(158,59,46,.07);
+    border:1.5px solid var(--avis-t, var(--stamp));border-left-width:4px;
+    background:var(--avis-f, rgba(158,59,46,.07));
     padding:12px 16px;margin-bottom:20px;
     font-size:13px;line-height:1.55;color:var(--ink);
   }
   .avis span{flex:1}
   .avis-x{
-    border:0;background:none;cursor:pointer;color:var(--stamp);padding:2px;display:flex;
+    border:0;background:none;cursor:pointer;color:var(--avis-t, var(--stamp));padding:2px;display:flex;
   }
+  /* Une bonne nouvelle ne porte pas la couleur d'un refus : le pli gagné est en herbe. */
+  .avis.bonne{--avis-t:var(--herb);--avis-f:rgba(92,122,82,.08)}
   .avis-x:hover{color:var(--ink)}

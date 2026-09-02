@@ -139,3 +139,61 @@ describe('lectures du client démo', () => {
     expect(relu[0].species).not.toBe(999)
   })
 })
+
+/**
+ * Le pli de la victoire. La démonstration ne le créait pas : l'écran de duel le promettait —
+ * « un pli t'attend au prochain passage » — et la file ne recevait rien, si bien qu'on ne
+ * voyait jamais la moitié de ce qu'un duel rapporte.
+ */
+describe('le pli gagné en arène', () => {
+  /** Relève des défis jusqu'à en gagner un ; l'issue est déterministe, le rang du gagnant non. */
+  const gagnerUnDuel = async (c) => {
+    for (const defi of await c.readOpenChallenges()) {
+      const mien = (await c.readCatches()).find((x) => x.source === 'github')
+      const duel = await c.readDuel(await c.accept(defi.id, `${mien.source}:${mien.external_id}`))
+      if (duel.winner_id === 'demo-moi') return duel
+    }
+    return null
+  }
+
+  it('rejoint la collection après une victoire sur un joueur', async () => {
+    const c = loadDemoClient()
+    const avant = (await c.readCatches()).length
+    const duel = await gagnerUnDuel(c)
+    expect(duel).toBeTruthy()
+
+    const apres = await c.readCatches()
+    expect(apres).toHaveLength(avant + 1)
+  })
+
+  // C'est cette provenance que le dos de la carte affiche : d'où vient ce Pokémon, et quand.
+  it('porte sa provenance, comme un pli acheté porte la sienne', async () => {
+    const c = loadDemoClient()
+    const duel = await gagnerUnDuel(c)
+    const pli = (await c.readCatches()).find((x) => x.source === 'arene')
+
+    expect(pli).toMatchObject({ label: 'Victoire en arène', ref: `duel #${duel.id}` })
+    expect(pli.species).toBeGreaterThan(0)
+  })
+
+  // Non réclamé : il s'ouvre par le rituel, comme une PR mergée et comme un pli acheté.
+  it('attend d’être ouvert plutôt que d’arriver déjà ouvert', async () => {
+    const c = loadDemoClient()
+    await gagnerUnDuel(c)
+    const pli = (await c.readCatches()).find((x) => x.source === 'arene')
+    const { state } = await c.readState()
+    expect(state.claimed).not.toContain(`arene:${pli.external_id}`)
+  })
+
+  /**
+   * L'ordinateur ne possède rien : il ne peut ni détruire ni créer un exemplaire. Le battre
+   * rapporte des pokédollars au cinquième du tarif, et rien d'autre.
+   */
+  it('ne récompense pas d’un pli une victoire sur l’ordinateur', async () => {
+    const c = loadDemoClient()
+    const cat = await c.readCatches()
+    const avant = cat.length
+    await c.engage(`${cat[0].source}:${cat[0].external_id}`, true)
+    expect(await c.readCatches()).toHaveLength(avant)
+  })
+})

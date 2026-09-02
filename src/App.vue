@@ -43,8 +43,10 @@ const connectError = ref(null)
  * formule générique. Les refus du serveur sont écrits pour être lus.
  */
 const avis = ref(null)
+/** `true` quand l'avis annonce une bonne nouvelle plutôt qu'un refus. */
+const avisBon = ref(false)
 
-const signaler = (e) => { avis.value = messageDErreur(e) }
+const signaler = (e) => { avis.value = messageDErreur(e); avisBon.value = false }
 const connecting = ref(false)
 const githubLogin = ref('')
 
@@ -253,6 +255,7 @@ async function connectSession(s) {
  */
 async function playArena(fn) {
   avis.value = null
+  avisBon.value = false
   arenaBusy.value = true
   try {
     const duel = await fn()
@@ -290,7 +293,25 @@ async function playArena(fn) {
    * planche se mettront à jour quand la collecte aura répondu, et le bouton de synchronisation
    * signale déjà qu'elle travaille.
    */
-  collection.refresh().catch(() => { /* signalée par l'indicateur de synchronisation */ })
+  /**
+   * Et l'on signale le pli quand il arrive, s'il arrive.
+   *
+   * Le duel promet un pli au vainqueur, mais la collecte met du temps à le matérialiser : sans
+   * ce mot, on referme le résumé de combat et il ne se passe plus rien — la promesse se tient
+   * en silence, une demi-minute plus tard, alors qu'on regarde ailleurs.
+   */
+  const avantPlis = collection.dex.pending.value.length
+  collection.refresh()
+    .then(() => {
+      const arrives = collection.dex.pending.value.length - avantPlis
+      if (arrives > 0) {
+        avisBon.value = true
+        avis.value = arrives > 1
+          ? `${arrives} plis t’attendent à la planche.`
+          : 'Ton pli t’attend à la planche.'
+      }
+    })
+    .catch(() => { /* signalée par l'indicateur de synchronisation */ })
 }
 
 const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComputer))
@@ -328,6 +349,7 @@ const onAccept = (duelId, key) => playArena(() => arena.accept(duelId, key))
  */
 async function onBuy(slug) {
   avis.value = null
+  avisBon.value = false
   arenaBusy.value = true
   try {
     const id = await arena.buy(slug)
@@ -469,7 +491,7 @@ useKeyboardNav({
       continuer à jouer en le lisant, et il disparaît au geste suivant plutôt que de réclamer
       qu'on le referme.
     -->
-    <div v-if="avis" class="avis" role="status">
+    <div v-if="avis" class="avis" :class="{ bonne: avisBon }" role="status">
       <span>{{ avis }}</span>
       <button class="avis-x" aria-label="Masquer" @click="avis = null">
         <AppIcon name="close" :size="12" />

@@ -264,6 +264,22 @@ export function demoArena(catches) {
       } else {
         pokedollars += REWARD[enjeu].dollars
         points += REWARD[enjeu].points
+
+        /**
+         * Le pli de la victoire. La démonstration ne le créait pas : l'écran de duel le
+         * promettait — « un pli t'attend au prochain passage » — et la file ne recevait rien,
+         * si bien qu'on ne voyait jamais la moitié de ce qu'un duel rapporte.
+         *
+         * Tiré comme le fait l'Action, sur la même clé et dans le même ensemble : au palier de
+         * l'enjeu, dans la première génération. En production il arrive au passage suivant de
+         * la collecte ; ici tout de suite, faute de collecte à attendre.
+         */
+        const cle = entryKey('arene', String(id))
+        const { species, shiny } = drawFromPool(cle, poolOf(enjeu, 1))
+        catches.push({
+          source: 'arene', external_id: String(id), label: 'Victoire en arène',
+          ref: `duel #${id}`, url: null, date: JOUR, species, shiny,
+        })
       }
     } else if (statut !== 'computer') {
       destroyed.add(moi.key)
