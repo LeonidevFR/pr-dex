@@ -159,9 +159,17 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         retrouver dans une grille le Pokémon qu'on avait justement sous les yeux.
       -->
       <div v-if="caught && available.length" class="sect">
+        <!--
+          Pas de niveau en tête de section. Il y en avait un, celui du PREMIER exemplaire de la
+          liste — ni le plus fort ni le plus faible, seulement le plus ancien — présenté comme
+          s'il était celui de l'espèce. Une espèce n'a pas de niveau ; ses exemplaires en ont un
+          chacun, et c'est la liste qui les porte.
+        -->
         <div class="eyebrow sect-h">
           <span>Arène</span>
-          <span class="mono muted">niv. {{ arenaLevelOf(available[0].key) }}</span>
+          <span class="mono muted">
+            {{ available.length }} exemplaire{{ available.length > 1 ? 's' : '' }}
+          </span>
         </div>
 
         <!--
@@ -175,30 +183,35 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
           l'ampleur se découvre à l'usage — c'est aux joueurs de se faire leur idée du poids que
           ça pèse.
         -->
-        <div v-if="arenaFormOf" class="formes">
+        <!--
+          Le choix se fait À LA LIGNE, et non par un bouton unique qui envoyait `available[0]` —
+          le plus ancien exemplaire, choisi par personne. Dès qu'une espèce en compte deux de
+          niveaux différents, ce bouton engageait au hasard ce qu'on n'avait pas décidé.
+        -->
+        <div class="formes">
           <div v-for="(e, i) in available" :key="e.key" class="forme-ligne">
             <span class="mono no">{{ i + 1 }}</span>
             <span class="quoi">niv. {{ arenaLevelOf(e.key) }}</span>
             <span
-              class="forme-nom"
+              v-if="arenaFormOf" class="forme-nom"
               :class="{ up: arenaFormOf(e.key).factor > 1, down: arenaFormOf(e.key).factor < 1 }"
             >{{ arenaFormOf(e.key).name }}</span>
+            <span v-else class="forme-nom"></span>
+            <button
+              class="evo-btn arena-send" style="padding:6px 12px"
+              :disabled="!arenaCredits" @click="$emit('engage', e.key)"
+            >Choisir</button>
           </div>
         </div>
         <p class="muted">
           <template v-if="arenaCredits">
-            Ouvre l’arène avec cet exemplaire retenu : tu choisiras ensuite de poster un défi,
+            L’arène s’ouvre avec l’exemplaire retenu : tu choisiras ensuite de poster un défi,
             d’affronter l’ordinateur ou de relever celui d’un autre.
           </template>
           <template v-else>
             Aucun engagement disponible — il en revient un par jour ouvré.
           </template>
         </p>
-        <div class="front-actions" style="margin-top:12px">
-          <button class="evo-btn arena-send" :disabled="!arenaCredits" @click="$emit('engage', available[0].key)">
-            Choisir pour l’arène
-          </button>
-        </div>
       </div>
 
       <div v-if="caught" class="sect">

@@ -490,8 +490,11 @@ describe('envoi à l’arène depuis la fiche', () => {
   // avant que le joueur ait vu ses options, et l'arène s'ouvrait alors sans rien à décider.
   it('annonce qu’il ouvre l’arène plutôt qu’il n’engage', () => {
     const w = mountSheet({ id: 6, entries: dispo, available: dispo, arenaCredits: 2 })
-    expect(w.text()).toContain('Ouvre l’arène avec cet exemplaire retenu')
-    expect(w.find('.arena-send').text()).toBe('Choisir pour l’arène')
+    expect(w.text()).toContain('L’arène s’ouvre avec l’exemplaire retenu')
+    // Un bouton par exemplaire : le choix se fait à la ligne, plus par un bouton unique qui
+    // engageait le premier de la liste — le plus ancien, choisi par personne.
+    expect(w.find('.arena-send').text()).toBe('Choisir')
+    expect(w.findAll('.arena-send')).toHaveLength(dispo.length)
   })
 
   it('empêche l’envoi sans engagement disponible, et explique pourquoi', () => {
@@ -539,10 +542,60 @@ describe('la forme du jour sur la fiche', () => {
     expect(w.findAll('.forme-nom.down').length).toBeGreaterThan(0)
   })
 
-  // Avant l'ouverture de l'arène, la forme ne veut encore rien dire : l'afficher poserait une
-  // question à laquelle rien ne répond.
-  it('ne montre rien tant que l’arène n’a pas ouvert', () => {
+  /**
+   * Avant l'ouverture de l'arène, la forme ne veut encore rien dire : l'afficher poserait une
+   * question à laquelle rien ne répond. La liste des exemplaires, elle, reste — c'est par elle
+   * qu'on en choisit un, et leurs niveaux valent d'être lus en toute saison.
+   */
+  it('ne montre aucune forme tant que l’arène n’a pas ouvert', () => {
     const w = mountSheet({ entries: deuxExemplaires, available: deuxExemplaires })
-    expect(w.find('.formes').exists()).toBe(false)
+    expect(w.findAll('.forme-ligne')).toHaveLength(2)
+    expect(w.findAll('.forme-nom').every((f) => f.text() === '')).toBe(true)
+  })
+})
+
+/**
+ * Une espèce n'a pas de niveau ; ses exemplaires en ont un chacun.
+ *
+ * La section portait pourtant un niveau en tête — celui du PREMIER exemplaire de la liste, ni
+ * le plus fort ni le plus faible, seulement le plus ancien — présenté comme s'il était celui de
+ * l'espèce. Et le bouton unique engageait ce même premier exemplaire : dès qu'une espèce en
+ * comptait deux de niveaux différents, il mettait en jeu ce que personne n'avait choisi.
+ */
+describe('choisir quel exemplaire engager', () => {
+  const deux = [capture('vieux', 68), capture('neuf', 68)]
+  const niveaux = { 'github:vieux': 1, 'github:neuf': 7 }
+
+  const sheet = () => mountSheet({
+    id: 68, entries: deux, available: deux, arenaCredits: 3,
+    arenaLevelOf: (k) => niveaux[k] ?? 1,
+  })
+
+  it('n’annonce plus un niveau pour l’espèce, mais un nombre d’exemplaires', () => {
+    const w = sheet()
+    expect(w.text()).toContain('2 exemplaires')
+    expect(w.text()).not.toMatch(/Arène\s*niv\./)
+  })
+
+  it('montre le niveau de chacun', () => {
+    const lignes = sheet().findAll('.forme-ligne').map((l) => l.text())
+    expect(lignes[0]).toContain('niv. 1')
+    expect(lignes[1]).toContain('niv. 7')
+  })
+
+  it('engage celui dont on a cliqué le bouton, et pas un autre', async () => {
+    const w = sheet()
+    await w.findAll('.arena-send')[1].trigger('click')
+    expect(w.emitted('engage')[0]).toEqual(['github:neuf'])
+  })
+
+  // Sans crédit, aucun exemplaire ne part : le refus se lit sur chaque ligne, là où le geste
+  // se ferait.
+  it('désactive tous les choix quand il ne reste aucun engagement', () => {
+    const w = mountSheet({
+      id: 68, entries: deux, available: deux, arenaCredits: 0,
+      arenaLevelOf: (k) => niveaux[k] ?? 1,
+    })
+    expect(w.findAll('.arena-send').every((b) => b.attributes('disabled') !== undefined)).toBe(true)
   })
 })
