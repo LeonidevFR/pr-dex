@@ -447,9 +447,8 @@ export function demoArena(catches) {
     accept: async (duelId, key) => {
       const defi = challenges.find((c) => c.id === duelId)
       if (!defi) throw new Error('arene : défi introuvable')
-      // Relever coûte un crédit, comme poster : la démonstration l'oubliait, si bien qu'on
-      // pouvait enchaîner les duels sans jamais épuiser sa réserve.
-      credits = Math.max(0, credits - 1)
+      // Le crédit est décompté par `jouer`, qui résout le duel — et par lui SEUL. Décompté ici
+      // aussi, relever en coûtait deux : on tombait de cinq à trois pour un seul combat.
       const duel = jouer(key, defi.rival, 'resolved', defi.challenger_id)
       challenges.splice(challenges.indexOf(defi), 1)
       return duel.id

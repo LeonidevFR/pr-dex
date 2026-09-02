@@ -197,3 +197,53 @@ describe('le pli gagné en arène', () => {
     expect(await c.readCatches()).toHaveLength(avant)
   })
 })
+
+/**
+ * Un engagement, un crédit — sur les trois chemins qui en consomment un.
+ *
+ * Relever en coûtait DEUX : le crédit était décompté par la fonction qui résout le duel, et une
+ * seconde fois par celle qui relève. On tombait de cinq à trois pour un seul combat, ce qui
+ * donnait de la réserve hebdomadaire une idée fausse — et le quota est précisément ce qui rend
+ * l'arène rare.
+ */
+describe('le décompte des engagements', () => {
+  const credits = async (c) => (await c.readArena()).credits
+  const cle = (capture) => `${capture.source}:${capture.external_id}`
+
+  it('retire un crédit pour un défi relevé, et un seul', async () => {
+    const c = loadDemoClient()
+    const avant = await credits(c)
+    const defis = await c.readOpenChallenges()
+    await c.accept(defis[0].id, cle((await c.readCatches())[0]))
+    expect(await credits(c)).toBe(avant - 1)
+  })
+
+  it('en retire un pour un duel contre l’ordinateur', async () => {
+    const c = loadDemoClient()
+    const avant = await credits(c)
+    await c.engage(cle((await c.readCatches())[0]), true)
+    expect(await credits(c)).toBe(avant - 1)
+  })
+
+  it('en retire un pour un défi posté', async () => {
+    const c = loadDemoClient()
+    const avant = await credits(c)
+    await c.engage(cle((await c.readCatches())[0]), false)
+    expect(await credits(c)).toBe(avant - 1)
+  })
+
+  // Trois engagements, trois crédits : c'est la réserve qui borne la semaine, et elle doit se
+  // vider au rythme exact des engagements.
+  it('épuise la réserve au rythme des engagements', async () => {
+    const c = loadDemoClient()
+    const avant = await credits(c)
+    const captures = await c.readCatches()
+    const defis = await c.readOpenChallenges()
+
+    await c.engage(cle(captures[0]), false)
+    await c.engage(cle(captures[1]), true)
+    await c.accept(defis[0].id, cle(captures[2]))
+
+    expect(await credits(c)).toBe(avant - 3)
+  })
+})
