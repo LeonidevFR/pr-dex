@@ -3,13 +3,15 @@ import { TIER_LABEL } from '../../shared/species.js'
 
 const TIERS = Object.keys(TIER_LABEL)
 
-/** État des filtres du tiroir (paliers + statut de capture). Pure UI, aucun effet de bord. */
+/** État des filtres du tiroir (paliers + statut de l'espèce). Pure UI, aucun effet de bord. */
 export function useTrayFilters() {
   const open = ref(false)
   const activeTiers = ref(new Set(TIERS))
-  const caughtFilter = ref('all') // 'all' | 'caught' | 'uncaught'
+  const statusFilter = ref('all') // 'all' | 'caught' | 'uncaught' | 'evolvable'
 
-  const active = computed(() => activeTiers.value.size < TIERS.length || caughtFilter.value !== 'all')
+  const active = computed(
+    () => activeTiers.value.size < TIERS.length || statusFilter.value !== 'all',
+  )
 
   // Ne jamais désactiver le dernier palier restant : un filtre qui vide la grille en
   // silence est pire qu'un clic ignoré.
@@ -19,14 +21,14 @@ export function useTrayFilters() {
     activeTiers.value = next
   }
 
-  function setCaughtFilter(v) {
-    caughtFilter.value = v
+  function setStatusFilter(v) {
+    statusFilter.value = v
   }
 
   function reset() {
     activeTiers.value = new Set(TIERS)
-    caughtFilter.value = 'all'
+    statusFilter.value = 'all'
   }
 
-  return { open, activeTiers, caughtFilter, active, toggleTier, setCaughtFilter, reset }
+  return { open, activeTiers, statusFilter, active, toggleTier, setStatusFilter, reset }
 }
