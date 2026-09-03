@@ -178,9 +178,9 @@ useKeyboardNav({
     <TheTray
       :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
       :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
-      :caught-filter="filters.caughtFilter.value"
+      :status-filter="filters.statusFilter.value"
       @select="(id) => (selected = id)"
-      @toggle-tier="filters.toggleTier" @set-caught-filter="filters.setCaughtFilter" @reset-filters="filters.reset"
+      @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter" @reset-filters="filters.reset"
     />
 
     <transition name="fade">

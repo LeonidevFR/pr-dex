@@ -121,6 +121,15 @@
   }
   .filter-chip.active::before{background:var(--paper)}
   .filter-chip:not(.active){opacity:.6}
+  /* Le chip « Évoluables » reprend le triangle et le vert du badge de la case : même signe
+     des deux côtés, on comprend ce que le filtre isole sans avoir à l'essayer. */
+  .chip-evo::before{
+    width:0;height:0;border:0;border-radius:0;
+    border-left:4px solid transparent;border-right:4px solid transparent;
+    border-bottom:7px solid currentColor;
+  }
+  .chip-evo:not(.active){color:var(--herb)}
+  .chip-evo.active::before{border-bottom-color:var(--paper);background:transparent}
   .filter-reset{
     font-family:var(--f-data);font-size:10px;color:var(--ink-3);background:none;border:0;cursor:pointer;
     text-decoration:underline;text-underline-offset:2px;
@@ -130,6 +139,10 @@
     display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:1px;
     background:var(--rule-hi);border:1px solid var(--rule-hi);
     box-shadow:0 2px 0 rgba(120,96,64,.16);
+  }
+  .tray-empty{
+    font-family:var(--f-data);font-size:11px;color:var(--ink-3);
+    text-align:center;padding:28px 12px;margin:0;
   }
   .cell{
     position:relative;aspect-ratio:1;background:var(--plate);border:0;padding:0;cursor:default;
