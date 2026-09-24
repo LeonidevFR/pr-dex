@@ -5,7 +5,7 @@
  * On ne colle pas trois fichiers SQL sur trois semaines de collections sans les avoir joués
  * ailleurs d'abord. Ce script rejoue exactement la mise en service : il remet la base locale
  * dans l'état du serveur AUJOURD'HUI — c'est-à-dire avec la seule migration de juillet —, y
- * verse les données exportées, applique les trois fichiers dans l'ordre, puis vérifie.
+ * verse les données exportées, applique les quatre fichiers dans l'ordre, puis vérifie.
  *
  * Ce qu'il vérifie, et qui est le seul vrai risque : la reprise des évolutions. Elles vivent
  * dans une colonne jsonb que le client réécrivait ; elles deviennent des lignes. Une entrée
@@ -25,6 +25,7 @@ const LOCAL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const MIGRATIONS = 'supabase/migrations'
 const ARENE = `${MIGRATIONS}/20260811000000_arena.sql`
 const EVOLUTIONS = `${MIGRATIONS}/20260814000000_evolutions.sql`
+const REVENTE = `${MIGRATIONS}/20260924000000_revente.sql`
 const SEED = 'supabase/seed.sql'
 
 const dump = process.argv[2]
@@ -47,11 +48,14 @@ async function avec(fn) {
 
 /**
  * Remet la base locale dans l'état de la production : la migration de juillet, et rien d'autre.
- * Les deux nouvelles migrations et le seed sont écartés le temps de la remise à zéro, sinon
+ * Les trois nouvelles migrations et le seed sont écartés le temps de la remise à zéro, sinon
  * `supabase db reset` les appliquerait et l'on testerait un déploiement déjà fait.
  */
 function etatDeLaProduction() {
-  const ecartes = [[ARENE, `${ARENE}.hors`], [EVOLUTIONS, `${EVOLUTIONS}.hors`], [SEED, `${SEED}.hors`]]
+  const ecartes = [
+    [ARENE, `${ARENE}.hors`], [EVOLUTIONS, `${EVOLUTIONS}.hors`],
+    [REVENTE, `${REVENTE}.hors`], [SEED, `${SEED}.hors`],
+  ]
   for (const [de, vers] of ecartes) renameSync(de, vers)
   try {
     execFileSync('supabase', ['db', 'reset', '--local'], { stdio: ['ignore', 'ignore', 'inherit'] })
@@ -107,8 +111,10 @@ const avant = await avec(async (c) => ({
 dire(`   ${avant.joueurs} joueur(s), ${avant.captures} capture(s), `
   + `${avant.evolutions} évolution(s) dans les états.`)
 
-dire('\n3. Application des trois fichiers, dans l’ordre du déploiement…')
-for (const [nom, fichier] of [['arène', ARENE], ['évolutions', EVOLUTIONS], ['seed', SEED]]) {
+dire('\n3. Application des quatre fichiers, dans l’ordre du déploiement…')
+for (const [nom, fichier] of [
+  ['arène', ARENE], ['évolutions', EVOLUTIONS], ['revente', REVENTE], ['seed', SEED],
+]) {
   sansContraintes(fichier)
   dire(`   ${nom} : appliqué.`)
 }

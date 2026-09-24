@@ -44,9 +44,11 @@ Le niveau plafonne à 10 (`LEVEL_MAX`), donc le prix aussi : ×2,5 au maximum.
 1. **Jouer rapporte le double de vendre.** Un exemplaire au niveau maximum vaut exactement la
    moitié du gain d'une victoire de son palier (25/50, 50/100, 125/250). La revente est la
    sortie de secours du surplus, jamais une stratégie de revenu.
-2. **Racheter ne rembourse jamais le pli.** Une carte se revend entre 4 % et 10 % du pli qui la
-   produit. Le va-et-vient boutique → revente perd 90 % dans le meilleur des cas, 96 % au
-   départ. La boucle est fermée par construction, quel que soit le débit de PR.
+2. **Racheter ne rembourse jamais le pli.** Il faut revendre **dix exemplaires** d'un palier, au
+   niveau maximum, pour racheter un seul pli de ce palier. Énoncé en pourcentage, l'invariant se
+   briserait sur l'arrondi de la base rare (50 $ au lieu des 48 $ exacts) ; énoncé en nombre de
+   cartes, il dit la même chose sans dépendre d'un arrondi — et il dit ce qui compte à qui
+   voudrait grinder. La boucle est fermée par construction, quel que soit le débit de PR.
 3. **Le palier prime sur le niveau.** Un Nidoran niveau 3 vaut 13 $ contre 50 $ pour un rare
    neuf. Seule bavure assumée : un commun niveau 10 (25 $) dépasse de 5 $ un peu commun neuf
    (20 $) — dix victoires valent bien 5 $.
@@ -62,6 +64,10 @@ service ; le réglage tient dans la constante `SALE_BASE_RATE` (4 %).
 
 ## Données
 
+Tout vit dans une migration à part, `20260924000000_revente.sql` : l'arène et les évolutions ont
+déjà passé la répétition générale sur une copie de la production comme un bloc, et la revente doit
+pouvoir se relire — et se retirer — seule.
+
 `arena_exemplars` porte déjà `destroyed_at`. On ajoute :
 
 ```sql
@@ -69,6 +75,10 @@ alter table public.arena_exemplars
   add column sold_at timestamptz,
   add column sold_price int check (sold_price is null or sold_price >= 0);
 ```
+
+Plus une contrainte : un exemplaire ne peut pas être à la fois détruit et vendu. Ce sont deux
+sorties exclusives, et la base doit le dire plutôt que de s'en remettre à l'ordre des contrôles
+applicatifs.
 
 Une vente et une destruction sont deux façons de quitter le stock : même ligne, pas deux
 mécaniques parallèles qui finiraient par diverger. Le prix est consigné parce qu'il dépend du
@@ -142,3 +152,16 @@ décision.
 
 Tout rejouable sans backend, y compris les refus — contrainte transverse du projet depuis le
 début.
+
+## Le calendrier
+
+La saison 1 ouvre le **1er décembre 2026** et court jusqu'au **31 janvier 2027**. Le découpage des
+saisons a été décalé d'un mois pour cela (`déc-janv, févr-mars, avril-mai…`) : calé sur les mois
+impairs, il n'offrait plus, après le report du lancement, qu'un départ au 1er novembre — en
+pleines vacances — ou au 1er janvier.
+
+La revente part donc avec l'arène, dans un seul déploiement fin novembre, plutôt que d'ajouter du
+SQL en production une seconde fois.
+
+**Ordre de déploiement :** `20260811000000_arena.sql`, `20260814000000_evolutions.sql`,
+`20260924000000_revente.sql`, puis `supabase/seed.sql`.
