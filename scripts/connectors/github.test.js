@@ -135,6 +135,57 @@ describe('collect', () => {
     await expect(collect({ ...opts, fetchFn: fetchMock })).rejects.toThrow(/401/)
   })
 
+  const refused = (status, headers = {}, message = '') => ({
+    ok: false, status, headers: new Headers(headers), json: async () => ({ message }),
+  })
+
+  it('attend et rejoue la recherche quand GitHub limite le débit, au lieu de casser le run', async () => {
+    const wait = vi.fn().mockResolvedValue()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(refused(403, {}, 'You have exceeded a secondary rate limit.'))
+      .mockResolvedValueOnce(searchPage([item('moi/atlas', 1, 'a')]))
+      .mockResolvedValueOnce(prDetail('sha1', '2026-02-03T10:00:00Z'))
+    const out = await collect({ ...opts, fetchFn: fetchMock, wait })
+    expect(out.map((c) => c.externalId)).toEqual(['sha1'])
+    expect(wait).toHaveBeenCalledWith(60_000)
+  })
+
+  it('respecte retry-after quand GitHub le fournit', async () => {
+    const wait = vi.fn().mockResolvedValue()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(refused(429, { 'retry-after': '7' }))
+      .mockResolvedValueOnce(searchPage([]))
+    await collect({ ...opts, fetchFn: fetchMock, wait })
+    expect(wait).toHaveBeenCalledWith(7_000)
+  })
+
+  it('attend la remise à zéro du quota quand il est épuisé', async () => {
+    const wait = vi.fn().mockResolvedValue()
+    const reset = Math.floor(Date.now() / 1000) + 30
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(refused(403, { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(reset) }))
+      .mockResolvedValueOnce(searchPage([]))
+    await collect({ ...opts, fetchFn: fetchMock, wait })
+    const [[delay]] = wait.mock.calls
+    expect(delay).toBeGreaterThan(20_000)
+    expect(delay).toBeLessThanOrEqual(31_000)
+  })
+
+  it('finit par échouer si la limite persiste', async () => {
+    const wait = vi.fn().mockResolvedValue()
+    const fetchMock = vi.fn().mockResolvedValue(refused(403, { 'retry-after': '1' }))
+    await expect(collect({ ...opts, fetchFn: fetchMock, wait })).rejects.toThrow(/403/)
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+  })
+
+  it('ne rejoue pas un 403 qui n’est pas une limite de débit', async () => {
+    const wait = vi.fn()
+    const fetchMock = vi.fn().mockResolvedValue(refused(403, {}, 'Resource not accessible by personal access token'))
+    await expect(collect({ ...opts, fetchFn: fetchMock, wait })).rejects.toThrow(/403/)
+    expect(wait).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('authentifie chaque requête', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(searchPage([item('moi/atlas', 1, 'a')]))

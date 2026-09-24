@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { sinceDate, toRows, planSources, main, CONNECTORS } from './catch.mjs'
+import { sinceDate, bootstrapDate, toRows, planSources, main, CONNECTORS } from './catch.mjs'
 import { drawFrom } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
 
@@ -20,8 +20,14 @@ const item = (repo, number, title) => ({
   pull_request: { merged_at: '2026-02-03T10:00:00Z' },
 })
 
-const identity = (userId, extra = {}) =>
-  ({ user_id: userId, source: 'github', handle: 'moi', config: { repos: ['moi/atlas'] }, ...extra })
+const identity = (userId, extra = {}) => ({
+  user_id: userId,
+  source: 'github',
+  handle: 'moi',
+  config: { repos: ['moi/atlas'] },
+  created_at: '2026-01-08T09:00:00Z',
+  ...extra,
+})
 
 describe('sinceDate', () => {
   it('recule de sept jours par rapport à la capture la plus récente', () => {
@@ -38,6 +44,20 @@ describe('sinceDate', () => {
 
   it('franchit correctement un début d’année', () => {
     expect(sinceDate([{ date: '2026-01-03' }], '2025-01-01')).toBe('2025-12-27')
+  })
+})
+
+describe('bootstrapDate', () => {
+  it('ouvre la fenêtre sept jours avant l’inscription, pour que la PR mergée juste avant compte', () => {
+    expect(bootstrapDate({ created_at: '2026-03-10T09:00:00Z' }, '2026-06-01')).toBe('2026-03-03')
+  })
+
+  it('reste accrochée à l’inscription même si le premier run a lieu bien plus tard', () => {
+    expect(bootstrapDate({ created_at: '2026-01-03T23:59:00Z' }, '2026-12-31')).toBe('2025-12-27')
+  })
+
+  it('retombe sur le jour du run quand l’identité n’a pas de date d’inscription', () => {
+    expect(bootstrapDate({}, '2026-03-10')).toBe('2026-03-03')
   })
 })
 
@@ -264,19 +284,56 @@ describe('main', () => {
     expect(fetchMock.inserted).toHaveLength(0)
   })
 
-  it('traite un BOOTSTRAP_SINCE vide (variable de dépôt non définie) comme le jour du run', async () => {
+  it('sans BOOTSTRAP_SINCE, un nouveau part des sept jours précédant son inscription', async () => {
     process.env.BOOTSTRAP_SINCE = ''
-    const today = new Date().toISOString().slice(0, 10)
     const fetchMock = makeFetch({
-      identities: [identity('u1')],
-      github: [searchPage([item('moi/atlas', 1, 'a')]), prDetail('sha-a', '2026-01-02T10:00:00Z')],
+      identities: [identity('u1', { created_at: '2026-03-10T09:00:00Z' })],
+      github: [searchPage([item('moi/atlas', 1, 'a')]), prDetail('sha-a', '2026-03-05T10:00:00Z')],
     })
     vi.stubGlobal('fetch', fetchMock)
 
     await main()
 
     const search = fetchMock.mock.calls.find(([url]) => url.includes('search/issues'))
-    expect(search[0]).toContain(`merged%3A%3E%3D${today}`)
+    expect(search[0]).toContain('merged%3A%3E%3D2026-03-03')
+    expect(fetchMock.inserted[0][0].date).toBe('2026-03-05')
+  })
+
+  /**
+   * La fenêtre d'accueil est propre à chaque identité : deux personnes inscrites à des jours
+   * différents ne doivent pas partager un point de départ, sinon on retombe sur la date globale
+   * que ce réglage remplace.
+   */
+  it('donne à chaque identité neuve sa propre fenêtre d’accueil', async () => {
+    process.env.BOOTSTRAP_SINCE = ''
+    const fetchMock = makeFetch({
+      identities: [
+        identity('u1', { created_at: '2026-03-10T09:00:00Z' }),
+        identity('u2', { handle: 'toi', created_at: '2026-05-20T09:00:00Z' }),
+      ],
+      github: [searchPage([]), searchPage([])],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    const searches = fetchMock.mock.calls.filter(([url]) => url.includes('search/issues')).map(([url]) => url)
+    expect(searches[0]).toContain('merged%3A%3E%3D2026-03-03')
+    expect(searches[1]).toContain('merged%3A%3E%3D2026-05-13')
+  })
+
+  it('BOOTSTRAP_SINCE défini reste prioritaire, comme rattrapage manuel', async () => {
+    process.env.BOOTSTRAP_SINCE = '2025-11-01'
+    const fetchMock = makeFetch({
+      identities: [identity('u1', { created_at: '2026-03-10T09:00:00Z' })],
+      github: [searchPage([])],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    const search = fetchMock.mock.calls.find(([url]) => url.includes('search/issues'))
+    expect(search[0]).toContain('merged%3A%3E%3D2025-11-01')
   })
 
   it('propage l’échec de la source sans l’avaler', async () => {
