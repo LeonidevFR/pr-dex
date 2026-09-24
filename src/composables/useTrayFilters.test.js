@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { useTrayFilters } from './useTrayFilters.js'
 
 describe('useTrayFilters', () => {
-  it('démarre avec tous les paliers actifs et aucun filtre de capture', () => {
+  it('démarre avec tous les paliers actifs et aucun filtre de statut', () => {
     const f = useTrayFilters()
     expect(f.activeTiers.value).toEqual(new Set(['c', 'u', 'r', 'l']))
-    expect(f.caughtFilter.value).toBe('all')
+    expect(f.statusFilter.value).toBe('all')
     expect(f.active.value).toBe(false)
   })
 
@@ -32,19 +32,33 @@ describe('useTrayFilters', () => {
     expect(f.active.value).toBe(true)
   })
 
-  it('active devient vrai dès qu’un filtre de capture autre que "all" est posé', () => {
+  it('active devient vrai dès qu’un filtre de statut autre que "all" est posé', () => {
     const f = useTrayFilters()
-    f.setCaughtFilter('caught')
+    f.setStatusFilter('caught')
     expect(f.active.value).toBe(true)
   })
 
-  it('reset remet les paliers et le filtre de capture à leur état initial', () => {
+  it('reset remet les paliers et le filtre de statut à leur état initial', () => {
     const f = useTrayFilters()
     f.toggleTier('c')
-    f.setCaughtFilter('uncaught')
+    f.setStatusFilter('uncaught')
     f.reset()
     expect(f.activeTiers.value).toEqual(new Set(['c', 'u', 'r', 'l']))
-    expect(f.caughtFilter.value).toBe('all')
+    expect(f.statusFilter.value).toBe('all')
     expect(f.active.value).toBe(false)
+  })
+
+  it('accepte « evolvable » comme filtre de statut', () => {
+    const f = useTrayFilters()
+    f.setStatusFilter('evolvable')
+    expect(f.statusFilter.value).toBe('evolvable')
+    expect(f.active.value).toBe(true)
+  })
+
+  it('reset efface aussi le filtre « evolvable »', () => {
+    const f = useTrayFilters()
+    f.setStatusFilter('evolvable')
+    f.reset()
+    expect(f.statusFilter.value).toBe('all')
   })
 })

@@ -182,6 +182,15 @@
   }
   .filter-chip.active::before{background:var(--paper)}
   .filter-chip:not(.active){opacity:.6}
+  /* Le chip « Évoluables » reprend le triangle et le vert du badge de la case : même signe
+     des deux côtés, on comprend ce que le filtre isole sans avoir à l'essayer. */
+  .chip-evo::before{
+    width:0;height:0;border:0;border-radius:0;
+    border-left:4px solid transparent;border-right:4px solid transparent;
+    border-bottom:7px solid currentColor;
+  }
+  .chip-evo:not(.active){color:var(--herb)}
+  .chip-evo.active::before{border-bottom-color:var(--paper);background:transparent}
   .filter-reset{
     font-family:var(--f-data);font-size:10px;color:var(--ink-3);background:none;border:0;cursor:pointer;
     text-decoration:underline;text-underline-offset:2px;
@@ -191,6 +200,10 @@
     display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:1px;
     background:var(--rule-hi);border:1px solid var(--rule-hi);
     box-shadow:0 2px 0 rgba(120,96,64,.16);
+  }
+  .tray-empty{
+    font-family:var(--f-data);font-size:11px;color:var(--ink-3);
+    text-align:center;padding:28px 12px;margin:0;
   }
   .cell{
     position:relative;aspect-ratio:1;background:var(--plate);border:0;padding:0;cursor:default;
@@ -394,10 +407,14 @@
 
   /* Le balayage porte toujours un côté sombre AVANT le point brillant : une bande claire
      seule se lit comme un autocollant collé sur le carton, pas comme du métal éclairé. */
+  /* Peint tel quel, sans fusion : la face avant étant un groupe isolé (cf. son transform),
+     un `soft-light` n'a plus qu'un carton clair sous la dent et le reflet s'y efface — c'est
+     l'état que Firefox montrait déjà. L'opacité descend d'autant, le balayage ne fusionnant
+     plus rien : c'est elle, désormais, qui dit combien le palier accroche la lumière. */
 
   /* commun — papier pâle, pas un gramme de métal */
   .pkc[data-tier="c"] .pkc-frame{inset:9px;border:1px solid var(--t-c);opacity:.4}
-  .pkc[data-tier="c"] .pkc-sheen{z-index:5;mix-blend-mode:soft-light;opacity:calc(.3 * var(--pkc-light,1));
+  .pkc[data-tier="c"] .pkc-sheen{z-index:5;opacity:calc(.21 * var(--pkc-light,1));
     background-image:linear-gradient(102deg,transparent 34%,rgba(120,104,78,.1) 44%,rgba(255,255,255,.5) 50%,rgba(120,104,78,.08) 56%,transparent 66%);
     background-size:340% 100%;background-position:calc((1 - var(--px,.5))*100%) 0}
 
@@ -410,7 +427,7 @@
     mask-image:radial-gradient(ellipse 66% 54% at 50% 45%,#000 22%,transparent 80%)}
   .pkc[data-tier="u"] .pkc-frame{inset:9px;border:1px solid var(--t-u);opacity:.62;
     box-shadow:inset 0 0 0 3px rgba(255,255,255,.5),inset 0 0 0 4px rgba(92,122,82,.3)}
-  .pkc[data-tier="u"] .pkc-sheen{z-index:5;mix-blend-mode:soft-light;opacity:calc(.42 * var(--pkc-light,1));
+  .pkc[data-tier="u"] .pkc-sheen{z-index:5;opacity:calc(.29 * var(--pkc-light,1));
     background-image:linear-gradient(102deg,transparent 34%,rgba(96,92,84,.14) 44%,rgba(255,255,255,.62) 49.4%,rgba(226,230,222,.6) 50%,rgba(255,255,255,.5) 50.8%,rgba(96,92,84,.1) 57%,transparent 67%);
     background-size:340% 100%;background-position:calc((1 - var(--px,.5))*100%) 0}
 
@@ -420,7 +437,7 @@
   .pkc[data-tier="r"] .pkc-frame{inset:9px;border:1px solid rgba(184,134,43,.8);
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 0 1px rgba(120,90,30,.14)}
   .pkc[data-tier="r"] .pkc-corner{border-color:rgba(184,134,43,.85);opacity:.9}
-  .pkc[data-tier="r"] .pkc-sheen{z-index:5;mix-blend-mode:soft-light;opacity:calc(.5 * var(--pkc-light,1));
+  .pkc[data-tier="r"] .pkc-sheen{z-index:5;opacity:calc(.35 * var(--pkc-light,1));
     background-image:linear-gradient(102deg,transparent 32%,rgba(112,84,34,.2) 42%,rgba(255,246,222,.62) 48.6%,rgba(226,190,120,.7) 50%,rgba(255,246,222,.45) 51.6%,rgba(112,84,34,.14) 59%,transparent 68%);
     background-size:340% 100%;background-position:calc((1 - var(--px,.5))*100%) 0}
 
@@ -432,7 +449,7 @@
   .pkc[data-tier="l"] .pkc-frame{inset:9px;border:1.5px solid rgba(184,134,43,.85);
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.65),inset 0 0 0 4px rgba(184,134,43,.22),0 0 0 1px rgba(120,90,30,.18)}
   .pkc[data-tier="l"] .pkc-corner{border-color:rgba(184,134,43,.9);border-width:1.5px;opacity:1;width:22px;height:22px}
-  .pkc[data-tier="l"] .pkc-sheen{z-index:5;mix-blend-mode:soft-light;opacity:calc(.62 * var(--pkc-light,1));
+  .pkc[data-tier="l"] .pkc-sheen{z-index:5;opacity:calc(.43 * var(--pkc-light,1));
     background-image:linear-gradient(102deg,transparent 31%,rgba(112,84,34,.22) 41%,rgba(255,248,228,.68) 48.2%,rgba(232,196,124,.8) 50%,rgba(255,248,228,.5) 52%,rgba(112,84,34,.16) 60%,transparent 69%),
                      linear-gradient(102deg,transparent 64%,rgba(255,240,198,.3) 68%,transparent 73%);
     background-size:340% 100%,340% 100%;
@@ -449,16 +466,27 @@
 
   /* Irisation réservée au chromatique, quel que soit le palier : quand ça irise, c'est que
      l'exemplaire est de ceux qu'on ne reverra pas. Le brillant reste une information. */
-  .pkc-iris{z-index:6;mix-blend-mode:color-burn;opacity:0;transition:opacity .5s ease;
+  /* `multiply` et non `color-burn` : la face avant est un groupe isolé (elle porte son propre
+     transform, cf. plus bas), donc la fusion ne mord plus que sur le carton, jamais sur ce
+     qu'il y a derrière la carte. Un `color-burn` sur un fond clair ne rend alors presque
+     rien — l'irisation s'y délavait, et elle se délavait déjà ainsi dans Firefox. Multiplié,
+     le spectre s'imprime sur le carton, identique dans les deux moteurs. */
+  .pkc-iris{z-index:6;mix-blend-mode:multiply;opacity:0;transition:opacity .5s ease;
     background-image:repeating-linear-gradient(112deg,#d94f6a 0%,#d99a3f 9%,#3fbf95 18%,#4a86d9 27%,#8f5bc4 36%,#d94f6a 45%);
     background-size:300% 300%;
     background-position:calc(var(--px,.5)*100%) calc(var(--py,.5)*100%)}
   .pkc.is-shiny .pkc-iris{opacity:calc(.3 * var(--pkc-iris,1))}
   .pkc.scene-night.is-shiny{--pkc-iris:1.5}
 
+  /* Firefox n'applique `backface-visibility` qu'aux éléments qui portent eux-mêmes un
+     transform ; Chromium, lui, se fie au transform accumulé du parent en `preserve-3d`.
+     Sans ce `rotateY(0deg)` — qui ne déplace rien — la face avant y reste visible en miroir
+     une fois la carte retournée, et le dos ne se voit jamais. */
+  .pkc-front,.pkc-back{backface-visibility:hidden}
+  .pkc-front{transform:rotateY(0deg)}
+
   /* Le dos est le sachet dont la carte sort : sa trame diagonale, son papier vergé. Pas de
      pliures dessinées — essayées, elles faisaient autocollant plutôt que sachet. */
-  .pkc-front,.pkc-back{backface-visibility:hidden}
   .pkc-back{
     transform:rotateY(180deg);
     background-color:var(--paper-lo);
@@ -706,6 +734,10 @@
      et c'est la règle centrale du jeu — une animation simultanée la dit sans une ligne de texte. */
   .duel-flip.dos{transform:scale(.62) rotateY(180deg)}
   .duel-dos,.duel-front{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  /* Le `rotateY(0deg)` ne déplace rien : il donne à la face avant le transform propre sans
+     lequel Firefox ignore `backface-visibility` et la laisse voir en miroir, carte scellée.
+     Même remède que `.pkc-front`, et le même test de feuille de style le garde en place. */
+  .duel-front{transform:rotateY(0deg)}
   .duel-dos{
     transform:rotateY(180deg);display:grid;place-items:center;
     background:linear-gradient(168deg,#2f2820,#221c15 46%,#191410);

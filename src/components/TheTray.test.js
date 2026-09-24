@@ -179,30 +179,75 @@ describe('TheTray', () => {
       expect(w.findAll('.cell')).toHaveLength(151) // le parent décide, pas la case ici
     })
 
-    it('filtre sur les captures via le prop caughtFilter', () => {
-      const w = mountFiltered({ bySpecies: { 25: [entry('a', 25)] }, caughtFilter: 'caught' })
+    it('filtre sur les captures via le prop statusFilter', () => {
+      const w = mountFiltered({ bySpecies: { 25: [entry('a', 25)] }, statusFilter: 'caught' })
       expect(w.findAll('.cell')).toHaveLength(1)
       expect(w.findAll('.cell')[0].classes()).toContain('has')
     })
 
-    it('filtre sur les non-capturées via le prop caughtFilter', () => {
-      const w = mountFiltered({ bySpecies: { 25: [entry('a', 25)] }, caughtFilter: 'uncaught' })
+    it('filtre sur les non-capturées via le prop statusFilter', () => {
+      const w = mountFiltered({ bySpecies: { 25: [entry('a', 25)] }, statusFilter: 'uncaught' })
       expect(w.findAll('.cell')).toHaveLength(150)
     })
 
-    it('émet set-caught-filter au clic sur un chip de statut', async () => {
+    it('émet set-status-filter au clic sur un chip de statut', async () => {
       const w = mountFiltered()
       await chipByText(w, 'Capturés').trigger('click')
-      expect(w.emitted('set-caught-filter')[0]).toEqual(['caught'])
+      expect(w.emitted('set-status-filter')[0]).toEqual(['caught'])
     })
 
     it('n’affiche le bouton réinitialiser que si un filtre est actif', () => {
       expect(mountFiltered().find('.filter-reset').exists()).toBe(false)
-      expect(mountFiltered({ caughtFilter: 'caught' }).find('.filter-reset').exists()).toBe(true)
+      expect(mountFiltered({ statusFilter: 'caught' }).find('.filter-reset').exists()).toBe(true)
+    })
+
+
+    it('ne garde que les espèces évoluables via le prop statusFilter', () => {
+      const w = mountFiltered({
+        bySpecies: { 1: [entry('a', 1)], 25: [entry('b', 25)] },
+        evolvable: new Set([1]),
+        statusFilter: 'evolvable',
+      })
+      expect(w.findAll('.cell')).toHaveLength(1)
+      expect(w.findAll('.cell')[0].find('.cell-evo').exists()).toBe(true)
+    })
+
+    it('croise « évoluables » avec les paliers actifs', () => {
+      const w = mountFiltered({
+        bySpecies: { 1: [entry('a', 1)], 25: [entry('b', 25)] },
+        evolvable: new Set([1, 25]), // 1 est rare, 25 commun
+        activeTiers: new Set(['c']),
+        statusFilter: 'evolvable',
+      })
+      expect(w.findAll('.cell')).toHaveLength(1)
+    })
+
+    it('émet set-status-filter au clic sur le chip Évoluables', async () => {
+      const w = mountFiltered()
+      await chipByText(w, 'Évoluables').trigger('click')
+      expect(w.emitted('set-status-filter')[0]).toEqual(['evolvable'])
+    })
+
+    it('explique la grille vide plutôt que de la laisser muette', () => {
+      const w = mountFiltered({ statusFilter: 'evolvable', evolvable: new Set() })
+      expect(w.findAll('.cell')).toHaveLength(0)
+      expect(w.find('.tray-empty').text()).toContain('Rien à faire évoluer')
+    })
+
+    // Nommer l'évolution comme seule cause serait faux si un palier était décoché en même temps.
+    it('reste évasif quand un palier décoché participe aussi au vide', () => {
+      const w = mountFiltered({
+        statusFilter: 'evolvable', evolvable: new Set(), activeTiers: new Set(['l']),
+      })
+      expect(w.find('.tray-empty').text()).toContain('Aucune espèce ne répond à ces filtres')
+    })
+
+    it('n’affiche pas le message de grille vide quand des cases restent', () => {
+      expect(mountFiltered().find('.tray-empty').exists()).toBe(false)
     })
 
     it('émet reset-filters au clic sur réinitialiser', async () => {
-      const w = mountFiltered({ caughtFilter: 'caught' })
+      const w = mountFiltered({ statusFilter: 'caught' })
       await w.find('.filter-reset').trigger('click')
       expect(w.emitted('reset-filters')).toBeTruthy()
     })

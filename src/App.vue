@@ -518,9 +518,9 @@ useKeyboardNav({
       v-if="route.name === 'collection'"
       :by-species="collection.dex.bySpecies.value" :available="availableById" :evolvable="collection.dex.evolvableIds.value"
       :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
-      :caught-filter="filters.caughtFilter.value" :gen="gen"
+      :status-filter="filters.statusFilter.value" :gen="gen"
       @select="(id) => router.go('collection', id)"
-      @toggle-tier="filters.toggleTier" @set-caught-filter="filters.setCaughtFilter" @reset-filters="filters.reset"
+      @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter" @reset-filters="filters.reset"
       @set-gen="gen = $event"
     />
 
