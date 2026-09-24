@@ -579,7 +579,7 @@ useKeyboardNav({
         :arena-level-of="arena ? arena.levelOf : () => 1"
         :arena-form-of="arena && areneOuverte ? arena.formOfKey : null"
         @close="router.go('collection')" @evolve="onEvolve" @engage="onEngageFromSheet"
-        @sell="(key) => onSell([key])"
+        @sell="onSell"
       />
     </transition>
 

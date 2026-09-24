@@ -662,7 +662,42 @@ describe('revente depuis la fiche', () => {
     expect(w.findAll('.vendre-un')[0].text()).toContain('Confirmer')
 
     await w.findAll('.vendre-un')[0].trigger('click')
-    expect(w.emitted('sell')[0]).toEqual(['github:a'])
+    expect(w.emitted('sell')[0]).toEqual([['github:a']])
+  })
+
+  /**
+   * Le lot depuis la fiche. Il ne vivait qu'en boutique, ce qui obligeait à changer d'écran pour
+   * le geste le plus courant — vider un tas qu'on a justement sous les yeux.
+   */
+  it('propose de vendre tout le surplus d’un coup', async () => {
+    const trois = [capture('a', 1), capture('b', 1), capture('c', 1)]
+    const w = mountSheet({ id: 1, entries: trois, available: trois })
+    const bouton = w.find('.vendre-tout')
+    expect(bouton.text()).toBe(`Vendre les 2 en trop · ${salePrice(1, 1) * 2} ₽`)
+
+    await bouton.trigger('click')
+    expect(w.emitted('sell')).toBeUndefined()
+    await w.find('.vendre-tout').trigger('click')
+    expect(w.emitted('sell')[0][0]).toHaveLength(2)
+  })
+
+  // Même règle qu'en boutique : le lot épargne le meilleur, les shinies et les investis.
+  it('épargne le meilleur exemplaire, le shiny et l’aguerri', () => {
+    const quatre = [
+      capture('a', 1), capture('b', 1), capture('c', 1, { shiny: true }), capture('d', 1),
+    ]
+    const w = mountSheet({
+      id: 1, entries: quatre, available: quatre,
+      arenaLevelOf: (k) => (k === 'github:d' ? 9 : 1),
+    })
+    // Sur quatre : d est gardé (le plus aguerri), c est shiny — restent a et b.
+    expect(w.find('.vendre-tout').text()).toContain('les 2 en trop')
+  })
+
+  it('ne propose pas de lot quand il n’y a rien à épargner de plus', () => {
+    const deuxDontShiny = [capture('a', 1, { shiny: true }), capture('b', 1, { shiny: true })]
+    const w = mountSheet({ id: 1, entries: deuxDontShiny, available: deuxDontShiny })
+    expect(w.find('.vendre-tout').exists()).toBe(false)
   })
 
   // Le prix suit le niveau de CET exemplaire, pas celui de l'espèce.

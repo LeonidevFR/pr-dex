@@ -5,6 +5,7 @@ import { spriteUrl } from '../lib/sprites.js'
 import PokeCard from './PokeCard.vue'
 import SPECIES_INFO from '../../shared/species-info.json'
 import { salePrice } from '../../shared/arena-economy.js'
+import { saleGroups, saleTotal } from '../lib/revente.js'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -44,10 +45,31 @@ const aVendre = ref(null)
 
 const prixDe = (e) => salePrice(props.id, props.arenaLevelOf(e.key), e.shiny)
 
+/**
+ * Le lot, ici aussi.
+ *
+ * Il vivait en boutique, et c'était une erreur de découpage : quand on a dix Nidoran sous les
+ * yeux, c'est de LÀ qu'on veut les larguer, pas après avoir changé d'écran. La règle est la même
+ * des deux côtés — `saleGroups` la porte une seule fois — donc le défaut épargne le meilleur
+ * exemplaire, les chromatiques et ceux qui ont gagné des niveaux.
+ */
+const lot = computed(() => saleGroups(props.available, props.arenaLevelOf)[0] ?? null)
+
+const lotPrix = computed(() => lot.value
+  ? saleTotal([lot.value], new Set(lot.value.preselected))
+  : 0)
+
 function vendre(e) {
   if (aVendre.value !== e.key) { aVendre.value = e.key; return }
   aVendre.value = null
-  emit('sell', e.key)
+  emit('sell', [e.key])
+}
+
+function vendreLeLot() {
+  if (!lot.value?.preselected.length) return
+  if (aVendre.value !== 'lot') { aVendre.value = 'lot'; return }
+  aVendre.value = null
+  emit('sell', [...lot.value.preselected])
 }
 
 // Cible d'évolution en cours de sélection (id de l'espèce), ou `null` hors sélection.
@@ -240,6 +262,18 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             }}</button>
           </div>
         </div>
+        <div v-if="lot && lot.preselected.length" class="vendre-lot">
+          <button
+            class="evo-btn vendre-tout" :class="{ confirming: aVendre === 'lot' }"
+            @click="vendreLeLot"
+          >{{ aVendre === 'lot'
+            ? `Confirmer — ${lotPrix} ₽`
+            : `Vendre les ${lot.preselected.length} en trop · ${lotPrix} ₽` }}</button>
+          <span class="muted vendre-lot-note">
+            Garde ton meilleur exemplaire, les chromatiques et ceux qui ont gagné des niveaux.
+          </span>
+        </div>
+
         <p v-if="available.length < 2" class="muted" style="margin-bottom:10px">
           Il ne t’en reste qu’un : on garde toujours un exemplaire par espèce, c’est lui qui la
           tient dans ta collection. Les suivants seront vendables.

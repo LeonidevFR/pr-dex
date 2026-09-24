@@ -898,6 +898,9 @@
   .vendre-prix{margin-left:auto;color:var(--ink)}
   .vendre-note{margin:6px 0 0 8px;font-size:11px}
   .vendre-un{padding:6px 12px;white-space:nowrap}
+  /* Le lot au-dessus de la liste : c'est le geste courant, et la ligne par ligne l'exception. */
+  .vendre-lot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .vendre-lot-note{font-size:11px;flex:1 1 220px}
 
   /* ───────── profil ───────── */
   /* Un filet d'un pixel et demi entre les cases, obtenu par la couleur de fond de la grille :
