@@ -117,10 +117,43 @@ describe('SaleSection', () => {
     expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
   })
 
-  // Une vente aboutie change le stock : la sélection doit repartir du nouveau surplus.
+  // Tant qu'on n'y a pas touché, la sélection suit le stock : un nouveau doublon s'y ajoute.
   it('repart du nouveau surplus quand le stock change', async () => {
     const w = monter(TROIS_RATTATA)
     await w.setProps({ groups: saleGroups([e('a', RATTATA), e('b', RATTATA)]) })
     expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
+  })
+
+  /**
+   * Le surplus est un `computed` qui reconstruit ses groupes à chaque évaluation. Un `watch`
+   * profond dessus réappliquait la sélection par défaut à n'importe quel recalcul, même
+   * équivalent : on décochait deux exemplaires, la moindre relecture les recochait en silence, et
+   * la vente emportait ce qu'on voulait garder.
+   */
+  it('garde la sélection quand le surplus est recalculé à l’identique', async () => {
+    const w = monter(TROIS_RATTATA)
+    await w.find('.vendre-plier').trigger('click')
+    const pris = w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))
+    await pris[0].trigger('click')
+    expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
+
+    await w.setProps({ groups: saleGroups([e('a', RATTATA), e('b', RATTATA), e('c', RATTATA)]) })
+    expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
+  })
+
+  // Ce qui a disparu quitte la sélection, sinon la vente suivante porterait sur du vide.
+  it('oublie un exemplaire qui n’est plus là, sans rien rajouter', async () => {
+    const w = monter([e('a', RATTATA), e('b', RATTATA), e('c', RATTATA), e('d', RATTATA)])
+    await w.find('.vendre-plier').trigger('click')
+    const pris = w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))
+    await pris[0].trigger('click')   // décoché : le joueur a décidé
+    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
+
+    // Le stock perd un exemplaire ET en gagne un autre : le nouveau ne s'invite pas.
+    await w.setProps({
+      groups: saleGroups([e('b', RATTATA), e('c', RATTATA), e('d', RATTATA), e('z', RATTATA)]),
+    })
+    const apres = Number(w.find('.arena-unit').text().replace(/\D/g, ''))
+    expect(apres).toBeLessThanOrEqual(2)
   })
 })

@@ -20,10 +20,30 @@ const choisies = ref(new Set())
 const ouverts = ref(new Set())
 const aConfirmer = ref(false)
 
-watch(() => props.groups, (groupes) => {
-  choisies.value = new Set(groupes.flatMap((g) => g.preselected))
+/** A-t-on touché à la sélection ? Une fois oui, elle n'est plus à nous de la refaire. */
+const decidee = ref(false)
+
+/**
+ * Ce qui identifie le STOCK, et non l'objet qui le décrit.
+ *
+ * Le surplus est un `computed` qui reconstruit ses groupes à chaque évaluation : un `watch`
+ * profond dessus se déclenchait à n'importe quel recalcul, même équivalent, et réappliquait la
+ * sélection par défaut. On décochait deux exemplaires, la moindre relecture les recochait en
+ * silence, et la vente emportait ce qu'on voulait garder — sans rien qui signale le retour en
+ * arrière.
+ */
+const signature = computed(
+  () => props.groups.flatMap((g) => g.items.map((i) => i.key)).sort().join('|'))
+
+watch(signature, (_maintenant, avant) => {
+  const vivantes = new Set(props.groups.flatMap((g) => g.items.map((i) => i.key)))
+  choisies.value = avant !== undefined && decidee.value
+    // Le joueur a décidé : on ne garde que ce qui existe encore, et on ne rajoute rien. Un
+    // exemplaire qui arrive pendant qu'il choisit ne doit pas se glisser dans sa vente.
+    ? new Set([...choisies.value].filter((k) => vivantes.has(k)))
+    : new Set(props.groups.flatMap((g) => g.preselected))
   aConfirmer.value = false
-}, { immediate: true, deep: true })
+}, { immediate: true })
 
 const total = computed(() => saleTotal(props.groups, choisies.value))
 const nombre = computed(() => choisies.value.size)
@@ -39,6 +59,7 @@ const bloque = (g, i) => !choisies.value.has(i.key) && restants(g) <= 1
 
 function basculer(g, i) {
   if (bloque(g, i)) return
+  decidee.value = true
   const s = new Set(choisies.value)
   s.has(i.key) ? s.delete(i.key) : s.add(i.key)
   choisies.value = s
@@ -47,6 +68,7 @@ function basculer(g, i) {
 
 /** Le raccourci du groupe : tout son surplus, ou rien. Jamais le dernier exemplaire. */
 function basculerGroupe(g) {
+  decidee.value = true
   const s = new Set(choisies.value)
   const cibles = g.items.filter((i) => !i.keeper)
   const toutPris = cibles.every((i) => s.has(i.key))
