@@ -14,14 +14,14 @@ const teaser = () => mount(ArenaTeaser)
  */
 describe('ArenaTeaser', () => {
   it('donne la date d’ouverture en toutes lettres', () => {
-    expect(teaser().text()).toContain('1er septembre 2026')
+    expect(teaser().text()).toContain('1er décembre 2026')
   })
 
   it('compte les jours qui restent', () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date(2026, 7, 20, 12))
-    // Du 20 au 31 août : douze jours d'attente.
-    expect(teaser().find('.arena-big').text()).toBe('12')
+    vi.setSystemTime(new Date(2026, 10, 20, 12))
+    // Du 20 au 30 novembre : onze jours d'attente, le jour même compris.
+    expect(teaser().find('.arena-big').text()).toBe('11')
   })
 
   // La médaille de la première saison est le seul objet désirable qu'on puisse montrer d'avance.
@@ -54,7 +54,7 @@ describe('ArenaTeaser', () => {
   })
 
   it('se déduit de la première saison plutôt que d’une date écrite deux fois', () => {
-    expect(arenaOpensAt().getMonth()).toBe(8)
+    expect(arenaOpensAt().getMonth()).toBe(11)
     expect(arenaOpensAt().getDate()).toBe(1)
   })
 })

@@ -91,23 +91,35 @@ describe('plafonds de jeu', () => {
 describe('bornes de saison', () => {
   it('couvre les deux mois que son numéro désigne', () => {
     const { start, end } = seasonBounds('2026-S4')
-    expect(start.getMonth()).toBe(6)   // juillet
+    expect(start.getMonth()).toBe(7)   // août
     expect(start.getDate()).toBe(1)
-    expect(end.getMonth()).toBe(7)     // août
-    expect(end.getDate()).toBe(31)
+    expect(end.getMonth()).toBe(8)     // septembre
+    expect(end.getDate()).toBe(30)
   })
 
-  it('place la première saison sur janvier et février', () => {
+  it('place la première saison de l’année sur février et mars', () => {
     const { start, end } = seasonBounds('2027-S1')
     expect(start.getFullYear()).toBe(2027)
-    expect(start.getMonth()).toBe(0)
-    expect(end.getMonth()).toBe(1)
+    expect(start.getMonth()).toBe(1)
+    expect(end.getMonth()).toBe(2)
   })
 
-  // Février fait 28 ou 29 jours : la borne se déduit du calendrier, jamais d'un compte fixe.
-  it('suit les années bissextiles', () => {
-    expect(seasonBounds('2028-S1').end.getDate()).toBe(29)
-    expect(seasonBounds('2027-S1').end.getDate()).toBe(28)
+  /**
+   * La saison à cheval sur le Nouvel An, seule subtilité du découpage décalé : décembre et
+   * janvier sont la MÊME saison, nommée par son mois de départ. Sans ça, deux mois de la même
+   * saison tomberaient dans deux codes différents, et le classement se scinderait en plein jeu.
+   */
+  it('tient décembre et janvier dans une seule saison, nommée par son départ', () => {
+    const { start, end } = seasonBounds('2026-S6')
+    expect(start.getFullYear()).toBe(2026)
+    expect(start.getMonth()).toBe(11)  // décembre 2026
+    expect(end.getFullYear()).toBe(2027)
+    expect(end.getMonth()).toBe(0)     // janvier 2027
+    expect(end.getDate()).toBe(31)
+
+    expect(seasonOf(new Date(2026, 11, 20))).toBe('2026-S6')
+    expect(seasonOf(new Date(2027, 0, 20))).toBe('2026-S6')
+    expect(seasonOf(new Date(2027, 1, 1))).toBe('2027-S1')
   })
 
   // La fin est le dernier instant de la saison, pas le premier de la suivante — sinon l'écran
@@ -129,16 +141,22 @@ describe('bornes de saison', () => {
 
 describe('jours restants', () => {
   it('compte le jour courant, où l’on peut encore engager', () => {
-    expect(daysLeftInSeason('2026-S4', new Date(2026, 7, 31, 8, 0))).toBe(1)
+    expect(daysLeftInSeason('2026-S4', new Date(2026, 8, 30, 8, 0))).toBe(1)
   })
 
   it('rend zéro une fois la saison passée', () => {
-    expect(daysLeftInSeason('2026-S4', new Date(2026, 8, 1))).toBe(0)
+    expect(daysLeftInSeason('2026-S4', new Date(2026, 9, 1))).toBe(0)
+  })
+
+  // Février fait 28 ou 29 jours : la durée se déduit du calendrier, jamais d'un compte fixe.
+  it('suit les années bissextiles', () => {
+    expect(daysLeftInSeason('2028-S1', new Date(2028, 1, 1))).toBe(60)
+    expect(daysLeftInSeason('2027-S1', new Date(2027, 1, 1))).toBe(59)
   })
 
   it('donne la durée entière au premier jour', () => {
-    // Juillet et août : 62 jours.
-    expect(daysLeftInSeason('2026-S4', new Date(2026, 6, 1, 0, 0))).toBe(62)
+    // Août et septembre : 61 jours.
+    expect(daysLeftInSeason('2026-S4', new Date(2026, 7, 1, 0, 0))).toBe(61)
   })
 })
 
@@ -149,8 +167,8 @@ describe('jours restants', () => {
  */
 describe('ouverture de l’arène', () => {
   it('ouvre le premier jour de la première saison, pas la veille', () => {
-    expect(arenaIsOpen(new Date(2026, 7, 31, 23, 59))).toBe(false)
-    expect(arenaIsOpen(new Date(2026, 8, 1, 0, 0))).toBe(true)
+    expect(arenaIsOpen(new Date(2026, 10, 30, 23, 59))).toBe(false)
+    expect(arenaIsOpen(new Date(2026, 11, 1, 0, 0))).toBe(true)
   })
 
   it('reste ouverte ensuite, saison après saison', () => {
@@ -175,16 +193,16 @@ describe('nom des saisons', () => {
   })
 
   it('enchaîne d’une année sur l’autre sans repartir de zéro', () => {
-    expect(seasonLabel('2026-S6')).toBe('Saison 2')
-    expect(seasonLabel('2027-S1')).toBe('Saison 3')
-    expect(seasonLabel('2027-S6')).toBe('Saison 8')
+    expect(seasonLabel('2027-S1')).toBe('Saison 2')
+    expect(seasonLabel('2027-S2')).toBe('Saison 3')
+    expect(seasonLabel('2027-S6')).toBe('Saison 7')
   })
 
   // Les saisons d'avant le lancement n'ont pas eu lieu : elles n'ont pas de numéro, et mieux
   // vaut montrer leur code qu'un vide ou un numéro négatif.
   it('ne numérote pas ce qui n’a pas eu lieu', () => {
-    expect(seasonNumber('2026-S4')).toBe(0)
-    expect(seasonLabel('2026-S4')).toBe('2026-S4')
+    expect(seasonNumber('2026-S5')).toBe(0)
+    expect(seasonLabel('2026-S5')).toBe('2026-S5')
   })
 
   it('ne rend jamais rien, même sur un code illisible', () => {

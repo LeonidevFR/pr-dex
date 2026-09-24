@@ -87,7 +87,12 @@ export const CHALLENGE_EXPIRY_HOURS = 24
  */
 export function seasonOf(date = new Date()) {
   const d = new Date(date)
-  return `${d.getFullYear()}-S${Math.ceil((d.getMonth() + 1) / 2)}`
+  const mois = d.getMonth() + 1
+  // Janvier appartient à la saison ouverte en décembre : elle garde le nom de son mois de
+  // départ, et donc l'année précédente. `|| 6` attrape ce seul cas — pour tous les autres mois
+  // la division entière tombe déjà sur le bon numéro.
+  const numero = Math.floor(mois / 2) || 6
+  return `${mois === 1 ? d.getFullYear() - 1 : d.getFullYear()}-S${numero}`
 }
 
 /**
@@ -99,9 +104,14 @@ export function seasonOf(date = new Date()) {
  * suivantes, l'arène reste fermée jusqu'au premier jour de celle-ci. La saison 1 est alors une
  * saison entière, comme toutes celles qui suivront.
  *
+ * C'est précisément ce qui a fait décaler le découpage d'un mois. Calé sur les mois impairs, il
+ * n'offrait après le report du lancement que des départs au 1er novembre — en pleines vacances
+ * de la seule personne qui tient le projet — ou au 1er janvier. Décalé, il ouvre au 1er décembre
+ * et la saison 1 se joue entière, du 1er décembre 2026 au 31 janvier 2027.
+ *
  * Écrite ici ET dans `arena_first_season` côté SQL, avec un test de parité qui les aligne.
  */
-export const FIRST_SEASON = '2026-S5'
+export const FIRST_SEASON = '2026-S6'
 
 /**
  * L'arène est-elle ouverte ? Avant, ses écrans annoncent sa venue ; après, plus rien ne
@@ -109,20 +119,24 @@ export const FIRST_SEASON = '2026-S5'
  */
 
 /**
- * Les bornes d'une saison, déduites de son seul nom : `2026-S4` couvre juillet et août 2026.
+ * Les bornes d'une saison, déduites de son seul nom : `2026-S4` couvre août et septembre 2026,
+ * et `2026-S6` décembre 2026 et janvier 2027.
  *
  * Rien n'est stocké en base pour ça, et rien ne doit l'être — une date de début consignée
  * pourrait diverger du découpage qui, lui, est un calcul. La règle est déjà écrite deux fois,
  * ici et en SQL ; l'écrire une troisième fois en données inviterait la contradiction.
  *
- * La fin est le dernier instant de la saison et non le premier de la suivante : `31 août
- * 23 h 59 m 59 s` se lit et s'affiche, `1er septembre 00 h 00` ferait dire à l'écran qu'il
- * reste un jour de plus qu'en réalité.
+ * La fin est le dernier instant de la saison et non le premier de la suivante : `30 septembre
+ * 23 h 59 m 59 s` se lit et s'affiche, `1er octobre 00 h 00` ferait dire à l'écran qu'il reste
+ * un jour de plus qu'en réalité.
  */
 export function seasonBounds(season) {
   const [annee, numero] = season.split('-S').map(Number)
-  const debut = new Date(annee, (numero - 1) * 2, 1)
-  const fin = new Date(annee, numero * 2, 0, 23, 59, 59, 999)
+  // Le mois de départ est `numero * 2` en base 1, soit `numero * 2 - 1` en base 0. La saison 6
+  // part donc de décembre et finit en janvier : `new Date(annee, 13, 0)` déborde sur l'année
+  // suivante, ce que le constructeur fait proprement — inutile de traiter ce cas à part.
+  const debut = new Date(annee, numero * 2 - 1, 1)
+  const fin = new Date(annee, numero * 2 + 1, 0, 23, 59, 59, 999)
   return { start: debut, end: fin }
 }
 
@@ -131,7 +145,7 @@ export function seasonBounds(season) {
  * jour, il reste bien un jour pour engager, pas zéro.
  */
 /**
- * Le NUMÉRO d'une saison, compté depuis la première. `2026-S5` est la saison 1, `2026-S6` la 2.
+ * Le NUMÉRO d'une saison, compté depuis la première. `2026-S6` est la saison 1, `2027-S1` la 2.
  *
  * Le code `AAAA-SN` reste la clé en base — il se trie, se calcule et ne dépend d'aucune
  * convention — mais il ne dit rien à personne. Un joueur retient « la saison 3 », pas

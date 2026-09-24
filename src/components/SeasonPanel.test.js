@@ -21,19 +21,19 @@ const monter = (props = {}) => mount(SeasonPanel, {
 beforeEach(() => {
   // Mi-saison : le sablier et les jours restants ne doivent pas dépendre du jour où l'on teste.
   vi.useFakeTimers()
-  vi.setSystemTime(new Date(2026, 6, 16, 12))
+  vi.setSystemTime(new Date(2026, 7, 16, 12))
 })
 afterEach(() => vi.useRealTimers())
 
 describe('SeasonPanel', () => {
   // Le nom de code ne dit rien à personne : ce sont les mois qu'on retient.
   it('nomme la saison par ses mois, pas par son code', () => {
-    expect(monter().find('.panel-name').text()).toBe('juillet et août 2026')
+    expect(monter().find('.panel-name').text()).toBe('août et septembre 2026')
   })
 
   it('compte les jours qui restent à jouer', () => {
-    // Du 16 juillet au 31 août inclus.
-    expect(monter().text()).toContain('47')
+    // Du 16 août au 30 septembre inclus.
+    expect(monter().text()).toContain('46')
   })
 
   it('situe le joueur dans le classement', () => {

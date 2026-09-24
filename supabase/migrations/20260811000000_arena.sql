@@ -820,9 +820,17 @@ $$;
 -- pas à celle qui commence deux heures plus tard en UTC.
 create or replace function public.arena_season(at timestamptz)
 returns text language sql immutable strict as $$
-  select to_char(timezone('Europe/Paris', arena_season.at), 'YYYY') || '-S'
-         || (((extract(month from timezone('Europe/Paris', arena_season.at)) :: int) + 1)
-             / 2) :: text
+  -- Deux mois de calendrier, décalés d'un mois : la saison 6 part de décembre et englobe le
+  -- janvier suivant. Elle garde le nom de son mois de DÉPART — donc l'année précédente pour
+  -- janvier, seul cas que le `case` traite. Sans ça, décembre et janvier tomberaient dans deux
+  -- codes différents et le classement se scinderait au milieu de la saison.
+  with d as (
+    select extract(month from timezone('Europe/Paris', arena_season.at)) :: int as mois,
+           extract(year  from timezone('Europe/Paris', arena_season.at)) :: int as annee
+  )
+  select case when mois = 1 then (annee - 1) :: text || '-S6'
+              else annee :: text || '-S' || (mois / 2) :: text end
+  from d
 $$;
 
 -- Relever un défi : la fonction qui justifie tout le lot.
@@ -1265,7 +1273,7 @@ grant select on public.arena_public_profile to authenticated;
  * Une seule ligne à changer le jour où la date de mise en service se précise.
  */
 create or replace function public.arena_first_season()
-returns text language sql immutable as $$ select '2026-S5' $$;
+returns text language sql immutable as $$ select '2026-S6' $$;
 
 grant execute on function public.arena_first_season() to authenticated;
 

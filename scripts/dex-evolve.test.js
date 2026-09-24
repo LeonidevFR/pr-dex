@@ -219,6 +219,18 @@ describe.skipIf(!disponible)('parité des lignées', () => {
  * régime, et le passé ne se rejuge pas.
  */
 describe.skipIf(!disponible)('reprise des évolutions', () => {
+  /**
+   * La reprise ne tourne QUE sur une base vierge d'évolutions — c'est sa nature, elle est
+   * unique. Or d'autres fichiers de tests en valident de vraies, par le client REST, et vitest
+   * les exécute en parallèle : sans cette table vidée dans la transaction du cas, le résultat
+   * dépend de l'ordre des fichiers. Le `delete` établit la précondition de la fonction testée,
+   * et le `rollback` de `scene` le défait.
+   */
+  const reprise = async (c) => {
+    await c.query('delete from public.evolutions')
+    return c.query('select public.dex_backfill_evolutions() as n')
+  }
+
   const etat = (c, uid, evolutions) => c.query(
     `insert into public.state (user_id, claimed, evolutions) values ($1, '[]'::jsonb, $2::jsonb)
      on conflict (user_id) do update set evolutions = excluded.evolutions`,
@@ -232,7 +244,7 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
   it('transpose une évolution du format actuel', async () => {
     await scene(async (c) => {
       await etat(c, MOI, [{ species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:x', date: '2026-07-01' }])
-      await c.query('select public.dex_backfill_evolutions()')
+      await reprise(c)
       expect(await reprises(c, MOI)).toMatchObject([{
         from_species: CHENIPAN, to_species: CHRYSACIER, from_key: 'github:x', day: '2026-07-01',
       }])
@@ -244,7 +256,7 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
   it('lit aussi l’ancien nom du champ', async () => {
     await scene(async (c) => {
       await etat(c, MOI, [{ species: CHRYSACIER, from: CHENIPAN, fromSha: 'github:vieux' }])
-      await c.query('select public.dex_backfill_evolutions()')
+      await reprise(c)
       expect((await reprises(c, MOI))[0].from_key).toBe('github:vieux')
     })
   })
@@ -261,7 +273,7 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
         { species: PAPILUSION, from: CHRYSACIER, fromKey: 'github:b' },
         { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:c' },
       ])
-      await c.query('select public.dex_backfill_evolutions()')
+      await reprise(c)
       expect((await reprises(c, MOI)).map((r) => r.from_key)).toEqual(['github:a', 'github:b', 'github:c'])
     })
   })
@@ -272,8 +284,9 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
   it('ne fait rien si des évolutions sont déjà en base', async () => {
     await scene(async (c) => {
       await etat(c, MOI, [{ species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:x' }])
-      await c.query('select public.dex_backfill_evolutions()')
-      const n = await c.query('select public.dex_backfill_evolutions() as n').then((r) => r.rows[0].n)
+      await reprise(c)
+      const n = await c.query('select public.dex_backfill_evolutions() as n')
+        .then((r) => r.rows[0].n)
       expect(n).toBe(0)
       expect(await reprises(c, MOI)).toHaveLength(1)
     })
@@ -283,7 +296,7 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
     await scene(async (c) => {
       await etat(c, MOI, [{ species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:x' }])
       await etat(c, AUTRE, [{ species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:x' }])
-      await c.query('select public.dex_backfill_evolutions()')
+      await reprise(c)
       expect(await reprises(c, MOI)).toHaveLength(1)
       expect(await reprises(c, AUTRE)).toHaveLength(1)
     })
@@ -301,7 +314,7 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
         { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:b' },
       ])
       await etat(c, AUTRE, [{ species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:c' }])
-      await c.query('select public.dex_backfill_evolutions()')
+      await reprise(c)
 
       // Compté sur les seuls joueurs de ce cas, et non sur toute la base : d'autres tests y
       // écrivent, et surtout l'application elle-même écrira des évolutions NEUVES, absentes des
@@ -330,7 +343,7 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
         { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:a' },
         { species: PAPILUSION, from: CHRYSACIER, fromKey: 'evo:0' },
       ])
-      await c.query('select public.dex_backfill_evolutions()')
+      await reprise(c)
 
       const lignes = await reprises(c, MOI)
       expect(lignes).toHaveLength(2)
@@ -356,7 +369,7 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
         { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:a1' },
         { species: PAPILUSION, from: CHRYSACIER, fromKey: 'evo:0' },
       ])
-      await c.query('select public.dex_backfill_evolutions()')
+      await reprise(c)
 
       const miennes = await reprises(c, MOI)
       const siennes = await reprises(c, AUTRE)
@@ -374,7 +387,7 @@ describe.skipIf(!disponible)('reprise des évolutions', () => {
         { species: CHRYSACIER, from: CHENIPAN, fromKey: 'github:a' },
         { species: PAPILUSION, from: CHRYSACIER, fromKey: 'evo:0' },
       ])
-      await c.query('select public.dex_backfill_evolutions()')
+      await reprise(c)
       const avant = (await reprises(c, MOI)).map((r) => r.from_key)
       await c.query('select public.dex_backfill_evolutions()')
       expect((await reprises(c, MOI)).map((r) => r.from_key)).toEqual(avant)
