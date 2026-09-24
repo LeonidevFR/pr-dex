@@ -4,6 +4,7 @@ import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATC
 import { spriteUrl } from '../lib/sprites.js'
 import PokeCard from './PokeCard.vue'
 import SPECIES_INFO from '../../shared/species-info.json'
+import { salePrice } from '../../shared/arena-economy.js'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -29,7 +30,25 @@ const props = defineProps({
    */
   arenaFormOf: { type: Function, default: null },
 })
-const emit = defineEmits(['close', 'evolve', 'engage'])
+const emit = defineEmits(['close', 'evolve', 'engage', 'sell'])
+
+/**
+ * Vendre un exemplaire précis, depuis la fiche où on est justement en train de le regarder. Le
+ * lot se fait en boutique ; ici on largue celui-là.
+ *
+ * Deux clics, comme un achat : le second dit le prix, pour qu'on confirme ce qu'on encaisse et
+ * pas seulement qu'on a cliqué. Et jamais le dernier exemplaire — le serveur le refuserait, et
+ * proposer ce qui sera repris est une promesse en trop.
+ */
+const aVendre = ref(null)
+
+const prixDe = (e) => salePrice(props.id, props.arenaLevelOf(e.key), e.shiny)
+
+function vendre(e) {
+  if (aVendre.value !== e.key) { aVendre.value = e.key; return }
+  aVendre.value = null
+  emit('sell', e.key)
+}
 
 // Cible d'évolution en cours de sélection (id de l'espèce), ou `null` hors sélection.
 const pickingTarget = ref(null)
@@ -209,6 +228,10 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               class="evo-btn arena-send" style="padding:6px 12px"
               :disabled="!arenaCredits" @click="$emit('engage', e.key)"
             >Choisir</button>
+            <button
+              v-if="available.length > 1" class="evo-btn vendre-un"
+              :class="{ confirming: aVendre === e.key }" @click="vendre(e)"
+            >{{ aVendre === e.key ? `Confirmer — ${prixDe(e)} ₽` : `Vendre · ${prixDe(e)} ₽` }}</button>
           </div>
         </div>
         <p class="muted">
@@ -259,7 +282,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               </div>
             </div>
             <button
-              v-if="targets.length === 1" class="evo-btn" :disabled="!canEvolve"
+              v-if="targets.length === 1" class="evo-btn evolve-btn" :disabled="!canEvolve"
               @click="startPicking(targets[0])"
             >
               Faire évoluer en {{ DEX[targets[0]].name }}
@@ -295,7 +318,9 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             </label>
           </div>
           <div class="picker-actions">
-            <button class="evo-btn" :disabled="!selectedKey" @click="confirmEvolve">Confirmer</button>
+            <button
+              class="evo-btn evolve-btn" :disabled="!selectedKey" @click="confirmEvolve"
+            >Confirmer</button>
             <button class="cancel-btn" @click="cancelPicking">Annuler</button>
           </div>
         </template>

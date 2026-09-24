@@ -52,8 +52,15 @@ describe('ProfilePanel', () => {
   // qu'il n'y avait rien à dire, une case barrée montre où passe la règle.
   it('garde les cases caviardées à l’écran plutôt que de les retirer', () => {
     const w = monter({ pseudo: 'marion', prive: null })
-    expect(w.findAll('.prof-case')).toHaveLength(8)
-    expect(w.findAll('.prof-case.secret')).toHaveLength(4)
+    expect(w.findAll('.prof-case')).toHaveLength(9)
+    expect(w.findAll('.prof-case.secret')).toHaveLength(5)
+  })
+
+  // Vendre n'est pas perdre : deux compteurs, et celui de la revente porte ce qu'elle a rapporté.
+  it('sépare les exemplaires perdus des exemplaires revendus', () => {
+    const w = monter({ prive: { ...PRIVE, destroyed: 4, sold: 12, soldTotal: 140 } })
+    expect(valeurDe(w, 'Exemplaires perdus').find('b').text()).toBe('4')
+    expect(valeurDe(w, 'Revendus · 140 ₽').find('b').text()).toBe('12')
   })
 
   /**

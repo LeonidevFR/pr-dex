@@ -869,6 +869,36 @@
    se lit après coup, la couleur se voit avant de recliquer. */
 .evo-btn.confirming { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
+  /* ───────── revente ───────── */
+  /* Le tas, pas l'exemplaire : une ligne par espèce, et le détail seulement si on le demande.
+     Une liste plate de cent exemplaires ferait de la revente une seconde corvée. */
+  .vendre-groupe{border-bottom:1px solid var(--rule)}
+  .vendre-groupe:last-child{border-bottom:0}
+  .vendre-tete{align-items:center;gap:10px}
+  .vendre-mini{width:34px;height:34px;flex:0 0 34px;image-rendering:pixelated;
+    border:1px solid var(--rule);background:color-mix(in srgb, var(--tier) 12%, var(--plate))}
+  .vendre-compte{color:var(--ink-3);margin-left:6px;font-size:11px}
+  .vendre-plier{background:transparent;border:1px solid var(--rule);color:var(--ink-2);
+    width:30px;height:30px;cursor:pointer;font-size:11px;line-height:1}
+  .vendre-plier:hover:not(:disabled){border-color:var(--ochre);color:var(--ochre)}
+  .vendre-detail{padding:4px 0 12px 44px;display:flex;flex-direction:column;gap:4px}
+  .vendre-ligne{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    background:transparent;border:1px solid transparent;padding:6px 8px;cursor:pointer;
+    font-family:var(--f-label);font-size:11px;color:var(--ink-2)}
+  .vendre-ligne:hover:not(:disabled){border-color:var(--rule-hi)}
+  /* Pris = part à la vente. La croix se lit de loin, et ne dépend pas de la couleur seule. */
+  .vendre-ligne.pris{color:var(--ink);border-color:var(--ochre)}
+  .vendre-ligne.bloque{opacity:.4;cursor:default}
+  .vendre-case{width:16px;height:16px;flex:0 0 16px;border:1.5px solid var(--rule-hi);
+    display:grid;place-items:center;font-size:12px;line-height:1}
+  .vendre-ligne.pris .vendre-case{border-color:var(--ochre);color:var(--ochre)}
+  .vendre-niv{color:var(--ink-3)}
+  .vendre-tag{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ochre);
+    border:1px solid var(--rule-hi);padding:1px 5px}
+  .vendre-prix{margin-left:auto;color:var(--ink)}
+  .vendre-note{margin:6px 0 0 8px;font-size:11px}
+  .vendre-un{padding:6px 12px;white-space:nowrap}
+
   /* ───────── profil ───────── */
   /* Un filet d'un pixel et demi entre les cases, obtenu par la couleur de fond de la grille :
      plus net qu'une bordure par case, qui doublerait aux jointures. */

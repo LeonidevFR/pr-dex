@@ -53,6 +53,13 @@ const cases = computed(() => {
     { v: d.losses ?? 0, l: 'Perdus' },
     { v: props.points, l: `Points · ${seasonLabel(props.season)}` },
     { v: p.destroyed ?? '—', l: 'Exemplaires perdus', secret: true },
+    // Vendu n'est pas perdu : l'un est une défaite, l'autre une décision — et celle-ci a
+    // rapporté quelque chose, qu'on affiche avec elle.
+    {
+      v: p.sold != null ? `${p.sold}` : '—',
+      l: p.soldTotal ? `Revendus · ${p.soldTotal} ₽` : 'Revendus',
+      secret: true,
+    },
   ]
 })
 

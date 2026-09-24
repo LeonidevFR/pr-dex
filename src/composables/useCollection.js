@@ -18,12 +18,12 @@ export function useCollection() {
   let client = null
 
   /**
-   * Les exemplaires perdus à l'arène. La collection ne les connaît pas d'elle-même — ils vivent
-   * dans `arena_exemplars`, que seul `useArena` lit — donc c'est l'application qui les verse
-   * ici. Vide tant que l'arène n'est pas chargée : mieux vaut afficher un exemplaire de trop
-   * pendant une seconde que d'en cacher un qui existe.
+   * Les exemplaires qui ont quitté le stock : détruits à l'arène ou revendus. La collection ne
+   * les connaît pas d'elle-même — ils vivent dans `arena_exemplars`, que seul `useArena` lit —
+   * donc c'est l'application qui les verse ici. Vide tant que l'arène n'est pas chargée : mieux
+   * vaut afficher un exemplaire de trop pendant une seconde que d'en cacher un qui existe.
    */
-  const destroyed = ref(new Set())
+  const partis = ref(new Set())
 
   /**
    * Les évolutions, telles que le serveur les tient. Elles vivaient dans `state.evolutions`,
@@ -32,7 +32,7 @@ export function useCollection() {
    */
   const evolutions = ref([])
 
-  const dex = useDex(catches, state, destroyed, evolutions)
+  const dex = useDex(catches, state, partis, evolutions)
 
   async function load(githubClient) {
     client = githubClient ?? client
@@ -194,7 +194,7 @@ export function useCollection() {
   }
 
   return {
-    catches, state, error, loading, dex, destroyed, evolutions,
+    catches, state, error, loading, dex, partis, evolutions,
     load, refresh, claim, evolve, markDuelSeen,
   }
 }

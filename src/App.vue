@@ -9,6 +9,7 @@ import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import ArenaPanel from './components/ArenaPanel.vue'
 import ShopPanel from './components/ShopPanel.vue'
+import SaleSection from './components/SaleSection.vue'
 import ProfilePanel from './components/ProfilePanel.vue'
 import SeasonPanel from './components/SeasonPanel.vue'
 import ArenaTeaser from './components/ArenaTeaser.vue'
@@ -19,6 +20,7 @@ import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
 import { entryKey } from '../shared/entry.js'
+import { saleGroups } from './lib/revente.js'
 import { createRouter } from './composables/useRoute.js'
 import { messageDErreur } from './lib/erreurs.js'
 import { parisDay } from '../shared/battle.js'
@@ -122,6 +124,10 @@ const dossierPrive = computed(() => (route.value.param ? null : {
   pokedollars: arena?.pokedollars.value ?? 0,
   credits: arena?.credits.value ?? 0,
   destroyed: detruits.value.length,
+  // Deux compteurs distincts, jamais un seul : perdre un exemplaire est une défaite, le vendre
+  // est une décision. Les confondre effacerait la différence.
+  sold: arena?.sold.value.length ?? 0,
+  soldTotal: arena?.soldTotal.value ?? 0,
 }))
 const ritualEntry = ref(null)
 const ritualRemaining = ref(0)
@@ -214,7 +220,7 @@ const filters = useTrayFilters()
  * variable, assignée à la connexion. Un `watch` posé avant elle ne s'abonnerait à rien.
  */
 function reporterLesPertes() {
-  if (arena) collection.destroyed.value = arena.destroyed.value
+  if (arena) collection.partis.value = arena.gone.value
 }
 
 // Stock disponible par espèce (une évolution passée a pu en consommer un) — recalculé sur
@@ -228,6 +234,16 @@ const availableById = computed(() => {
   }
   return map
 })
+
+/**
+ * Le surplus vendable. Il se déduit du stock DISPONIBLE — donc sans ce qu'une évolution a
+ * consommé ni ce qui est déjà parti — et des niveaux que l'arène tient : le prix suit le niveau,
+ * et un exemplaire aguerri ne doit pas s'afficher au tarif d'un neuf.
+ */
+const surplus = computed(() => saleGroups(
+  Object.values(availableById.value).flat(),
+  arena ? arena.levelOf : undefined,
+))
 
 const caughtIds = computed(() => new Set(Object.keys(collection.dex.bySpecies.value).map(Number)))
 
@@ -362,6 +378,31 @@ async function onBuy(slug) {
     await collection.refresh()
     const achete = collection.dex.pending.value.find((e) => e.key === entryKey('boutique', id))
     if (achete) { router.go('collection'); showPacket(achete) }
+  } catch (e) {
+    signaler(e)
+  } finally {
+    arenaBusy.value = false
+  }
+}
+
+/**
+ * Vendre le surplus choisi. Le total vient du SERVEUR, jamais du total affiché : c'est lui qui a
+ * débité, et c'est son chiffre qu'on annonce.
+ */
+async function onSell(keys) {
+  avis.value = null
+  avisBon.value = false
+  arenaBusy.value = true
+  try {
+    const out = await arena.sell(keys)
+    // Pas de `collection.refresh()` ici : une vente ne touche à aucune capture — la ligne reste,
+    // avec ses bonbons et son espèce. Seul change ce qui a QUITTÉ le stock, que l'arène vient de
+    // relire. Rappeler la collecte ferait attendre trente secondes pour rien, exactement comme
+    // au premier engagement.
+    collection.partis.value = arena.gone.value
+    const n = out?.sold ?? keys.length
+    avis.value = `${n} exemplaire${n > 1 ? 's vendus' : ' vendu'} — ${out?.total ?? 0} ₽ en caisse.`
+    avisBon.value = true
   } catch (e) {
     signaler(e)
   } finally {
@@ -538,6 +579,7 @@ useKeyboardNav({
         :arena-level-of="arena ? arena.levelOf : () => 1"
         :arena-form-of="arena && areneOuverte ? arena.formOfKey : null"
         @close="router.go('collection')" @evolve="onEvolve" @engage="onEngageFromSheet"
+        @sell="(key) => onSell([key])"
       />
     </transition>
 
@@ -573,6 +615,11 @@ useKeyboardNav({
       v-if="shopOpen && arena && areneOuverte"
       :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
       @buy="onBuy"
+    />
+
+    <SaleSection
+      v-if="shopOpen && arena && areneOuverte"
+      :groups="surplus" :busy="arenaBusy" @sell="onSell"
     />
 
     <SeasonPanel

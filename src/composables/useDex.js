@@ -8,13 +8,14 @@ import { entryKey } from '../../shared/entry.js'
  *
  * @param {import('vue').Ref<Array>} catches — entrées écrites par l'Action, append-only
  * @param {import('vue').Ref<Object>} state  — { claimed, spent, evolutions } écrit par le front
- * @param {import('vue').Ref<Set<string>>} destroyed — clés des exemplaires perdus à l'arène
+ * @param {import('vue').Ref<Set<string>>} partis — clés des exemplaires qui ont quitté le stock :
+ *   détruits à l'arène ou revendus
  * @param {import('vue').Ref<Array>} evolutions — lignes `{ id, from_species, to_species, from_key }`
  *   telles que le serveur les tient. Elles vivaient dans `state.evolutions` ; le serveur les
  *   écrit désormais, et sa clé (`evo:<id>`) remplace l'index du tableau — un identifiant
  *   attribué par la base est stable, un rang dans un tableau ne l'est pas.
  */
-export function useDex(catches, state, destroyed = ref(new Set()), evolutions = ref([])) {
+export function useDex(catches, state, partis = ref(new Set()), evolutions = ref([])) {
   const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
 
   const claimedSet = computed(() => new Set(state.value.claimed))
@@ -77,7 +78,8 @@ export function useDex(catches, state, destroyed = ref(new Set()), evolutions = 
   )
 
   /**
-   * Le stock réellement disponible : ni consommé par une évolution, ni détruit à l'arène.
+   * Le stock réellement disponible : ni consommé par une évolution, ni parti — détruit à
+   * l'arène ou revendu.
    *
    * La destruction manquait, et le trou n'était pas qu'un compteur faux. Un exemplaire évolué
    * reçoit une clé NEUVE (`evo:0`) : on pouvait donc perdre un duel, faire évoluer le mort, et
@@ -90,7 +92,7 @@ export function useDex(catches, state, destroyed = ref(new Set()), evolutions = 
    */
   function availableEntries(id) {
     return (bySpecies.value[id] ?? [])
-      .filter((e) => !consumedKeys.value.has(e.key) && !destroyed.value.has(e.key))
+      .filter((e) => !consumedKeys.value.has(e.key) && !partis.value.has(e.key))
   }
 
   function copyCount(id) {

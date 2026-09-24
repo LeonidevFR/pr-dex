@@ -86,7 +86,8 @@ export function createSupabaseClient(userId) {
     const [credits, wallet, exemplars] = await Promise.all([
       query(() => supabase.rpc('arena_credits', { uid: userId })),
       query(() => supabase.from('arena_wallet').select('pokedollars').eq('user_id', userId).maybeSingle()),
-      query(() => supabase.from('arena_exemplars').select('entry_key, level, wins, destroyed_at').eq('user_id', userId)),
+      query(() => supabase.from('arena_exemplars')
+        .select('entry_key, level, wins, destroyed_at, sold_at, sold_price').eq('user_id', userId)),
     ])
     return {
       credits: credits ?? 0,
@@ -250,6 +251,12 @@ export function createSupabaseClient(userId) {
 
   const buy = (slug) => query(() => supabase.rpc('arena_buy', { p_slug: slug }))
 
+  /**
+   * Vendre un lot d'exemplaires. Le prix n'est pas envoyé : le serveur le calcule, sinon il
+   * serait un champ de formulaire. La réponse rend le nombre vendu, le total et le nouveau solde.
+   */
+  const sell = (keys) => query(() => supabase.rpc('dex_sell', { p_keys: keys }))
+
   const engage = (entryKey, vsComputer = false) =>
     query(() => supabase.rpc('arena_engage', { p_entry_key: entryKey, p_vs_computer: vsComputer }))
 
@@ -259,7 +266,7 @@ export function createSupabaseClient(userId) {
   return {
     checkAccess, readCatches, readState, writeState, triggerCatch,
     readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readLeaderboard, readSeasons, engage, accept,
-    readPublicProfile, readMyProfile, readDestroyed, readMyDuels, readPseudo, setPseudo,
+    readPublicProfile, readMyProfile, readDestroyed, readMyDuels, readPseudo, setPseudo, sell,
     readEvolutions, evolve,
   }
 }

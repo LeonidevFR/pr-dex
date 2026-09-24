@@ -74,12 +74,12 @@ describe('évolution', () => {
     const w = await mountApp()
 
     await cellOf(w, CHENIPAN).trigger('click')
-    expect(w.find('.evo-btn:not(.arena-send)').exists()).toBe(true)
+    expect(w.find('.evolve-btn').exists()).toBe(true)
 
     // Deux clics sur le même bouton : le premier ouvre le sélecteur d'exemplaire, le second
     // confirme. Chenipan n'a qu'un exemplaire disponible, donc il est pré-coché.
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     await flushPromises()
 
     expect(w.find('.evostage').exists()).toBe(true)
@@ -281,7 +281,7 @@ describe('le profil', () => {
     const w = await mountApp()
     await flushPromises()
     expect(w.find('.panel-name').text()).toBe('bob')
-    expect(w.findAll('.prof-case.secret')).toHaveLength(4)
+    expect(w.findAll('.prof-case.secret')).toHaveLength(5)
   })
 
   it('explique un pseudonyme qui ne joue pas, au lieu d’un dossier vide', async () => {
@@ -354,5 +354,82 @@ describe('enchaîner les engagements', () => {
     await poster(w).trigger('click')
     await flushPromises()
     expect(w.findAll('.sect .repo-ptr')).toHaveLength(2)
+  })
+})
+
+/**
+ * La revente, bout en bout, sur la démo — c'est par là qu'on l'essaie.
+ *
+ * Ce qui se vérifie ici n'est pas le prix (il a ses tests, et sa parité avec le SQL) mais la
+ * couture : que le surplus arrive jusqu'à l'écran, que la vente débite le bon compte, et que ce
+ * qui est parti cesse d'être compté dans la collection.
+ */
+describe('revente du surplus', () => {
+  const ouvrirBoutique = async (w) => {
+    await onglet(w, 'Boutique').trigger('click')
+    await flushPromises()
+  }
+
+  /**
+   * La démo simule la latence du réseau : la vente débite tout de suite, mais la relecture de la
+   * collection arrive un tour plus tard. On attend l'accusé de réception plutôt qu'un délai fixe.
+   */
+  const vendreEtAttendre = async (w) => {
+    const bouton = w.find('.vendre-btn')
+    await bouton.trigger('click')
+    await bouton.trigger('click')
+    for (let i = 0; i < 100 && !w.find('.avis').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+  }
+
+  it('montre le tas de doublons, le plus gros en tête', async () => {
+    const w = await mountApp()
+    await ouvrirBoutique(w)
+
+    const groupes = w.findAll('.vendre-groupe')
+    expect(groupes.length).toBeGreaterThan(0)
+    expect(groupes[0].text()).toContain('Nidoran')
+  })
+
+  it('vend la sélection et encaisse ce que le serveur a compté', async () => {
+    const w = await mountApp()
+    await ouvrirBoutique(w)
+
+    const caisse = () => Number(w.findAll('.arena-big')[0].text().replace(/\D/g, ''))
+    const avant = caisse()
+    const total = Number(w.findAll('.arena-big')[1].text().replace(/\D/g, ''))
+    expect(total).toBeGreaterThan(0)
+
+    await vendreEtAttendre(w)
+
+    expect(caisse()).toBe(avant + total)
+    expect(w.find('.avis').text()).toContain('₽')
+  })
+
+  // Ce qui est vendu quitte le stock : la planche doit cesser de le compter.
+  it('retire de la collection ce qui vient d’être vendu', async () => {
+    const w = await mountApp()
+    await ouvrirBoutique(w)
+
+    const nidoran = w.findAll('.vendre-groupe')[0]
+    const avant = Number(nidoran.find('.vendre-compte').text().replace(/\D/g, ''))
+
+    await vendreEtAttendre(w)
+
+    const apres = w.findAll('.vendre-groupe')
+    const reste = apres.length ? Number(apres[0].find('.vendre-compte').text().replace(/\D/g, '')) : 0
+    expect(reste).toBeLessThan(avant)
+  })
+
+  // On ne vend pas son dernier exemplaire : la démo doit le refuser comme le serveur.
+  it('refuse le dernier exemplaire, et le dit', async () => {
+    const w = await mountApp()
+    await ouvrirBoutique(w)
+
+    const w2 = w.vm
+    await expect(w2.$.setupState.arena.sell(['github:' + 'x'.repeat(4)]))
+      .rejects.toThrow(/inconnu/)
   })
 })

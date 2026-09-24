@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import SpeciesSheet from './SpeciesSheet.vue'
 import { DEX, hasEvoInFamily } from '../../shared/species.js'
+import { salePrice } from '../../shared/arena-economy.js'
 
 const capture = (id, species, extra = {}) => ({
   source: 'github', external_id: id, key: `github:${id}`, species, shiny: false, via: 'catch',
@@ -171,14 +172,14 @@ describe('bonbons et évolution', () => {
 
   it('désactive le bouton quand les bonbons manquent', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], candies: 3, canEvolve: false })
-    expect(w.find('.evo-btn:not(.arena-send)').attributes('disabled')).toBeDefined()
+    expect(w.find('.evolve-btn').attributes('disabled')).toBeDefined()
   })
 
   it('affiche le sélecteur d’exemplaire au clic sur le bouton d’évolution', async () => {
     const w = mountSheet({
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     expect(w.find('.picker-row').exists()).toBe(true)
     expect(w.find('.evo-choices').exists()).toBe(false)
   })
@@ -187,8 +188,8 @@ describe('bonbons et évolution', () => {
     const w = mountSheet({
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
-    await w.find('.evo-btn:not(.arena-send)').trigger('click') // le même bouton sert de « Confirmer » à l'étape 2
+    await w.find('.evolve-btn').trigger('click')
+    await w.find('.evolve-btn').trigger('click') // le même bouton sert de « Confirmer » à l'étape 2
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:a' }])
   })
 
@@ -206,7 +207,7 @@ describe('bonbons et évolution', () => {
       id: 133, entries: [capture('a', 133)], available: [capture('a', 133)], candies: 9, canEvolve: true,
     })
     await w.findAll('.evo-choice')[1].trigger('click')
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 133, to: 135, key: 'github:a' }])
   })
 
@@ -228,7 +229,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({
       id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     const checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
     expect(checked.element.value).toBe('github:b')
   })
@@ -237,10 +238,10 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({
       id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     const radios = w.findAll('input[type=radio]')
     await radios.find((i) => i.element.value === 'github:a').setValue()
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:a' }])
   })
 
@@ -248,7 +249,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     expect(w.findAll('.picker-row')).toHaveLength(1)
   })
 
@@ -256,7 +257,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     await w.find('.cancel-btn').trigger('click')
     expect(w.find('.picker-row').exists()).toBe(false)
     expect(w.emitted('evolve')).toBeUndefined()
@@ -265,7 +266,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
   it('revalide la sélection si l’exemplaire choisi disparaît de la liste pendant que le picker est ouvert', async () => {
     const ab = [capture('a', 1), capture('b', 1)]
     const w = mountSheet({ id: 1, entries: ab, available: ab, candies: 9, canEvolve: true })
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     // Pré-coché sur le premier disponible ('a', pas de chromatique ici).
     let checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
     expect(checked.element.value).toBe('github:a')
@@ -275,7 +276,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
     expect(checked.element.value).toBe('github:b')
 
-    await w.find('.evo-btn:not(.arena-send)').trigger('click')
+    await w.find('.evolve-btn').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:b' }])
   })
 })
@@ -306,7 +307,7 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
     expect(w.find('.candy').exists()).toBe(true)
     expect(w.text()).toContain('Salamèche')
     expect(w.find('.candy-nums').text()).toBe('5')
-    expect(w.find('.evo-btn:not(.arena-send)').exists()).toBe(false)
+    expect(w.find('.evolve-btn').exists()).toBe(false)
     expect(w.find('.evo-choices').exists()).toBe(false)
     expect(w.find('.reserve').exists()).toBe(false)
   })
@@ -318,7 +319,7 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
 
   it('Bulbizarre garde son bouton d’évolution (non-régression)', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], candies: 9, canEvolve: true, isDeadEnd: false })
-    expect(w.find('.evo-btn:not(.arena-send)').exists()).toBe(true)
+    expect(w.find('.evolve-btn').exists()).toBe(true)
     expect(w.find('.reserve').exists()).toBe(false)
   })
 
@@ -353,7 +354,7 @@ describe('bonbons de famille — forme finale sans évolution propre', () => {
         const reserve = !evolving && isDeadEnd && entryCount > 1
 
         expect(w.find('.candy').exists()).toBe(evolving || finalForm)
-        expect(w.find('.evo-btn:not(.arena-send)').exists() || w.find('.evo-choices').exists()).toBe(evolving)
+        expect(w.find('.evolve-btn').exists() || w.find('.evo-choices').exists()).toBe(evolving)
         expect(w.find('.reserve').exists()).toBe(reserve)
 
         const renderedCount = [evolving, finalForm, reserve].filter(Boolean).length
@@ -609,5 +610,52 @@ describe('choisir quel exemplaire engager', () => {
       arenaLevelOf: (k) => niveaux[k] ?? 1,
     })
     expect(w.findAll('.arena-send').every((b) => b.attributes('disabled') !== undefined)).toBe(true)
+  })
+})
+
+/**
+ * Vendre depuis la fiche : le lot se fait en boutique, mais quand on est déjà en train de
+ * regarder ses douze Nidoran, larguer celui-là doit tenir en deux clics.
+ */
+describe('revente depuis la fiche', () => {
+  const deux = [capture('a', 1), capture('b', 1)]
+
+  it('ne propose pas de vendre son dernier exemplaire', () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], available: [capture('a', 1)] })
+    expect(w.find('.vendre-un').exists()).toBe(false)
+  })
+
+  it('affiche le prix avant de cliquer', () => {
+    const w = mountSheet({ id: 1, entries: deux, available: deux })
+    expect(w.find('.vendre-un').text()).toBe(`Vendre · ${salePrice(1, 1)} ₽`)
+  })
+
+  // Le second clic dit le prix : on confirme ce qu'on encaisse, pas seulement qu'on a cliqué.
+  it('vend en deux clics, et nomme l’exemplaire vendu', async () => {
+    const w = mountSheet({ id: 1, entries: deux, available: deux })
+    await w.findAll('.vendre-un')[0].trigger('click')
+    expect(w.emitted('sell')).toBeUndefined()
+    expect(w.findAll('.vendre-un')[0].text()).toContain('Confirmer')
+
+    await w.findAll('.vendre-un')[0].trigger('click')
+    expect(w.emitted('sell')[0]).toEqual(['github:a'])
+  })
+
+  // Le prix suit le niveau de CET exemplaire, pas celui de l'espèce.
+  it('suit le niveau de l’exemplaire, ligne par ligne', () => {
+    const w = mountSheet({
+      id: 1, entries: deux, available: deux,
+      arenaLevelOf: (k) => (k === 'github:b' ? 9 : 1),
+    })
+    const prix = w.findAll('.vendre-un').map((b) => b.text())
+    expect(prix).toContain(`Vendre · ${salePrice(1, 1)} ₽`)
+    expect(prix).toContain(`Vendre · ${salePrice(1, 9)} ₽`)
+  })
+
+  it('quadruple le prix d’un shiny', () => {
+    const avecShiny = [capture('a', 1), capture('b', 1, { shiny: true })]
+    const w = mountSheet({ id: 1, entries: avecShiny, available: avecShiny })
+    expect(w.findAll('.vendre-un').map((b) => b.text()))
+      .toContain(`Vendre · ${salePrice(1, 1, true)} ₽`)
   })
 })

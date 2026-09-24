@@ -2,7 +2,7 @@ import { fnv1a, drawFrom, drawFromPool } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
 import { DEX, poolOf, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import { FORMS, formOf, parisDay, power, resolveDuel } from '../../shared/battle.js'
-import { REWARD, SHOP, coveredTier } from '../../shared/arena-economy.js'
+import { REWARD, SHOP, coveredTier, salePrice } from '../../shared/arena-economy.js'
 
 const FAKE_PRS = [
   ['fix: race condition à l\'upload de fichiers', 'moi/atlas', 142, '2026-02-03'],
@@ -137,6 +137,19 @@ export function demoCatches() {
     'moi/atlas', 227, 'refactor: extraction du client Supabase', '2026-07-19', 68, false,
   ))
 
+  // Un tas de Nidoran, le cas même que la revente existe pour résoudre.
+  //
+  // Sur quarante tirages, aucune espèce ne s'accumule assez pour qu'on sente ce que « quinze
+  // exemplaires dont on ne sait rien faire » veut dire — or c'est exactement l'encombrement que
+  // la boutique doit pouvoir absorber en un geste. Neuf d'un coup, dont un chromatique et un
+  // aguerri (niveau 7, cf. `levels` plus bas) : de quoi voir la présélection épargner ce qu'il
+  // faut, et la dernière case se verrouiller.
+  drawn.splice(-3, 0, ...Array.from({ length: 9 }, (_, n) => ghCatch(
+    `ev4n1dor4n${String(n).padStart(2, '0')}0000000000000000000000000000`.slice(0, 39),
+    'moi/atlas', 230 + n, `chore: bump des dépendances (${n + 1}/9)`, '2026-07-20', 29,
+    n === 4,
+  )))
+
   // Idem pour une légendaire : à 0,5 % par tirage, aucune ne sort naturellement sur 40-41
   // essais. Sulfura forcée pour que le halo légendaire de la grille soit visible en démo.
   drawn.splice(-3, 0, ghCatch(
@@ -216,6 +229,8 @@ export function demoArena(catches) {
   let seq = 100
   const levels = new Map()
   const destroyed = new Set()
+  /** Les exemplaires revendus, et à quel prix — comme `sold_at`/`sold_price` en base. */
+  const sold = new Map()
   const duels = new Map()
   /** Ses propres défis postés. Pluriel : on peut en poster autant qu'on a de crédits. */
   const miens = []
@@ -234,10 +249,38 @@ export function demoArena(catches) {
 
   const especeDe = (key) => catches.find((c) => entryKey(c.source, c.external_id) === key)?.species
 
+  /**
+   * L'espèce ET le shiny d'un exemplaire, capture ou évolution. Un Pokémon obtenu par évolution
+   * hérite du shiny de l'exemplaire consommé, de proche en proche — comme le fait `dex_shiny_of`
+   * côté serveur. Le prix en dépend, donc les deux doivent lire la même chaîne.
+   */
+  const exemplaireDe = (key, pas = 0) => {
+    if (pas > 32) return null
+    const c = catches.find((x) => entryKey(x.source, x.external_id) === key)
+    if (c) return { species: c.species, shiny: !!c.shiny }
+    const v = evolutions.find((e) => `evo:${e.id}` === key)
+    if (!v) return null
+    return { species: v.to_species, shiny: exemplaireDe(v.from_key, pas + 1)?.shiny ?? false }
+  }
+
+  /** Combien d'exemplaires d'une espèce restent en main, `encours` compris comme déjà partis. */
+  const stockDe = (species, encours = new Map()) => [
+    ...catches.filter((c) => c.species === species).map((c) => entryKey(c.source, c.external_id)),
+    ...evolutions.filter((e) => e.to_species === species).map((e) => `evo:${e.id}`),
+  ].filter((k) => !evolutions.some((e) => e.from_key === k)
+    && !destroyed.has(k) && !sold.has(k) && !encours.has(k)).length
+
   // Un champion déjà aguerri dans la main de départ : sans lui, tout est au niveau 1 et l'effet
   // du niveau sur un duel reste invisible à l'essai.
   const champion = catches.find((c) => DEX[c.species].tier === 'r') ?? catches[0]
   if (champion) levels.set(entryKey(champion.source, champion.external_id), 5)
+
+  // Un Nidoran aguerri dans le tas : c'est lui qui montre que le prix suit le niveau, et que la
+  // présélection épargne d'office ce qu'on a fait monter.
+  const nidoranAguerri = catches.find((c) => c.species === 29 && c.external_id.startsWith('ev4'))
+  if (nidoranAguerri) {
+    levels.set(entryKey(nidoranAguerri.source, nidoranAguerri.external_id), 7)
+  }
 
   const cote = (key, species, level) => ({
     key, species, level, form: formOf(key, JOUR),
@@ -312,9 +355,13 @@ export function demoArena(catches) {
       credits,
       pokedollars,
       exemplars: [...levels].map(([entry_key, level]) => ({
-        entry_key, level, wins: level - 1, destroyed_at: null,
+        entry_key, level, wins: level - 1, destroyed_at: null, sold_at: null, sold_price: null,
       })).concat([...destroyed].map((entry_key) => ({
         entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: JOUR,
+        sold_at: null, sold_price: null,
+      }))).concat([...sold].map(([entry_key, sold_price]) => ({
+        entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: null,
+        sold_at: JOUR, sold_price,
       }))),
     }),
     readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
@@ -353,6 +400,43 @@ export function demoArena(catches) {
      * c'est justement elle que cette bascule apporte.
      */
     readEvolutions: async () => evolutions.map((e) => ({ ...e })),
+
+    /**
+     * Vendre un lot, avec les mêmes refus que le serveur — et la même atomicité : un seul refus
+     * annule tout. Une démonstration qui encaisserait à moitié apprendrait une règle fausse.
+     */
+    sell: async (keys) => {
+      const uniques = [...new Set(keys ?? [])]
+      if (!uniques.length) throw new Error('dex : aucun exemplaire à vendre')
+
+      const encours = new Map()
+      let total = 0
+      for (const key of uniques) {
+        const ex = exemplaireDe(key)
+        if (!ex) throw new Error(`dex : exemplaire inconnu (${key})`)
+        if (sold.has(key) || encours.has(key) || destroyed.has(key)) {
+          throw new Error(`dex : cet exemplaire a déjà quitté ta collection (${key})`)
+        }
+        if (evolutions.some((e) => e.from_key === key)) {
+          throw new Error(`dex : cet exemplaire a servi à une évolution (${key})`)
+        }
+        if (miens.some((d) => d.challenger_key === key)) {
+          throw new Error(`dex : cet exemplaire est engagé dans un défi ouvert (${key})`)
+        }
+        // Le stock se relit à chaque clé, en tenant compte de ce que le lot vient d'emporter :
+        // vendre neuf Nidoran sur dix passe, le dixième est refusé.
+        if (stockDe(ex.species, encours) <= 1) {
+          throw new Error(`dex : on ne vend pas son dernier exemplaire d'une espèce (${key})`)
+        }
+        const prix = salePrice(ex.species, levels.get(key) ?? 1, ex.shiny)
+        encours.set(key, prix)
+        total += prix
+      }
+
+      for (const [key, prix] of encours) sold.set(key, prix)
+      pokedollars += total
+      return { sold: encours.size, total, balance: pokedollars }
+    },
     evolve: async (fromKey, to, day) => {
       const source = catches.find((c) => entryKey(c.source, c.external_id) === fromKey)
         ?? evolutions.find((e) => `evo:${e.id}` === fromKey)

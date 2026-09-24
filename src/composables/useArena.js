@@ -39,6 +39,21 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
   const destroyed = computed(() =>
     new Set(exemplars.value.filter((e) => e.destroyed_at).map((e) => e.entry_key)))
 
+  const sold = computed(() => exemplars.value.filter((e) => e.sold_at))
+
+  const soldTotal = computed(() => sold.value.reduce((n, e) => n + (e.sold_price ?? 0), 0))
+
+  /**
+   * Les exemplaires PARTIS, quelle qu'en soit la raison : détruits à l'arène ou revendus. Ce que
+   * la collection doit cesser de compter, et ce que l'arène doit refuser d'engager. Une vente et
+   * une destruction diffèrent par ce qu'elles racontent — une défaite, une décision — mais pas
+   * par leur effet sur le stock.
+   */
+  const gone = computed(() => new Set([
+    ...destroyed.value,
+    ...sold.value.map((e) => e.entry_key),
+  ]))
+
   /**
    * Ce qu'on peut engager maintenant : tout exemplaire ouvert, sauf ceux qu'un duel a détruits,
    * ceux qu'une évolution a consommés, et celui qui est déjà sur la table. Un exemplaire engagé
@@ -52,7 +67,7 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
    * évolutions vivent dans l'état du joueur, qu'il n'inspecte pas.
    */
   const engageable = computed(() => claimed.value.filter((c) =>
-    !destroyed.value.has(c.key)
+    !gone.value.has(c.key)
     && !consumed.value.has(c.key)
     && !myOpen.value.some((d) => d.challenger_key === c.key)))
 
@@ -126,6 +141,19 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
     return id
   }
 
+  /**
+   * Vendre un lot, puis relire. Le portefeuille et le stock changent tous les deux : sans la
+   * relecture, l'écran laisserait revendre ce qui vient de partir et afficherait l'ancien solde.
+   *
+   * Rend ce que le serveur a compté — nombre vendu, total, nouveau solde — parce que l'appelant
+   * l'annonce au joueur, et que ce chiffre doit venir de celui qui a débité.
+   */
+  async function sell(keys) {
+    const out = await client.sell(keys)
+    await load()
+    return out
+  }
+
   async function accept(duelId, entryKey) {
     const id = await client.accept(duelId, entryKey)
     const duel = await client.readDuel(id)
@@ -135,6 +163,7 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
 
   return {
     credits, pokedollars, exemplars, challenges, shop, leaderboard, seasons, season, myOpen, loading, error,
-    levels, destroyed, engageable, levelOf, formOfKey, recentDuels, load, engage, accept, buy,
+    levels, destroyed, sold, soldTotal, gone, engageable, levelOf, formOfKey, recentDuels,
+    load, engage, accept, buy, sell,
   }
 }
