@@ -100,8 +100,8 @@ function vendre() {
 
     <div v-if="!groups.length" class="sect">
       <p class="muted" style="margin:0">
-        Rien en double pour l’instant. Un exemplaire seul ne se vend pas : c’est celui qui tient
-        l’espèce dans ta collection.
+        Rien en double pour l’instant. Un exemplaire seul ne se vend pas : c’est lui qui te permet
+        encore de jouer l’espèce.
       </p>
     </div>
 
@@ -165,7 +165,8 @@ function vendre() {
               <span class="vendre-prix mono">{{ i.price }} ₽</span>
             </button>
             <p v-if="restants(g) <= 1" class="muted vendre-note">
-              Il faut garder un exemplaire : c’est lui qui tient l’espèce dans ta collection.
+              Il faut en garder un : sans exemplaire, l’espèce n’est plus jouable — ni arène, ni
+              évolution. Son entrée au Pokédex, elle, reste acquise.
             </p>
           </div>
         </div>

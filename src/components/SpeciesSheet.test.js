@@ -633,7 +633,7 @@ describe('revente depuis la fiche', () => {
     expect(bouton.exists()).toBe(true)
     expect(bouton.attributes('disabled')).toBeDefined()
     expect(bouton.text()).toBe('Le dernier')
-    expect(w.text()).toContain('un exemplaire par espèce')
+    expect(w.text()).toContain('ne se vend pas')
   })
 
   it('n’émet rien si l’on insiste sur le dernier exemplaire', async () => {
@@ -646,7 +646,7 @@ describe('revente depuis la fiche', () => {
   // Tant qu'il y a du surplus, rien de cette explication n'a lieu d'être.
   it('ne dit rien du dernier exemplaire tant qu’il y a du surplus', () => {
     const w = mountSheet({ id: 1, entries: deux, available: deux })
-    expect(w.text()).not.toContain('un exemplaire par espèce')
+    expect(w.text()).not.toContain('ne se vend pas')
   })
 
   it('affiche le prix avant de cliquer', () => {

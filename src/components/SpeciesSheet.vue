@@ -270,7 +270,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               class="evo-btn vendre-un" :class="{ confirming: aVendre === e.key }"
               :disabled="available.length < 2" @click="vendre(e)"
               :title="available.length < 2
-                ? 'On garde un exemplaire par espèce : c’est lui qui la tient dans ta collection.'
+                ? 'Sans exemplaire, l’espèce n’est plus jouable — ni arène, ni évolution. Son entrée au Pokédex reste acquise.'
                 : null"
             >{{
               available.length < 2 ? 'Le dernier'
@@ -279,8 +279,8 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
           </div>
         </div>
         <p v-if="available.length < 2" class="muted" style="margin-bottom:10px">
-          Il ne t’en reste qu’un : on garde toujours un exemplaire par espèce, c’est lui qui la
-          tient dans ta collection. Les suivants seront vendables.
+          Il ne t’en reste qu’un, et il ne se vend pas : sans lui, plus moyen d’engager l’espèce à
+          l’arène ni de la faire évoluer. Son entrée au Pokédex, elle, est acquise pour toujours.
         </p>
         <p class="muted">
           <template v-if="arenaCredits">

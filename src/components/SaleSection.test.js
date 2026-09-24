@@ -105,7 +105,7 @@ describe('SaleSection', () => {
     const libre = w.findAll('.vendre-ligne').find((l) => l.classes().includes('bloque'))
     expect(libre).toBeTruthy()
     expect(libre.attributes('disabled')).toBeDefined()
-    expect(w.find('.vendre-note').text()).toContain('garder un exemplaire')
+    expect(w.find('.vendre-note').text()).toContain('plus jouable')
   })
 
   it('décoche un exemplaire précis sans toucher aux autres', async () => {

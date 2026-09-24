@@ -314,6 +314,24 @@ describe('exemplaires consommés par une évolution', () => {
     expect(d.caughtCount.value).toBe(2) // l'espèce source ET la cible comptent comme vues
   })
 
+  /**
+   * La même chose quand l'exemplaire est PARTI — détruit à l'arène ou revendu.
+   *
+   * L'écran l'affirme au joueur au moment où il vend (« son entrée au Pokédex reste acquise ») :
+   * une promesse faite à l'écran mérite un test, sans quoi elle vieillit sans qu'on s'en aperçoive.
+   */
+  it('garde l’espèce au dex quand son dernier exemplaire a été vendu ou détruit', () => {
+    const d = useDex(
+      ref([catchOf('a', 1)]),
+      ref({ claimed: [K('a')], spent: {}, evolutions: [] }),
+      ref(new Set([K('a')])),
+      ref([]),
+    )
+    expect(d.copyCount(1)).toBe(0)
+    expect(d.bySpecies.value[1]).toHaveLength(1)
+    expect(d.caughtCount.value).toBe(1)
+  })
+
   it('refuse une nouvelle évolution sans exemplaire disponible même avec assez de bonbons', () => {
     const d = setup(
       Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1)),
