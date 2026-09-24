@@ -620,9 +620,33 @@ describe('choisir quel exemplaire engager', () => {
 describe('revente depuis la fiche', () => {
   const deux = [capture('a', 1), capture('b', 1)]
 
-  it('ne propose pas de vendre son dernier exemplaire', () => {
+  /**
+   * Le bouton reste, désactivé, et DIT pourquoi.
+   *
+   * Il disparaissait : après avoir vendu l'avant-dernier exemplaire, le bouton s'évanouissait
+   * sans un mot pour celui qui restait — la règle s'appliquait en silence et se lisait comme une
+   * panne. Une règle qu'on ne voit pas est une règle qu'on croit cassée.
+   */
+  it('désactive la vente du dernier exemplaire, en disant pourquoi', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], available: [capture('a', 1)] })
-    expect(w.find('.vendre-un').exists()).toBe(false)
+    const bouton = w.find('.vendre-un')
+    expect(bouton.exists()).toBe(true)
+    expect(bouton.attributes('disabled')).toBeDefined()
+    expect(bouton.text()).toBe('Le dernier')
+    expect(w.text()).toContain('un exemplaire par espèce')
+  })
+
+  it('n’émet rien si l’on insiste sur le dernier exemplaire', async () => {
+    const w = mountSheet({ id: 1, entries: [capture('a', 1)], available: [capture('a', 1)] })
+    await w.find('.vendre-un').trigger('click')
+    await w.find('.vendre-un').trigger('click')
+    expect(w.emitted('sell')).toBeUndefined()
+  })
+
+  // Tant qu'il y a du surplus, rien de cette explication n'a lieu d'être.
+  it('ne dit rien du dernier exemplaire tant qu’il y a du surplus', () => {
+    const w = mountSheet({ id: 1, entries: deux, available: deux })
+    expect(w.text()).not.toContain('un exemplaire par espèce')
   })
 
   it('affiche le prix avant de cliquer', () => {

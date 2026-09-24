@@ -229,11 +229,21 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               :disabled="!arenaCredits" @click="$emit('engage', e.key)"
             >Choisir</button>
             <button
-              v-if="available.length > 1" class="evo-btn vendre-un"
-              :class="{ confirming: aVendre === e.key }" @click="vendre(e)"
-            >{{ aVendre === e.key ? `Confirmer — ${prixDe(e)} ₽` : `Vendre · ${prixDe(e)} ₽` }}</button>
+              class="evo-btn vendre-un" :class="{ confirming: aVendre === e.key }"
+              :disabled="available.length < 2" @click="vendre(e)"
+              :title="available.length < 2
+                ? 'On garde un exemplaire par espèce : c’est lui qui la tient dans ta collection.'
+                : null"
+            >{{
+              available.length < 2 ? 'Le dernier'
+              : aVendre === e.key ? `Confirmer — ${prixDe(e)} ₽` : `Vendre · ${prixDe(e)} ₽`
+            }}</button>
           </div>
         </div>
+        <p v-if="available.length < 2" class="muted" style="margin-bottom:10px">
+          Il ne t’en reste qu’un : on garde toujours un exemplaire par espèce, c’est lui qui la
+          tient dans ta collection. Les suivants seront vendables.
+        </p>
         <p class="muted">
           <template v-if="arenaCredits">
             L’arène s’ouvre avec l’exemplaire retenu : tu choisiras ensuite de poster un défi,
