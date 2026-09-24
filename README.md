@@ -79,10 +79,12 @@ Deux repos, volontairement :
   l'application. Un repo public est gratuit sur Pages ; un repo privé demande une offre
   payante. Le build ne contient aucune donnée de jeu et n'a besoin d'aucun secret — la
   clé `anon` Supabase est publique par nature, RLS fait le reste.
-- un repo **privé**, `pr-dex-data` — c'est aujourd'hui un repo d'*ingestion*, pas de
-  données : il ne contient plus de JSON, seulement le workflow planifié et les deux
-  secrets privilégiés (voir plus bas). Rester privé reste utile : ces secrets n'ont
-  aucune raison d'être visibles.
+- un repo **privé**, `pr-dex-data` — il ne contient plus que le workflow planifié et les
+  deux secrets privilégiés (voir plus bas), aucun code : à chaque passage, son workflow
+  clone `main` de ce repo-ci et lance `scripts/catch.mjs`. Le script d'ingestion, le
+  connecteur GitHub et le tirage (`shared/`) n'existent donc qu'ici, à un seul endroit —
+  une règle posée dans `shared/species.js` vaut pour le front et pour le run du même
+  commit. Rester privé reste utile : ces secrets n'ont aucune raison d'être visibles.
 
 Quatre tables Supabase (schéma complet dans `supabase/schema.sql`), RLS activé partout :
 

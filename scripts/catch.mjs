@@ -16,24 +16,42 @@ const sbHeaders = (key) => ({
   'Content-Type': 'application/json',
 })
 
+/** Décalage en jours sur une date `AAAA-MM-JJ`, en UTC — le seul calendrier de ce script. */
+export function shiftDays(date, days) {
+  const d = new Date(date + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Fenêtre d'accueil d'une identité neuve : les sept jours qui précèdent son inscription.
+ *
+ * Partir du jour du run laissait un trou que personne ne voyait : une PR mergée la veille de
+ * la première connexion n'était plus jamais cherchée, puisque la marge de sept jours de
+ * `sinceDate` ne s'applique qu'à partir d'une capture existante. Un nouveau arrivait donc sur
+ * un dex vide et n'avait rien à ouvrir.
+ *
+ * L'ancre est `created_at`, pas le jour du run : la fenêtre reste accrochée à l'inscription
+ * même si le premier passage a lieu bien après, et elle reste bornée à sept jours quelle que
+ * soit la date d'arrivée — c'est ce qui la distingue d'un `BOOTSTRAP_SINCE` fixe, qui ferait
+ * rattraper tout son historique à quelqu'un inscrit six mois après la mise en service.
+ */
+export function bootstrapDate(identity, today) {
+  return shiftDays((identity.created_at ?? today).slice(0, 10), -7)
+}
+
 /**
  * Point de départ de la recherche pour UNE identité : sa capture la plus récente sur CETTE
- * source moins sept jours de marge, ou la date de bootstrap au tout premier run.
+ * source moins sept jours de marge, ou la date de bootstrap tant qu'elle n'a aucune capture.
  *
  * Le curseur est par source, pas par personne : une source active tirerait sinon la fenêtre
  * d'une source plus lente en avant, dont les événements passeraient alors hors fenêtre sans
  * jamais être vus.
- *
- * Par défaut (pas de BOOTSTRAP_SINCE), le jour du run — jamais une date fixe dans le passé,
- * sinon un profil créé longtemps après la mise en service rattraperait tout son historique
- * d'un coup.
  */
 export function sinceDate(catches, bootstrap) {
   if (!catches.length) return bootstrap
   const latest = catches.reduce((max, c) => (c.date > max ? c.date : max), catches[0].date)
-  const d = new Date(latest + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() - 7)
-  return d.toISOString().slice(0, 10)
+  return shiftDays(latest, -7)
 }
 
 /**
@@ -175,9 +193,12 @@ export async function markPacksClaimed(supabaseUrl, serviceKey, ids, fetchFn = f
   if (!res.ok) throw new Error(`arena_packs (écriture) a répondu ${res.status}`)
 }
 
-/** Une ligne par (personne, source) — créée à la connexion pour GitHub, ajoutée à la main sinon. */
+/**
+ * Une ligne par (personne, source) — créée à la connexion pour GitHub, ajoutée à la main sinon.
+ * `created_at` sert de repère à la fenêtre d'accueil (cf. `bootstrapDate`).
+ */
 export async function fetchIdentities(supabaseUrl, serviceKey, fetchFn = fetch) {
-  const res = await fetchFn(`${supabaseUrl}/rest/v1/identities?select=user_id,source,handle,config`, {
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/identities?select=user_id,source,handle,config,created_at`, {
     headers: sbHeaders(serviceKey),
   })
   if (!res.ok) throw new Error(`identities a répondu ${res.status}`)
@@ -227,7 +248,10 @@ export function planSources(identities) {
 export async function main() {
   const supabaseUrl = process.env.SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const bootstrap = process.env.BOOTSTRAP_SINCE || new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
+  // Échappatoire manuelle, et rien de plus : sans elle, chaque identité neuve part de sa
+  // propre fenêtre d'accueil plutôt que d'une date globale figée.
+  const forcedBootstrap = process.env.BOOTSTRAP_SINCE || null
 
   if (!supabaseUrl || !serviceKey) {
     throw new Error('SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont requis.')
@@ -248,7 +272,7 @@ export async function main() {
     const events = await connector.collect({
       handle: identity.handle,
       config: identity.config,
-      since: sinceDate(existing, bootstrap),
+      since: sinceDate(existing, forcedBootstrap ?? bootstrapDate(identity, today)),
       secret: process.env[connector.secretEnv],
       existing,
     })
