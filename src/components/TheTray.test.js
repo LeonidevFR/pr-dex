@@ -99,6 +99,23 @@ describe('TheTray', () => {
     expect(w.findAll('.cell')[0].find('.cell-origin').text()).toBe('évolué')
   })
 
+  /**
+   * L'étoile et le compte se partagent le coin.
+   *
+   * Le halo du chromatique a été retiré — il alourdissait la grille, et l'étoile suffit. Mais les
+   * deux marques étaient posées en absolu au même endroit : le badge ×N, opaque, recouvrait
+   * l'étoile. Une espèce chromatique possédée en plusieurs exemplaires n'annonçait donc plus rien
+   * du tout.
+   */
+  it('montre l’étoile ET le compte quand une espèce chromatique est en double', () => {
+    const w = mount(TheTray, {
+      props: { bySpecies: { 1: [entry('a', 1, { shiny: true }), entry('b', 1)] } },
+    })
+    const cell = w.findAll('.cell')[0]
+    expect(cell.find('.cell-shiny').exists()).toBe(true)
+    expect(cell.find('.cell-dupes').text()).toBe('×2')
+  })
+
   /** Le Pokédex garde ce qu'il a rencontré : stock vide ne veut pas dire case grise. */
   it('garde l’espèce et son sprite quand il ne reste plus aucun exemplaire', () => {
     const w = mount(TheTray, {

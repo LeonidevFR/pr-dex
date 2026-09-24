@@ -30,17 +30,26 @@ describe('SaleSection', () => {
   })
 
   /**
-   * La sélection par défaut est la fonctionnalité : on confirme sans lire. Deux Rattata sur trois
-   * sont donc déjà cochés, et le total les chiffre.
+   * Rien n'est coché au départ. Une sélection d'office ferait vendre par inadvertance ce que le
+   * joueur n'a pas regardé — et ce qui part ne revient pas.
    */
-  it('présélectionne le surplus et en annonce le total', () => {
+  it('ne coche rien au départ', () => {
     const w = monter(TROIS_RATTATA)
+    expect(w.find('.arena-big').text()).toBe('0 ₽')
+    expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
+    expect(w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))).toHaveLength(0)
+  })
+
+  it('chiffre la sélection à mesure qu’on la compose', async () => {
+    const w = monter(TROIS_RATTATA)
+    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')   // « Tous »
     expect(w.find('.arena-big').text()).toBe(`${salePrice(RATTATA, 1) * 2} ₽`)
     expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
   })
 
   it('vend en deux clics, et rend les clés choisies', async () => {
     const w = monter(TROIS_RATTATA)
+    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
     await w.find('.vendre-btn').trigger('click')
     expect(w.emitted('sell')).toBeUndefined()
     expect(w.find('.vendre-btn').text()).toContain('Confirmer')
@@ -52,22 +61,24 @@ describe('SaleSection', () => {
   // Le second clic dit le prix : on confirme ce qu'on encaisse, pas seulement qu'on a cliqué.
   it('annonce le montant sur le clic de confirmation', async () => {
     const w = monter(TROIS_RATTATA)
+    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
     await w.find('.vendre-btn').trigger('click')
     expect(w.find('.vendre-btn').text()).toContain(`${salePrice(RATTATA, 1) * 2} ₽`)
   })
 
-  it('ne propose rien à vendre quand la sélection est vide', async () => {
+  it('ne propose rien à vendre quand la sélection est vidée', async () => {
     const w = monter(TROIS_RATTATA)
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click') // « Aucun »
+    const bouton = () => w.findAll('.vendre-tete .evo-btn')[0]
+    await bouton().trigger('click')   // tous
+    await bouton().trigger('click')   // aucun
     expect(w.find('.arena-big').text()).toBe('0 ₽')
     expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
   })
 
+  // Le raccourci du groupe prend tout son surplus — jamais le dernier exemplaire.
   it('bascule tout un groupe d’un clic, sans jamais prendre le dernier', async () => {
     const w = monter(TROIS_RATTATA)
-    const bouton = () => w.findAll('.vendre-tete .evo-btn')[0]
-    await bouton().trigger('click')   // aucun
-    await bouton().trigger('click')   // tous
+    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
     expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
   })
 
@@ -88,6 +99,7 @@ describe('SaleSection', () => {
    */
   it('verrouille la dernière case libre d’un groupe', async () => {
     const w = monter(TROIS_RATTATA)
+    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
     await w.find('.vendre-plier').trigger('click')
 
     const libre = w.findAll('.vendre-ligne').find((l) => l.classes().includes('bloque'))
@@ -98,18 +110,33 @@ describe('SaleSection', () => {
 
   it('décoche un exemplaire précis sans toucher aux autres', async () => {
     const w = monter(TROIS_RATTATA)
+    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
     await w.find('.vendre-plier').trigger('click')
     const pris = w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))
     await pris[0].trigger('click')
     expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
   })
 
-  // Un shiny ne partira jamais sans qu'on l'ait explicitement demandé.
-  it('laisse le shiny décoché mais vendable', async () => {
+  // Un shiny est signalé comme tel : il ne doit pas partir sans qu'on l'ait vu.
+  it('signale les shinies dans le détail', async () => {
     const w = monter([e('a', RATTATA), e('b', RATTATA, true), e('c', RATTATA, true)])
-    expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
     await w.find('.vendre-plier').trigger('click')
     expect(w.find('.vendre-detail').text()).toContain('shiny')
+  })
+
+  /**
+   * « Le meilleur » ne s'affiche que lorsqu'il l'est. Quand tout le monde est au niveau 1 et que
+   * personne n'est chromatique, celui qu'on garde est arbitraire : l'annoncer comme le meilleur
+   * affirmerait une distinction qui n'existe pas.
+   */
+  it('ne désigne un meilleur exemplaire que s’il se distingue', async () => {
+    const egaux = monter(TROIS_RATTATA)
+    await egaux.find('.vendre-plier').trigger('click')
+    expect(egaux.find('.vendre-detail').text()).not.toContain('le meilleur')
+
+    const inegaux = monter(TROIS_RATTATA, (k) => (k === 'b' ? 9 : 1))
+    await inegaux.find('.vendre-plier').trigger('click')
+    expect(inegaux.find('.vendre-detail').text()).toContain('le meilleur')
   })
 
   it('n’émet rien et ne se laisse pas cliquer pendant une opération', async () => {
@@ -117,11 +144,13 @@ describe('SaleSection', () => {
     expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
   })
 
-  // Tant qu'on n'y a pas touché, la sélection suit le stock : un nouveau doublon s'y ajoute.
-  it('repart du nouveau surplus quand le stock change', async () => {
+  // Ce qui disparaît du stock quitte la sélection ; rien ne s'y ajoute jamais tout seul.
+  it('n’ajoute rien quand le stock grandit', async () => {
     const w = monter(TROIS_RATTATA)
-    await w.setProps({ groups: saleGroups([e('a', RATTATA), e('b', RATTATA)]) })
-    expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
+    await w.setProps({
+      groups: saleGroups([...TROIS_RATTATA, e('d', RATTATA), e('f', RATTATA)]),
+    })
+    expect(w.find('.arena-big').text()).toBe('0 ₽')
   })
 
   /**
@@ -132,28 +161,23 @@ describe('SaleSection', () => {
    */
   it('garde la sélection quand le surplus est recalculé à l’identique', async () => {
     const w = monter(TROIS_RATTATA)
-    await w.find('.vendre-plier').trigger('click')
-    const pris = w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))
-    await pris[0].trigger('click')
-    expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
+    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
+    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
 
     await w.setProps({ groups: saleGroups([e('a', RATTATA), e('b', RATTATA), e('c', RATTATA)]) })
-    expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
+    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
   })
 
   // Ce qui a disparu quitte la sélection, sinon la vente suivante porterait sur du vide.
   it('oublie un exemplaire qui n’est plus là, sans rien rajouter', async () => {
     const w = monter([e('a', RATTATA), e('b', RATTATA), e('c', RATTATA), e('d', RATTATA)])
-    await w.find('.vendre-plier').trigger('click')
-    const pris = w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))
-    await pris[0].trigger('click')   // décoché : le joueur a décidé
-    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
+    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')   // tous : 3 sur 4
+    expect(w.find('.arena-unit').text()).toContain('3 exemplaires')
 
-    // Le stock perd un exemplaire ET en gagne un autre : le nouveau ne s'invite pas.
+    // « b » était choisi et disparaît ; « z » arrive et ne s'invite pas dans la vente.
     await w.setProps({
-      groups: saleGroups([e('b', RATTATA), e('c', RATTATA), e('d', RATTATA), e('z', RATTATA)]),
+      groups: saleGroups([e('a', RATTATA), e('c', RATTATA), e('d', RATTATA), e('z', RATTATA)]),
     })
-    const apres = Number(w.find('.arena-unit').text().replace(/\D/g, ''))
-    expect(apres).toBeLessThanOrEqual(2)
+    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
   })
 })

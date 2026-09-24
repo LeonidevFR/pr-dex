@@ -12,16 +12,15 @@ const props = defineProps({
 const emit = defineEmits(['sell'])
 
 /**
- * La sélection par défaut EST la fonctionnalité : tout le surplus, moins ce qu'on garde, moins
- * les shinies et les exemplaires investis. On confirme sans lire, et on ne lit que si l'on veut
- * vendre plus que le défaut.
+ * Rien n'est coché au départ.
+ *
+ * Une sélection d'office ferait vendre par inadvertance ce que le joueur n'a pas regardé — et
+ * ce qui part ne revient pas. Le raccourci reste à un clic par espèce (« Tous »), et la fiche
+ * d'espèce porte le geste en un coup pour le tas qu'on a sous les yeux.
  */
 const choisies = ref(new Set())
 const ouverts = ref(new Set())
 const aConfirmer = ref(false)
-
-/** A-t-on touché à la sélection ? Une fois oui, elle n'est plus à nous de la refaire. */
-const decidee = ref(false)
 
 /**
  * Ce qui identifie le STOCK, et non l'objet qui le décrit.
@@ -35,13 +34,12 @@ const decidee = ref(false)
 const signature = computed(
   () => props.groups.flatMap((g) => g.items.map((i) => i.key)).sort().join('|'))
 
-watch(signature, (_maintenant, avant) => {
+watch(signature, () => {
   const vivantes = new Set(props.groups.flatMap((g) => g.items.map((i) => i.key)))
-  choisies.value = avant !== undefined && decidee.value
-    // Le joueur a décidé : on ne garde que ce qui existe encore, et on ne rajoute rien. Un
-    // exemplaire qui arrive pendant qu'il choisit ne doit pas se glisser dans sa vente.
-    ? new Set([...choisies.value].filter((k) => vivantes.has(k)))
-    : new Set(props.groups.flatMap((g) => g.preselected))
+  // On ne garde que ce qui existe encore, et on ne rajoute jamais rien : ni au premier rendu, où
+  // la sélection part vide, ni quand le stock bouge — un exemplaire qui arrive pendant que le
+  // joueur choisit n'a pas à se glisser dans sa vente.
+  choisies.value = new Set([...choisies.value].filter((k) => vivantes.has(k)))
   aConfirmer.value = false
 }, { immediate: true })
 
@@ -59,7 +57,6 @@ const bloque = (g, i) => !choisies.value.has(i.key) && restants(g) <= 1
 
 function basculer(g, i) {
   if (bloque(g, i)) return
-  decidee.value = true
   const s = new Set(choisies.value)
   s.has(i.key) ? s.delete(i.key) : s.add(i.key)
   choisies.value = s
@@ -68,7 +65,6 @@ function basculer(g, i) {
 
 /** Le raccourci du groupe : tout son surplus, ou rien. Jamais le dernier exemplaire. */
 function basculerGroupe(g) {
-  decidee.value = true
   const s = new Set(choisies.value)
   const cibles = g.items.filter((i) => !i.keeper)
   const toutPris = cibles.every((i) => s.has(i.key))
@@ -128,8 +124,9 @@ function vendre() {
           bon. L’espèce et les bonbons restent acquis.
         </p>
         <p v-else class="muted" style="margin-top:10px">
-          Ta sélection épargne d’office ton meilleur exemplaire de chaque espèce, les shinies et
-          ceux qui ont gagné des niveaux. Déplie une ligne pour en décider autrement.
+          Rien n’est coché : c’est à toi de désigner ce qui part. <b>Tous</b> prend le surplus
+          d’une espèce d’un coup, le chevron déplie le détail exemplaire par exemplaire. Il en
+          reste toujours un, quoi qu’il arrive.
         </p>
       </div>
 
@@ -164,7 +161,7 @@ function vendre() {
               <span class="vendre-case mono">{{ choisies.has(i.key) ? '×' : '' }}</span>
               <span class="vendre-niv mono">niv. {{ i.level }}</span>
               <span v-if="i.shiny" class="vendre-tag mono">shiny</span>
-              <span v-if="i.keeper" class="vendre-tag mono">le meilleur</span>
+              <span v-if="i.notable" class="vendre-tag mono">le meilleur</span>
               <span class="vendre-prix mono">{{ i.price }} ₽</span>
             </button>
             <p v-if="restants(g) <= 1" class="muted vendre-note">

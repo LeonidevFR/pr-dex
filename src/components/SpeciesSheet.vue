@@ -237,10 +237,26 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
           le plus ancien exemplaire, choisi par personne. Dès qu'une espèce en compte deux de
           niveaux différents, ce bouton engageait au hasard ce qu'on n'avait pas décidé.
         -->
+        <div v-if="lot && lot.preselected.length" class="vendre-lot">
+          <button
+            class="evo-btn vendre-tout" :class="{ confirming: aVendre === 'lot' }"
+            @click="vendreLeLot"
+          >{{ aVendre === 'lot'
+            ? `Confirmer — ${lotPrix} ₽`
+            : `Vendre les ${lot.preselected.length} en trop · ${lotPrix} ₽` }}</button>
+          <span class="muted vendre-lot-note">
+            Garde ton meilleur exemplaire, les chromatiques et ceux qui ont gagné des niveaux.
+          </span>
+        </div>
+
         <div class="formes">
           <div v-for="(e, i) in available" :key="e.key" class="forme-ligne">
             <span class="mono no">{{ i + 1 }}</span>
             <span class="quoi">niv. {{ arenaLevelOf(e.key) }}</span>
+            <!-- Sans cette étoile, la ligne du chromatique n'était qu'un prix quatre fois plus
+                 élevé que ses voisines, sans rien pour le dire — et c'est justement celle qu'on
+                 ne doit pas vendre par distraction. -->
+            <span v-if="e.shiny" class="chip shiny-chip forme-shiny">✦</span>
             <span
               v-if="arenaFormOf" class="forme-nom"
               :class="{ up: arenaFormOf(e.key).factor > 1, down: arenaFormOf(e.key).factor < 1 }"
@@ -262,18 +278,6 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             }}</button>
           </div>
         </div>
-        <div v-if="lot && lot.preselected.length" class="vendre-lot">
-          <button
-            class="evo-btn vendre-tout" :class="{ confirming: aVendre === 'lot' }"
-            @click="vendreLeLot"
-          >{{ aVendre === 'lot'
-            ? `Confirmer — ${lotPrix} ₽`
-            : `Vendre les ${lot.preselected.length} en trop · ${lotPrix} ₽` }}</button>
-          <span class="muted vendre-lot-note">
-            Garde ton meilleur exemplaire, les chromatiques et ceux qui ont gagné des niveaux.
-          </span>
-        </div>
-
         <p v-if="available.length < 2" class="muted" style="margin-bottom:10px">
           Il ne t’en reste qu’un : on garde toujours un exemplaire par espèce, c’est lui qui la
           tient dans ta collection. Les suivants seront vendables.

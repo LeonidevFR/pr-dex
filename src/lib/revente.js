@@ -24,9 +24,10 @@ const meilleur = (items) => [...items].sort(
  * l'exemplaire github:4f3a ». Une liste plate de cent exemplaires ferait de la revente une
  * seconde corvée, ce qui raterait entièrement le problème qu'elle résout.
  *
- * `preselect` porte la réponse en un geste : tout le surplus, moins celui qu'on garde, moins les
- * shinies et les exemplaires déjà investis. Le défaut est donc toujours sûr — on peut confirmer
- * sans lire, et lire seulement si l'on veut plus.
+ * `preselect` désigne ce qu'on peut larguer sans réfléchir : tout le surplus, moins celui qu'on
+ * garde, moins les chromatiques et les exemplaires déjà investis. Ce n'est PAS une sélection
+ * d'office — la boutique ne coche rien, c'est au joueur de décider ce qui part — mais c'est ce
+ * que vise le bouton « Vendre les N en trop » de la fiche d'espèce.
  *
  * @param {Array<{species:number, key:string, shiny?:boolean}>} disponibles — le stock en main
  * @param {(key:string) => number} levelOf — le niveau d'un exemplaire, 1 par défaut
@@ -49,13 +50,25 @@ export function saleGroups(disponibles, levelOf = () => 1) {
     // refuserait, et le proposer serait promettre ce qui sera repris.
     if (items.length < 2) continue
 
-    const garde = meilleur(items).key
+    const garde = meilleur(items)
+    /**
+     * Le gardé mérite-t-il d'être ANNONCÉ comme le meilleur ?
+     *
+     * Quand dix exemplaires sont au niveau 1 et qu'aucun n'est chromatique, celui qu'on garde
+     * est arbitraire : le dire « le meilleur » serait affirmer une distinction qui n'existe pas,
+     * et laisser croire qu'on a choisi pour de bonnes raisons. On ne le nomme que lorsqu'il l'est
+     * vraiment — chromatique, ou plus aguerri que tous les autres.
+     */
+    const autres = items.filter((i) => i.key !== garde.key)
+    const distingue = garde.shiny || garde.level > Math.max(...autres.map((i) => i.level))
+
     const complets = items
       .map((i) => ({
         ...i,
         price: salePrice(species, i.level, i.shiny),
-        keeper: i.key === garde,
-        preselect: i.key !== garde && !i.shiny && i.level < NIVEAU_INVESTI,
+        keeper: i.key === garde.key,
+        notable: i.key === garde.key && distingue,
+        preselect: i.key !== garde.key && !i.shiny && i.level < NIVEAU_INVESTI,
       }))
       .sort((a, b) => a.price - b.price || a.key.localeCompare(b.key))
 

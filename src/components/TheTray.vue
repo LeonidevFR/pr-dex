@@ -142,7 +142,12 @@ const emptyLabel = computed(() => {
       <span v-if="bySpecies[id]" class="cell-origin mono">
         {{ shown(id)[0].via === 'catch' ? shown(id)[0].source : 'évolué' }}
       </span>
-      <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
+      <!-- Les deux marques du coin, dans le même flux : empilées en absolu, le badge ×N
+           recouvrait purement et simplement l'étoile du chromatique. -->
+      <span v-if="isShiny(shown(id)) || copyCount(id) > 1" class="cell-marks">
+        <span v-if="isShiny(shown(id))" class="cell-shiny" aria-label="chromatique">✦</span>
+        <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
+      </span>
       <img
         :src="spriteUrl(id, isShiny(shown(id)))" :alt="DEX[id].name" loading="lazy"
         @error="$event.target.dataset.broken = '1'"

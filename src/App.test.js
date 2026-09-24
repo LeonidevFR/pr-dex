@@ -374,6 +374,9 @@ describe('revente du surplus', () => {
    * La démo simule la latence du réseau : la vente débite tout de suite, mais la relecture de la
    * collection arrive un tour plus tard. On attend l'accusé de réception plutôt qu'un délai fixe.
    */
+  /** Rien n'est coché au départ : on prend le surplus du premier tas d'un clic. */
+  const choisirLePremierTas = (w) => w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
+
   const vendreEtAttendre = async (w) => {
     const bouton = w.find('.vendre-btn')
     await bouton.trigger('click')
@@ -399,6 +402,8 @@ describe('revente du surplus', () => {
 
     const caisse = () => Number(w.findAll('.arena-big')[0].text().replace(/\D/g, ''))
     const avant = caisse()
+
+    await choisirLePremierTas(w)
     const total = Number(w.findAll('.arena-big')[1].text().replace(/\D/g, ''))
     expect(total).toBeGreaterThan(0)
 
@@ -416,6 +421,7 @@ describe('revente du surplus', () => {
     const nidoran = w.findAll('.vendre-groupe')[0]
     const avant = Number(nidoran.find('.vendre-compte').text().replace(/\D/g, ''))
 
+    await choisirLePremierTas(w)
     await vendreEtAttendre(w)
 
     const apres = w.findAll('.vendre-groupe')

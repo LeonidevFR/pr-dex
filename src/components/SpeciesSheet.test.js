@@ -711,6 +711,16 @@ describe('revente depuis la fiche', () => {
     expect(prix).toContain(`Vendre · ${salePrice(1, 9)} ₽`)
   })
 
+  /**
+   * Sans marque, la ligne du chromatique n'est qu'un prix quatre fois plus élevé que ses
+   * voisines, sans rien qui l'explique — et c'est celle qu'on ne doit pas vendre par distraction.
+   */
+  it('signale l’exemplaire chromatique sur sa ligne', () => {
+    const avecShiny = [capture('a', 1), capture('b', 1, { shiny: true })]
+    const w = mountSheet({ id: 1, entries: avecShiny, available: avecShiny })
+    expect(w.findAll('.forme-shiny')).toHaveLength(1)
+  })
+
   it('quadruple le prix d’un shiny', () => {
     const avecShiny = [capture('a', 1), capture('b', 1, { shiny: true })]
     const w = mountSheet({ id: 1, entries: avecShiny, available: avecShiny })

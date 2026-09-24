@@ -212,15 +212,16 @@
   .cell.has{cursor:pointer}
   .cell.has:hover,.cell.has:focus-visible{background:var(--plate-hi);outline:none}
   .cell.has:focus-visible{box-shadow:inset 0 0 0 1.5px var(--herb)}
-  /* halo : shiny et légendaires se distinguent d'un coup d'œil dans la grille pleine */
-  .cell.has.legendary::after,.cell.has.shiny::after{
+  /* Halo du légendaire seul.
+     Le chromatique en avait un aussi, et il alourdissait la grille pour rien : l'étoile qu'il
+     porte déjà en haut à droite le signale, et une pastille suffit là où deux se disputaient
+     l'attention. Le légendaire garde le sien, parce que lui n'a pas de marque propre.
+     En --stamp plutôt que --tier : --t-l vaut la même teinte que --ochre, que le chromatique
+     porte partout ailleurs (étoile, chip). */
+  .cell.has.legendary::after{
     content:"";position:absolute;inset:5px;border-radius:50%;z-index:0;pointer-events:none;
-    opacity:.4;
+    opacity:.4;background:radial-gradient(circle, var(--stamp), transparent 70%);
   }
-  /* légendaire en --stamp plutôt que --tier : --t-l vaut la même teinte que --ochre, or le
-     shiny porte déjà --ochre partout ailleurs (étoile, chip) — les deux halos se confondraient. */
-  .cell.has.legendary::after{background:radial-gradient(circle, var(--stamp), transparent 70%)}
-  .cell.has.shiny::after{background:radial-gradient(circle, var(--ochre), transparent 70%)}
   .cell img{width:76%;height:76%;object-fit:contain;transition:transform .18s;position:relative;z-index:1}
   .cell img[data-broken],.panel-art img[data-broken]{opacity:.18;filter:grayscale(1)}
   .cell.has:hover img{transform:scale(1.09) translateY(-2px)}
@@ -229,13 +230,16 @@
   .cell.has:hover .cell-no{opacity:0}
   .cell-origin{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--stamp);opacity:0;transition:opacity .16s;z-index:2}
   .cell.has:hover .cell-origin{opacity:1}
-  .cell-dupes{position:absolute;right:5px;top:4px;font-family:var(--f-data);font-size:9.5px;font-weight:700;color:var(--paper);background:var(--stamp);border-radius:8px;padding:1px 5px;line-height:1.3;z-index:2}
+  /* Un seul coin pour les deux marques, en ligne : en absolu chacune de son côté, le badge ×N
+     recouvrait l'étoile du chromatique et la case n'annonçait plus rien. */
+  .cell-marks{position:absolute;right:5px;top:4px;display:flex;align-items:center;gap:4px;z-index:2}
+  .cell-shiny{font-size:10px;line-height:1;color:var(--ochre)}
+  .cell-dupes{font-family:var(--f-data);font-size:9.5px;font-weight:700;color:var(--paper);background:var(--stamp);border-radius:8px;padding:1px 5px;line-height:1.3}
   .cell .tier{position:absolute;right:6px;bottom:6px;width:7px;height:7px;border-radius:50%;background:var(--tier);box-shadow:0 0 0 1.5px var(--plate),0 0 0 2.5px rgba(120,96,64,.28);z-index:2}
   /* silhouette : dessin préparatoire au trait */
   .cell.ghost::after{content:"";position:absolute;inset:11px;border:1px dashed rgba(140,110,72,.34);z-index:2}
   .cell.ghost img{filter:sepia(1) saturate(.5) brightness(.55);opacity:.16}
   .cell.ghost .cell-no{opacity:.5}
-  .cell.shiny::before{content:"✦";position:absolute;right:6px;top:5px;font-size:10px;color:var(--ochre);z-index:2}
   .cell-evo{position:absolute;left:6px;bottom:5px;font-size:9px;color:var(--herb);z-index:2}
 
   /* ───────── fiche ───────── */
@@ -899,7 +903,8 @@
   .vendre-note{margin:6px 0 0 8px;font-size:11px}
   .vendre-un{padding:6px 12px;white-space:nowrap}
   /* Le lot au-dessus de la liste : c'est le geste courant, et la ligne par ligne l'exception. */
-  .vendre-lot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .vendre-lot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .forme-shiny{padding:0 5px;font-size:10px;line-height:1.5}
   .vendre-lot-note{font-size:11px;flex:1 1 220px}
 
   /* ───────── profil ───────── */
