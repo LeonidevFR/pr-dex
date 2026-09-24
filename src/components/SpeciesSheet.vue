@@ -267,18 +267,21 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               :disabled="!arenaCredits" @click="$emit('engage', e.key)"
             >Choisir</button>
             <button
-              class="evo-btn vendre-un" :class="{ confirming: aVendre === e.key }"
-              :disabled="available.length < 2" @click="vendre(e)"
-              :title="available.length < 2
-                ? 'Sans exemplaire, l’espèce n’est plus jouable — ni arène, ni évolution. Son entrée au Pokédex reste acquise.'
-                : null"
-            >{{
-              available.length < 2 ? 'Le dernier'
-              : aVendre === e.key ? `Confirmer — ${prixDe(e)} ₽` : `Vendre · ${prixDe(e)} ₽`
-            }}</button>
+              v-if="available.length > 1" class="evo-btn vendre-un"
+              :class="{ confirming: aVendre === e.key }" @click="vendre(e)"
+            >{{ aVendre === e.key ? `Confirmer — ${prixDe(e)} ₽` : `Vendre · ${prixDe(e)} ₽` }}</button>
           </div>
         </div>
-        <p v-if="available.length < 2" class="muted" style="margin-bottom:10px">
+        <!--
+          L'explication n'a lieu d'être QUE là où le bouton vient de disparaître : on en avait
+          plusieurs, on a vendu, il n'en reste qu'un — et l'absence se lit comme une panne. Sur
+          une espèce qu'on n'a jamais eue qu'en un exemplaire, il n'y a rien à expliquer, et la
+          phrase ne serait que du bruit sur les trois quarts des fiches.
+        -->
+        <p
+          v-if="available.length < 2 && (entries?.length ?? 0) > available.length"
+          class="muted" style="margin-bottom:10px"
+        >
           Il ne t’en reste qu’un, et il ne se vend pas : sans lui, plus moyen d’engager l’espèce à
           l’arène ni de la faire évoluer. Son entrée au Pokédex, elle, est acquise pour toujours.
         </p>
