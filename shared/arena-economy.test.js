@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason, FIRST_SEASON, arenaIsOpen, arenaOpensAt, seasonNumber, seasonLabel } from './arena-economy.js'
+import { LEVEL_MAX } from './battle.js'
+import { coveredTier, REWARD, COMPUTER_REWARD, SHOP, FRESH_MULTIPLIER, SEASON_PODIUM, SEASON_INCOME, CREDIT_PER_WORKING_DAY, CREDIT_CAP, PAIR_WEEKLY_CAP, CHALLENGE_EXPIRY_HOURS, seasonOf, seasonBounds, daysLeftInSeason, FIRST_SEASON, arenaIsOpen, arenaOpensAt, seasonNumber, seasonLabel, salePrice, SALE_BASE } from './arena-economy.js'
 import { TIER_ORDER } from './species.js'
 
 describe('coveredTier', () => {
@@ -207,5 +208,80 @@ describe('nom des saisons', () => {
 
   it('ne rend jamais rien, même sur un code illisible', () => {
     expect(seasonLabel('nawak')).toBe('nawak')
+  })
+})
+
+/**
+ * Le prix de revente d'un exemplaire.
+ *
+ * Il n'est pas une intuition : il s'ancre sur la boutique, ce qui donne trois invariants qu'on
+ * peut tester plutôt que débattre. Sans eux, la revente serait un robinet dont personne ne
+ * connaîtrait le débit — et le premier joueur à s'en apercevoir grinderait les PR.
+ */
+describe('prix de revente', () => {
+  const PLI_GEN1 = { c: 250, u: 500, r: 1200, l: 4500 }
+
+  it('reprend la grille de la spec, palier par palier et niveau par niveau', () => {
+    expect([1, 3, 5, 10].map((n) => salePrice(19, n))).toEqual([10, 13, 17, 25])       // Rattata, commun
+    expect([1, 3, 5, 10].map((n) => salePrice(35, n))).toEqual([20, 27, 33, 50])       // Mélofée, peu commun
+    expect([1, 3, 5, 10].map((n) => salePrice(1, n))).toEqual([50, 67, 83, 125])       // Bulbizarre, rare
+    expect([1, 3, 5, 10].map((n) => salePrice(150, n))).toEqual([180, 240, 300, 450])  // Mewtwo, légendaire
+  })
+
+  /**
+   * L'invariant le plus important : jouer doit toujours rapporter plus que vendre, sinon la
+   * revente devient une stratégie de revenu et l'arène un décor.
+   */
+  it('plafonne à la moitié du gain d’une victoire, sur les trois premiers paliers', () => {
+    for (const [espece, palier] of [[19, 'c'], [35, 'u'], [1, 'r']]) {
+      expect(salePrice(espece, LEVEL_MAX)).toBe(REWARD[palier].dollars / 2)
+    }
+  })
+
+  /**
+   * Racheter ne doit jamais rembourser le pli. Énoncé en dixièmes, l'invariant se briserait sur
+   * l'arrondi de la base rare (50 $ au lieu des 48 $ exacts) ; énoncé en NOMBRE DE CARTES, il dit
+   * la même chose sans dépendre d'un arrondi, et il dit ce qui compte à qui voudrait grinder.
+   */
+  it('exige dix reventes au niveau maximum pour racheter un seul pli du même palier', () => {
+    for (const [espece, palier] of [[19, 'c'], [35, 'u'], [1, 'r'], [150, 'l']]) {
+      const cartes = Math.ceil(PLI_GEN1[palier] / salePrice(espece, LEVEL_MAX))
+      expect(cartes).toBeGreaterThanOrEqual(10)
+    }
+  })
+
+  // Le niveau est un multiplicateur borné, pas une échappatoire : dix victoires valent ×2,5.
+  it('multiplie par deux et demi du niveau 1 au niveau 10, jamais plus', () => {
+    for (const espece of [19, 35, 1, 150]) {
+      expect(salePrice(espece, LEVEL_MAX)).toBe(Math.round(salePrice(espece, 1) * 2.5))
+    }
+  })
+
+  // Le palier prime : un commun poussé à fond reste loin d'un rare tout neuf.
+  it('laisse le palier primer sur le niveau', () => {
+    expect(salePrice(19, LEVEL_MAX)).toBeLessThan(salePrice(1, 1))
+    expect(salePrice(35, LEVEL_MAX)).toBeLessThanOrEqual(salePrice(1, 1))
+  })
+
+  // La Gen 2 coûte le double en boutique : elle se revend le double.
+  it('vaut le double en Gen 2, comme en boutique', () => {
+    expect(salePrice(152, 1)).toBe(salePrice(19, 1) * 2)   // Germignon, commun Gen 2
+    expect(salePrice(249, 1)).toBe(salePrice(150, 1) * 2)  // Lugia, légendaire Gen 2
+  })
+
+  it('quadruple un shiny', () => {
+    expect(salePrice(19, 1, true)).toBe(40)
+    expect(salePrice(1, LEVEL_MAX, true)).toBe(500)
+  })
+
+  // Un niveau hors bornes est une donnée douteuse, pas une occasion de prix douteux.
+  it('borne le niveau au lieu de suivre une valeur aberrante', () => {
+    expect(salePrice(19, 0)).toBe(salePrice(19, 1))
+    expect(salePrice(19, 99)).toBe(salePrice(19, LEVEL_MAX))
+  })
+
+  // Échec bruyant : une espèce inconnue vaudrait 0 en silence, et la vente passerait pour nulle.
+  it('refuse une espèce inconnue plutôt que de rendre zéro', () => {
+    expect(() => salePrice(9999, 1)).toThrow()
   })
 })

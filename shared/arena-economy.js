@@ -1,7 +1,8 @@
 // Réexporté depuis species.js, où vit désormais l'ordre des paliers, pour ne casser aucun
 // import existant : l'enjeu d'un duel s'en sert autant que la grille.
 export { TIER_ORDER } from './species.js'
-import { TIER_ORDER } from './species.js'
+import { TIER_ORDER, DEX } from './species.js'
+import { LEVEL_MAX } from './battle.js'
 
 /**
  * L'« enjeu du duel » : on ne gagne pas plus que ce que l'adversaire a engagé, comme au
@@ -173,4 +174,49 @@ export const arenaIsOpen = (now = new Date()) => now >= arenaOpensAt()
 export function daysLeftInSeason(season, now = new Date()) {
   const { end } = seasonBounds(season)
   return Math.max(0, Math.ceil((end - now) / 86_400_000))
+}
+
+/**
+ * La revente d'un exemplaire en trop.
+ *
+ * Un tirage donne trois bonbons ET un exemplaire, indépendamment : les bonbons sont encaissés au
+ * tirage, et une évolution ne consomme qu'un exemplaire, pas la pile. Le surplus est donc du
+ * poids mort — et l'arène ne l'absorbe pas : engager quinze exemplaires l'un après l'autre est
+ * une corvée, pas un usage.
+ *
+ * La base est ancrée sur la BOUTIQUE, à peu près 4 % du pli du même palier, arrondie à des
+ * chiffres qui se lisent. L'ancrage n'est pas décoratif : c'est lui qui donne les trois
+ * invariants que `arena-economy.test.js` vérifie plutôt que de les laisser à l'intuition.
+ *
+ *   1. Jouer rapporte le double de vendre. Un exemplaire au niveau maximum vaut exactement la
+ *      moitié du gain d'une victoire de son palier.
+ *   2. Racheter ne rembourse jamais le pli. Une carte se revend entre 4 % et 10 % de ce qu'a
+ *      coûté le pli qui l'a produite : le va-et-vient boutique → revente perd 90 % au mieux.
+ *   3. Le palier prime sur le niveau. Le multiplicateur plafonne à ×2,5, et l'écart le plus
+ *      serré entre deux paliers est de ×2,5 lui aussi.
+ */
+export const SALE_BASE = { c: 10, u: 20, r: 50, l: 180 }
+
+/** La Gen 2 coûte le double en boutique. Elle se revend le double : même rapport, même échelle. */
+const SALE_GEN_FACTOR = { 1: 1, 2: 2 }
+
+export const SALE_SHINY_FACTOR = 4
+
+/**
+ * Le prix d'un exemplaire précis. Le niveau est borné plutôt que cru : une valeur aberrante
+ * venue d'une donnée douteuse ne doit pas produire un prix aberrant.
+ *
+ * Écrite ici ET dans `public.dex_sale_price` côté SQL — le serveur débite, le front affiche
+ * avant de cliquer — avec un test de parité qui les aligne, comme pour `fnv1a`, les saisons et
+ * la résolution des duels.
+ */
+export function salePrice(species, level = 1, shiny = false) {
+  const espece = DEX[species]
+  // Échec bruyant : une espèce inconnue vaudrait 0 en silence, et la vente passerait pour nulle
+  // au lieu de signaler la donnée cassée.
+  if (!espece) throw new Error(`espèce inconnue : ${species}`)
+
+  const base = SALE_BASE[espece.tier] * SALE_GEN_FACTOR[espece.gen]
+  const niveau = Math.min(LEVEL_MAX, Math.max(1, Math.trunc(level) || 1))
+  return Math.round(base * (1 + (niveau - 1) / 6) * (shiny ? SALE_SHINY_FACTOR : 1))
 }
