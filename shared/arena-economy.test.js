@@ -222,19 +222,23 @@ describe('prix de revente', () => {
   const PLI_GEN1 = { c: 250, u: 500, r: 1200, l: 4500 }
 
   it('reprend la grille de la spec, palier par palier et niveau par niveau', () => {
-    expect([1, 3, 5, 10].map((n) => salePrice(19, n))).toEqual([10, 13, 17, 25])       // Rattata, commun
-    expect([1, 3, 5, 10].map((n) => salePrice(35, n))).toEqual([20, 27, 33, 50])       // Mélofée, peu commun
-    expect([1, 3, 5, 10].map((n) => salePrice(1, n))).toEqual([50, 67, 83, 125])       // Bulbizarre, rare
-    expect([1, 3, 5, 10].map((n) => salePrice(150, n))).toEqual([180, 240, 300, 450])  // Mewtwo, légendaire
+    expect([1, 3, 5, 10].map((n) => salePrice(19, n))).toEqual([5, 7, 8, 13])         // Rattata, commun
+    expect([1, 3, 5, 10].map((n) => salePrice(35, n))).toEqual([10, 13, 17, 25])      // Mélofée, peu commun
+    expect([1, 3, 5, 10].map((n) => salePrice(1, n))).toEqual([25, 33, 42, 63])       // Bulbizarre, rare
+    expect([1, 3, 5, 10].map((n) => salePrice(150, n))).toEqual([90, 120, 150, 225])  // Mewtwo, légendaire
   })
 
   /**
-   * L'invariant le plus important : jouer doit toujours rapporter plus que vendre, sinon la
+   * L'invariant le plus important : jouer doit toujours rapporter bien plus que vendre, sinon la
    * revente devient une stratégie de revenu et l'arène un décor.
+   *
+   * Le seuil est passé de la moitié au quart après mesure sur la production : au rythme réel,
+   * 24 captures par joueur et par semaine dont la moitié en doublons, la première grille valait
+   * 52 % du revenu d'arène — sans risque, et sans le plafond de crédits qui borne l'arène.
    */
-  it('plafonne à la moitié du gain d’une victoire, sur les trois premiers paliers', () => {
+  it('reste sous le tiers du gain d’une victoire, sur les trois premiers paliers', () => {
     for (const [espece, palier] of [[19, 'c'], [35, 'u'], [1, 'r']]) {
-      expect(salePrice(espece, LEVEL_MAX)).toBe(REWARD[palier].dollars / 2)
+      expect(salePrice(espece, LEVEL_MAX)).toBeLessThan(REWARD[palier].dollars / 3)
     }
   })
 
@@ -243,10 +247,10 @@ describe('prix de revente', () => {
    * l'arrondi de la base rare (50 $ au lieu des 48 $ exacts) ; énoncé en NOMBRE DE CARTES, il dit
    * la même chose sans dépendre d'un arrondi, et il dit ce qui compte à qui voudrait grinder.
    */
-  it('exige dix reventes au niveau maximum pour racheter un seul pli du même palier', () => {
+  it('exige vingt reventes au niveau maximum pour racheter un seul pli du même palier', () => {
     for (const [espece, palier] of [[19, 'c'], [35, 'u'], [1, 'r'], [150, 'l']]) {
       const cartes = Math.ceil(PLI_GEN1[palier] / salePrice(espece, LEVEL_MAX))
-      expect(cartes).toBeGreaterThanOrEqual(10)
+      expect(cartes).toBeGreaterThanOrEqual(20)
     }
   })
 
@@ -270,8 +274,8 @@ describe('prix de revente', () => {
   })
 
   it('quadruple un shiny', () => {
-    expect(salePrice(19, 1, true)).toBe(40)
-    expect(salePrice(1, LEVEL_MAX, true)).toBe(500)
+    expect(salePrice(19, 1, true)).toBe(20)
+    expect(salePrice(1, LEVEL_MAX, true)).toBe(250)
   })
 
   // Un niveau hors bornes est une donnée douteuse, pas une occasion de prix douteux.

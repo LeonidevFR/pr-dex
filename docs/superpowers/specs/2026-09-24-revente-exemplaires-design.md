@@ -27,40 +27,55 @@ rien dire. À reconsidérer si l'usage le réclame.
 prix = base(palier) × (1 + (niveau − 1) / 6) × (shiny ? 4 : 1)
 ```
 
-La base est **4 % du prix du pli du même palier** : elle ancre la revente sur la boutique au
+La base est **2 % du prix du pli du même palier** : elle ancre la revente sur la boutique au
 lieu de la laisser flotter à côté.
 
 | palier | pli | niv. 1 | niv. 3 | niv. 5 | niv. 10 | victoire en duel |
 |---|---|---|---|---|---|---|
-| commun | 250 $ | 10 $ | 13 $ | 17 $ | 25 $ | 50 $ |
-| peu commun | 500 $ | 20 $ | 27 $ | 33 $ | 50 $ | 100 $ |
-| rare | 1200 $ | 50 $ | 67 $ | 83 $ | 125 $ | 250 $ |
-| légendaire | 4500 $ | 180 $ | 240 $ | 300 $ | 450 $ | 600 $ |
+| commun | 250 $ | 5 $ | 7 $ | 8 $ | 13 $ | 50 $ |
+| peu commun | 500 $ | 10 $ | 13 $ | 17 $ | 25 $ | 100 $ |
+| rare | 1200 $ | 25 $ | 33 $ | 42 $ | 63 $ | 250 $ |
+| légendaire | 4500 $ | 90 $ | 120 $ | 150 $ | 225 $ | 600 $ |
 
 Le niveau plafonne à 10 (`LEVEL_MAX`), donc le prix aussi : ×2,5 au maximum.
 
 ### Les trois invariants, chacun testable
 
-1. **Jouer rapporte le double de vendre.** Un exemplaire au niveau maximum vaut exactement la
-   moitié du gain d'une victoire de son palier (25/50, 50/100, 125/250). La revente est la
-   sortie de secours du surplus, jamais une stratégie de revenu.
-2. **Racheter ne rembourse jamais le pli.** Il faut revendre **dix exemplaires** d'un palier, au
-   niveau maximum, pour racheter un seul pli de ce palier. Énoncé en pourcentage, l'invariant se
+1. **Jouer rapporte bien plus que vendre.** Un exemplaire au niveau maximum vaut le quart du
+   gain d'une victoire de son palier (13/50, 25/100, 63/250). La revente est la sortie de secours
+   du surplus, jamais une stratégie de revenu.
+2. **Racheter ne rembourse jamais le pli.** Il faut revendre **vingt exemplaires** d'un palier,
+   au niveau maximum, pour racheter un seul pli de ce palier. Énoncé en pourcentage, l'invariant se
    briserait sur l'arrondi de la base rare (50 $ au lieu des 48 $ exacts) ; énoncé en nombre de
    cartes, il dit la même chose sans dépendre d'un arrondi — et il dit ce qui compte à qui
    voudrait grinder. La boucle est fermée par construction, quel que soit le débit de PR.
-3. **Le palier prime sur le niveau.** Un Nidoran niveau 3 vaut 13 $ contre 50 $ pour un rare
-   neuf. Seule bavure assumée : un commun niveau 10 (25 $) dépasse de 5 $ un peu commun neuf
-   (20 $) — dix victoires valent bien 5 $.
+3. **Le palier prime sur le niveau.** Un Nidoran niveau 3 vaut 7 $ contre 25 $ pour un rare
+   neuf. Seule bavure assumée : un commun niveau 10 (13 $) dépasse de 3 $ un peu commun neuf
+   (10 $) — dix victoires valent bien 3 $.
 
 Le facteur shiny (×4) est arbitraire et se règle seul ; un shiny n'est jamais présélectionné à
 la vente.
 
-### Ce qui reste à calibrer
+### Le calibrage, mesuré sur la production
 
-Le débit réel de captures. Il ne change aucun des trois invariants — ils sont structurels — mais
-il fixe la taille absolue du robinet. À mesurer sur un export de production avant la mise en
-service ; le réglage tient dans la constante `SALE_BASE_RATE` (4 %).
+Mesuré le 25 septembre 2026 sur un export réel : **24 captures par joueur et par semaine**
+(9 joueurs actifs), **49 % du stock en doublons**, prix moyen d'un exemplaire en trop **7,7 $**.
+
+La revente rapporte donc **~790 $ par saison de deux mois**, soit **26 % du revenu d'arène**
+(`SEASON_INCOME` = 3 000 $).
+
+La première grille — base à 4 % — donnait 1 570 $, soit 52 %. C'était trop, et l'asymétrie était
+le vrai problème : le revenu d'arène est **plafonné par les crédits**, un par jour ouvré, tandis
+que la revente suit le **volume de PR**, qui n'a pas de plafond et grandit avec l'équipe. Un
+joueur qui merge beaucoup et joue peu aurait gagné davantage en vendant qu'en se battant —
+exactement l'inverse de ce que la boutique doit récompenser.
+
+Le réglage tient dans une seule constante, `SALE_BASE`, et se recalibre de la même façon : un
+export, deux requêtes, le rapport au `SEASON_INCOME`.
+
+**À la mise en service**, chacun liquidera d'un coup ses doublons accumulés : environ 1 500 $
+pour le joueur le plus avancé, rien pour le dernier arrivé. C'est un moment de lancement, et il
+récompense ceux qui ont le plus travaillé.
 
 ## Données
 

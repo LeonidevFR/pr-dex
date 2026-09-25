@@ -31,10 +31,10 @@ alter table public.arena_exemplars
  * avant de cliquer — avec un test de parité qui les aligne, comme pour `fnv1a`, les saisons et
  * la résolution des duels.
  *
- * La base est ancrée sur la BOUTIQUE (environ 4 % du pli du même palier, arrondie à des chiffres
- * qui se lisent), ce qui donne trois invariants testables plutôt que débattus : jouer rapporte
- * le double de vendre, il faut dix reventes pour racheter un pli du même palier, et le palier
- * prime toujours sur le niveau puisque le multiplicateur plafonne à ×2,5.
+ * La base est ancrée sur la BOUTIQUE (environ 2 % du pli du même palier, arrondie à des chiffres
+ * qui se lisent), ce qui donne trois invariants testables plutôt que débattus : vendre rapporte
+ * le quart d'une victoire, il faut VINGT reventes pour racheter un pli du même palier, et le
+ * palier prime toujours sur le niveau puisque le multiplicateur plafonne à ×2,5.
  *
  * Le niveau est borné plutôt que cru : une valeur aberrante ne doit pas produire un prix
  * aberrant. Une espèce inconnue rend `null`, et `dex_sell` refuse plutôt que d'encaisser zéro.
@@ -42,7 +42,7 @@ alter table public.arena_exemplars
 create or replace function public.dex_sale_price(species int, level int, shiny boolean)
 returns int language sql immutable as $$
   select round(
-           (case st.tier when 'c' then 10 when 'u' then 20 when 'r' then 50 when 'l' then 180 end)
+           (case st.tier when 'c' then 5 when 'u' then 10 when 'r' then 25 when 'l' then 90 end)
            -- La Gen 2 coûte le double en boutique : elle se revend le double.
            * (case when dex_sale_price.species > 151 then 2 else 1 end)
            * (1 + (least(10, greatest(1, coalesce(dex_sale_price.level, 1))) - 1) / 6.0)

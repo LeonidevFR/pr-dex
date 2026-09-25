@@ -184,18 +184,26 @@ export function daysLeftInSeason(season, now = new Date()) {
  * poids mort — et l'arène ne l'absorbe pas : engager quinze exemplaires l'un après l'autre est
  * une corvée, pas un usage.
  *
- * La base est ancrée sur la BOUTIQUE, à peu près 4 % du pli du même palier, arrondie à des
+ * La base est ancrée sur la BOUTIQUE, à peu près 2 % du pli du même palier, arrondie à des
  * chiffres qui se lisent. L'ancrage n'est pas décoratif : c'est lui qui donne les trois
  * invariants que `arena-economy.test.js` vérifie plutôt que de les laisser à l'intuition.
  *
- *   1. Jouer rapporte le double de vendre. Un exemplaire au niveau maximum vaut exactement la
- *      moitié du gain d'une victoire de son palier.
- *   2. Racheter ne rembourse jamais le pli. Une carte se revend entre 4 % et 10 % de ce qu'a
- *      coûté le pli qui l'a produite : le va-et-vient boutique → revente perd 90 % au mieux.
+ *   1. Jouer rapporte bien plus que vendre. Un exemplaire au niveau maximum vaut le quart du
+ *      gain d'une victoire de son palier — un quart, et non la moitié comme au premier jet.
+ *   2. Racheter ne rembourse jamais le pli : il faut VINGT reventes au niveau maximum pour
+ *      racheter un seul pli du même palier.
  *   3. Le palier prime sur le niveau. Le multiplicateur plafonne à ×2,5, et l'écart le plus
  *      serré entre deux paliers est de ×2,5 lui aussi.
+ *
+ * Les prix ont été divisés par deux après MESURE sur la production, et non par intuition. Au
+ * rythme réel — 24 captures par joueur et par semaine, 49 % de doublons — la première grille
+ * rapportait 1 570 ₽ par saison de deux mois, soit 52 % du revenu d'arène, sans risque et sans
+ * crédit. L'asymétrie était le vrai problème : le revenu d'arène est plafonné par les crédits,
+ * un par jour ouvré, tandis que la revente suit le volume de PR, qui n'a pas de plafond et qui
+ * grandit avec l'équipe. À 26 %, la revente redevient ce qu'elle doit être : une sortie pour le
+ * surplus, jamais une stratégie de revenu.
  */
-export const SALE_BASE = { c: 10, u: 20, r: 50, l: 180 }
+export const SALE_BASE = { c: 5, u: 10, r: 25, l: 90 }
 
 /** La Gen 2 coûte le double en boutique. Elle se revend le double : même rapport, même échelle. */
 const SALE_GEN_FACTOR = { 1: 1, 2: 2 }
