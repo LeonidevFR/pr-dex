@@ -25,7 +25,8 @@ const hasActiveFilters = computed(
 )
 
 // « Évoluables » se lit sur le même jeu que le badge ▲ de la case : le filtre ne peut pas
-// montrer autre chose que ce que la grille annonçait déjà.
+// montrer autre chose que ce que la grille annonçait déjà. Ce jeu ne retient que les espèces
+// dont l'évolution manque encore au Pokédex — évoluer vers une forme déjà vue n'apporte rien.
 const visibleIds = computed(() =>
   ids.filter((id) => {
     if (!props.activeTiers.has(DEX[id].tier)) return false
@@ -46,7 +47,7 @@ const emptyLabel = computed(() => {
   const seulementEvolvable = props.statusFilter === 'evolvable'
     && props.activeTiers.size === TIERS.length
   return seulementEvolvable
-    ? 'Rien à faire évoluer pour l’instant : il faut un exemplaire disponible et assez de bonbons.'
+    ? 'Rien à faire évoluer pour l’instant : il faut un exemplaire disponible, assez de bonbons, et une forme évoluée encore absente du Pokédex.'
     : 'Aucune espèce ne répond à ces filtres.'
 })
 </script>
@@ -75,7 +76,7 @@ const emptyLabel = computed(() => {
       >Non capturés</button>
       <button
         class="filter-chip chip-evo" :class="{ active: statusFilter === 'evolvable' }"
-        title="Espèces qui ont de quoi évoluer maintenant"
+        title="Espèces qui ont de quoi évoluer maintenant vers une forme qui manque encore"
         @click="emit('set-status-filter', 'evolvable')"
       >Évoluables</button>
     </div>
@@ -102,7 +103,7 @@ const emptyLabel = computed(() => {
         :src="spriteUrl(id, isShiny(bySpecies[id]))" :alt="DEX[id].name" loading="lazy"
         @error="$event.target.dataset.broken = '1'"
       >
-      <span v-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer">▲</span>
+      <span v-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer vers une forme manquante">▲</span>
       <span v-if="bySpecies[id]" class="tier"></span>
     </button>
   </div>

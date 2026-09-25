@@ -255,6 +255,48 @@ describe('évolutions disponibles (mise en avant grille)', () => {
     state.value = { ...state.value, spent: { 1: 8 } }
     expect(d.evolvableIds.value.has(1)).toBe(false)
   })
+
+  // Le filtre sert à trouver ce qui manque encore au Pokédex, pas à lister tout ce qui peut
+  // techniquement évoluer : une forme déjà acquise n'a plus rien à apporter.
+  it('exclut une espèce dont la forme évoluée est déjà dans la collection', () => {
+    const d = setup(
+      [...Array.from({ length: 3 }, (_, i) => catchOf('s' + i, 1)), catchOf('iv', 2)],
+      { claimed: [K('s0'), K('s1'), K('s2'), K('iv')] },
+    )
+    expect(d.canEvolve(1)).toBe(true)
+    expect(d.evolvableIds.value.has(1)).toBe(false)
+  })
+
+  it('exclut une espèce dont la forme évoluée a été obtenue par évolution', () => {
+    const d = setup(
+      Array.from({ length: 6 }, (_, i) => catchOf('s' + i, 1)),
+      {
+        claimed: Array.from({ length: 6 }, (_, i) => K('s' + i)),
+        spent: { 1: 8 },
+        evolutions: [{ species: 2, from: 1, fromKey: K('s0'), date: '2026-02-04' }],
+      },
+    )
+    expect(d.canEvolve(1)).toBe(true)
+    expect(d.evolvableIds.value.has(1)).toBe(false)
+  })
+
+  it('garde Évoli tant qu’une de ses trois formes manque', () => {
+    const d = setup(
+      [...Array.from({ length: 3 }, (_, i) => catchOf('e' + i, 133)), catchOf('aq', 134), catchOf('vo', 135)],
+      { claimed: [K('e0'), K('e1'), K('e2'), K('aq'), K('vo')] },
+    )
+    expect(d.evolvableIds.value.has(133)).toBe(true)
+  })
+
+  it('exclut Évoli quand ses trois formes sont acquises', () => {
+    const d = setup(
+      [...Array.from({ length: 3 }, (_, i) => catchOf('e' + i, 133)),
+        catchOf('aq', 134), catchOf('vo', 135), catchOf('py', 136)],
+      { claimed: [K('e0'), K('e1'), K('e2'), K('aq'), K('vo'), K('py')] },
+    )
+    expect(d.canEvolve(133)).toBe(true)
+    expect(d.evolvableIds.value.has(133)).toBe(false)
+  })
 })
 
 describe('exemplaires consommés par une évolution', () => {

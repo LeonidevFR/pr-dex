@@ -106,10 +106,21 @@ export function useDex(catches, state) {
     return !bySpecies.value[id]
   }
 
-  // Grille : quelles cases capturées ont de quoi évoluer maintenant, pour un badge discret —
-  // la décision reste au joueur, ceci ne fait que la rendre visible sans ouvrir chaque fiche.
+  // Au moins une forme cible encore jamais vue : pour Évoli, il suffit qu'une des trois manque.
+  function missingEvolvedForm(id) {
+    const to = DEX[id]?.to
+    if (!to) return false
+    return (Array.isArray(to) ? to : [to]).some((t) => isNewSpecies(t))
+  }
+
+  // Grille : quelles cases capturées ont de quoi évoluer maintenant ET rapporteraient une forme
+  // qui manque encore au Pokédex — pour un badge discret et le filtre « Évoluables ». Une
+  // évolution déjà acquise reste faisable depuis la fiche (`canEvolve`), mais elle n'a plus rien
+  // à apporter à la collection, donc rien à signaler ici.
   const evolvableIds = computed(
-    () => new Set(Object.keys(bySpecies.value).map(Number).filter((id) => canEvolve(id))),
+    () => new Set(
+      Object.keys(bySpecies.value).map(Number).filter((id) => canEvolve(id) && missingEvolvedForm(id)),
+    ),
   )
 
   return {
