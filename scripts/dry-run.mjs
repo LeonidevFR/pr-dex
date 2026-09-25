@@ -200,5 +200,5 @@ if (ko.length) {
   for (const l of ko) dire(`  · ${l}`)
   process.exit(1)
 }
-dire('Répétition réussie. Les trois fichiers passent sur une copie de la production,')
+dire('Répétition réussie. Les quatre fichiers passent sur une copie de la production,')
 dire('la reprise des évolutions est exacte et rien de l’existant n’a bougé.')
