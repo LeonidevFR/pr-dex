@@ -22,12 +22,23 @@ const catchOf = (id, species) => {
   return { key: entryKey(entry.source, entry.external_id), ...entry }
 }
 
+/**
+ * L'évolution appartient au serveur : ce client l'imite en tenant sa propre table, comme le
+ * ferait la base. Le blob d'état ne porte plus les évolutions.
+ */
 const fakeClient = (catches, claimed) => {
   let state = { claimed, spent: {}, evolutions: [] }
+  const evolutions = []
   return {
     readCatches: async () => catches,
     readState: async () => ({ state: JSON.parse(JSON.stringify(state)), blobSha: 'blob' }),
     writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'blob' } },
+    readEvolutions: async () => evolutions.map((e) => ({ ...e })),
+    evolve: async (fromKey, to, day) => {
+      const id = evolutions.length + 1
+      evolutions.push({ id, from_species: 1, to_species: to, from_key: fromKey, day })
+      return id
+    },
   }
 }
 
@@ -74,13 +85,13 @@ describe('bloc d’informations', () => {
   it('marque une espèce cible jamais rencontrée', () => {
     const w = mountEvo({ isNew: true })
     expect(w.find('.new-chip').text()).toBe('Nouveau')
-    expect(w.find('.reveal-note').text()).toContain('Première entrée à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Première entrée à la collection')
   })
 
   it('ne marque rien pour une espèce déjà à la planche', () => {
     const w = mountEvo({ isNew: false })
     expect(w.find('.new-chip').exists()).toBe(false)
-    expect(w.find('.reveal-note').text()).toContain('Déjà à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Déjà à la collection')
   })
 
   it('ne suppose rien quand la propriété est absente', () => {

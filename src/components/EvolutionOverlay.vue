@@ -54,10 +54,10 @@ onUnmounted(() => clearTimeout(focusTimer))
         <span v-if="shiny" class="chip shiny-chip">✦ Chromatique</span>
       </div>
       <div class="reveal-note mono">
-        {{ isNew ? 'Première entrée à la planche' : 'Déjà à la planche' }} ·
+        {{ isNew ? 'Première entrée à la collection' : 'Déjà à la collection' }} ·
         il reste {{ candies }} bonbon{{ candies > 1 ? 's' : '' }} <b>{{ family.name }}</b>
       </div>
-      <button ref="nextEl" class="next-btn" style="margin-top:20px" @click="$emit('done')">Voir la planche</button>
+      <button ref="nextEl" class="next-btn" style="margin-top:20px" @click="$emit('done')">Voir la collection</button>
     </div>
   </div>
 </template>

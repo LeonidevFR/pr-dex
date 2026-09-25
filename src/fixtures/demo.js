@@ -1,5 +1,8 @@
-import { fnv1a, drawFrom } from '../../shared/draw.js'
+import { fnv1a, drawFrom, drawFromPool } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
+import { DEX, poolOf, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
+import { FORMS, formOf, parisDay, power, resolveDuel } from '../../shared/battle.js'
+import { REWARD, SHOP, coveredTier, salePrice } from '../../shared/arena-economy.js'
 
 const FAKE_PRS = [
   ['fix: race condition à l\'upload de fichiers', 'moi/atlas', 142, '2026-02-03'],
@@ -123,6 +126,30 @@ export function demoCatches() {
     'moi/atlas', 226, 'fix: timeout sur la génération du sprite', '2026-07-19', 10, true,
   ))
 
+  // Un second Mackogneur, qui restera au niveau 1.
+  //
+  // Le champion de la démo — le seul exemplaire aguerri, monté au niveau 5 — est un Mackogneur,
+  // et il était seul de son espèce : la liste des exemplaires d'une même espèce ne montrait donc
+  // jamais deux niveaux différents, qui est pourtant le cas où le choix compte. Avec ce cadet,
+  // on voit ce qu'on met en jeu : le vétéran ou le bleu.
+  drawn.splice(-3, 0, ghCatch(
+    'ev3m4ckogn3ur00000000000000000000000000',
+    'moi/atlas', 227, 'refactor: extraction du client Supabase', '2026-07-19', 68, false,
+  ))
+
+  // Un tas de Nidoran, le cas même que la revente existe pour résoudre.
+  //
+  // Sur quarante tirages, aucune espèce ne s'accumule assez pour qu'on sente ce que « quinze
+  // exemplaires dont on ne sait rien faire » veut dire — or c'est exactement l'encombrement que
+  // la boutique doit pouvoir absorber en un geste. Neuf d'un coup, dont un chromatique et un
+  // aguerri (niveau 7, cf. `levels` plus bas) : de quoi voir la présélection épargner ce qu'il
+  // faut, et la dernière case se verrouiller.
+  drawn.splice(-3, 0, ...Array.from({ length: 9 }, (_, n) => ghCatch(
+    `ev4n1dor4n${String(n).padStart(2, '0')}0000000000000000000000000000`.slice(0, 39),
+    'moi/atlas', 230 + n, `chore: bump des dépendances (${n + 1}/9)`, '2026-07-20', 29,
+    n === 4,
+  )))
+
   // Idem pour une légendaire : à 0,5 % par tirage, aucune ne sort naturellement sur 40-41
   // essais. Sulfura forcée pour que le halo légendaire de la grille soit visible en démo.
   drawn.splice(-3, 0, ghCatch(
@@ -164,10 +191,366 @@ export function loadDemoClient() {
   }
   return {
     checkAccess: async () => true,
-    readCatches: async () => catches,
+    // Une copie, jamais le tableau lui-même : `catches.value = c` avec la même référence ne
+    // déclenche aucune réactivité, et un pli acheté restait invisible — la file, le compteur du
+    // rail, tout gardait l'état d'avant. Un vrai client renvoie de toute façon une charge neuve
+    // à chaque lecture ; la démo doit se comporter pareil, sinon elle ne prouve rien.
+    readCatches: async () => catches.map((c) => ({ ...c })),
     readState: async () => ({ state: JSON.parse(JSON.stringify(state)), blobSha: 'demo' }),
     writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'demo' } },
     // Rien à déclencher en démo : pas de vraie Action, pas de vrai repo derrière.
     triggerCatch: async () => {},
+    ...demoArena(catches),
+  }
+}
+
+/**
+ * L'arène en mémoire, avec le VRAI moteur de combat — `resolveDuel` est le même module que
+ * celui dont la parité avec le SQL est prouvée. La démo n'imite donc pas les duels, elle les
+ * joue : ce qu'on voit sans compte est exactement ce qui se produirait avec.
+ *
+ * Ce qu'elle ne reproduit pas, et ne peut pas : la concurrence, l'atomicité et les policies —
+ * tout ce qui n'existe que parce qu'il y a plusieurs joueurs et une base.
+ */
+export function demoArena(catches) {
+  const RIVAUX = [
+    { id: 'demo-bob', pseudo: 'bob', species: 130, level: 6 },
+    { id: 'demo-ada', pseudo: 'ada', species: 59, level: 2 },
+  ]
+  const JOUR = '2026-08-11'
+  const MOI = 'demo-moi'
+
+  let credits = 5
+  const evolutions = []
+  let pseudo = null
+  // De quoi essayer tous les articles, légendaire inédit compris : la démo sert à voir.
+  let pokedollars = 14000
+  let points = 120
+  let seq = 100
+  const levels = new Map()
+  const destroyed = new Set()
+  /** Les exemplaires revendus, et à quel prix — comme `sold_at`/`sold_price` en base. */
+  const sold = new Map()
+  const duels = new Map()
+  /** Ses propres défis postés. Pluriel : on peut en poster autant qu'on a de crédits. */
+  const miens = []
+  const challenges = RIVAUX.map((r, i) => ({
+    id: i + 1, challenger_id: r.id, pseudo: r.pseudo, created_at: JOUR, rival: r,
+  }))
+
+  /**
+   * Les dossiers des adversaires, cohérents avec le classement affiché à côté : un profil qui
+   * dirait autre chose que le tableau d'où l'on vient de cliquer se lirait comme un bug.
+   */
+  const DOSSIERS_RIVAUX = {
+    bob: { user_id: 'demo-bob', pseudo: 'bob', species: 112, wins: 31, losses: 4 },
+    ada: { user_id: 'demo-ada', pseudo: 'ada', species: 64, wins: 9, losses: 12 },
+  }
+
+  const especeDe = (key) => catches.find((c) => entryKey(c.source, c.external_id) === key)?.species
+
+  /**
+   * L'espèce ET le shiny d'un exemplaire, capture ou évolution. Un Pokémon obtenu par évolution
+   * hérite du shiny de l'exemplaire consommé, de proche en proche — comme le fait `dex_shiny_of`
+   * côté serveur. Le prix en dépend, donc les deux doivent lire la même chaîne.
+   */
+  const exemplaireDe = (key, pas = 0) => {
+    if (pas > 32) return null
+    const c = catches.find((x) => entryKey(x.source, x.external_id) === key)
+    if (c) return { species: c.species, shiny: !!c.shiny }
+    const v = evolutions.find((e) => `evo:${e.id}` === key)
+    if (!v) return null
+    return { species: v.to_species, shiny: exemplaireDe(v.from_key, pas + 1)?.shiny ?? false }
+  }
+
+  /** Combien d'exemplaires d'une espèce restent en main, `encours` compris comme déjà partis. */
+  const stockDe = (species, encours = new Map()) => [
+    ...catches.filter((c) => c.species === species).map((c) => entryKey(c.source, c.external_id)),
+    ...evolutions.filter((e) => e.to_species === species).map((e) => `evo:${e.id}`),
+  ].filter((k) => !evolutions.some((e) => e.from_key === k)
+    && !destroyed.has(k) && !sold.has(k) && !encours.has(k)).length
+
+  // Un champion déjà aguerri dans la main de départ : sans lui, tout est au niveau 1 et l'effet
+  // du niveau sur un duel reste invisible à l'essai.
+  const champion = catches.find((c) => DEX[c.species].tier === 'r') ?? catches[0]
+  if (champion) levels.set(entryKey(champion.source, champion.external_id), 5)
+
+  // Un Nidoran aguerri dans le tas : c'est lui qui montre que le prix suit le niveau, et que la
+  // présélection épargne d'office ce qu'on a fait monter.
+  const nidoranAguerri = catches.find((c) => c.species === 29 && c.external_id.startsWith('ev4'))
+  if (nidoranAguerri) {
+    levels.set(entryKey(nidoranAguerri.source, nidoranAguerri.external_id), 7)
+  }
+
+  const cote = (key, species, level) => ({
+    key, species, level, form: formOf(key, JOUR),
+  })
+
+  /** Écrit le duel résolu sous la forme exacte que rend la base, pour que l'écran ne voie aucune différence. */
+  function enregistrer(id, moi, lui, out, statut, adversaireId) {
+    const gagne = out.winner === 'left'
+    duels.set(id, {
+      id,
+      challenger_id: MOI,
+      challenger_key: moi.key,
+      opponent_id: adversaireId,
+      opponent_key: lui.key,
+      status: statut,
+      winner_id: gagne ? MOI : adversaireId,
+      stake_tier: coveredTier(DEX[moi.species].tier, DEX[lui.species].tier),
+      challenger_species: moi.species,
+      opponent_species: lui.species,
+      challenger_level: moi.level,
+      opponent_level: lui.level,
+      challenger_form: FORMS.indexOf(moi.form),
+      opponent_form: FORMS.indexOf(lui.form),
+      challenger_power: power(moi),
+      opponent_power: power(lui),
+      probability: out.probability,
+      roll: out.roll,
+      resolved_at: JOUR,
+    })
+    if (gagne) {
+      levels.set(moi.key, out.levelAfter)
+      const enjeu = duels.get(id).stake_tier
+      if (statut === 'computer') {
+        pokedollars += Math.round(REWARD[enjeu].dollars / 5)
+      } else {
+        pokedollars += REWARD[enjeu].dollars
+        points += REWARD[enjeu].points
+
+        /**
+         * Le pli de la victoire. La démonstration ne le créait pas : l'écran de duel le
+         * promettait — « un pli t'attend au prochain passage » — et la file ne recevait rien,
+         * si bien qu'on ne voyait jamais la moitié de ce qu'un duel rapporte.
+         *
+         * Tiré comme le fait l'Action, sur la même clé et dans le même ensemble : au palier de
+         * l'enjeu, dans la première génération. En production il arrive au passage suivant de
+         * la collecte ; ici tout de suite, faute de collecte à attendre.
+         */
+        const cle = entryKey('arene', String(id))
+        const { species, shiny } = drawFromPool(cle, poolOf(enjeu, 1))
+        catches.push({
+          source: 'arene', external_id: String(id), label: 'Victoire en arène',
+          ref: `duel #${id}`, url: null, date: JOUR, species, shiny,
+        })
+      }
+    } else if (statut !== 'computer') {
+      destroyed.add(moi.key)
+    }
+    return duels.get(id)
+  }
+
+  function jouer(key, adversaire, statut, adversaireId) {
+    credits = Math.max(0, credits - 1)
+    const id = ++seq
+    const moi = cote(key, especeDe(key), levels.get(key) ?? 1)
+    const lui = cote(`${statut}:${id}`, adversaire.species, adversaire.level)
+    const out = resolveDuel({ left: moi, right: lui, seed: `demo:${id}` })
+    return enregistrer(id, moi, lui, out, statut, adversaireId)
+  }
+
+  return {
+    readArena: async () => ({
+      credits,
+      pokedollars,
+      exemplars: [...levels].map(([entry_key, level]) => ({
+        entry_key, level, wins: level - 1, destroyed_at: null, sold_at: null, sold_price: null,
+      })).concat([...destroyed].map((entry_key) => ({
+        entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: JOUR,
+        sold_at: null, sold_price: null,
+      }))).concat([...sold].map(([entry_key, sold_price]) => ({
+        entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: null,
+        sold_at: JOUR, sold_price,
+      }))),
+    }),
+    readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
+    /**
+     * Les dossiers publics. Celui des autres est fixe ; le sien se recalcule depuis les duels
+     * réellement joués — un dossier figé donnerait l'impression que l'écran n'a pas vu ce qui
+     * vient de se passer, alors que c'est précisément ce qu'on essaie en démo.
+     */
+    readPublicProfile: async (pseudo) => DOSSIERS_RIVAUX[pseudo] ?? null,
+    readMyProfile: async () => {
+      const joues = [...duels.values()]
+      return {
+        user_id: MOI,
+        pseudo: 'toi',
+        // Captures ET évolutions, comme la vue `arena_public_profile` : un Pokémon obtenu par
+        // évolution compte dans la collection, il doit compter dans le profil.
+        species: new Set([
+          ...catches.map((c) => c.species), ...evolutions.map((e) => e.to_species),
+        ]).size,
+        wins: joues.filter((d) => d.winner_id === MOI).length,
+        losses: joues.filter((d) => d.winner_id !== MOI).length,
+      }
+    },
+    readDestroyed: async () => [...destroyed].map((entry_key) => ({
+      entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: JOUR,
+    })),
+
+    /**
+     * Les duels résolus, du plus frais au plus ancien. En démonstration, un défi que l'on a
+     * posté reste ouvert — personne d'autre ne joue — donc cette liste ne contient que ce qu'on
+     * a soi-même provoqué.
+     */
+    /**
+     * Les évolutions, comme le serveur les tient — avec ses refus, pas seulement ses succès.
+     * Une démonstration qui accepterait tout laisserait croire que la validation a disparu, et
+     * c'est justement elle que cette bascule apporte.
+     */
+    readEvolutions: async () => evolutions.map((e) => ({ ...e })),
+
+    /**
+     * Vendre un lot, avec les mêmes refus que le serveur — et la même atomicité : un seul refus
+     * annule tout. Une démonstration qui encaisserait à moitié apprendrait une règle fausse.
+     */
+    sell: async (keys) => {
+      const uniques = [...new Set(keys ?? [])]
+      if (!uniques.length) throw new Error('dex : aucun exemplaire à vendre')
+
+      const encours = new Map()
+      let total = 0
+      for (const key of uniques) {
+        const ex = exemplaireDe(key)
+        if (!ex) throw new Error(`dex : exemplaire inconnu (${key})`)
+        if (sold.has(key) || encours.has(key) || destroyed.has(key)) {
+          throw new Error(`dex : cet exemplaire a déjà quitté ta collection (${key})`)
+        }
+        if (evolutions.some((e) => e.from_key === key)) {
+          throw new Error(`dex : cet exemplaire a servi à une évolution (${key})`)
+        }
+        if (miens.some((d) => d.challenger_key === key)) {
+          throw new Error(`dex : cet exemplaire est engagé dans un défi ouvert (${key})`)
+        }
+        // Le stock se relit à chaque clé, en tenant compte de ce que le lot vient d'emporter :
+        // vendre neuf Nidoran sur dix passe, le dixième est refusé.
+        if (stockDe(ex.species, encours) <= 1) {
+          throw new Error(`dex : on ne vend pas son dernier exemplaire d'une espèce (${key})`)
+        }
+        const prix = salePrice(ex.species, levels.get(key) ?? 1, ex.shiny)
+        encours.set(key, prix)
+        total += prix
+      }
+
+      for (const [key, prix] of encours) sold.set(key, prix)
+      pokedollars += total
+      return { sold: encours.size, total, balance: pokedollars }
+    },
+    evolve: async (fromKey, to, day) => {
+      const source = catches.find((c) => entryKey(c.source, c.external_id) === fromKey)
+        ?? evolutions.find((e) => `evo:${e.id}` === fromKey)
+      const espece = source ? (source.species ?? source.to_species) : null
+      if (espece == null) throw new Error(`dex : exemplaire inconnu (${fromKey})`)
+      if (evolutions.some((e) => e.from_key === fromKey)) {
+        throw new Error(`dex : exemplaire déjà évolué (${fromKey})`)
+      }
+      if (destroyed.has(fromKey)) throw new Error(`dex : exemplaire détruit (${fromKey})`)
+
+      const cibles = DEX[espece]?.to
+      const permises = cibles ? (Array.isArray(cibles) ? cibles : [cibles]) : []
+      if (!permises.includes(to)) throw new Error(`dex : ${espece} n'évolue pas en ${to}`)
+
+      const fam = familyOf(espece)
+      const gagnes = catches.filter((c) => familyOf(c.species) === fam).length * CANDY_PER_CATCH
+      const depenses = evolutions
+        .filter((e) => familyOf(e.from_species) === fam)
+        .reduce((somme, e) => somme + (DEX[e.from_species]?.cost ?? 0), 0)
+      if (gagnes - depenses < DEX[espece].cost) {
+        throw new Error(`dex : bonbons insuffisants (${DEX[espece].cost} requis)`)
+      }
+
+      const id = evolutions.length + 1
+      evolutions.push({ id, from_species: espece, to_species: to, from_key: fromKey, day })
+      return id
+    },
+
+    readPseudo: async () => pseudo,
+    setPseudo: async (nom) => {
+      // Les deux adversaires de la démonstration occupent déjà leur nom : c'est ce qui permet
+      // d'essayer le refus, qui est la moitié intéressante de cet écran.
+      if (['bob', 'ada'].includes(nom.trim().toLowerCase())) {
+        const err = new Error('Ce pseudonyme est déjà pris.')
+        err.kind = 'taken'
+        throw err
+      }
+      pseudo = nom
+    },
+
+    readMyDuels: async () => [...duels.values()]
+      .sort((a, b) => b.id - a.id)
+      .map((d) => ({ ...d })),
+
+    readLeaderboard: async () => [
+      { user_id: 'demo-bob', pseudo: 'bob', points: 275, rank: 1 },
+      { user_id: MOI, pseudo: 'toi', points: points, rank: 2 },
+      { user_id: 'demo-ada', pseudo: 'ada', points: 90, rank: 3 },
+    ].sort((a, b) => b.points - a.points).map((l, i) => ({ ...l, rank: i + 1 })),
+    readSeasons: async () => [
+      { season: '2026-S3', first_id: 'demo-ada', second_id: MOI, third_id: 'demo-bob' },
+    ],
+    readShop: async () => SHOP.map(({ slug, gen, tier, fresh, price }) => ({ slug, gen, tier, fresh, price })),
+    /**
+     * En démo l'achat est immédiat : il n'y a pas d'Action pour matérialiser le pli plus tard,
+     * et faire attendre un joueur qui essaie le jeu sans compte n'apprendrait rien à personne.
+     */
+    buy: async (slug) => {
+      const art = SHOP.find((a) => a.slug === slug)
+      if (!art) throw new Error(`boutique : article inconnu (${slug})`)
+      if (pokedollars < art.price) throw new Error(`boutique : il manque ${art.price - pokedollars} pokédollars`)
+      pokedollars -= art.price
+
+      // Le pli est tiré avec le VRAI moteur, dans le même ensemble que celui qu'emprunterait
+      // l'Action : la génération vient de l'article, « inédit garanti » retire ce qu'on possède
+      // déjà. La démo montre donc ce qui se produirait, pas une approximation.
+      const id = ++seq
+      let ids = poolOf(art.tier, art.gen)
+      if (art.fresh) {
+        const deja = new Set(catches.map((c) => c.species))
+        const inedits = ids.filter((i) => !deja.has(i))
+        if (inedits.length) ids = inedits
+      }
+      const { species, shiny } = drawFromPool(entryKey('boutique', String(id)), ids)
+
+      // Ajouté à la collection sans être réclamé : il rejoint la file d'ouverture, exactement
+      // comme une PR fraîchement mergée. En production il faudrait attendre le passage de la
+      // collecte ; ici l'attente n'apprendrait rien à personne.
+      catches.push({
+        source: 'boutique', external_id: String(id), label: 'Acheté en boutique',
+        ref: null, url: null, date: parisDay(), species, shiny,
+      })
+      return id
+    },
+    readDuel: async (id) => duels.get(id) ?? null,
+    readMyOpen: async () => miens.map((d) => ({
+      id: d.id, challenger_key: d.key, species: especeDe(d.key),
+    })),
+    /**
+     * Poster un défi ne le résout pas : il reste ouvert, comme en vrai, et c'est l'ordinateur
+     * qui le relèvera au bout de 24 h si personne ne s'en charge. La démo le rend visible dans
+     * la liste et rappelle qui l'a posé — sans jamais montrer ce qui a été engagé.
+     */
+    engage: async (key, vsComputer) => {
+      if (!vsComputer) {
+        credits = Math.max(0, credits - 1)
+        const id = ++seq
+        // Le défi posté ne rejoint PAS la liste publique : c'est celle des autres, et le serveur
+        // refuse qu'on relève le sien. Il rejoignait `challenges` avec un adversaire nul, si
+        // bien qu'au second défi posté — le premier n'étant plus « le sien » — on pouvait le
+        // relever, et la démonstration plantait faute d'adversaire.
+        miens.push({ id, key })
+        return id
+      }
+      return jouer(key, { species: 20, level: 2 }, 'computer', null).id
+    },
+    accept: async (duelId, key) => {
+      const defi = challenges.find((c) => c.id === duelId)
+      if (!defi) throw new Error('arene : défi introuvable')
+      // Le crédit est décompté par `jouer`, qui résout le duel — et par lui SEUL. Décompté ici
+      // aussi, relever en coûtait deux : on tombait de cinq à trois pour un seul combat.
+      const duel = jouer(key, defi.rival, 'resolved', defi.challenger_id)
+      challenges.splice(challenges.indexOf(defi), 1)
+      return duel.id
+    },
   }
 }

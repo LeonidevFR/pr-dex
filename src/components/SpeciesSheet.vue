@@ -4,6 +4,8 @@ import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATC
 import { spriteUrl } from '../lib/sprites.js'
 import PokeCard from './PokeCard.vue'
 import SPECIES_INFO from '../../shared/species-info.json'
+import { salePrice } from '../../shared/arena-economy.js'
+import { saleGroups, saleTotal } from '../lib/revente.js'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -20,8 +22,55 @@ const props = defineProps({
   // Exemplaires consommables par une évolution, chacun avec sa `key` et son statut `shiny` —
   // sert au sélecteur, distinct de `entries` qui garde tout le journal (y compris consommé).
   available: { type: Array, default: () => [] },
+  arenaCredits: { type: Number, default: 0 },
+  arenaLevelOf: { type: Function, default: () => 1 },
+  /**
+   * La forme du jour d'un exemplaire, ou `null` tant que l'arène n'a pas ouvert. Elle entre dans
+   * le calcul de puissance au même titre que le niveau : la lire ici, là où l'on regarde ses
+   * Pokémon, évite d'avoir à ouvrir l'arène pour savoir si le moment est bon.
+   */
+  arenaFormOf: { type: Function, default: null },
 })
-const emit = defineEmits(['close', 'evolve'])
+const emit = defineEmits(['close', 'evolve', 'engage', 'sell'])
+
+/**
+ * Vendre un exemplaire précis, depuis la fiche où on est justement en train de le regarder. Le
+ * lot se fait en boutique ; ici on largue celui-là.
+ *
+ * Deux clics, comme un achat : le second dit le prix, pour qu'on confirme ce qu'on encaisse et
+ * pas seulement qu'on a cliqué. Et jamais le dernier exemplaire — le serveur le refuserait, et
+ * proposer ce qui sera repris est une promesse en trop.
+ */
+const aVendre = ref(null)
+
+const prixDe = (e) => salePrice(props.id, props.arenaLevelOf(e.key), e.shiny)
+
+/**
+ * Le lot, ici aussi.
+ *
+ * Il vivait en boutique, et c'était une erreur de découpage : quand on a dix Nidoran sous les
+ * yeux, c'est de LÀ qu'on veut les larguer, pas après avoir changé d'écran. La règle est la même
+ * des deux côtés — `saleGroups` la porte une seule fois — donc le défaut épargne le meilleur
+ * exemplaire, les chromatiques et ceux qui ont gagné des niveaux.
+ */
+const lot = computed(() => saleGroups(props.available, props.arenaLevelOf)[0] ?? null)
+
+const lotPrix = computed(() => lot.value
+  ? saleTotal([lot.value], new Set(lot.value.preselected))
+  : 0)
+
+function vendre(e) {
+  if (aVendre.value !== e.key) { aVendre.value = e.key; return }
+  aVendre.value = null
+  emit('sell', [e.key])
+}
+
+function vendreLeLot() {
+  if (!lot.value?.preselected.length) return
+  if (aVendre.value !== 'lot') { aVendre.value = 'lot'; return }
+  aVendre.value = null
+  emit('sell', [...lot.value.preselected])
+}
 
 // Cible d'évolution en cours de sélection (id de l'espèce), ou `null` hors sélection.
 const pickingTarget = ref(null)
@@ -126,7 +175,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
 
       <div v-if="!caught" class="sect">
         <p class="muted">
-          Pas encore à la planche. Sortira d'une capture<template v-if="PARENT[id]">, ou d'une évolution de
+          Pas encore à la collection. Sortira d'une capture<template v-if="PARENT[id]">, ou d'une évolution de
           <b>{{ DEX[PARENT[id]].name }}</b></template>.
         </p>
       </div>
@@ -151,6 +200,100 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             </div>
           </template>
         </div>
+      </div>
+
+      <!--
+        Engager depuis la fiche : c'est le geste naturel — on regarde son Dracaufeu, on décide
+        de l'envoyer. Le passage par l'écran d'arène restait possible, mais il obligeait à
+        retrouver dans une grille le Pokémon qu'on avait justement sous les yeux.
+      -->
+      <div v-if="caught && available.length" class="sect">
+        <!--
+          Pas de niveau en tête de section. Il y en avait un, celui du PREMIER exemplaire de la
+          liste — ni le plus fort ni le plus faible, seulement le plus ancien — présenté comme
+          s'il était celui de l'espèce. Une espèce n'a pas de niveau ; ses exemplaires en ont un
+          chacun, et c'est la liste qui les porte.
+        -->
+        <div class="eyebrow sect-h">
+          <span>Arène</span>
+          <span class="mono muted">
+            {{ available.length }} exemplaire{{ available.length > 1 ? 's' : '' }}
+          </span>
+        </div>
+
+        <!--
+          Un exemplaire par ligne avec sa forme : à plusieurs exemplaires, elles diffèrent — la
+          forme se tire de la clé, pas de l'espèce — et c'est précisément ce qui décide lequel
+          engager aujourd'hui.
+
+          Le NOM de la forme, jamais son coefficient. Afficher « ×1,05 » transforme une intuition
+          en calcul : chacun lit la table une fois, la retient, et le choix cesse d'être un pari
+          pour devenir une addition. La couleur suffit à dire si la forme aide ou handicape, et
+          l'ampleur se découvre à l'usage — c'est aux joueurs de se faire leur idée du poids que
+          ça pèse.
+        -->
+        <!--
+          Le choix se fait À LA LIGNE, et non par un bouton unique qui envoyait `available[0]` —
+          le plus ancien exemplaire, choisi par personne. Dès qu'une espèce en compte deux de
+          niveaux différents, ce bouton engageait au hasard ce qu'on n'avait pas décidé.
+        -->
+        <div v-if="lot && lot.preselected.length" class="vendre-lot">
+          <button
+            class="evo-btn vendre-tout" :class="{ confirming: aVendre === 'lot' }"
+            @click="vendreLeLot"
+          >{{ aVendre === 'lot'
+            ? `Confirmer — ${lotPrix} ₽`
+            : `Vendre les ${lot.preselected.length} en trop · ${lotPrix} ₽` }}</button>
+          <span class="muted vendre-lot-note">
+            Garde ton meilleur exemplaire, les chromatiques et ceux qui ont gagné des niveaux.
+          </span>
+        </div>
+
+        <div class="formes">
+          <div v-for="(e, i) in available" :key="e.key" class="forme-ligne">
+            <span class="mono no">{{ i + 1 }}</span>
+            <span class="quoi">niv. {{ arenaLevelOf(e.key) }}</span>
+            <!-- Sans cette étoile, la ligne du chromatique n'était qu'un prix quatre fois plus
+                 élevé que ses voisines, sans rien pour le dire — et c'est justement celle qu'on
+                 ne doit pas vendre par distraction. -->
+            <span v-if="e.shiny" class="chip shiny-chip forme-shiny">✦</span>
+            <span
+              v-if="arenaFormOf" class="forme-nom"
+              :class="{ up: arenaFormOf(e.key).factor > 1, down: arenaFormOf(e.key).factor < 1 }"
+            >{{ arenaFormOf(e.key).name }}</span>
+            <span v-else class="forme-nom"></span>
+            <button
+              class="evo-btn arena-send" style="padding:6px 12px"
+              :disabled="!arenaCredits" @click="$emit('engage', e.key)"
+            >Choisir</button>
+            <button
+              v-if="available.length > 1" class="evo-btn vendre-un"
+              :class="{ confirming: aVendre === e.key }" @click="vendre(e)"
+            >{{ aVendre === e.key ? `Confirmer — ${prixDe(e)} ₽` : `Vendre · ${prixDe(e)} ₽` }}</button>
+          </div>
+        </div>
+        <!--
+          L'explication n'a lieu d'être QUE là où le bouton vient de disparaître : on en avait
+          plusieurs, on a vendu, il n'en reste qu'un — et l'absence se lit comme une panne. Sur
+          une espèce qu'on n'a jamais eue qu'en un exemplaire, il n'y a rien à expliquer, et la
+          phrase ne serait que du bruit sur les trois quarts des fiches.
+        -->
+        <p
+          v-if="available.length < 2 && (entries?.length ?? 0) > available.length"
+          class="muted" style="margin-bottom:10px"
+        >
+          Il ne t’en reste qu’un, et il ne se vend pas : sans lui, plus moyen d’engager l’espèce à
+          l’arène ni de la faire évoluer. Son entrée au Pokédex, elle, est acquise pour toujours.
+        </p>
+        <p class="muted">
+          <template v-if="arenaCredits">
+            L’arène s’ouvre avec l’exemplaire retenu : tu choisiras ensuite de poster un défi,
+            d’affronter l’ordinateur ou de relever celui d’un autre.
+          </template>
+          <template v-else>
+            Aucun engagement disponible — il en revient un par jour ouvré.
+          </template>
+        </p>
       </div>
 
       <div v-if="caught" class="sect">
@@ -190,7 +333,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               </div>
             </div>
             <button
-              v-if="targets.length === 1" class="evo-btn" :disabled="!canEvolve"
+              v-if="targets.length === 1" class="evo-btn evolve-btn" :disabled="!canEvolve"
               @click="startPicking(targets[0])"
             >
               Faire évoluer en {{ DEX[targets[0]].name }}
@@ -226,7 +369,9 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             </label>
           </div>
           <div class="picker-actions">
-            <button class="evo-btn" :disabled="!selectedKey" @click="confirmEvolve">Confirmer</button>
+            <button
+              class="evo-btn evolve-btn" :disabled="!selectedKey" @click="confirmEvolve"
+            >Confirmer</button>
             <button class="cancel-btn" @click="cancelPicking">Annuler</button>
           </div>
         </template>

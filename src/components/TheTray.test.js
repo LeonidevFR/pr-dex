@@ -54,18 +54,80 @@ describe('TheTray', () => {
     expect(w.findAll('.cell')[24].find('.cell-dupes').exists()).toBe(false)
   })
 
-  it('affiche le stock disponible (prop copies) plutôt que le total brut quand fourni', () => {
+  it('affiche le stock disponible plutôt que le total brut quand il est fourni', () => {
+    const a = entry('a', 1)
     const w = mount(TheTray, {
-      props: { bySpecies: { 1: [entry('a', 1), entry('b', 1)] }, copies: { 1: 1 } },
+      props: { bySpecies: { 1: [a, entry('b', 1)] }, available: { 1: [a] } },
     })
     expect(w.findAll('.cell')[0].find('.cell-dupes').exists()).toBe(false) // 1 disponible : pas de badge
   })
 
-  it('remonte à ×N avec la prop copies quand du stock reste', () => {
+  it('remonte à ×N quand du stock reste', () => {
+    const a = entry('a', 1)
+    const b = entry('b', 1)
     const w = mount(TheTray, {
-      props: { bySpecies: { 1: [entry('a', 1), entry('b', 1), entry('c', 1)] }, copies: { 1: 2 } },
+      props: { bySpecies: { 1: [a, b, entry('c', 1)] }, available: { 1: [a, b] } },
     })
     expect(w.findAll('.cell')[0].find('.cell-dupes').text()).toBe('×2')
+  })
+
+  /**
+   * Une case dorée qu'on ouvre sur une fiche sans shiny : le seul shiny avait été détruit à
+   * l'arène, et la planche continuait de le montrer parce qu'elle lisait le total brut.
+   */
+  it('cesse de montrer un shiny quand le seul exemplaire shiny a disparu', () => {
+    const ordinaire = entry('a', 1)
+    const w = mount(TheTray, {
+      props: {
+        bySpecies: { 1: [entry('shiny', 1, { shiny: true }), ordinaire] },
+        available: { 1: [ordinaire] },
+      },
+    })
+    const cell = w.findAll('.cell')[0]
+    expect(cell.classes()).not.toContain('shiny')
+    expect(cell.find('img').attributes('src')).not.toContain('shiny')
+  })
+
+  it('nomme l’origine d’un exemplaire encore en main, pas celle d’un exemplaire perdu', () => {
+    const restant = entry('b', 1, { via: 'evo' })
+    const w = mount(TheTray, {
+      props: {
+        bySpecies: { 1: [entry('a', 1, { source: 'crm' }), restant] },
+        available: { 1: [restant] },
+      },
+    })
+    expect(w.findAll('.cell')[0].find('.cell-origin').text()).toBe('évolué')
+  })
+
+  /**
+   * L'étoile et le compte se partagent le coin.
+   *
+   * Le halo du chromatique a été retiré — il alourdissait la grille, et l'étoile suffit. Mais les
+   * deux marques étaient posées en absolu au même endroit : le badge ×N, opaque, recouvrait
+   * l'étoile. Une espèce chromatique possédée en plusieurs exemplaires n'annonçait donc plus rien
+   * du tout.
+   */
+  it('montre l’étoile ET le compte quand une espèce chromatique est en double', () => {
+    const w = mount(TheTray, {
+      props: { bySpecies: { 1: [entry('a', 1, { shiny: true }), entry('b', 1)] } },
+    })
+    const cell = w.findAll('.cell')[0]
+    expect(cell.find('.cell-shiny').exists()).toBe(true)
+    expect(cell.find('.cell-dupes').text()).toBe('×2')
+  })
+
+  /** Le Pokédex garde ce qu'il a rencontré : stock vide ne veut pas dire case grise. */
+  it('garde l’espèce et son sprite quand il ne reste plus aucun exemplaire', () => {
+    const w = mount(TheTray, {
+      props: {
+        bySpecies: { 1: [entry('a', 1, { shiny: true })] },
+        available: { 1: [] },
+      },
+    })
+    const cell = w.findAll('.cell')[0]
+    expect(cell.classes()).toContain('has')
+    expect(cell.classes()).toContain('shiny')
+    expect(cell.find('.cell-dupes').exists()).toBe(false)
   })
 
   it('marque une espèce dont au moins une capture est chromatique', () => {
@@ -206,5 +268,40 @@ describe('TheTray', () => {
       await w.find('.filter-reset').trigger('click')
       expect(w.emitted('reset-filters')).toBeTruthy()
     })
+  })
+})
+
+/**
+ * Deux étagères et non deux filtres : la planche se compte sur 151 et la Gen 2 sur 100. Les
+ * mêler ferait mentir la seule mesure qui dise « j'ai fini », et afficherait cent cases vides
+ * pour toujours à qui n'a jamais acheté de pli.
+ */
+describe('générations', () => {
+  const surEtagere = (gen, bySpecies = {}) =>
+    mount(TheTray, { props: { bySpecies, gen } })
+
+  it('n’affiche que la planche par défaut', () => {
+    expect(mountTray({}).findAll('.cell')).toHaveLength(151)
+  })
+
+  it('bascule sur les cent espèces de la Gen 2', () => {
+    expect(surEtagere(2).findAll('.cell')).toHaveLength(100)
+  })
+
+  it('demande le changement d’étagère au lieu de le décider seul', async () => {
+    const w = surEtagere(1)
+    await w.findAll('.gen-tabs .filter-chip')[1].trigger('click')
+    expect(w.emitted('set-gen')[0]).toEqual([2])
+  })
+
+  it('compte les espèces obtenues dans l’étagère affichée', () => {
+    const possede = { 1: [{}], 152: [{}], 153: [{}] }
+    expect(surEtagere(1, possede).find('.gen-tabs').text()).toContain('1/151')
+    expect(surEtagere(2, possede).find('.gen-tabs').text()).toContain('2/100')
+  })
+
+  // Le dire là où on la découvre : sans ça, une grille vide passe pour un bug.
+  it('explique que la Gen 2 ne se tire pas au travail', () => {
+    expect(surEtagere(2).text()).toContain('s’achète en arène')
   })
 })
