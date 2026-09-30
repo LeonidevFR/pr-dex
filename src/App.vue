@@ -6,6 +6,7 @@ import SpeciesSheet from './components/SpeciesSheet.vue'
 import RitualOverlay from './components/RitualOverlay.vue'
 import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import LeaderboardPanel from './components/LeaderboardPanel.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useAuth } from './composables/useAuth.js'
@@ -26,6 +27,14 @@ const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
+const leaderboardOpen = ref(false)
+// Le client de données reste dans `useCollection`, qui ne l'expose pas ; le panneau du
+// classement en a besoin pour sa propre lecture. On garde donc la référence ici, au seul
+// endroit qui la crée.
+const dataClient = ref(null)
+// Date du jour figée au chargement, au format des dates de capture : le calcul des
+// « 30 jours » est une fonction pure, elle ne lit jamais l'horloge elle-même.
+const today = new Date().toISOString().slice(0, 10)
 
 const filters = useTrayFilters()
 
@@ -44,6 +53,7 @@ async function connectSession(s) {
   connectError.value = null
   githubLogin.value = s.user.user_metadata?.user_name ?? ''
   const client = createSupabaseClient(s.user.id)
+  dataClient.value = client
   try {
     await client.checkAccess()
   } catch (e) {
@@ -68,7 +78,9 @@ onMounted(async () => {
   if (new URLSearchParams(location.search).has('demo')) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
     githubLogin.value = 'démo'
-    await collection.load(loadDemoClient())
+    const client = loadDemoClient()
+    dataClient.value = client
+    await collection.load(client)
     connected.value = true
   }
 })
@@ -128,16 +140,17 @@ function finishEvo() {
 }
 
 const overlayOpen = computed(() =>
-  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value),
+  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value || leaderboardOpen.value),
 )
 
 // Priorité calquée sur l'empilement visuel donné par les z-index de styles.css :
-// évolution (70), rituel (60), puis réglages et fiche (40). Fermer le rituel conserve
+// évolution (70), rituel (60), puis réglages, classement et fiche (40). Fermer le rituel conserve
 // les plis restants, comme le fait déjà sa croix.
 function closeTopOverlay() {
   if (evoAnim.value) finishEvo()
   else if (ritualEntry.value) ritualEntry.value = null
   else if (settingsOpen.value) settingsOpen.value = false
+  else if (leaderboardOpen.value) leaderboardOpen.value = false
   else if (selected.value) selected.value = null
   else return
 
@@ -173,6 +186,7 @@ useKeyboardNav({
       :syncing="collection.loading.value" :sync-error="collection.error.value"
       :filters-open="filters.open.value" :filters-active="filters.active.value"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
+      @leaderboard="leaderboardOpen = true"
       @toggle-filters="filters.open.value = !filters.open.value"
     />
     <TheTray
@@ -216,6 +230,12 @@ useKeyboardNav({
     <transition name="fade">
       <SettingsPanel
         v-if="settingsOpen" :github-login="githubLogin" @close="settingsOpen = false" @disconnect="disconnect"
+      />
+    </transition>
+
+    <transition name="fade">
+      <LeaderboardPanel
+        v-if="leaderboardOpen" :client="dataClient" :today="today" @close="leaderboardOpen = false"
       />
     </transition>
   </template>

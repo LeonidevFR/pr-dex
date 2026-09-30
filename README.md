@@ -38,6 +38,20 @@ Aucun serveur applicatif : le jeu s'appuie sur l'API GitHub et sur Supabase (Pos
 Auth + une fonction Edge pour le bouton de sync), en base de données et fournisseur de
 connexion — voir « Architecture » plus bas.
 
+## Le tableau des scores
+
+Le 🏆 du rail ouvre le seul écran où l'on regarde les autres : un classement par espèces
+distinctes (puis shiny, puis légendaires), et les stats de l'équipe — plis ouverts, taux de
+drop par palier face à la théorie, shiny en « 1 sur N », évolutions, Pokédex collectif —
+avec sa propre valeur à côté.
+
+Seules les cartes **retournées** comptent, comme dans le dex : le classement ne dévoile pas
+un légendaire avant que son propriétaire l'ait vu. Ni le titre ni le lien des PR ne sortent
+de la base pour un autre joueur — la fonction `leaderboard_players()` (voir
+`supabase/migrations/2026-09-30-leaderboard.sql`) ne renvoie que l'espèce, le chromatisme
+et la date de chaque capture ouverte. Le calcul des colonnes passe par le même `useDex`
+que le dex personnel : un classement ne peut pas contredire le compteur /151 d'un joueur.
+
 ## Lancer en local
 
 ```bash
@@ -181,6 +195,8 @@ d'installation dans `pr-dex-data/README.md`.
 ```
 supabase/schema.sql               tables profiles/identities/catches/state, policies RLS, trigger d'auto-création
 supabase/migrations/              bascules à appliquer sur une base déjà en service
+                                  `2026-09-30-leaderboard.sql` s'exécute AVANT de merger le front du
+                                  classement ; sans elle, seul le panneau 🏆 est en erreur
 supabase/functions/trigger-catch  fonction Edge : déclenche workflow_dispatch sur catch.yml
 shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
 shared/draw.js            fnv1a + drawFrom, partagé front ↔ Action
