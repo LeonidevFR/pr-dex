@@ -59,6 +59,17 @@ describe('playerStats', () => {
   it('traite des évolutions nulles comme un tableau vide', () => {
     expect(playerStats([c('a', 1)], null, TODAY).evolved).toBe(0)
   })
+
+  it('ignore les évolutions malformées d’un autre joueur au lieu de planter', () => {
+    const s = playerStats(
+      [c('a', 1)],
+      [{ species: 999, from: 1, date: '2026-06-02', fromKey: 'github:a' }, { species: 2, from: 1, date: '2026-06-02', fromKey: 'github:a' }, null],
+      TODAY,
+    )
+    expect(s.species).toBe(2)
+    expect(s.evolved).toBe(1)
+    expect(playerStats([c('a', 1)], {}, TODAY).evolved).toBe(0)
+  })
 })
 
 describe('rankPlayers', () => {

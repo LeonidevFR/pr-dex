@@ -255,6 +255,15 @@ comme dans la planche.
 Si l'ordre est inversé, le panneau affiche une erreur serveur et le reste de l'app n'est
 pas touché. Retour arrière de la migration : `drop function public.leaderboard_players()`.
 
+## Limite assumée : les évolutions restent déclaratives
+
+`state.evolutions` est écrit par son propriétaire (policy `state_update_own`) et renvoyé tel
+quel. Les captures, elles, sont protégées : seules les vraies lignes de `catches` sortent.
+Un joueur qui écrirait à la main des évolutions fictives via l'API gonflerait ses espèces,
+ses rares et ses lignées. C'est un joueur qui triche contre son équipe, avec sa propre
+session ; on l'assume plutôt que d'ajouter une validation serveur. Le front ignore toute
+entrée malformée, pour qu'un état corrompu chez l'un ne casse pas le panneau des autres.
+
 ## Hors périmètre
 
 - Voir le dex complet d'un collègue. Les données de la fonction le permettent, c'est un

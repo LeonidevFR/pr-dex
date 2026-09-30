@@ -20,7 +20,11 @@ function thirtyDaysBefore(today) {
  * simplement l'ensemble de leurs clés. `spent` reste vide : aucune colonne n'en dépend.
  */
 export function playerStats(catches, evolutions, today) {
-  const evos = evolutions ?? []
+  // `state.evolutions` est écrit par son propriétaire, sans validation côté base : une entrée
+  // malformée chez un seul joueur ne doit pas casser le panneau de toute l'équipe. Jusqu'ici
+  // un état corrompu ne gênait que celui qui l'avait écrit ; c'est le premier écran où il
+  // atteint les autres. On ne garde que ce que `useDex` sait lire.
+  const evos = (Array.isArray(evolutions) ? evolutions : []).filter((e) => e && DEX[e.species])
   const state = ref({ claimed: catches.map((c) => entryKey(c.source, c.external_id)), spent: {}, evolutions: evos })
   const dex = useDex(ref(catches), state)
 

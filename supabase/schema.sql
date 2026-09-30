@@ -154,5 +154,9 @@ as $$
   where opened.catches is not null;
 $$;
 
-revoke all on function public.leaderboard_players() from public;
+-- `anon` est nommé explicitement : les privilèges par défaut de Supabase accordent EXECUTE
+-- sur toute nouvelle fonction à anon/authenticated/service_role, et un `revoke ... from
+-- public` ne retire pas un droit accordé nommément. Sans cette ligne, la clé anon — publique
+-- par construction — suffirait à appeler la fonction sans compte.
+revoke execute on function public.leaderboard_players() from public, anon;
 grant execute on function public.leaderboard_players() to authenticated;
