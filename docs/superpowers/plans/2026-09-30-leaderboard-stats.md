@@ -54,7 +54,7 @@ Cinq cas que la spec implique sans les nommer ; chacun a son test dans la tâche
 
 ---
 
-### Tâche 1 : la fonction SQL
+### Task 1: la fonction SQL
 
 **Files:**
 - Create: `supabase/migrations/2026-09-30-leaderboard.sql`
@@ -149,7 +149,7 @@ git commit -m "feat(db): fonction leaderboard_players — captures ouvertes et �
 
 ---
 
-### Tâche 2 : le calcul pur
+### Task 2: le calcul pur
 
 **Files:**
 - Create: `src/lib/leaderboard.js`
@@ -422,7 +422,7 @@ git commit -m "feat(classement): calcul des colonnes et des stats d'équipe via 
 
 ---
 
-### Tâche 3 : `readLeaderboard()` sur les deux clients
+### Task 3: `readLeaderboard()` sur les deux clients
 
 **Files:**
 - Modify: `src/lib/supabaseData.js` (ajout d'une méthode dans `createSupabaseClient`)
@@ -579,7 +579,7 @@ git commit -m "feat(classement): readLeaderboard sur le client Supabase et sur l
 
 ---
 
-### Tâche 4 : le panneau
+### Task 4: le panneau
 
 **Files:**
 - Create: `src/components/LeaderboardPanel.vue`
@@ -903,7 +903,7 @@ git commit -m "feat(classement): le panneau Tableau des scores — classement et
 
 ---
 
-### Tâche 5 : le bouton, l'ouverture, Échap, la démo et la doc
+### Task 5: le bouton, l'ouverture, Échap, la démo et la doc
 
 **Files:**
 - Modify: `src/components/TheRail.vue` (un bouton, un événement)
