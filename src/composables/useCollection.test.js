@@ -206,6 +206,34 @@ describe('claim', () => {
     expect(c.error.value).toBe('conflict')
   })
 
+  /**
+   * Après un conflit, le jeton de version est déjà celui de l'état frais. Revenir à l'état
+   * d'avant l'appel laisserait un état périmé sous un jeton à jour : l'écriture suivante
+   * passerait le contrôle de version et effacerait ce que l'autre appareil a écrit.
+   */
+  it('garde l’état de l’autre appareil quand le rejeu échoue, pour ne pas l’écraser ensuite', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25), catchOf('b', 1), catchOf('c', 4)] })
+    client.writeState
+      .mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
+      .mockRejectedValueOnce(new SupabaseDataError('offline', 'pas de réseau'))
+      .mockResolvedValueOnce({ blobSha: 'blob9' })
+    client.readState
+      .mockResolvedValueOnce({ state: { claimed: [], spent: {}, evolutions: [] }, blobSha: 'blob1' })
+      .mockResolvedValueOnce({ state: { claimed: [K('b')], spent: {}, evolutions: [] }, blobSha: 'blob8' })
+
+    const c = useCollection()
+    await c.load(client)
+    await c.claim(K('a'))
+
+    expect(c.error.value).toBe('offline')
+    expect(c.state.value.claimed).toEqual([K('b')])
+
+    await c.claim(K('c'))
+    expect(client.writeState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ claimed: [K('b'), K('c')] }), 'blob8', expect.anything(),
+    )
+  })
+
   it('signale une écriture hors ligne et restaure l’état', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
     client.writeState.mockRejectedValue(new SupabaseDataError('offline', 'pas de réseau'))

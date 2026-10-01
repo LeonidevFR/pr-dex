@@ -116,7 +116,8 @@ source nous reconnaît**. La connexion se fait aujourd'hui en OAuth GitHub, qui 
 même geste le handle de la source `github` — mais quelqu'un hors de l'équipe technique n'a
 pas de compte GitHub, et une même personne peut relever de plusieurs sources. La contrainte
 `unique (source, handle)` empêche de réclamer le handle de quelqu'un d'autre pour recevoir
-ses captures.
+ses captures, et la table est en lecture seule pour les joueurs : personne ne peut changer
+son propre handle ni ses dépôts surveillés depuis le navigateur.
 
 Un exemplaire est identifié par sa **clé** `source:external_id` (`shared/entry.js`), et
 c'est elle que `state.claimed` et `state.evolutions[].fromKey` référencent. Le préfixe n'est
@@ -196,6 +197,8 @@ supabase/schema.sql               tables profiles/identities/catches/state, poli
 supabase/migrations/              bascules à appliquer sur une base déjà en service
                                   `2026-09-30-leaderboard.sql` s'exécute AVANT de merger le front du
                                   classement ; sans elle, seul le panneau 🏆 est en erreur
+                                  `2026-10-01-identities-lecture-seule.sql` retire aux joueurs le droit
+                                  de réécrire leur identité ; indépendante du front
 supabase/functions/trigger-catch  fonction Edge : déclenche workflow_dispatch sur catch.yml
 shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
 shared/draw.js            fnv1a + drawFrom, partagé front ↔ Action

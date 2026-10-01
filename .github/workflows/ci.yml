@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      # Le build n'a besoin d'aucune vraie valeur pour être vérifié : même URL factice que
+      # celle des tests (cf. vitest.config.js), jamais déployée.
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://test.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-anon-key

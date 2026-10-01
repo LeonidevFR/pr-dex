@@ -60,9 +60,15 @@ export function useCollection() {
       return true
     } catch (e) {
       if (e.kind === 'conflict') {
+        // État de repli si le rejeu échoue. Tant que la relecture n'a pas abouti, c'est l'état
+        // d'avant l'appel ; ensuite c'est l'état frais, parce que `blobSha` est déjà le sien.
+        // Revenir à `before` sous ce jeton ferait passer l'écriture suivante, qui effacerait
+        // ce que l'autre appareil a écrit.
+        let fallback = before
         try {
           const fresh = await client.readState()
           blobSha.value = fresh.blobSha
+          fallback = fresh.state
           const replayed = mutate(clone(fresh.state))
           if (!replayed) { state.value = fresh.state; return false }
           state.value = replayed
@@ -71,7 +77,7 @@ export function useCollection() {
           error.value = null
           return true
         } catch (e2) {
-          state.value = before
+          state.value = fallback
           error.value = e2.kind ?? 'server'
           return false
         }
