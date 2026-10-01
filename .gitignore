@@ -4,3 +4,5 @@ dist/
 *.local
 .claude/worktrees/
 .superpowers/
+supabase/.temp/
+supabase/.branches/

@@ -113,3 +113,50 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- leaderboard_players : voir supabase/migrations/2026-09-30-leaderboard.sql pour le pourquoi.
+create function public.leaderboard_players()
+returns table (
+  login text,
+  avatar_url text,
+  is_me boolean,
+  catches jsonb,
+  evolutions jsonb
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    coalesce(u.raw_user_meta_data ->> 'user_name', 'inconnu') as login,
+    u.raw_user_meta_data ->> 'avatar_url' as avatar_url,
+    u.id = auth.uid() as is_me,
+    opened.catches,
+    s.evolutions
+  from auth.users u
+  join public.state s on s.user_id = u.id
+  join lateral (
+    select jsonb_agg(
+      jsonb_build_object(
+        'source', c.source,
+        'external_id', c.external_id,
+        'species', c.species,
+        'shiny', c.shiny,
+        'date', c.date
+      )
+      order by c.date, c.id
+    ) as catches
+    from public.catches c
+    where c.user_id = u.id
+      and s.claimed ? (c.source || ':' || c.external_id)
+  ) opened on true
+  where opened.catches is not null;
+$$;
+
+-- `anon` est nommé explicitement : les privilèges par défaut de Supabase accordent EXECUTE
+-- sur toute nouvelle fonction à anon/authenticated/service_role, et un `revoke ... from
+-- public` ne retire pas un droit accordé nommément. Sans cette ligne, la clé anon — publique
+-- par construction — suffirait à appeler la fonction sans compte.
+revoke execute on function public.leaderboard_players() from public, anon;
+grant execute on function public.leaderboard_players() to authenticated;

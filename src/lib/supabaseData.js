@@ -27,6 +27,7 @@ async function query(fn) {
  * ne change pas d'une ligne entre les deux backends. `blobSha` porte en réalité l'entier `version`
  * de la table `state` — nom gardé pour ne pas toucher à l'appelant, qui le traite comme un jeton opaque.
  * `triggerCatch` est une addition sans équivalent côté ancien client (pas de bouton de sync à l'époque).
+ * `readLeaderboard` est la seconde addition, pour le classement.
  */
 export function createSupabaseClient(userId) {
   async function checkAccess() {
@@ -77,5 +78,14 @@ export function createSupabaseClient(userId) {
     return { blobSha: data[0].version }
   }
 
-  return { checkAccess, readCatches, readState, writeState, triggerCatch }
+  /**
+   * Les captures ouvertes et les évolutions de tous les joueurs, réduites à ce que le
+   * classement calcule (cf. `leaderboard_players` côté base). C'est la seule lecture qui
+   * traverse RLS : elle passe par une fonction, jamais par un `from()` sur les tables.
+   */
+  async function readLeaderboard() {
+    return query(() => supabase.rpc('leaderboard_players'))
+  }
+
+  return { checkAccess, readCatches, readState, writeState, triggerCatch, readLeaderboard }
 }

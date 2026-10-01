@@ -9,7 +9,7 @@ const props = defineProps({
   filtersOpen: { type: Boolean, default: false },
   filtersActive: { type: Boolean, default: false },
 })
-const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters'])
+const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'leaderboard'])
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
@@ -99,6 +99,12 @@ onUnmounted(() => clearTimeout(cooldownTimer))
           ><path d="M19 12A7 7 0 1 1 12 5"></path><polygon points="12 1.5 12 8.5 16.5 5" fill="currentColor"
             stroke="none"></polygon></svg>
         </span><span v-if="syncError" class="err-dot"></span>
+      </button>
+      <button class="gear trophy" title="Classement" @click="$emit('leaderboard')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+        ><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 6H4v2a3 3 0 0 0 3 3"></path>
+          <path d="M17 6h3v2a3 3 0 0 1-3 3"></path><path d="M12 14v4"></path><path d="M8 20h8"></path></svg>
       </button>
       <button class="gear" title="Réglages" @click="$emit('settings')">⚙</button>
     </div>

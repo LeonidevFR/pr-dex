@@ -151,9 +151,51 @@ export function demoCatches() {
   return drawn
 }
 
+// Avatar sans réseau : une lettre sur un disque, en SVG inline. Jamais une URL GitHub
+// réelle — la démo ne doit désigner personne.
+const svgAvatar = (login) =>
+  'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#6f6350"/>` +
+    `<text x="20" y="26" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#e7ddc7">${login[0].toUpperCase()}</text></svg>`,
+  )
+
+// Quatre joueurs fictifs à effectifs très différents, pour que le classement ait un ordre
+// lisible d'un coup d'œil. Tirages déterministes (`drawFrom` sur un seed fixe), datés en
+// remontant depuis aujourd'hui tous les six jours : les derniers tombent dans les 30 jours.
+const FAKE_PLAYERS = [['marge', 12], ['ondine', 27], ['pierre', 41], ['sacha', 58]]
+
+function demoPlayers() {
+  const now = Date.now()
+  const dateAt = (stepsBack) => new Date(now - stepsBack * 6 * 86_400_000).toISOString().slice(0, 10)
+  return FAKE_PLAYERS.map(([login, count]) => {
+    const catches = Array.from({ length: count }, (_, n) => {
+      const id = `${login}-${n}`
+      const { species, shiny } = drawFrom(entryKey('demo', id))
+      return { source: 'demo', external_id: id, species, shiny, date: dateAt(count - 1 - n) }
+    })
+    // Aucun chromatique ni légendaire ne sort naturellement sur si peu de tirages, et une
+    // lignée complète demande une évolution : on force ce qu'il faut sur le meneur pour que
+    // chaque colonne soit non nulle au moins une fois. Chenipan (10) en n=7 puis deux
+    // évolutions en chaîne donnent la lignée Chenipan → Chrysacier → Papilusion.
+    let evolutions = []
+    if (login === 'sacha') {
+      catches[3].shiny = true
+      catches[5].species = 150
+      catches[7].species = 10
+      evolutions = [
+        { species: 11, from: 10, date: dateAt(2), fromKey: entryKey('demo', `${login}-7`) },
+        { species: 12, from: 11, date: dateAt(1), fromKey: 'evo:0' },
+      ]
+    }
+    if (login === 'ondine') catches[10].shiny = true
+    return { login, avatar_url: svgAvatar(login), is_me: false, catches, evolutions }
+  })
+}
+
 /**
  * Client en mémoire respectant l'interface commune des clients de données. Quatre plis restent
- * à ouvrir : un venu de la seconde source, un légendaire, et deux ordinaires.
+ * à ouvrir : un venu de la seconde source, un légendaire, et deux ordinaires. Le classement y
+ * compte quatre joueurs fictifs plus le joueur courant.
  */
 export function loadDemoClient() {
   const catches = demoCatches()
@@ -169,5 +211,17 @@ export function loadDemoClient() {
     writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'demo' } },
     // Rien à déclencher en démo : pas de vraie Action, pas de vrai repo derrière.
     triggerCatch: async () => {},
+    // La ligne « démo » se construit à chaque appel depuis l'état courant : ouvrir un pli ou
+    // faire une évolution, puis rouvrir le panneau, doit faire bouger sa ligne — c'est ce
+    // qui rend la démo utile pour juger le panneau.
+    readLeaderboard: async () => {
+      const opened = catches
+        .filter((c) => state.claimed.includes(entryKey(c.source, c.external_id)))
+        .map(({ source, external_id, species, shiny, date }) => ({ source, external_id, species, shiny, date }))
+      return [
+        ...demoPlayers(),
+        { login: 'démo', avatar_url: svgAvatar('démo'), is_me: true, catches: opened, evolutions: state.evolutions },
+      ]
+    },
   }
 }

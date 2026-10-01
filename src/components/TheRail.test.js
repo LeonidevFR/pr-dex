@@ -14,6 +14,12 @@ describe('TheRail', () => {
     expect(w.emitted('sync')).toHaveLength(1)
   })
 
+  it('émet leaderboard au clic sur le trophée', async () => {
+    const w = mountRail()
+    await w.find('.trophy').trigger('click')
+    expect(w.emitted('leaderboard')).toHaveLength(1)
+  })
+
   it('désactive le bouton de synchronisation pendant le chargement', () => {
     const w = mountRail({ syncing: true })
     expect(w.find('.sync').attributes('disabled')).toBeDefined()
