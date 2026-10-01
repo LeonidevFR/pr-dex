@@ -275,17 +275,22 @@ describe('suite de la file', () => {
     expect(w.findAll('button.queue-note')).toHaveLength(0)
   })
 
-  it('décompte les plis restants après celui-ci', async () => {
+  it('décompte les cartes restantes après celle-ci', async () => {
     const w = mountRitual({ remaining: 3 })
     await reveler(w)
-    expect(w.find('.next-btn').text()).toContain('2 restants')
+    expect(w.find('.next-btn').text()).toBe('Carte suivante · 2 restantes')
   })
 
-  it('accorde le singulier à un seul pli restant', async () => {
+  it('accorde le singulier à une seule carte restante', async () => {
     const w = mountRitual({ remaining: 2 })
     await reveler(w)
-    expect(w.find('.next-btn').text()).toContain('1 restant')
-    expect(w.find('.next-btn').text()).not.toContain('restants')
+    expect(w.find('.next-btn').text()).toBe('Carte suivante · 1 restante')
+  })
+
+  it('propose de tout retourner sans cérémonie', async () => {
+    const w = mountRitual({ remaining: 3 })
+    await reveler(w)
+    expect(w.find('button.queue-note').text()).toBe('tout retourner sans cérémonie')
   })
 
   it('émet next et skip-all', async () => {
@@ -321,7 +326,7 @@ describe('fermeture anticipée', () => {
 })
 
 describe('intégration — file réelle (App.vue ne doit pas décompter sous le composant)', () => {
-  it('annonce le bon nombre de plis restants une fois le sceau brisé', async () => {
+  it('annonce le bon nombre de cartes restantes une fois la première retournée', async () => {
     const col = useCollection()
     await col.load(loadDemoClient())
     const entry = col.dex.pending.value[0]
@@ -337,7 +342,7 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
     const attendu = remaining.value - 1
     await reveler(w)
 
-    expect(w.find('.next-btn').text()).toContain(`${attendu} restants`)
+    expect(w.find(".next-btn").text()).toContain(`${attendu} restantes`)
     expect(col.dex.pending.value).toHaveLength(attendu)
   })
 

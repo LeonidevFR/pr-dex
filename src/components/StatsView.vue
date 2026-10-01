@@ -34,7 +34,7 @@ const fmtOneIn = (s, total) => (s.oneIn ? `1 sur ${s.oneIn}` : `0 sur ${total}`)
     <p v-else-if="!stats" class="board-empty">Retourne une carte pour voir tes stats.</p>
 
     <dl v-else class="board-stats">
-      <div data-stat="opened"><dt>Plis ouverts</dt><dd class="stat-value">{{ stats.opened }}</dd></div>
+      <div data-stat="opened"><dt>Cartes retournées</dt><dd class="stat-value">{{ stats.opened }}</dd></div>
       <div data-stat="species"><dt>Espèces</dt><dd class="stat-value">{{ stats.species }} / 151</dd></div>
       <div v-for="t in stats.tiers" :key="t.tier" :data-stat="'tier-' + t.tier">
         <dt><span class="board-dot" :style="{ background: TIER_VAR[t.tier] }"></span>{{ t.label }}</dt>

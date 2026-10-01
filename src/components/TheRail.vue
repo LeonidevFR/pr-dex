@@ -87,7 +87,7 @@ onUnmounted(() => clearTimeout(cooldownTimer))
     </div>
     <div class="rail-tools">
       <button class="claim-btn" :class="{ pulsing: pendingCount }" :disabled="!pendingCount" @click="$emit('open')">
-        {{ pendingCount ? 'Ouvrir' : 'Rien à ouvrir' }}
+        {{ pendingCount ? 'Retourner' : 'Rien à retourner' }}
         <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
       </button>
       <button class="gear sync" :title="syncTitle" :aria-label="syncTitle" :disabled="syncing || cooling" @click="triggerSync">

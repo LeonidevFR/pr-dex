@@ -18,6 +18,7 @@ describe('StatsView', () => {
     expect(w.find('[data-stat="shiny"] .stat-value').text()).toContain('1 sur 1')
     expect(w.find('[data-stat="species"] .stat-value').text()).toBe('1 / 151')
     expect(w.text()).not.toContain('Théorie')
+    expect(w.find('[data-stat="opened"] dt').text()).toBe('Cartes retournées')
   })
 
   it('invite à retourner une carte quand le joueur n’a aucune ligne', async () => {

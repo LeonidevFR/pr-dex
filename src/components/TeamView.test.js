@@ -27,6 +27,7 @@ describe('TeamView', () => {
     await flushPromises()
     expect(w.find('[data-total="collective"]').text()).toContain('3')
     expect(w.find('[data-total="opened"]').text()).toContain('4')
+    expect(w.find('[data-total="opened"]').text()).toContain('Cartes retournées')
     expect(w.find('[data-total="shiny"]').text()).toContain('1')
   })
 
