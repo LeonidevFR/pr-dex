@@ -38,9 +38,21 @@ Aucun serveur applicatif : le jeu s'appuie sur l'API GitHub et sur Supabase (Pos
 Auth + une fonction Edge pour le bouton de sync), en base de données et fournisseur de
 connexion — voir « Architecture » plus bas.
 
+## Le décor
+
+La carte ne bouge pas ; c'est la pièce autour qui a changé. L'app est posée sur un velours
+sombre, éclairé par le dessus, avec l'or comme seul accent. Le parchemin du prototype
+reste là où il a un sens : dans le carton de la carte, dont les tokens sont redéclarés sur
+`.pkc`. Dans la grille, un légendaire capturé porte un halo doré, un chromatique un halo
+irisé — un seul halo par case, l'irisé l'emporte.
+
+La planche, l'équipe et les stats sont trois vues de la même page, en onglets ; la fiche,
+le rituel et l'évolution restent des scènes par-dessus. Espace n'ouvre un pli que depuis la
+planche.
+
 ## Le tableau des scores
 
-Le 🏆 du rail ouvre le seul écran où l'on regarde les autres : un classement par espèces
+L'onglet Équipe ouvre le seul écran où l'on regarde les autres : un classement par espèces
 distinctes (puis shiny, puis légendaires), et ses propres stats — plis ouverts, tirages par
 palier, shiny en « 1 sur N », évolutions.
 

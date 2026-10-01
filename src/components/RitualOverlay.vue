@@ -210,7 +210,6 @@ watch(stage, async (s) => {
       </button>
       <button
         v-if="remaining > 1" class="queue-note"
-        style="background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px"
         @click="$emit('skip-all')"
       >
         tout ouvrir sans cérémonie

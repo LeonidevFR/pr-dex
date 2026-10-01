@@ -46,7 +46,7 @@ onUnmounted(() => clearTimeout(focusTimer))
     <div class="evo-cap">
       <div v-if="shiny" class="reveal-banner">✦ Chromatique ✦</div>
       <div v-else-if="target.tier === 'l'" class="reveal-banner">★ Légendaire ★</div>
-      <div v-else class="reveal-banner" style="color:var(--ochre)">Évolution</div>
+      <div v-else class="reveal-banner">Évolution</div>
       <div class="reveal-name">{{ DEX[from].name }} → {{ target.name }}</div>
       <div class="reveal-tags">
         <span v-if="isNew" class="chip new-chip">Nouveau</span>
