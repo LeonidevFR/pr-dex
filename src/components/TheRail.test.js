@@ -141,4 +141,14 @@ describe('TheRail', () => {
       expect(w2.find('.sync').attributes('disabled')).toBeUndefined()
     })
   })
+
+  describe('vocabulaire', () => {
+    it('invite à retourner les cartes en attente', () => {
+      expect(mountRail({ pendingCount: 4 }).find('.claim-btn').text()).toBe('Retourner 4')
+    })
+
+    it('dit qu’il n’y a rien à retourner', () => {
+      expect(mountRail({ pendingCount: 0 }).find('.claim-btn').text()).toBe('Rien à retourner')
+    })
+  })
 })

@@ -33,7 +33,7 @@ const expanded = ref(null)
       </div>
       <div v-if="totals" class="view-totals">
         <div data-total="collective"><div class="eyebrow">Pokédex collectif</div><div class="view-num">{{ totals.collective }} <small>/ 151</small></div></div>
-        <div data-total="opened"><div class="eyebrow">Plis ouverts</div><div class="view-num">{{ totals.opened }}</div></div>
+        <div data-total="opened"><div class="eyebrow">Cartes retournées</div><div class="view-num">{{ totals.opened }}</div></div>
         <div data-total="shiny"><div class="eyebrow">Shiny</div><div class="view-num gold">{{ totals.shiny }}</div></div>
       </div>
     </div>

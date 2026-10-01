@@ -158,7 +158,7 @@ watch(stage, async (s) => {
     :style="style"
   >
     <button
-      class="x ritual-close" aria-label="Revenir à la planche, garder les plis restants pour plus tard"
+      class="x ritual-close" aria-label="Revenir à la planche, garder les cartes restantes pour plus tard"
       @click="$emit('close')"
     >✕</button>
 
@@ -206,13 +206,13 @@ watch(stage, async (s) => {
         </div>
       </div>
       <button ref="nextEl" class="next-btn" @click="$emit('next')">
-        {{ remaining > 1 ? `Suivant · ${remaining - 1} restant${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la planche' }}
+        {{ remaining > 1 ? `Carte suivante · ${remaining - 1} restante${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la planche' }}
       </button>
       <button
         v-if="remaining > 1" class="queue-note"
         @click="$emit('skip-all')"
       >
-        tout ouvrir sans cérémonie
+        tout retourner sans cérémonie
       </button>
     </template>
   </div>
