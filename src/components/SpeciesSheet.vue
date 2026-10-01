@@ -98,31 +98,37 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
 <template>
   <div class="scrim" @click.self="$emit('close')">
     <div class="panel" :style="{ '--tier': TIER_VAR[species.tier] }">
-      <div class="panel-top">
-        <button class="x" @click="$emit('close')">✕</button>
-        <!-- Capturée, l'espèce se montre sous la forme où on l'a gagnée : sa carte, posée à
-             plat. Non capturée, elle reste la planche vide en dessin préparatoire — il n'y a
-             pas d'exemplaire, donc pas de carte. -->
-        <div v-if="caught" class="pkc-stage panel-card">
-          <PokeCard
-            :species-id="id" :tier="species.tier" :shiny="shiny" scene="day"
-            @activate="zoomed = true"
-          />
+      <button class="x" aria-label="Fermer" @click="$emit('close')">✕</button>
+      <div class="sheet-grid">
+        <div class="sheet-side">
+          <!-- Capturée, l'espèce se montre sous la forme où on l'a gagnée : sa carte, sous la
+               même lumière que le rituel puisque la fiche est elle aussi posée sur le velours.
+               Non capturée, elle reste une silhouette — pas d'exemplaire, donc pas de carte. -->
+          <div v-if="caught" class="pkc-stage panel-card">
+            <PokeCard
+              :species-id="id" :tier="species.tier" :shiny="shiny" scene="night"
+              @activate="zoomed = true"
+            />
+          </div>
+          <div v-else class="panel-art ghost" :tabindex="-1">
+            <img :src="spriteUrl(id, shiny)" :alt="species.name" @error="$event.target.dataset.broken = '1'">
+          </div>
         </div>
-        <div v-else class="panel-art ghost" :tabindex="-1">
-          <img :src="spriteUrl(id, shiny)" :alt="species.name" @error="$event.target.dataset.broken = '1'">
-        </div>
-        <div>
-          <span class="panel-plate mono">PLANCHE Nº {{ pad(id) }}</span>
-          <h2 class="panel-name">{{ caught ? species.name : '—————' }}</h2>
-          <span class="chip">{{ TIER_LABEL[species.tier] }}</span>
-          <span v-if="shiny" class="chip shiny-chip" style="margin-left:6px">✦ Chromatique</span>
-          <span
-            v-for="t in (caught ? info?.types ?? [] : [])" :key="t.slug"
-            class="type-chip" :style="{ '--type': `var(--type-${t.slug})` }"
-          >{{ t.name }}</span>
-        </div>
-      </div>
+        <div class="sheet-main">
+          <div class="panel-top">
+            <span class="panel-plate">Planche nº {{ pad(id) }}<template v-if="caught"> · {{ availableCopies }} exemplaire{{ availableCopies > 1 ? 's' : '' }}</template></span>
+            <h2 class="panel-name">{{ caught ? species.name : '—————' }}</h2>
+            <div class="panel-chips">
+              <span class="chip">{{ TIER_LABEL[species.tier] }}</span>
+              <span v-if="shiny" class="chip shiny-chip">✦ Chromatique</span>
+              <span
+                v-for="t in (caught ? info?.types ?? [] : [])" :key="t.slug"
+                class="type-chip" :style="{ '--type': `var(--type-${t.slug})` }"
+              >{{ t.name }}</span>
+            </div>
+            <!-- La notice d'abord : c'est la phrase qu'on lit avant les chiffres. -->
+            <blockquote v-if="caught && info" class="dexnote">{{ info.text }}</blockquote>
+          </div>
 
       <div v-if="!caught" class="sect">
         <p class="muted">
@@ -260,9 +266,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         </div>
       </div>
 
-      <div v-if="caught && info" class="sect">
-        <div class="eyebrow sect-h"><span>Notice</span></div>
-        <blockquote class="dexnote">{{ info.text }}</blockquote>
+        </div>
       </div>
     </div>
 
@@ -271,7 +275,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
     <div v-if="zoomed" class="zoom-scrim" @click="zoomed = false; zoomFlipped = false">
       <div class="pkc-stage zoom-card" @click.stop>
         <PokeCard
-          :species-id="id" :tier="species.tier" :shiny="shiny" scene="day"
+          :species-id="id" :tier="species.tier" :shiny="shiny" scene="night"
           :provenance="lastProvenance" :flipped="zoomFlipped"
           @activate="zoomFlipped = !zoomFlipped"
         />
