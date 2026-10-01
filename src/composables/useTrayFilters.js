@@ -1,16 +1,36 @@
 import { ref, computed } from 'vue'
-import { TIER_LABEL } from '../../shared/species.js'
+import { DEX, TIER_LABEL } from '../../shared/species.js'
 
 const TIERS = Object.keys(TIER_LABEL)
 
-/** État des filtres du tiroir (paliers + statut de l'espèce). Pure UI, aucun effet de bord. */
+/**
+ * Minuscules, sans accents, sans rien d'autre que des lettres et des chiffres. « Évoli »,
+ * « EVOLI » et « evoli » doivent se retrouver : personne ne tape l'accent d'un nom de Pokémon,
+ * et « M. Mime » ou « Nidoran ♀ » portent des signes qu'on ne tape pas non plus.
+ */
+export function normalize(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+/**
+ * Une recherche purement numérique est un numéro de Pokédex, comparé en entier : « 25 »,
+ * « 025 » et « #25 » trouvent Pikachu, mais pas Élektek (125). Sinon, c'est un morceau de nom.
+ */
+export function matchesQuery(id, query) {
+  const q = normalize(query ?? '')
+  if (!q) return true
+  if (/^\d+$/.test(q)) return Number(q) === id
+  return normalize(DEX[id].name).includes(q)
+}
+
+/** État des filtres de la planche (paliers, statut, recherche). Pure UI, aucun effet de bord. */
 export function useTrayFilters() {
-  const open = ref(false)
   const activeTiers = ref(new Set(TIERS))
   const statusFilter = ref('all') // 'all' | 'caught' | 'uncaught' | 'evolvable'
+  const query = ref('')
 
   const active = computed(
-    () => activeTiers.value.size < TIERS.length || statusFilter.value !== 'all',
+    () => activeTiers.value.size < TIERS.length || statusFilter.value !== 'all' || normalize(query.value) !== '',
   )
 
   // Ne jamais désactiver le dernier palier restant : un filtre qui vide la grille en
@@ -25,10 +45,15 @@ export function useTrayFilters() {
     statusFilter.value = v
   }
 
+  function setQuery(v) {
+    query.value = v
+  }
+
   function reset() {
     activeTiers.value = new Set(TIERS)
     statusFilter.value = 'all'
+    query.value = ''
   }
 
-  return { open, activeTiers, statusFilter, active, toggleTier, setStatusFilter, reset }
+  return { activeTiers, statusFilter, query, active, toggleTier, setStatusFilter, setQuery, reset }
 }
