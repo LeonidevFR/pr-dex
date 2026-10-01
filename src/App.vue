@@ -90,7 +90,10 @@ onMounted(async () => {
 watch(
   () => [ready.value, session.value],
   ([isReady, s]) => {
-    if (!isReady || connected.value) return
+    // `connecting` : Supabase émet plusieurs événements d'auth au démarrage (session initiale,
+    // jeton rafraîchi), chacun remplace `session` — sans ce garde, chacun relançait un
+    // chargement complet en parallèle du premier.
+    if (!isReady || connected.value || connecting.value) return
     if (s) connectSession(s)
   },
   { immediate: true },

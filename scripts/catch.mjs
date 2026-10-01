@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url'
 import { drawFrom } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
 import * as github from './connectors/github.mjs'
@@ -8,6 +9,9 @@ import * as github from './connectors/github.mjs'
  * ce découpage se juge.
  */
 export const CONNECTORS = Object.fromEntries([github].map((c) => [c.id, c]))
+
+/** Statuts d'une source qui condamnent tout le run, pas la seule identité en cours. */
+const GLOBAL_FAILURES = new Set([401, 403, 429])
 
 const sbHeaders = (key) => ({
   apikey: key,
@@ -144,19 +148,32 @@ export async function main() {
   if (unknown.length) console.warn(`Source(s) sans connecteur, ignorée(s) : ${unknown.join(', ')}.`)
 
   let total = 0
+  const failed = []
 
   for (const identity of identities) {
     const connector = CONNECTORS[identity.source]
     if (!connector) continue
 
     const existing = await fetchExistingCatches(supabaseUrl, serviceKey, identity.user_id, identity.source)
-    const events = await connector.collect({
-      handle: identity.handle,
-      config: identity.config,
-      since: sinceDate(existing, forcedBootstrap ?? bootstrapDate(identity, today)),
-      secret: process.env[connector.secretEnv],
-      existing,
-    })
+    let events
+    try {
+      events = await connector.collect({
+        handle: identity.handle,
+        config: identity.config,
+        since: sinceDate(existing, forcedBootstrap ?? bootstrapDate(identity, today)),
+        secret: process.env[connector.secretEnv],
+        existing,
+      })
+    } catch (e) {
+      // Jeton refusé ou quota épuisé : toutes les identités suivantes échoueraient pareil.
+      if (GLOBAL_FAILURES.has(e.status)) throw e
+      // Le reste ne concerne que ce handle (compte renommé ou supprimé, par exemple) et se
+      // reproduirait à chaque run : sans cette isolation, tous ceux qui suivent dans la liste
+      // ne recevraient plus aucune capture.
+      failed.push(`${identity.source}/${identity.handle} : ${e.message}`)
+      console.error(`${identity.source}/${identity.handle} : échec, identité ignorée (${e.message}).`)
+      continue
+    }
 
     const rows = toRows(identity.user_id, identity.source, events)
     if (rows.length) {
@@ -167,9 +184,14 @@ export async function main() {
   }
 
   console.log(`${total} nouvelle(s) capture(s) au total sur ${identities.length} identité(s).`)
+  // Les autres ont été servies, mais le run doit finir rouge : un échec silencieux priverait
+  // quelqu'un de ses captures sans que personne ne le sache.
+  if (failed.length) throw new Error(`Identité(s) en échec — ${failed.join(' ; ')}`)
   return total
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// `pathToFileURL` plutôt qu'un `file://` concaténé : `import.meta.url` est encodé, donc un
+// chemin avec une espace ou un accent ne correspondait pas et le script sortait sans rien faire.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((e) => { console.error(e.message); process.exit(1) })
 }
