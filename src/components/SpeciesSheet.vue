@@ -89,6 +89,10 @@ const targets = computed(() => {
   return to === null ? [] : Array.isArray(to) ? to : [to]
 })
 const pad = (n) => String(n).padStart(3, '0')
+// La date de la toute première capture : le journal est dans l'ordre d'arrivée, mais une
+// évolution peut y précéder une capture plus ancienne, d'où le minimum plutôt que le premier.
+const firstDate = computed(() => (props.entries ?? []).map((e) => e.date).sort()[0] ?? null)
+const typeNames = computed(() => (info.value?.types ?? []).map((t) => t.name).join(' · '))
 const availableCopies = computed(() => props.copies ?? props.entries?.length ?? 0)
 const line = computed(() => familyLine(props.id))
 const seen = (id) => props.caughtIds.has(id)
@@ -129,6 +133,13 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             <!-- La notice d'abord : c'est la phrase qu'on lit avant les chiffres. -->
             <blockquote v-if="caught && info" class="dexnote">{{ info.text }}</blockquote>
           </div>
+
+          <!-- Trois chiffres d'un coup d'œil, avant le détail des sections. -->
+          <dl v-if="caught" class="sheet-facts">
+            <div><dt class="eyebrow">Type</dt><dd>{{ typeNames || '—' }}</dd></div>
+            <div><dt class="eyebrow">Bonbons</dt><dd>{{ candies }}<small v-if="species.cost"> / {{ species.cost }}</small></dd></div>
+            <div><dt class="eyebrow">Première capture</dt><dd class="mono">{{ firstDate ?? '—' }}</dd></div>
+          </dl>
 
       <div v-if="!caught" class="sect">
         <p class="muted">
@@ -199,7 +210,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               v-if="targets.length === 1" class="evo-btn" :disabled="!canEvolve"
               @click="startPicking(targets[0])"
             >
-              Faire évoluer en {{ DEX[targets[0]].name }}
+              Faire évoluer en {{ DEX[targets[0]].name }} · {{ species.cost }} bonbons
             </button>
           </div>
           <div v-if="targets.length > 1" class="evo-choices">

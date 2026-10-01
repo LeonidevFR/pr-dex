@@ -495,3 +495,25 @@ describe('notice', () => {
     expect(w.findAll('.sect').some((sect) => sect.find('.dexnote').exists())).toBe(false)
   })
 })
+
+describe('les chiffres de la fiche', () => {
+  it('aligne type, bonbons et première capture', () => {
+    const w = mountSheet({
+      id: 4, entries: [capture('b', 4, { date: '2026-03-01' }), capture('a', 4, { date: '2026-02-03' })],
+      candies: 6, caughtIds: new Set([4]),
+    })
+    const facts = w.findAll('.sheet-facts > div').map((d) => d.text())
+    expect(facts[0]).toContain('Feu')
+    expect(facts[1]).toContain('6')
+    expect(facts[2]).toContain('2026-02-03')
+  })
+
+  it('n’a pas de chiffres pour une espèce jamais capturée', () => {
+    expect(mountSheet({ id: 4 }).find('.sheet-facts').exists()).toBe(false)
+  })
+
+  it('dit ce que coûte l’évolution sur le bouton', () => {
+    const w = mountSheet({ id: 4, entries: [capture('a', 4)], available: [capture('a', 4)], candies: 9, canEvolve: true, caughtIds: new Set([4]) })
+    expect(w.find('.evo-btn').text()).toBe('Faire évoluer en Reptincel · 8 bonbons')
+  })
+})
