@@ -225,55 +225,42 @@
   .x{position:absolute;right:16px;top:14px;background:none;border:0;color:var(--ink-3);font-family:var(--f-data);font-size:16px;cursor:pointer;padding:6px;line-height:1}
   .x:hover{color:var(--ink)}
 
-  /* Classement — une plaque sombre, le seul écran où l'on regarde les autres. Le papier
-     devient l'encre : tout ce qui est lisible ailleurs sur --paper se lit ici sur --ink. */
-  .board{width:min(760px,100%);background:var(--ink);color:var(--paper);border-color:var(--ink-2);
-    box-shadow:inset 0 0 0 1px var(--ink-2),0 0 0 5px var(--ink),0 0 0 6px var(--ink-2)}
-  .board .x{color:var(--ink-3)}
-  .board .x:hover{color:var(--paper)}
-  .board .panel-plate{color:var(--ochre)}
-  .board-top{align-items:flex-start;padding-bottom:18px;border-bottom-color:var(--ink-2)}
-  .board-title{font-size:23px;margin-bottom:0;color:var(--paper)}
-  .board-tabs{display:flex;gap:6px;padding:16px 26px 0}
-  .board-tab{font-family:var(--f-label);font-weight:600;font-size:10px;letter-spacing:.24em;text-transform:uppercase;
-    padding:8px 14px;border:1px solid var(--ink-2);background:transparent;color:var(--ink-3);cursor:pointer}
-  .board-tab:hover{color:var(--paper)}
-  .board-tab.active{background:var(--paper);color:var(--ink);border-color:var(--paper)}
-  .board-loading,.board-empty,.board-error{padding:36px 26px;text-align:center;color:var(--ink-3)}
-  .board-error p{margin:0 0 12px}
-  .board-error .btn-ghost{border-color:var(--ink-2);color:var(--paper)}
-  .board-error .btn-ghost:hover{background:var(--ink-2)}
-  .board-table{width:calc(100% - 52px);margin:14px 26px 26px;border-collapse:collapse;font-size:13px}
-  .board-table th{font-family:var(--f-label);font-weight:600;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
-    color:var(--ink-3);text-align:right;padding:6px 8px;border-bottom:1px solid var(--ink-2);white-space:nowrap}
-  .board-table td{padding:9px 8px;text-align:right;border-bottom:1px solid rgba(231,221,199,.08);font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* ───────── vues Équipe et Mes stats ───────── */
+  .view{padding:8px 0 40px}
+  .view-head{display:flex;align-items:flex-end;gap:40px;flex-wrap:wrap;margin-bottom:28px}
+  .view-title{font-family:var(--f-title);font-weight:300;font-size:44px;letter-spacing:-.02em;line-height:1;color:#f4ecda;margin-top:10px}
+  .view-title i{font-weight:600;color:var(--gold)}
+  .view-totals{display:flex;gap:40px;margin-left:auto}
+  .view-num{font-family:var(--f-title);font-weight:300;font-size:30px;color:#f4ecda;margin-top:6px}
+  .view-num small{font-family:var(--f-ui);font-size:13px;color:var(--fg-3)}
+  .view-num.gold{color:var(--gold)}
+  .board-loading,.board-empty,.board-error{padding:48px 0;text-align:center;color:var(--fg-2)}
+  .board-error p{margin:0 0 14px}
+  .board-table{width:100%;border-collapse:collapse;font-size:14px}
+  .board-table th{font-family:var(--f-ui);font-weight:700;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--fg-3);text-align:right;padding:0 10px 12px;border-bottom:1px solid rgba(212,176,106,.2);white-space:nowrap}
+  .board-table td{padding:16px 10px;text-align:right;border-bottom:1px solid rgba(212,176,106,.1);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--fg)}
   .board-table th.board-who,.board-table td.board-who{text-align:left}
-  .board-rank{width:36px;font-size:18px;color:var(--ochre)}
-  td.board-who{display:flex;align-items:center;gap:10px}
-  .board-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--ink-2);display:inline-block}
+  .board-table td.lead{font-size:18px;color:#f4ecda}
+  .board-table .board-rank{width:48px;text-align:left;font-family:var(--f-title);font-weight:300;font-size:28px;color:var(--gold)}
+  .board-table th.board-rank{font-family:var(--f-ui);font-size:10px}
+  .board-who-in{display:inline-flex;align-items:center;gap:14px}
+  .board-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--surface-hi);border:1px solid rgba(212,176,106,.3);
+    display:inline-grid;place-items:center;font-size:13px;font-weight:700;color:var(--gold)}
   .board-login{font-weight:600}
-  .board-table tr.me td{background:rgba(184,134,43,.12)}
-  .board-table tr.me .board-login{color:var(--ochre)}
-  .board-table tr.me .board-login::after{content:" · toi";font-weight:400;color:var(--ink-3)}
-  .board-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
-  .board-table small{color:var(--ink-3);font-size:10.5px}
-  .board-stats{margin:14px 26px 26px;padding:0;display:grid;gap:0}
-  .board-stats > div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 8px;
-    border-bottom:1px solid rgba(231,221,199,.08)}
-  .board-stats dt{color:var(--paper);font-size:13px}
-  .board-stats dd{margin:0;font-size:15px;font-variant-numeric:tabular-nums}
-  .board-stats small{color:var(--ink-3);font-size:10.5px;margin-left:6px}
+  .board-table tr.me td{background:linear-gradient(90deg,rgba(212,176,106,.12),rgba(212,176,106,.04))}
+  .board-table tr.me .board-login{color:var(--gold)}
+  .board-table tr.me .board-login::after{content:" · toi";font-weight:400;color:var(--fg-3)}
+  .board-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:2px}
   .board-detail{display:none}
-  .board-detail td{text-align:left;padding-top:4px;color:var(--ink-3);font-size:11.5px;white-space:normal}
+  .board-detail td{text-align:left;padding-top:4px;color:var(--fg-3);font-size:12px;white-space:normal}
   .board-detail-item{display:inline-block;margin-right:14px}
-  .board-detail-item b{color:var(--paper)}
-
-  /* Étroit : seules # / joueur / espèces / shiny restent ; le reste se déplie au toucher de la ligne. */
-  @media (max-width:640px){
-    .board-table .secondary{display:none}
-    .board-table tbody tr{cursor:pointer}
-    .board-detail{display:table-row}
-  }
+  .board-detail-item b{color:var(--fg)}
+  .board-stats{display:grid;gap:0;max-width:560px}
+  .board-stats > div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:16px 4px;border-bottom:1px solid rgba(212,176,106,.1)}
+  .board-stats dt{color:var(--fg);font-size:14px}
+  .board-stats dd{margin:0;font-family:var(--f-title);font-weight:300;font-size:24px;color:#f4ecda;font-variant-numeric:tabular-nums}
+  .board-stats small{font-family:var(--f-ui);color:var(--fg-3);font-size:12px;margin-left:8px}
 
   .sect{padding:20px 26px;border-bottom:1.5px solid var(--rule)}
   .sect:last-child{border-bottom:0}
