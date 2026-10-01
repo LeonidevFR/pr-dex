@@ -1,51 +1,56 @@
+  /* Le décor est un velours éclairé par le dessus : la lumière, c'est ce qu'on a gagné. Un
+     seul accent, l'or, pour qu'il garde son poids — il dit « précieux », il ne décore pas. */
   :root{
-    --paper:#e7ddc7;
-    --paper-lo:#ddd0b3;
-    --plate:#f2ecda;
-    --plate-hi:#fbf6e8;
-    --ink:#2c2620;
-    --ink-2:#6f6350;
-    --ink-3:#9a8a6d;
-    --rule:#c3b48f;
-    --rule-hi:#b3a179;
-    --stamp:#9e3b2e;
-    --ochre:#b8862b;
-    --herb:#5c7a52;
+    --bg:#14110e;
+    --surface:#211c18;
+    --surface-hi:#2b2520;
+    --line:rgba(239,230,207,.10);
+    --line-gold:rgba(212,176,106,.16);
+    --fg:#efe7d8;
+    --fg-2:#a89a85;
+    --fg-3:#8a7d6b;
+    --gold:#d4b06a;
+    --gold-btn:linear-gradient(180deg,#e2c37c,#c99e4e);
+    --cream:#efe6cf;
+    --danger:#e07a6c;
 
-    --t-c:#8a8175;   /* commun     — pierre  */
-    --t-u:#5c7a52;   /* peu commun — herbe   */
-    --t-r:#9e3b2e;   /* rare       — tampon  */
-    --t-l:#b8862b;   /* légendaire — ocre    */
+    /* Les paliers du décor : les mêmes familles que sur la carte, remontées pour se lire sur
+       le velours. La carte, elle, garde les siens (voir `.pkc`). */
+    --t-c:#8a8175;
+    --t-u:#7fb59a;
+    --t-r:#d7756a;
+    --t-l:#d4b06a;
+    --iris:radial-gradient(circle, rgba(201,167,230,.7), rgba(63,191,149,.25) 45%, transparent 70%);
 
-    /* Teintes de type désaturées vers la palette parchemin : les couleurs standard
-       (jaune Électrik, rose Fée) jureraient avec les ocres du reste de l'interface. */
-    --type-normal:#8a8175;   --type-fire:#a8552f;     --type-water:#4f6f8a;
-    --type-electric:#a8862b; --type-grass:#5c7a52;    --type-ice:#6f8a8a;
-    --type-fighting:#8a4a3a; --type-poison:#6f5480;   --type-ground:#8a7550;
-    --type-flying:#7a7f96;   --type-psychic:#96566a;  --type-bug:#75824a;
-    --type-rock:#7d7256;     --type-ghost:#5f5570;    --type-dragon:#5b5a91;
-    --type-dark:#544c46;     --type-steel:#7c8086;    --type-fairy:#9a6478;
+    /* Teintes de type, éclaircies pour le fond sombre. */
+    --type-normal:#a39a8e;   --type-fire:#e0805a;     --type-water:#7fa3c4;
+    --type-electric:#d8b44f; --type-grass:#8fb37f;    --type-ice:#94bcbc;
+    --type-fighting:#c9786a; --type-poison:#a98bc0;   --type-ground:#c2a676;
+    --type-flying:#a9aec8;   --type-psychic:#d0889d;  --type-bug:#a8b673;
+    --type-rock:#b3a684;     --type-ghost:#9b90b3;    --type-dragon:#9493d1;
+    --type-dark:#9a8f86;     --type-steel:#aeb2b8;    --type-fairy:#d39ab0;
 
-    --f-display:"IBM Plex Serif", Georgia, serif;
-    --f-label:"IBM Plex Sans Condensed", "Helvetica Neue", sans-serif;
+    --f-title:"Fraunces", Georgia, serif;
+    --f-ui:"Manrope", "Helvetica Neue", sans-serif;
     --f-data:"IBM Plex Mono", ui-monospace, monospace;
+    --f-display:var(--f-title);
+    --f-label:var(--f-ui);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{
-    color:var(--ink);font-family:var(--f-label);-webkit-font-smoothing:antialiased;
-    background-color:var(--paper);
-    background-image:
-      repeating-linear-gradient(0deg, rgba(120,96,64,.032) 0 1px, transparent 1px 4px),
-      radial-gradient(ellipse 85% 55% at 50% -4%, rgba(255,251,240,.75), transparent 66%);
+    color:var(--fg);font-family:var(--f-ui);-webkit-font-smoothing:antialiased;
+    background-color:var(--bg);
+    background-image:radial-gradient(ellipse 60% 40% at 50% -10%, rgba(212,176,106,.12), transparent 70%);
+    background-attachment:fixed;
     min-height:100vh;
   }
   img{image-rendering:pixelated}
-  a{color:var(--stamp);text-decoration:none}
-  a:hover{color:var(--ink)}
+  a{color:var(--gold);text-decoration:none}
+  a:hover{color:var(--fg)}
   button{font-family:inherit}
-  #app{max-width:1180px;margin:0 auto;padding:0 20px 90px}
+  #app{max-width:1280px;margin:0 auto;padding:0 48px 90px}
 
-  .eyebrow{font-family:var(--f-label);font-weight:600;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2)}
+  .eyebrow{font-family:var(--f-ui);font-weight:700;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--fg-3)}
   .mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
 
   /* ───────── rail ───────── */
@@ -353,6 +358,19 @@
   /* L'inclinaison est une manipulation directe — elle doit coller au pointeur, d'où la
      transition très courte de `is-live`. Le retournement, lui, est un geste : il prend son
      temps. Les deux passent par le même `transform`, donc par la même propriété. */
+  /* La carte garde son parchemin. Le décor a changé autour d'elle, pas sa matière : « une
+     carte qui changerait d'identité entre l'écran où on la gagne et celui où on la retrouve
+     ne se posséderait pas ». Ses tokens sont donc redéclarés ici, aux valeurs d'avant. */
+  .pkc{
+    --paper:#e7ddc7; --paper-lo:#ddd0b3; --plate:#f2ecda; --plate-hi:#fbf6e8;
+    --ink:#2c2620; --ink-2:#6f6350; --ink-3:#9a8a6d;
+    --rule:#c3b48f; --rule-hi:#b3a179; --stamp:#9e3b2e; --ochre:#b8862b; --herb:#5c7a52;
+    --t-c:#8a8175; --t-u:#5c7a52; --t-r:#9e3b2e; --t-l:#b8862b;
+    --f-display:"IBM Plex Serif", Georgia, serif;
+    --f-label:"IBM Plex Sans Condensed", "Helvetica Neue", sans-serif;
+    --f-data:"IBM Plex Mono", ui-monospace, monospace;
+    color:var(--ink);font-family:var(--f-label);
+  }
   .pkc{position:relative;width:266px;height:372px;cursor:pointer;transform-style:preserve-3d;
     transform:rotateX(var(--rx,0deg)) rotateY(calc(var(--ry,0deg) + var(--pkc-flip,0deg)));
     transition:transform .62s cubic-bezier(.2,.8,.2,1)}
