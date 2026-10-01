@@ -105,84 +105,71 @@
   .claim-btn.pulsing{animation:pulse 2.6s ease-in-out infinite}
   @keyframes pulse{0%,100%{box-shadow:0 10px 30px rgba(212,176,106,.25)}50%{box-shadow:0 10px 30px rgba(212,176,106,.25),0 0 0 6px rgba(212,176,106,.14)}}
 
-  /* ───────── tiroir ───────── */
-  .filters{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  /* ───────── planche ───────── */
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+  .toolbar-sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+  .toolbar-grow{flex:1}
   .filter-group{display:flex;gap:6px;flex-wrap:wrap}
-  /* Coché vs non coché doit se lire d'un regard, sans avoir à comparer deux nuances de bordure
-     l'une à l'autre — remonté par plusieurs personnes qui trouvaient les chips illisibles.
-     Coché : pastille pleine, texte clair sur fond couleur du palier. Non coché : atténué, pas
-     juste une bordure plus terne. */
+  .tray-search-wrap{display:flex;align-items:center;gap:8px;border:1px solid rgba(239,230,207,.12);border-radius:999px;padding:0 14px;height:38px;width:220px;color:var(--fg-3)}
+  .tray-search-wrap:focus-within{border-color:var(--gold)}
+  .tray-search{border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;width:100%}
+  .tray-search::placeholder{color:var(--fg-3)}
+  /* Coché vs non coché doit se lire d'un regard : plein crème contre contour discret. */
   .filter-chip{
-    font-family:var(--f-label);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-    padding:7px 11px 7px 9px;border:1.5px solid var(--rule-hi);border-radius:3px;background:transparent;
-    color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;
-    transition:border-color .15s,color .15s,background-color .15s,opacity .15s;
+    font-family:var(--f-ui);font-size:12px;font-weight:600;
+    padding:0 13px;height:34px;border:1px solid rgba(239,230,207,.12);border-radius:999px;background:transparent;
+    color:var(--fg-2);cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+    transition:border-color .15s,color .15s,background-color .15s;
   }
-  .filter-chip::before{
-    content:"";width:7px;height:7px;border-radius:50%;flex-shrink:0;
-    border:1.5px solid currentColor;transition:background-color .15s;
-  }
-  .filter-chip:hover{color:var(--ink);border-color:var(--ink-3)}
-  .filter-chip.active{
-    border-color:var(--tier,var(--herb));background:var(--tier,var(--herb));color:var(--paper);
-  }
-  .filter-chip.active::before{background:var(--paper)}
-  .filter-chip:not(.active){opacity:.6}
-  /* Le chip « Évoluables » reprend le triangle et le vert du badge de la case : même signe
-     des deux côtés, on comprend ce que le filtre isole sans avoir à l'essayer. */
-  .chip-evo::before{
-    width:0;height:0;border:0;border-radius:0;
-    border-left:4px solid transparent;border-right:4px solid transparent;
-    border-bottom:7px solid currentColor;
-  }
-  .chip-evo:not(.active){color:var(--herb)}
-  .chip-evo.active::before{border-bottom-color:var(--paper);background:transparent}
-  .filter-reset{
-    font-family:var(--f-data);font-size:10px;color:var(--ink-3);background:none;border:0;cursor:pointer;
-    text-decoration:underline;text-underline-offset:2px;
-  }
-  .filter-reset:hover{color:var(--stamp)}
-  .tray{
-    display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:1px;
-    background:var(--rule-hi);border:1px solid var(--rule-hi);
-    box-shadow:0 2px 0 rgba(120,96,64,.16);
-  }
-  .tray-empty{
-    font-family:var(--f-data);font-size:11px;color:var(--ink-3);
-    text-align:center;padding:28px 12px;margin:0;
-  }
+  .filter-chip:hover{color:var(--fg);border-color:rgba(239,230,207,.24)}
+  .filter-chip.active{background:var(--cream);border-color:var(--cream);color:#1a1410}
+  .filter-chip:focus-visible,.filter-reset:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  /* Le palier garde son point de couleur coché ou non : c'est lui qu'on cherche du regard. */
+  .tier-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--tier)}
+  .tier-chip.active{background:transparent;border-color:var(--tier);color:var(--fg)}
+  .tier-chip:not(.active){opacity:.55}
+  /* « Évoluables » reprend la flèche et le vert du badge de la case : même signe des deux côtés. */
+  .chip-evo{color:#9fd0b6;border-color:rgba(127,181,154,.3)}
+  .chip-evo.active{background:rgba(127,181,154,.18);border-color:#7fb59a;color:#cfe8da}
+  .filter-reset{font-family:var(--f-ui);font-size:12px;font-weight:600;color:var(--fg-3);background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .filter-reset:hover{color:var(--gold)}
+
+  .tray{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:14px}
+  .tray-empty{font-family:var(--f-ui);font-size:13px;color:var(--fg-2);text-align:center;padding:40px 12px;margin:0;display:flex;flex-direction:column;align-items:center;gap:10px}
   .cell{
-    position:relative;aspect-ratio:1;background:var(--plate);border:0;padding:0;cursor:default;
-    display:flex;align-items:center;justify-content:center;transition:background .16s;
+    position:relative;aspect-ratio:1;border-radius:8px;padding:0;cursor:default;
+    background:var(--surface);border:1px solid rgba(255,255,255,.04);
+    display:flex;align-items:center;justify-content:center;transition:border-color .16s,background .16s;
   }
-  .cell.has{cursor:pointer}
-  .cell.has:hover,.cell.has:focus-visible{background:var(--plate-hi);outline:none}
-  .cell.has:focus-visible{box-shadow:inset 0 0 0 1.5px var(--herb)}
-  /* halo : shiny et légendaires se distinguent d'un coup d'œil dans la grille pleine */
-  .cell.has.legendary::after,.cell.has.shiny::after{
-    content:"";position:absolute;inset:5px;border-radius:50%;z-index:0;pointer-events:none;
-    opacity:.4;
-  }
-  /* légendaire en --stamp plutôt que --tier : --t-l vaut la même teinte que --ochre, or le
-     shiny porte déjà --ochre partout ailleurs (étoile, chip) — les deux halos se confondraient. */
-  .cell.has.legendary::after{background:radial-gradient(circle, var(--stamp), transparent 70%)}
-  .cell.has.shiny::after{background:radial-gradient(circle, var(--ochre), transparent 70%)}
-  .cell img{width:76%;height:76%;object-fit:contain;transition:transform .18s;position:relative;z-index:1}
-  .cell img[data-broken],.panel-art img[data-broken]{opacity:.18;filter:grayscale(1)}
-  .cell.has:hover img{transform:scale(1.09) translateY(-2px)}
-  .cell-no{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--ink-3);letter-spacing:.02em;transition:opacity .16s;z-index:2}
-  .cell.has .cell-no{opacity:.9}
+  .cell.has{cursor:pointer;background:linear-gradient(180deg,var(--surface-hi),var(--surface));border-color:var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .cell.has:hover{border-color:rgba(212,176,106,.45)}
+  .cell.has:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .cell.rare{border-color:rgba(215,117,106,.35)}
+  .cell.legendary{border-color:rgba(212,176,106,.6);box-shadow:inset 0 0 0 1px rgba(212,176,106,.2),0 0 18px rgba(212,176,106,.18)}
+  /* Le halo dit d'un coup d'œil ce qui est précieux dans la grille pleine. Or pour le
+     légendaire ; l'irisé, réservé au chromatique — l'or étant libéré, le rouge tampon
+     d'avant n'a plus de raison d'être. */
+  .cell-halo{position:absolute;inset:8px;border-radius:50%;z-index:0;pointer-events:none;opacity:.55}
+  .cell-halo.l{background:radial-gradient(circle,rgba(212,176,106,.85),transparent 68%)}
+  .cell-halo.s{background:var(--iris)}
+  .cell img{width:66%;height:66%;object-fit:contain;transition:transform .18s;position:relative;z-index:1}
+  .cell img[data-broken]{opacity:.18;filter:grayscale(1)}
+  .cell.has:hover img{transform:scale(1.08) translateY(-2px)}
+  .cell-no{position:absolute;left:10px;top:8px;font-family:var(--f-ui);font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--fg-3);transition:opacity .16s;z-index:2}
   .cell.has:hover .cell-no{opacity:0}
-  .cell-origin{position:absolute;left:6px;top:5px;font-family:var(--f-data);font-size:9px;color:var(--stamp);opacity:0;transition:opacity .16s;z-index:2}
+  .cell-origin{position:absolute;left:10px;top:8px;font-family:var(--f-data);font-size:10px;color:var(--gold);opacity:0;transition:opacity .16s;z-index:2}
   .cell.has:hover .cell-origin{opacity:1}
-  .cell-dupes{position:absolute;right:5px;top:4px;font-family:var(--f-data);font-size:9.5px;font-weight:700;color:var(--paper);background:var(--stamp);border-radius:8px;padding:1px 5px;line-height:1.3;z-index:2}
-  .cell .tier{position:absolute;right:6px;bottom:6px;width:7px;height:7px;border-radius:50%;background:var(--tier);box-shadow:0 0 0 1.5px var(--plate),0 0 0 2.5px rgba(120,96,64,.28);z-index:2}
-  /* silhouette : dessin préparatoire au trait */
-  .cell.ghost::after{content:"";position:absolute;inset:11px;border:1px dashed rgba(140,110,72,.34);z-index:2}
-  .cell.ghost img{filter:sepia(1) saturate(.5) brightness(.55);opacity:.16}
-  .cell.ghost .cell-no{opacity:.5}
-  .cell.shiny::before{content:"✦";position:absolute;right:6px;top:5px;font-size:10px;color:var(--ochre);z-index:2}
-  .cell-evo{position:absolute;left:6px;bottom:5px;font-size:9px;color:var(--herb);z-index:2}
+  .cell-pill{position:absolute;right:8px;top:7px;z-index:2;font-family:var(--f-ui);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:999px}
+  .cell-pill.u{background:rgba(127,181,154,.14);color:#9fd0b6}
+  .cell-pill.r{background:rgba(215,117,106,.16);color:#f0a79b}
+  .cell-pill.l{background:rgba(212,176,106,.2);color:#e8cc8e}
+  .cell-dupes{position:absolute;left:10px;bottom:8px;z-index:2;font-family:var(--f-ui);font-size:10px;font-weight:700;color:var(--gold)}
+  .cell-shiny{position:absolute;right:10px;bottom:7px;z-index:2;font-size:12px;color:#e8cc8e;text-shadow:0 0 8px rgba(201,167,230,.9)}
+  .cell-evo{position:absolute;right:9px;bottom:8px;z-index:2;width:16px;height:16px;border-radius:50%;background:rgba(127,181,154,.2);color:#9fd0b6;display:grid;place-items:center;font-size:10px;font-weight:700}
+  /* Silhouette éteinte : la case vide se lit comme un emplacement, pas comme une erreur. */
+  .cell.ghost img{filter:grayscale(1) brightness(.3) contrast(1.1);opacity:.45}
+  .cell.ghost .cell-no{color:#4a423b}
 
   /* ───────── fiche ───────── */
   .scrim{position:fixed;inset:0;z-index:40;background:rgba(44,38,32,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px}
