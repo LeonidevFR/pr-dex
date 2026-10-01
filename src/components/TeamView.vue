@@ -15,7 +15,7 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
 
 const COLUMNS = [
   ['species', 'Espèces'], ['shiny', 'Shiny'], ['legendaries', 'Légendaires'], ['rares', 'Rares'],
-  ['lineages', 'Lignées'], ['copies', 'Exemplaires'], ['recent', '30 jours'],
+  ['lineages', 'Lignées'], ['copies', 'Cartes'], ['recent', '30 jours'],
 ]
 // Sur un écran étroit, seules ces colonnes restent visibles ; les autres se déplient au toucher.
 const PRIMARY = new Set(['species', 'shiny'])

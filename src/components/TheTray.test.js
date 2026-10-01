@@ -239,9 +239,9 @@ describe('TheTray', () => {
   describe('pastilles et halos', () => {
     it('nomme le palier d’une capture peu commune, rare ou légendaire', () => {
       const w = mountTray({ 37: [entry('a', 37)], 4: [entry('b', 4)], 144: [entry('c', 144)] })
-      expect(w.findAll('.cell')[36].find('.cell-pill').text()).toBe('Peu c.')
+      expect(w.findAll('.cell')[36].find('.cell-pill').text()).toBe('Peu commun')
       expect(w.findAll('.cell')[3].find('.cell-pill').text()).toBe('Rare')
-      expect(w.findAll('.cell')[143].find('.cell-pill').text()).toBe('Légende')
+      expect(w.findAll('.cell')[143].find('.cell-pill').text()).toBe('Légendaire')
     })
 
     it('ne met pas de pastille sur une capture commune', () => {

@@ -158,7 +158,7 @@ watch(stage, async (s) => {
     :style="style"
   >
     <button
-      class="x ritual-close" aria-label="Revenir à la planche, garder les cartes restantes pour plus tard"
+      class="x ritual-close" aria-label="Revenir à la collection, garder les cartes restantes pour plus tard"
       @click="$emit('close')"
     >✕</button>
 
@@ -192,21 +192,21 @@ watch(stage, async (s) => {
 
     <template v-if="stage === 'revealed'">
       <div class="reveal-meta">
-        <div v-if="entry.shiny" class="reveal-banner">✦ Chromatique ✦</div>
+        <div v-if="entry.shiny" class="reveal-banner">✦ Shiny ✦</div>
         <div v-else-if="tier === 'l'" class="reveal-banner">★ Légendaire ★</div>
         <div class="reveal-name">{{ species.name }}</div>
         <div class="reveal-tags">
           <span v-if="isNew" class="chip new-chip">Nouveau</span>
           <span class="chip">{{ TIER_LABEL[tier] }}</span>
-          <span v-if="entry.shiny" class="chip shiny-chip">✦ Chromatique</span>
+          <span v-if="entry.shiny" class="chip shiny-chip">✦ Shiny</span>
         </div>
         <div class="reveal-note mono">
-          {{ isNew ? 'Première entrée à la planche' : 'Déjà à la planche' }} ·
+          {{ isNew ? 'Nouveau dans ton Pokédex' : 'Déjà dans ton Pokédex' }} ·
           +{{ CANDY_PER_CATCH }} bonbons <b>{{ DEX[familyOf(entry.species)].name }}</b>
         </div>
       </div>
       <button ref="nextEl" class="next-btn" @click="$emit('next')">
-        {{ remaining > 1 ? `Carte suivante · ${remaining - 1} restante${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la planche' }}
+        {{ remaining > 1 ? `Carte suivante · ${remaining - 1} restante${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la collection' }}
       </button>
       <button
         v-if="remaining > 1" class="queue-note"

@@ -120,11 +120,11 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         </div>
         <div class="sheet-main">
           <div class="panel-top">
-            <span class="panel-plate">Planche nº {{ pad(id) }}<template v-if="caught"> · {{ availableCopies }} exemplaire{{ availableCopies > 1 ? 's' : '' }}</template></span>
+            <span class="panel-plate">Nº {{ pad(id) }}<template v-if="caught"> · {{ availableCopies }} carte{{ availableCopies > 1 ? 's' : '' }}</template></span>
             <h2 class="panel-name">{{ caught ? species.name : '—————' }}</h2>
             <div class="panel-chips">
               <span class="chip">{{ TIER_LABEL[species.tier] }}</span>
-              <span v-if="shiny" class="chip shiny-chip">✦ Chromatique</span>
+              <span v-if="shiny" class="chip shiny-chip">✦ Shiny</span>
               <span
                 v-for="t in (caught ? info?.types ?? [] : [])" :key="t.slug"
                 class="type-chip" :style="{ '--type': `var(--type-${t.slug})` }"
@@ -143,7 +143,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
 
       <div v-if="!caught" class="sect">
         <p class="muted">
-          Pas encore à la planche. Sortira d'une capture<template v-if="PARENT[id]">, ou d'une évolution de
+          Pas encore dans ton Pokédex. Sortira d'une carte<template v-if="PARENT[id]">, ou d'une évolution de
           <b>{{ DEX[PARENT[id]].name }}</b></template>.
         </p>
       </div>
@@ -174,7 +174,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         <div class="eyebrow sect-h">
           <span>Journal des captures</span>
           <span class="mono copies-count">
-            {{ availableCopies }} exemplaire{{ availableCopies > 1 ? 's' : '' }}
+            {{ availableCopies }} carte{{ availableCopies > 1 ? 's' : '' }}
           </span>
         </div>
         <div class="log">
@@ -185,7 +185,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             target="_blank" rel="noopener"
           >
             <span v-if="e.via === 'catch'" class="log-sha">{{ e.source }}</span>
-            <span v-else class="log-evo">↑ évo</span>
+            <span v-else class="log-evo">Évolution</span>
             <span class="log-title">
               {{ e.via === 'catch' ? e.label : 'Évolué depuis ' + DEX[e.from].name }}
               <span v-if="e.via === 'catch' && e.ref" class="log-repo"> · {{ e.ref }}</span>
@@ -222,19 +222,19 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             </button>
           </div>
           <p class="muted" style="margin-top:12px">
-            {{ CANDY_PER_CATCH }} bonbons par capture dans la famille. Les doublons servent à ça.
+            Chaque carte de la famille {{ DEX[familyOf(id)].name }} rapporte {{ CANDY_PER_CATCH }} bonbons. Il en faut {{ species.cost }} pour faire évoluer {{ species.name }}.
           </p>
         </template>
 
         <template v-else>
           <p class="muted" style="margin-bottom:12px">
-            Choisis l'exemplaire à faire évoluer en <b>{{ DEX[pickingTarget].name }}</b>.
+            Choisis la carte à faire évoluer en <b>{{ DEX[pickingTarget].name }}</b>.
           </p>
           <div class="log">
             <label v-for="e in available" :key="e.key" class="log-row picker-row">
               <input type="radio" name="specimen" :value="e.key" v-model="selectedKey">
               <span v-if="e.via === 'catch'" class="log-sha">{{ e.source }}</span>
-              <span v-else class="log-evo">↑ évo</span>
+              <span v-else class="log-evo">Évolution</span>
               <span class="log-title">
                 {{ e.via === 'catch' ? e.label : 'Évolué depuis ' + DEX[e.from].name }}
                 <span v-if="e.shiny" class="chip shiny-chip" style="margin-left:6px">✦</span>
@@ -257,20 +257,19 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
           </div>
         </div>
         <p class="muted" style="margin-top:12px">
-          {{ species.name }} n'évolue pas, mais ses doublons créditent la famille
-          <b>{{ DEX[familyOf(id)].name }}</b> — {{ CANDY_PER_CATCH }} bonbons par capture.
+          {{ species.name }} n'évolue plus. Chaque nouvelle carte rapporte quand même {{ CANDY_PER_CATCH }} bonbons
+          à la famille <b>{{ DEX[familyOf(id)].name }}</b>, pour faire évoluer ses autres membres.
         </p>
       </div>
 
       <div v-else-if="caught && entries.length > 1 && isDeadEnd" class="sect">
-        <div class="eyebrow sect-h"><span>La réserve</span></div>
+        <div class="eyebrow sect-h"><span>Cartes en double</span></div>
         <div class="reserve">
           <div class="reserve-count mono">{{ entries.length }}</div>
           <div class="reserve-txt">
             <p class="muted">
-              <b>{{ species.name }}</b> n'évolue pas — ses doublons ne se convertissent pas, et c'est
-              assumé. Ils s'empilent comme une petite collection dans la réserve : « encore un », mais
-              dans un tiroir qui se remplit.
+              <b>{{ species.name }}</b> n'a pas d'évolution. Ses cartes en double ne rapportent pas de
+              bonbons : elles sont gardées ici.
             </p>
             <div class="press"><span v-for="n in Math.min(entries.length, 12)" :key="n">{{ pad(id) }}</span></div>
           </div>
