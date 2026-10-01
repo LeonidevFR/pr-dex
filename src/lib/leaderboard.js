@@ -87,3 +87,16 @@ export function myStats(rows, today) {
     evolved: me.evolved,
   }
 }
+
+/**
+ * Les trois chiffres d'en-tête de la vue Équipe. Le Pokédex collectif compte les espèces vues
+ * par au moins un joueur : c'est l'objectif commun, celui où personne n'est dernier.
+ */
+export function teamTotals(rows, today) {
+  const players = rankPlayers(rows, today)
+  return {
+    collective: new Set(players.flatMap((p) => p.speciesIds)).size,
+    opened: players.reduce((n, p) => n + p.copies, 0),
+    shiny: players.reduce((n, p) => n + p.shiny, 0),
+  }
+}

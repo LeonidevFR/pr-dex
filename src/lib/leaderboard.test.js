@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { playerStats, rankPlayers, myStats } from './leaderboard.js'
+import { playerStats, rankPlayers, myStats, teamTotals } from './leaderboard.js'
 
 const TODAY = '2026-09-30'
 const c = (id, species, { shiny = false, date = '2026-06-01' } = {}) =>
@@ -116,5 +116,19 @@ describe('myStats', () => {
 
   it('vaut null quand aucune ligne n’est is_me', () => {
     expect(myStats([row('a', [c('1', 1)])], TODAY)).toBeNull()
+  })
+})
+
+describe('teamTotals', () => {
+  it('somme plis ouverts et shiny, et dédoublonne le Pokédex collectif', () => {
+    const t = teamTotals([
+      row('a', [c('1', 1), c('2', 4, { shiny: true })]),
+      row('b', [c('3', 4), c('4', 7)], [], true),
+    ], TODAY)
+    expect(t).toEqual({ collective: 3, opened: 4, shiny: 1 })
+  })
+
+  it('vaut zéro partout sans joueur', () => {
+    expect(teamTotals([], TODAY)).toEqual({ collective: 0, opened: 0, shiny: 0 })
   })
 })
