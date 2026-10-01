@@ -14,6 +14,11 @@ describe('playerStats', () => {
     expect(s.copies).toBe(3)
   })
 
+  it('compte les espèces shiny, évolutions comprises', () => {
+    const s = playerStats([c('a', 1, { shiny: true }), c('b', 1, { shiny: true })], [{ species: 2, from: 1, date: '2026-06-02', fromKey: 'github:a' }], TODAY)
+    expect(s.shinySpecies).toBe(2)
+  })
+
   it('un shiny évolué compte une seule fois', () => {
     const s = playerStats([c('a', 1, { shiny: true })], [{ species: 2, from: 1, date: '2026-06-02', fromKey: 'github:a' }], TODAY)
     expect(s.shiny).toBe(1)
@@ -100,7 +105,8 @@ describe('myStats', () => {
     expect(s.opened).toBe(2)
     expect(s.evolved).toBe(1)
     expect(s.species).toBe(3)
-    expect(s.shiny).toEqual({ count: 1, oneIn: 2 })
+    // Chenipan shiny a évolué en Chrysacier : deux espèces shiny, un seul exemplaire tiré.
+    expect(s.shiny).toEqual({ species: 2, copies: 1 })
   })
 
   it('donne les tirages par palier avec le nombre et la part, dans l’ordre des paliers', () => {
@@ -109,9 +115,9 @@ describe('myStats', () => {
     expect(s.tiers.find((t) => t.tier === 'r')).toEqual({ tier: 'r', label: 'Rare', count: 1, pct: 25 })
   })
 
-  it('n’a pas de division par zéro sans shiny', () => {
+  it('vaut zéro sans shiny', () => {
     const s = myStats([row('me', [c('1', 1)], [], true)], TODAY)
-    expect(s.shiny).toEqual({ count: 0, oneIn: null })
+    expect(s.shiny).toEqual({ species: 0, copies: 0 })
   })
 
   it('vaut null quand aucune ligne n’est is_me', () => {
