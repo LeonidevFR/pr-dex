@@ -16,9 +16,9 @@ const props = defineProps({
 })
 const emit = defineEmits(['select', 'toggle-tier', 'set-status-filter', 'set-query', 'reset-filters'])
 
-// Libellés courts : la pastille tient dans le coin d'une case de 90 px. Le commun n'en a pas —
-// c'est la case par défaut, la nommer chargerait la grille pour rien.
-const PILL = { u: 'Peu c.', r: 'Rare', l: 'Légende' }
+// Les mêmes mots que les filtres : une pastille qui abrège ce que le filtre écrit en entier
+// obligeait à faire le lien. Le commun n'en a pas — c'est la case par défaut.
+const PILL = { u: TIER_LABEL.u, r: TIER_LABEL.r, l: TIER_LABEL.l }
 
 const ids = Object.keys(DEX).map(Number)
 const isShiny = (entries) => entries?.some((e) => e.shiny) ?? false
@@ -54,7 +54,7 @@ const emptyLabel = computed(() => {
   const seulementEvolvable = props.statusFilter === 'evolvable'
     && props.activeTiers.size === TIERS.length
   return seulementEvolvable
-    ? 'Rien à faire évoluer pour l’instant : il faut un exemplaire disponible, assez de bonbons, et une forme évoluée encore absente du Pokédex.'
+    ? 'Rien à faire évoluer pour l’instant. Il faut une carte libre, assez de bonbons, et une évolution que tu n’as pas encore.'
     : 'Aucune espèce ne répond à ces filtres.'
 })
 
@@ -124,7 +124,7 @@ const haloOf = (id) => {
         @error="$event.target.dataset.broken = '1'"
       >
       <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
-      <span v-if="isShiny(bySpecies[id])" class="cell-shiny" aria-label="chromatique">✦</span>
+      <span v-if="isShiny(bySpecies[id])" class="cell-shiny" aria-label="shiny">✦</span>
       <span v-else-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer vers une forme manquante">↑</span>
     </button>
   </div>

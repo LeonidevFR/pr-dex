@@ -40,7 +40,7 @@ const fmtPct = (n) => `${n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })
       </div>
       <div data-stat="shiny">
         <dt>Shiny</dt>
-        <dd class="stat-value">{{ stats.shiny.species }} / 151 <small>{{ stats.shiny.copies }} exemplaire{{ stats.shiny.copies > 1 ? 's' : '' }}</small></dd>
+        <dd class="stat-value">{{ stats.shiny.species }} / 151 <small>{{ stats.shiny.copies }} carte{{ stats.shiny.copies > 1 ? 's' : '' }}</small></dd>
       </div>
       <div data-stat="evolved"><dt>Pokémon évolués</dt><dd class="stat-value">{{ stats.evolved }}</dd></div>
     </dl>

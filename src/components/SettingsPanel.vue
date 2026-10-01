@@ -19,8 +19,7 @@ defineEmits(['close', 'disconnect'])
         </div>
         <div class="sect">
           <p class="muted">
-            Tes captures et tes décisions sont liées à ton compte GitHub, isolées des autres
-            joueurs par les règles d'accès de la base.
+            Ta collection est liée à ton compte GitHub. Les autres joueurs voient tes totaux dans le classement, pas le détail de tes PR.
           </p>
         </div>
       </div>

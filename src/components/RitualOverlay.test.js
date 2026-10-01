@@ -218,7 +218,7 @@ describe('chromatique', () => {
     expect(w.find('.pkc').classes()).toContain('is-shiny')
 
     await retourner(w)
-    expect(w.find('.reveal-banner').text()).toContain('Chromatique')
+    expect(w.find('.reveal-banner').text()).toContain('Shiny')
     // Pikachu est commun : sans traitement particulier, un chromatique commun serait muet.
     // Il relève le plancher de la fanfare, sinon on tairait la seule chose rare du tirage.
     expect(w.findAll('.fx-spark').length).toBeGreaterThan(0)
@@ -228,7 +228,7 @@ describe('chromatique', () => {
   it('prime le chromatique sur le légendaire dans le bandeau', async () => {
     const w = mountRitual({ entry: entryOf({ species: 144, shiny: true }) })
     await reveler(w)
-    expect(w.find('.reveal-banner').text()).toContain('Chromatique')
+    expect(w.find('.reveal-banner').text()).toContain('Shiny')
   })
 })
 
@@ -238,13 +238,13 @@ describe('espèce jamais rencontrée', () => {
   it('marque la révélation d’une espèce nouvelle', async () => {
     const w = await reveal({ isNew: true })
     expect(w.find('.new-chip').text()).toBe('Nouveau')
-    expect(w.find('.reveal-note').text()).toContain('Première entrée à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Nouveau dans ton Pokédex')
   })
 
   it('ne marque rien pour une espèce déjà à la planche', async () => {
     const w = await reveal({ isNew: false })
     expect(w.find('.new-chip').exists()).toBe(false)
-    expect(w.find('.reveal-note').text()).toContain('Déjà à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Déjà dans ton Pokédex')
   })
 
   it('ne suppose rien quand la propriété est absente', async () => {
@@ -271,7 +271,7 @@ describe('suite de la file', () => {
   it('propose le retour quand c’est le dernier', async () => {
     const w = mountRitual({ remaining: 1 })
     await reveler(w)
-    expect(w.find('.next-btn').text()).toBe('Retour à la planche')
+    expect(w.find('.next-btn').text()).toBe('Retour à la collection')
     expect(w.findAll('button.queue-note')).toHaveLength(0)
   })
 

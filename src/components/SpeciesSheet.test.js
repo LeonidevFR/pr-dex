@@ -161,17 +161,17 @@ describe('journal des captures', () => {
   it('rend une évolution sans lien', () => {
     const w = mountSheet({ id: 130, entries: [evo(130, 129)] })
     expect(w.find('a.log-row').exists()).toBe(false)
-    expect(w.find('.log-evo').text()).toBe('↑ évo')
+    expect(w.find('.log-evo').text()).toBe('Évolution')
     expect(w.text()).toContain('Évolué depuis Magicarpe')
   })
 
   it('compte les exemplaires au pluriel', () => {
     const w = mountSheet({ id: 25, entries: [capture('a', 25), capture('b', 25)] })
-    expect(w.text()).toContain('2 exemplaires')
+    expect(w.text()).toContain('2 cartes')
   })
 
   it('compte un exemplaire au singulier', () => {
-    expect(mountSheet({ id: 25, entries: [capture('a', 25)] }).text()).toContain('1 exemplaire')
+    expect(mountSheet({ id: 25, entries: [capture('a', 25)] }).text()).toContain('1 carte')
   })
 })
 
@@ -515,5 +515,23 @@ describe('les chiffres de la fiche', () => {
   it('dit ce que coûte l’évolution sur le bouton', () => {
     const w = mountSheet({ id: 4, entries: [capture('a', 4)], available: [capture('a', 4)], candies: 9, canEvolve: true, caughtIds: new Set([4]) })
     expect(w.find('.evo-btn').text()).toBe('Faire évoluer en Reptincel · 8 bonbons')
+  })
+})
+
+describe('les textes de la fiche', () => {
+  it('explique les bonbons en une phrase qu’on comprend', () => {
+    const w = mountSheet({ id: 4, entries: [capture('a', 4)], available: [capture('a', 4)], candies: 3, caughtIds: new Set([4]) })
+    expect(w.text()).toContain('Chaque carte de la famille Salamèche rapporte 3 bonbons. Il en faut 8 pour faire évoluer Salamèche.')
+    expect(w.text()).not.toContain('Les doublons servent à ça')
+  })
+
+  it('n’appelle plus la grille « planche »', () => {
+    expect(mountSheet({ id: 4 }).text()).not.toMatch(/planche/i)
+    expect(mountSheet({ id: 4, entries: [capture('a', 4)], caughtIds: new Set([4]) }).text()).not.toMatch(/planche/i)
+  })
+
+  it('dit « shiny », pas « chromatique »', () => {
+    const w = mountSheet({ id: 4, entries: [capture('a', 4, { shiny: true })], caughtIds: new Set([4]) })
+    expect(w.find('.shiny-chip').text()).toBe('✦ Shiny')
   })
 })

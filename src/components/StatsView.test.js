@@ -15,7 +15,7 @@ describe('StatsView', () => {
     const w = mountView(vi.fn().mockResolvedValue(ROWS))
     await flushPromises()
     expect(w.find('[data-stat="opened"] .stat-value').text()).toBe('1')
-    expect(w.find('[data-stat="shiny"] .stat-value').text()).toBe('1 / 151 1 exemplaire')
+    expect(w.find('[data-stat="shiny"] .stat-value').text()).toBe('1 / 151 1 carte')
     expect(w.find('[data-stat="species"] .stat-value').text()).toBe('1 / 151')
     expect(w.text()).not.toContain('Théorie')
     expect(w.find('[data-stat="opened"] dt').text()).toBe('Cartes retournées')

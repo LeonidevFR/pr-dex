@@ -46,15 +46,18 @@ reste là où il a un sens : dans le carton de la carte, dont les tokens sont re
 `.pkc`. Dans la grille, un légendaire capturé porte un halo doré, un chromatique un halo
 irisé — un seul halo par case, l'irisé l'emporte.
 
-La planche, l'équipe et les stats sont trois vues de la même page, en onglets ; la fiche,
-le rituel et l'évolution restent des scènes par-dessus. Espace n'ouvre un pli que depuis la
-planche.
+La collection, l'équipe et les stats sont trois vues de la même page, en onglets ; la fiche,
+le rituel et l'évolution restent des scènes par-dessus. Espace ne retourne une carte que
+depuis la collection.
+
+Le vocabulaire est fixé : une PR mergée donne une **carte**, qu'on retourne ; « shiny » et
+non « chromatique » ; « Pokédex » pour les espèces déjà vues, « collection » pour l'onglet.
 
 ## Le tableau des scores
 
 L'onglet Équipe ouvre le seul écran où l'on regarde les autres : un classement par espèces
-distinctes (puis shiny, puis légendaires), et ses propres stats — plis ouverts, tirages par
-palier, shiny en « 1 sur N », évolutions.
+distinctes (puis shiny, puis légendaires), et ses propres stats — cartes retournées, tirages par
+palier, espèces shiny sur 151, évolutions.
 
 Seules les cartes **retournées** comptent, comme dans le dex : le classement ne dévoile pas
 un légendaire avant que son propriétaire l'ait vu. Ni le titre ni le lien des PR ne sortent
