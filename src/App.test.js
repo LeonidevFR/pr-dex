@@ -129,3 +129,46 @@ describe('navigation au clavier', () => {
     expect(w.find('.panel').exists()).toBe(true)
   })
 })
+
+describe('vues', () => {
+  const tab = (w, label) => w.findAll('.rail-tab').find((t) => t.text() === label)
+
+  it('ouvre sur la collection', async () => {
+    const w = await mountApp()
+    expect(tab(w, 'Collection').classes()).toContain('active')
+    expect(w.find('.tray').exists()).toBe(true)
+  })
+
+  it('passe à l’équipe au clic sur l’onglet, et la planche disparaît', async () => {
+    const w = await mountApp()
+    await tab(w, 'Équipe').trigger('click')
+    await flushPromises()
+    expect(w.find('.tray').exists()).toBe(false)
+    expect(w.find('.view-title').text()).toContain('Qui a le plus')
+  })
+
+  it('Échap ne change pas de vue', async () => {
+    const w = await mountApp()
+    await tab(w, 'Équipe').trigger('click')
+    press('Escape')
+    await flushPromises()
+    expect(tab(w, 'Équipe').classes()).toContain('active')
+  })
+
+  it('Espace n’ouvre pas de pli depuis l’équipe', async () => {
+    const w = await mountApp()
+    await tab(w, 'Équipe').trigger('click')
+    document.activeElement?.blur()
+    press(' ')
+    await flushPromises()
+    expect(w.find('.ritual').exists()).toBe(false)
+  })
+
+  it('Espace ouvre toujours un pli depuis la collection', async () => {
+    const w = await mountApp()
+    document.activeElement?.blur()
+    press(' ')
+    await flushPromises()
+    expect(w.find('.ritual').exists()).toBe(true)
+  })
+})
