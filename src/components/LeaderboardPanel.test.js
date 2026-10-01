@@ -52,23 +52,24 @@ describe('LeaderboardPanel', () => {
     expect(w.find('tbody').exists()).toBe(false)
   })
 
-  it('bascule sur Stats et montre équipe / toi / théorie', async () => {
+  it('bascule sur Stats et montre les stats du joueur courant', async () => {
     const w = mountPanel(vi.fn().mockResolvedValue(ROWS))
     await flushPromises()
     await w.findAll('.board-tab')[1].trigger('click')
     expect(w.find('.board-tab.active').text()).toBe('Stats')
-    const opened = w.find('[data-stat="opened"]')
-    expect(opened.find('.stat-team').text()).toBe('4')
-    expect(opened.find('.stat-me').text()).toBe('1')
-    const shiny = w.find('[data-stat="shiny"]')
-    expect(shiny.find('.stat-theory').text()).toContain('128')
+    expect(w.find('[data-stat="opened"] .stat-value').text()).toBe('1')
+    expect(w.find('[data-stat="shiny"] .stat-value').text()).toContain('1 sur 1')
+    expect(w.find('[data-stat="species"] .stat-value').text()).toBe('1 / 151')
+    expect(w.text()).not.toContain('Théorie')
+    expect(w.text()).not.toContain('Équipe')
   })
 
-  it('met des tirets dans « Toi » quand le joueur n’a aucune ligne', async () => {
+  it('invite à retourner une carte quand le joueur n’a aucune ligne', async () => {
     const w = mountPanel(vi.fn().mockResolvedValue([ROWS[0]]))
     await flushPromises()
     await w.findAll('.board-tab')[1].trigger('click')
-    expect(w.find('[data-stat="opened"] .stat-me').text()).toBe('—')
+    expect(w.find('.board-empty').exists()).toBe(true)
+    expect(w.find('[data-stat="opened"]').exists()).toBe(false)
   })
 
   it('déplie une ligne de détail avec libellés au clic sur un joueur, et la replie au second clic', async () => {

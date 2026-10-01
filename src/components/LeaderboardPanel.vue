@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { rankPlayers, teamStats } from '../lib/leaderboard.js'
+import { rankPlayers, myStats } from '../lib/leaderboard.js'
 import { TIER_VAR } from '../../shared/species.js'
 
 const props = defineProps({
@@ -33,12 +33,11 @@ async function load() {
 onMounted(load)
 
 const players = computed(() => (rows.value ? rankPlayers(rows.value, props.today) : []))
-const stats = computed(() => (rows.value ? teamStats(rows.value, props.today) : null))
+const stats = computed(() => (rows.value ? myStats(rows.value, props.today) : null))
 
 const fmtPct = (n) => `${n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`
 // « 0 sur N » plutôt qu'une division par zéro : le nombre dit la taille de l'échantillon.
 const fmtOneIn = (s, total) => (s.oneIn ? `1 sur ${s.oneIn}` : `0 sur ${total}`)
-const dash = (v) => (v === null || v === undefined ? '—' : v)
 
 const COLUMNS = [
   ['species', 'Espèces'], ['shiny', 'Shiny'], ['legendaries', 'Légendaires'], ['rares', 'Rares'],
@@ -112,49 +111,23 @@ const expanded = ref(null)
         </tbody>
       </table>
 
-      <table v-else class="board-table board-stats">
-        <thead>
-          <tr><th></th><th>Équipe</th><th>Toi</th><th>Théorie</th></tr>
-        </thead>
-        <tbody>
-          <tr data-stat="opened">
-            <th>Plis ouverts</th>
-            <td class="stat-team mono">{{ stats.opened.team }}</td>
-            <td class="stat-me mono">{{ dash(stats.opened.me) }}</td>
-            <td class="stat-theory mono">—</td>
-          </tr>
-          <tr v-for="t in stats.tiers" :key="t.tier" :data-stat="'tier-' + t.tier">
-            <th><span class="board-dot" :style="{ background: TIER_VAR[t.tier] }"></span>{{ t.label }}</th>
-            <td class="stat-team mono">{{ fmtPct(t.team.pct) }} <small>({{ t.team.count }})</small></td>
-            <td class="stat-me mono">
-              <template v-if="t.me">{{ fmtPct(t.me.pct) }} <small>({{ t.me.count }})</small></template>
-              <template v-else>—</template>
-            </td>
-            <td class="stat-theory mono">{{ fmtPct(t.theory) }}</td>
-          </tr>
-          <tr data-stat="shiny">
-            <th>Shiny</th>
-            <td class="stat-team mono">{{ fmtOneIn(stats.shiny.team, stats.opened.team) }} <small>({{ stats.shiny.team.count }})</small></td>
-            <td class="stat-me mono">
-              <template v-if="stats.shiny.me">{{ fmtOneIn(stats.shiny.me, stats.opened.me) }} <small>({{ stats.shiny.me.count }})</small></template>
-              <template v-else>—</template>
-            </td>
-            <td class="stat-theory mono">1 sur {{ stats.shiny.theory }}</td>
-          </tr>
-          <tr data-stat="evolved">
-            <th>Pokémon évolués</th>
-            <td class="stat-team mono">{{ stats.evolved.team }}</td>
-            <td class="stat-me mono">{{ dash(stats.evolved.me) }}</td>
-            <td class="stat-theory mono">—</td>
-          </tr>
-          <tr data-stat="collective">
-            <th>Pokédex collectif</th>
-            <td class="stat-team mono">{{ stats.collective }} / 151</td>
-            <td class="stat-me mono">—</td>
-            <td class="stat-theory mono">—</td>
-          </tr>
-        </tbody>
-      </table>
+      <p v-else-if="!stats" class="board-empty muted">
+        Retourne une carte pour voir tes stats.
+      </p>
+
+      <dl v-else class="board-stats">
+        <div data-stat="opened"><dt>Plis ouverts</dt><dd class="stat-value mono">{{ stats.opened }}</dd></div>
+        <div data-stat="species"><dt>Espèces</dt><dd class="stat-value mono">{{ stats.species }} / 151</dd></div>
+        <div v-for="t in stats.tiers" :key="t.tier" :data-stat="'tier-' + t.tier">
+          <dt><span class="board-dot" :style="{ background: TIER_VAR[t.tier] }"></span>{{ t.label }}</dt>
+          <dd class="stat-value mono">{{ t.count }} <small>{{ fmtPct(t.pct) }}</small></dd>
+        </div>
+        <div data-stat="shiny">
+          <dt>Shiny</dt>
+          <dd class="stat-value mono">{{ stats.shiny.count }} <small>{{ fmtOneIn(stats.shiny, stats.opened) }}</small></dd>
+        </div>
+        <div data-stat="evolved"><dt>Pokémon évolués</dt><dd class="stat-value mono">{{ stats.evolved }}</dd></div>
+      </dl>
     </div>
   </div>
 </template>

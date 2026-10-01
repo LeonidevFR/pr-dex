@@ -41,9 +41,8 @@ connexion — voir « Architecture » plus bas.
 ## Le tableau des scores
 
 Le 🏆 du rail ouvre le seul écran où l'on regarde les autres : un classement par espèces
-distinctes (puis shiny, puis légendaires), et les stats de l'équipe — plis ouverts, taux de
-drop par palier face à la théorie, shiny en « 1 sur N », évolutions, Pokédex collectif —
-avec sa propre valeur à côté.
+distinctes (puis shiny, puis légendaires), et ses propres stats — plis ouverts, tirages par
+palier, shiny en « 1 sur N », évolutions.
 
 Seules les cartes **retournées** comptent, comme dans le dex : le classement ne dévoile pas
 un légendaire avant que son propriétaire l'ait vu. Ni le titre ni le lien des PR ne sortent

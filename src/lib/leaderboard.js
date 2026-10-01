@@ -1,7 +1,6 @@
 import { ref } from 'vue'
 import { useDex } from '../composables/useDex.js'
 import { DEX, familyOf, familyLine, hasEvoInFamily, TIER_LABEL } from '../../shared/species.js'
-import { WEIGHTS, SHINY_ODDS } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
 
 const TIERS = ['c', 'u', 'r', 'l']
@@ -73,34 +72,18 @@ const pct = (n, total) => (total ? Math.round((n / total) * 1000) / 10 : 0)
 const oneIn = (shiny, total) => (shiny ? Math.round(total / shiny) : null)
 
 /**
- * L'onglet Stats : équipe, joueur courant (`null` s'il n'a aucune ligne, donc aucune capture
- * ouverte), et théorie lue dans `shared/draw.js` — jamais recopiée, pour ne pas mentir le
- * jour où les poids changent. Les taux se calculent sur les captures seules : faire évoluer
- * un Salamèche (rare) en Reptincel (peu commun) ne doit pas déplacer les taux de drop.
+ * L'onglet Stats : les chiffres du joueur courant seul, `null` s'il n'a aucune ligne (donc
+ * aucune capture ouverte). Les parts par palier se calculent sur les captures seules :
+ * faire évoluer un Salamèche (rare) en Reptincel (peu commun) ne doit pas les déplacer.
  */
-export function teamStats(rows, today) {
-  const players = rankPlayers(rows, today)
-  const me = players.find((p) => p.isMe) ?? null
-  const sum = (key) => players.reduce((acc, p) => acc + p[key], 0)
-  const teamOpened = sum('copies')
-  const teamTier = (t) => players.reduce((acc, p) => acc + p.tiers[t], 0)
-  const theoryOf = Object.fromEntries(WEIGHTS)
-
+export function myStats(rows, today) {
+  const me = rankPlayers(rows, today).find((p) => p.isMe)
+  if (!me) return null
   return {
-    opened: { team: teamOpened, me: me ? me.copies : null },
-    tiers: TIERS.map((t) => ({
-      tier: t,
-      label: TIER_LABEL[t],
-      team: { count: teamTier(t), pct: pct(teamTier(t), teamOpened) },
-      me: me ? { count: me.tiers[t], pct: pct(me.tiers[t], me.copies) } : null,
-      theory: theoryOf[t] * 100,
-    })),
-    shiny: {
-      team: { count: sum('shiny'), oneIn: oneIn(sum('shiny'), teamOpened) },
-      me: me ? { count: me.shiny, oneIn: oneIn(me.shiny, me.copies) } : null,
-      theory: SHINY_ODDS,
-    },
-    evolved: { team: sum('evolved'), me: me ? me.evolved : null },
-    collective: new Set(players.flatMap((p) => p.speciesIds)).size,
+    opened: me.copies,
+    species: me.species,
+    tiers: TIERS.map((t) => ({ tier: t, label: TIER_LABEL[t], count: me.tiers[t], pct: pct(me.tiers[t], me.copies) })),
+    shiny: { count: me.shiny, oneIn: oneIn(me.shiny, me.copies) },
+    evolved: me.evolved,
   }
 }

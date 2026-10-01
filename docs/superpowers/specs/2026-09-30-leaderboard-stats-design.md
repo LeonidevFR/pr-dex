@@ -23,8 +23,7 @@ fonctionnalité « en attendant », sociale, livrable en octobre.
 Un bouton 🏆 dans le rail ouvre un panneau par-dessus la planche, avec deux onglets :
 
 - **Classement** — une ligne par joueur, classée par nombre d'espèces distinctes.
-- **Stats** — les chiffres de l'équipe, les tiens à côté, et la valeur théorique quand
-  elle existe.
+- **Stats** — tes chiffres à toi : plis ouverts, tirages par palier, shiny, évolutions.
 
 Rien n'est conditionné à une permission : tout joueur connecté voit tout le monde. Le
 classement sert à se comparer et à chambrer, pas à récompenser.
@@ -108,7 +107,7 @@ avec les mêmes `SupabaseDataError` (`offline` / `server`).
 
 ```js
 playerStats(catches, evolutions, today) // → les 7 colonnes + les compteurs de palier d'un joueur
-teamStats(players)                 // → l'onglet Stats à partir des lignes de la fonction SQL
+myStats(players, today)                 // → l'onglet Stats du joueur courant, null s'il n'a pas de ligne
 ```
 
 `playerStats` construit un dex avec `useDex` sur des `ref` locales, avec
@@ -148,25 +147,26 @@ Espèces décroissantes, puis shiny, puis légendaires, puis login par ordre alp
 
 ## Onglet Stats
 
-| Stat | Équipe | Toi | Théorique |
-|---|---|---|---|
-| Plis ouverts | somme des exemplaires | tes exemplaires | — |
-| Taux commun / peu commun / rare / légendaire | % et nombre | % et nombre | 45 / 42 / 12,5 / 0,5 % (`WEIGHTS`) |
-| Taux shiny | « 1 sur N » et nombre | « 1 sur N » et nombre | 1 sur 128 (`SHINY_ODDS`) |
-| Pokémon évolués | somme de `evolutions.length` | les tiens | — |
-| Pokédex collectif | espèces vues par au moins un joueur, sur 151 | — | — |
+Révisé le 2026-10-01 : la première version comparait équipe / toi / théorie. À l'usage,
+Léonard a tranché : « l'onglet stats c'est mes stats perso ». Plus de colonne équipe, plus
+de probabilité théorique, plus de Pokédex collectif.
+
+| Stat | Valeur |
+|---|---|
+| Plis ouverts | tes captures ouvertes |
+| Espèces | ton compteur, sur 151 |
+| Commun / peu commun / rare / légendaire | nombre de tirages, et part en % |
+| Shiny | nombre, et « 1 sur N » |
+| Pokémon évolués | `evolutions.length` |
 
 Règles :
 
 - Le palier d'un tirage est `DEX[species].tier` de la **capture**. Seules les captures
-  comptent dans les taux, jamais les évolutions : faire évoluer un Salamèche (rare) en
-  Reptincel (peu commun) ne doit pas déplacer les taux.
-- Le nombre s'affiche à côté du pourcentage. Avec quelques dizaines de plis, « 0 %
-  de légendaire » est un petit échantillon, pas de la malchance ; le nombre le dit.
-- Taux shiny avec 0 shiny : afficher « 0 sur N », pas une division par zéro.
-- Les valeurs théoriques viennent de `shared/draw.js`, jamais recopiées en dur.
-- « Toi » vient de la ligne `is_me`. Si le joueur courant n'a aucune capture ouverte, il
-  n'est pas dans les lignes : la colonne « Toi » affiche des tirets.
+  comptent dans les parts, jamais les évolutions : faire évoluer un Salamèche (rare) en
+  Reptincel (peu commun) ne doit pas déplacer les parts.
+- Shiny avec 0 shiny : afficher « 0 sur N », pas une division par zéro.
+- Si le joueur courant n'a aucune capture ouverte, il n'a pas de ligne `is_me` : l'onglet
+  affiche « Retourne une carte pour voir tes stats ».
 
 ---
 
@@ -237,10 +237,10 @@ comme dans la planche.
 - `src/lib/leaderboard.test.js` — `playerStats` : un shiny évolué compte une fois ; une
   lignée à branches (Évoli + 3) ; une espèce sans évolution ne fait pas une lignée ; un
   rare obtenu par évolution compte dans Rares ; « 30 jours » avec une date pivot fixée.
-  `teamStats` : taux avec échantillon nul, « 1 sur N » shiny, Pokédex collectif dédoublonné
-  entre joueurs. Ordre du classement et départage.
+  `myStats` : parts avec échantillon nul, « 1 sur N » shiny, `null` sans ligne `is_me`.
+  Ordre du classement et départage.
 - `src/components/LeaderboardPanel.test.js` — états chargement / erreur / réessayer ; onglet
-  par défaut ; ligne `is_me` marquée ; tirets dans « Toi » quand le joueur n'a pas de ligne.
+  par défaut ; ligne `is_me` marquée ; invitation à retourner une carte quand le joueur n'a pas de ligne.
 - `src/fixtures/demo.js` — un test vérifie que `readLeaderboard()` renvoie exactement une
   ligne `is_me` et qu'elle suit l'état courant après un `writeState`.
 - La migration se teste à la main dans le SQL Editor, comme la précédente : appeler la

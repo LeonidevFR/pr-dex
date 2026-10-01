@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { playerStats, rankPlayers, teamStats } from './leaderboard.js'
-import { WEIGHTS, SHINY_ODDS } from '../../shared/draw.js'
+import { playerStats, rankPlayers, myStats } from './leaderboard.js'
 
 const TODAY = '2026-09-30'
 const c = (id, species, { shiny = false, date = '2026-06-01' } = {}) =>
@@ -91,48 +90,31 @@ describe('rankPlayers', () => {
   })
 })
 
-describe('teamStats', () => {
-  it('somme les plis et les évolutions, et isole le joueur courant', () => {
+describe('myStats', () => {
+  it('renvoie les stats du joueur courant seulement', () => {
     const rows = [
       row('a', [c('1', 1), c('2', 4)], [{ species: 2, from: 1, date: '2026-06-02', fromKey: 'github:1' }]),
-      row('me', [c('3', 7)], [], true),
+      row('me', [c('3', 7), c('4', 10, { shiny: true })], [{ species: 11, from: 10, date: '2026-06-02', fromKey: 'github:4' }], true),
     ]
-    const t = teamStats(rows, TODAY)
-    expect(t.opened).toEqual({ team: 3, me: 1 })
-    expect(t.evolved).toEqual({ team: 1, me: 0 })
+    const s = myStats(rows, TODAY)
+    expect(s.opened).toBe(2)
+    expect(s.evolved).toBe(1)
+    expect(s.species).toBe(3)
+    expect(s.shiny).toEqual({ count: 1, oneIn: 2 })
   })
 
-  it('calcule les taux par palier avec le nombre, et la théorie depuis WEIGHTS', () => {
-    const t = teamStats([row('a', [c('1', 10), c('2', 10), c('3', 4), c('4', 150)])], TODAY)
-    const r = t.tiers.find((x) => x.tier === 'r')
-    expect(r.team).toEqual({ count: 1, pct: 25 })
-    expect(r.theory).toBe(WEIGHTS.find(([tier]) => tier === 'r')[1] * 100)
-    expect(t.tiers.map((x) => x.tier)).toEqual(['c', 'u', 'r', 'l'])
+  it('donne les tirages par palier avec le nombre et la part, dans l’ordre des paliers', () => {
+    const s = myStats([row('me', [c('1', 10), c('2', 10), c('3', 4), c('4', 150)], [], true)], TODAY)
+    expect(s.tiers.map((t) => t.tier)).toEqual(['c', 'u', 'r', 'l'])
+    expect(s.tiers.find((t) => t.tier === 'r')).toEqual({ tier: 'r', label: 'Rare', count: 1, pct: 25 })
   })
 
-  it('donne des taux à zéro sans division par zéro quand personne n’a rien', () => {
-    const t = teamStats([], TODAY)
-    expect(t.tiers.every((x) => x.team.pct === 0)).toBe(true)
-    expect(t.shiny.team).toEqual({ count: 0, oneIn: null })
-    expect(t.opened.me).toBeNull()
+  it('n’a pas de division par zéro sans shiny', () => {
+    const s = myStats([row('me', [c('1', 1)], [], true)], TODAY)
+    expect(s.shiny).toEqual({ count: 0, oneIn: null })
   })
 
-  it('exprime le shiny en « 1 sur N » et lit la théorie dans SHINY_ODDS', () => {
-    const catches = [c('1', 1, { shiny: true }), ...Array.from({ length: 63 }, (_, i) => c(`n${i}`, 1))]
-    const t = teamStats([row('a', catches)], TODAY)
-    expect(t.shiny.team).toEqual({ count: 1, oneIn: 64 })
-    expect(t.shiny.theory).toBe(SHINY_ODDS)
-  })
-
-  it('le Pokédex collectif dédoublonne entre joueurs', () => {
-    const t = teamStats([row('a', [c('1', 1), c('2', 4)]), row('b', [c('3', 4), c('4', 7)])], TODAY)
-    expect(t.collective).toBe(3)
-  })
-
-  it('« me » est null partout quand aucune ligne n’est is_me', () => {
-    const t = teamStats([row('a', [c('1', 1)])], TODAY)
-    expect(t.opened.me).toBeNull()
-    expect(t.shiny.me).toBeNull()
-    expect(t.tiers[0].me).toBeNull()
+  it('vaut null quand aucune ligne n’est is_me', () => {
+    expect(myStats([row('a', [c('1', 1)])], TODAY)).toBeNull()
   })
 })
