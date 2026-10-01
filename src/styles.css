@@ -128,7 +128,9 @@
   /* Le palier garde son point de couleur coché ou non : c'est lui qu'on cherche du regard. */
   .tier-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--tier)}
   .tier-chip.active{background:transparent;border-color:var(--tier);color:var(--fg)}
-  .tier-chip:not(.active){opacity:.55}
+  /* Décochée, la pastille éteint son point et garde un texte lisible : c'est un bouton. */
+  .tier-chip:not(.active){color:var(--fg-2)}
+  .tier-chip:not(.active)::before{opacity:.35}
   /* « Évoluables » reprend la flèche et le vert du badge de la case : même signe des deux côtés. */
   .chip-evo{color:#9fd0b6;border-color:rgba(127,181,154,.3)}
   .chip-evo.active{background:rgba(127,181,154,.18);border-color:#7fb59a;color:#cfe8da}
@@ -255,6 +257,11 @@
   .board-stats dd{margin:0;font-family:var(--f-title);font-weight:300;font-size:24px;color:#f4ecda;font-variant-numeric:tabular-nums}
   .board-stats small{font-family:var(--f-ui);color:var(--fg-3);font-size:12px;margin-left:8px}
 
+  .sheet-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;padding:18px 0;border-bottom:1px solid rgba(212,176,106,.14)}
+  .sheet-facts > div + div{border-left:1px solid rgba(212,176,106,.14);padding-left:22px}
+  .sheet-facts dd{margin:8px 0 0;font-family:var(--f-title);font-weight:300;font-size:22px;color:#f4ecda}
+  .sheet-facts dd.mono{font-family:var(--f-data);font-size:15px}
+  .sheet-facts small{font-family:var(--f-ui);font-size:13px;color:var(--fg-3)}
   .sect{padding:22px 0;border-bottom:1px solid rgba(212,176,106,.12)}
   .sect:last-child{border-bottom:0}
   .sect-h{margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline}
@@ -586,8 +593,11 @@
   .front-sub{margin-top:22px;font-family:var(--f-title);font-weight:300;font-size:19px;color:#c9bca7;line-height:1.55;max-width:42ch}
   .front-actions{display:flex;gap:16px;align-items:center;margin-top:30px;flex-wrap:wrap}
   /* L'éventail : quatre cartes, du commun au légendaire, qui se chevauchent et s'inclinent. */
-  .front-fan{position:relative;height:440px;display:flex;align-items:center;justify-content:center}
-  .front-card{position:absolute;transform:translateX(calc((var(--i) - 1.5) * 128px)) rotate(calc((var(--i) - 1.5) * 7deg)) translateY(calc(var(--i) * -4px));z-index:calc(var(--i) + 1)}
+  /* Rogné : les cartes tournées débordent de leur colonne, et la page défilait à l'horizontale
+     sur les portables de 900 à 1 200 px. Le pas suit la largeur de l'écran pour qu'à 1 280 px
+     rien ne soit coupé. */
+  .front-fan{position:relative;height:440px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .front-card{position:absolute;transform:translateX(calc((var(--i) - 1.5) * min(128px, 8vw))) rotate(calc((var(--i) - 1.5) * 7deg)) translateY(calc(var(--i) * -4px));z-index:calc(var(--i) + 1)}
   .front-card .pkc{width:200px;height:280px;cursor:default}
   .front-card .pkc-art img{width:104px;height:104px}
   .front-card .pkc-name{font-size:15px}
@@ -606,11 +616,18 @@
   .settings-title{font-size:32px;margin-bottom:6px}
   .repo-ptr{font-family:var(--f-data);font-size:13px;color:var(--fg);display:flex;align-items:center;gap:9px}
   .repo-ptr .dot{width:8px;height:8px;border-radius:50%;background:#7fb59a}
+  /* Entre 900 et 1 200 px, la colonne de l'éventail est plus étroite que les cartes tournées :
+     on réduit les cartes plutôt que de les laisser se faire couper par le rognage. */
+  @media (max-width:1200px){
+    .front-card .pkc{width:164px;height:230px}
+    .front-card .pkc-art img{width:84px;height:84px}
+    .front-card .pkc-name{font-size:13px}
+  }
   @media (max-width:900px){
     .front{grid-template-columns:1fr;padding:40px 0;min-height:auto}
     .front-mark{font-size:52px}
     .front-fan{height:320px;order:-1}
-    .front-card{transform:translateX(calc((var(--i) - 1.5) * 62px)) rotate(calc((var(--i) - 1.5) * 7deg))}
+    .front-card{transform:translateX(calc((var(--i) - 1.5) * min(62px, 15vw))) rotate(calc((var(--i) - 1.5) * 7deg))}
     .front-card .pkc{width:150px;height:210px}
     .front-card .pkc-art img{width:76px;height:76px}
   }

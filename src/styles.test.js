@@ -61,4 +61,22 @@ describe('feuille de style', () => {
     expect(racine.corps).toMatch(/--gold\s*:\s*#d4b06a/)
     expect(racine.corps).toMatch(/--t-r\s*:\s*#d7756a/)
   })
+
+  /**
+   * L'éventail de la connexion tourne et décale ses cartes au-delà de sa colonne : sans
+   * rognage, la page défile à l'horizontale entre 900 et 1 200 px de large.
+   */
+  it('rogne l’éventail de la connexion', () => {
+    const fan = regles.find((r) => r.selecteur === '.front-fan')
+    expect(fan.corps).toMatch(/overflow(-x)?\s*:\s*(hidden|clip)/)
+  })
+
+  /**
+   * Une pastille de palier décochée reste un bouton qu'on lit : atténuer tout le bouton
+   * faisait tomber son texte à 2,9:1. Seuls le point et le contour s'éteignent.
+   */
+  it('n’atténue pas le texte d’une pastille de palier décochée', () => {
+    const off = regles.filter((r) => r.selecteur === '.tier-chip:not(.active)')
+    expect(off.some(declare('opacity'))).toBe(false)
+  })
 })
