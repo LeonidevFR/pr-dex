@@ -37,15 +37,28 @@ describe('espèce non capturée', () => {
 })
 
 describe('la carte de la fiche', () => {
-  // La carte gagnée au tirage est celle qu'on retrouve ici : même composant, même matière.
-  // Seule la scène change — le tiroir est en lumière du jour, pas sous les projecteurs.
-  it('montre la même carte que le rituel, en lumière du jour', () => {
+  // La carte gagnée au tirage est celle qu'on retrouve ici : même composant, même matière,
+  // et désormais même lumière — la fiche est posée sur le velours, comme le rituel.
+  it('montre la même carte que le rituel, sous la même lumière de nuit', () => {
     const w = mountSheet({ id: 6, entries: [capture('a', 6)] })
     const carte = w.findComponent({ name: 'PokeCard' })
-    expect(carte.props('scene')).toBe('day')
+    expect(carte.props('scene')).toBe('night')
     expect(carte.props('tier')).toBe(DEX[6].tier)
     // On consulte une espèce, pas un exemplaire daté : pas de dos, donc pas de provenance.
     expect(carte.props('provenance')).toBeNull()
+  })
+
+  it('pose la carte à gauche et le texte à droite', () => {
+    const w = mountSheet({ id: 6, entries: [capture('a', 6)] })
+    expect(w.find('.sheet-side .panel-card').exists()).toBe(true)
+    expect(w.find('.sheet-main .panel-name').exists()).toBe(true)
+  })
+
+  it('agrandit la carte sous la même lumière', async () => {
+    const w = mountSheet({ id: 6, entries: [capture('a', 6)] })
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+    const cartes = w.findAllComponents({ name: 'PokeCard' })
+    expect(cartes.at(-1).props('scene')).toBe('night')
   })
 
   it('porte le chromatique sur la carte', () => {
@@ -475,9 +488,10 @@ describe('notice', () => {
     expect(mountSheet({ id: 1, entries: null }).find('.dexnote').exists()).toBe(false)
   })
 
-  it('est la dernière section du panneau', () => {
+  // La notice est la phrase qu'on lit avant les chiffres : sous le nom, pas en bas de fiche.
+  it('se lit sous le nom, avant les sections', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
-    const sections = w.findAll('.sect')
-    expect(sections[sections.length - 1].find('.dexnote').exists()).toBe(true)
+    expect(w.find('.panel-top .dexnote').exists()).toBe(true)
+    expect(w.findAll('.sect').some((sect) => sect.find('.dexnote').exists())).toBe(false)
   })
 })
