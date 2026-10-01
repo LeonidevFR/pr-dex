@@ -13,8 +13,6 @@ const { rows, loading, error, load } = useLeaderboardRows(props.client)
 const stats = computed(() => (rows.value ? myStats(rows.value, props.today) : null))
 
 const fmtPct = (n) => `${n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`
-// « 0 sur N » plutôt qu'une division par zéro : le nombre dit la taille de l'échantillon.
-const fmtOneIn = (s, total) => (s.oneIn ? `1 sur ${s.oneIn}` : `0 sur ${total}`)
 </script>
 
 <template>
@@ -42,7 +40,7 @@ const fmtOneIn = (s, total) => (s.oneIn ? `1 sur ${s.oneIn}` : `0 sur ${total}`)
       </div>
       <div data-stat="shiny">
         <dt>Shiny</dt>
-        <dd class="stat-value">{{ stats.shiny.count }} <small>{{ fmtOneIn(stats.shiny, stats.opened) }}</small></dd>
+        <dd class="stat-value">{{ stats.shiny.species }} / 151 <small>{{ stats.shiny.copies }} exemplaire{{ stats.shiny.copies > 1 ? 's' : '' }}</small></dd>
       </div>
       <div data-stat="evolved"><dt>Pokémon évolués</dt><dd class="stat-value">{{ stats.evolved }}</dd></div>
     </dl>
