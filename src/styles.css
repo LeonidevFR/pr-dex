@@ -11,6 +11,9 @@
     --note:#c9bca7;
     --u-text:#9fd0b6; --r-text:#f0a79b; --l-text:#e8cc8e; --s-text:#e2cdf3;
     --line-strong:rgba(239,230,207,.12); --line-strong-hi:rgba(239,230,207,.28);
+    /* Or brossé : des reflets clairs entre des creux sombres, pour qu'on lise du métal et pas
+       un simple trait jaune. */
+    --ring-gold:linear-gradient(135deg,#8a6f3a,#f3dc9c 25%,#b8862b 45%,#fff1c4 62%,#a8813f 80%,#e2c37c);
     --bg:#14110e;
     --surface:#211c18;
     --surface-hi:#2b2520;
@@ -56,6 +59,7 @@
     --panel-bg:linear-gradient(180deg,#fbf6ea,#f3ead6); --note:#5a5044;
     --u-text:#3f5d38; --r-text:#8f3427; --l-text:#6b4d15; --s-text:#6a3f94;
     --line-strong:rgba(44,38,32,.35); --line-strong-hi:rgba(44,38,32,.55); --danger:#a63d2f;
+    --ring-gold:linear-gradient(135deg,#6b4d15,#c99e4e 25%,#7a5c22 45%,#e2c37c 62%,#6b4d15 80%,#b8862b);
     --iris:radial-gradient(circle, rgba(143,91,196,.45), rgba(63,191,149,.2) 45%, transparent 70%);
     /* Les teintes de type de la version parchemin : elles étaient faites pour un fond clair. */
     --type-normal:#6f675c;   --type-fire:#a8552f;     --type-water:#3f5f7a;
@@ -182,7 +186,11 @@
   .cell.rare{border-color:rgba(215,117,106,.35)}
   /* Le légendaire : un cadre or et une couronne. Le shiny : un filet irisé d'un pixel et son
      étoile. Plus de halo — la grille repère le précieux sans se mettre à briller. */
-  .cell.legendary{border-color:color-mix(in srgb,var(--gold) 70%,transparent)}
+  .cell.legendary{border-color:transparent}
+  .cell.has.legendary:not(.shiny)::after{content:"";position:absolute;inset:-1px;border-radius:9px;padding:1px;pointer-events:none;z-index:3;
+    background:var(--ring-gold);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
   .cell.has.shiny::after{content:"";position:absolute;inset:-1px;border-radius:9px;padding:1px;pointer-events:none;z-index:3;
     background:linear-gradient(135deg,#d94f6a,#d99a3f,#3fbf95,#4a86d9,#8f5bc4);
     -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
