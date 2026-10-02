@@ -60,13 +60,6 @@ const emptyLabel = computed(() => {
 
 const evolvableCount = computed(() => props.evolvable.size)
 const tierOf = (id) => DEX[id].tier
-// Un seul halo par case : l'irisé du shiny l'emporte. Deux halos superposés se mêleraient en
-// une tache sans couleur, et le cadre doré dit déjà le légendaire.
-const haloOf = (id) => {
-  if (!props.bySpecies[id]) return null
-  if (isShiny(props.bySpecies[id])) return 's'
-  return tierOf(id) === 'l' ? 'l' : null
-}
 </script>
 
 <template>
@@ -113,7 +106,6 @@ const haloOf = (id) => {
       :disabled="!bySpecies[id]"
       @click="$emit('select', id)"
     >
-      <span v-if="haloOf(id)" class="cell-halo" :class="haloOf(id)"></span>
       <span class="cell-no mono">{{ String(id).padStart(3, '0') }}</span>
       <span v-if="bySpecies[id]" class="cell-origin mono">
         {{ bySpecies[id][0].via === 'catch' ? bySpecies[id][0].source : 'évolué' }}
@@ -124,6 +116,11 @@ const haloOf = (id) => {
         @error="$event.target.dataset.broken = '1'"
       >
       <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
+      <!-- Des pictos plutôt que des halos : on repère le précieux en parcourant la grille, sans
+           que la grille entière se mette à briller. -->
+      <span v-if="bySpecies[id] && tierOf(id) === 'l'" class="cell-crown" role="img" aria-label="légendaire">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 18h18l-1.6-10-4.7 4.2L12 5l-2.7 7.2L4.6 8z"></path></svg>
+      </span>
       <span v-if="isShiny(bySpecies[id])" class="cell-shiny" aria-label="shiny">✦</span>
       <span v-else-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer vers une forme manquante">↑</span>
     </button>

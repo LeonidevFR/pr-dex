@@ -291,19 +291,19 @@ describe('suite de la file', () => {
     expect(w.find('.next-btn').text()).toBe('Carte suivante · 1 restante')
   })
 
-  it('propose de tout retourner sans cérémonie', async () => {
+  // Chaque carte se retourne : le raccourci qui les ouvrait toutes d'un coup a été retiré.
+  it('ne propose plus de tout retourner sans cérémonie', async () => {
     const w = mountRitual({ remaining: 3 })
     await reveler(w)
-    expect(w.find('button.queue-note').text()).toBe('tout retourner sans cérémonie')
+    expect(w.find('button.queue-note').exists()).toBe(false)
+    expect(w.text()).not.toContain('sans cérémonie')
   })
 
-  it('émet next et skip-all', async () => {
+  it('émet next', async () => {
     const w = mountRitual({ remaining: 3 })
     await reveler(w)
     await w.find('.next-btn').trigger('click')
     expect(w.emitted('next')).toBeTruthy()
-    await w.find('button.queue-note').trigger('click')
-    expect(w.emitted('skip-all')).toBeTruthy()
   })
 })
 

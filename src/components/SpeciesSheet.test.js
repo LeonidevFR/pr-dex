@@ -192,7 +192,7 @@ describe('bonbons et évolution', () => {
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
     await w.find('.evo-btn').trigger('click')
-    expect(w.find('.picker-row').exists()).toBe(true)
+    expect(w.find('.specimen').exists()).toBe(true)
     expect(w.find('.evo-choices').exists()).toBe(false)
   })
 
@@ -237,13 +237,30 @@ describe('bonbons et évolution', () => {
 describe('sélection de l’exemplaire à évoluer', () => {
   const shinyAndNot = [capture('a', 1), capture('b', 1, { shiny: true })]
 
+  it('montre chaque carte disponible en vignette, sans bouton radio', async () => {
+    const w = mountSheet({ id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true })
+    await w.find('.evo-btn').trigger('click')
+    expect(w.findAll('input[type=radio]')).toHaveLength(0)
+    const cartes = w.findAll('.specimen')
+    expect(cartes).toHaveLength(2)
+    expect(cartes[1].text()).toContain('✦')
+    expect(cartes[0].text()).toContain('#142')
+    expect(cartes[0].find('img').exists()).toBe(true)
+  })
+
+  it('pose la question et dit le coût sur le bouton de confirmation', async () => {
+    const w = mountSheet({ id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true })
+    await w.find('.evo-btn').trigger('click')
+    expect(w.text()).toContain('Quelle carte fait évoluer en Herbizarre ?')
+    expect(w.find('.evo-btn').text()).toBe('Faire évoluer · 8 bonbons')
+  })
+
   it('pré-coche le chromatique par défaut', async () => {
     const w = mountSheet({
       id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
     })
     await w.find('.evo-btn').trigger('click')
-    const checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
-    expect(checked.element.value).toBe('github:b')
+    expect(w.find('.specimen[aria-pressed="true"]').attributes('data-key')).toBe('github:b')
   })
 
   it('permet de choisir un autre exemplaire que celui pré-coché', async () => {
@@ -251,8 +268,8 @@ describe('sélection de l’exemplaire à évoluer', () => {
       id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
     })
     await w.find('.evo-btn').trigger('click')
-    const radios = w.findAll('input[type=radio]')
-    await radios.find((i) => i.element.value === 'github:a').setValue()
+    await w.find('.specimen[data-key="github:a"]').trigger('click')
+    expect(w.find('.specimen[aria-pressed="true"]').attributes('data-key')).toBe('github:a')
     await w.find('.evo-btn').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:a' }])
   })
@@ -262,7 +279,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
     await w.find('.evo-btn').trigger('click')
-    expect(w.findAll('.picker-row')).toHaveLength(1)
+    expect(w.findAll('.specimen')).toHaveLength(1)
   })
 
   it('annule la sélection sans émettre d’évolution', async () => {
@@ -271,7 +288,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     })
     await w.find('.evo-btn').trigger('click')
     await w.find('.cancel-btn').trigger('click')
-    expect(w.find('.picker-row').exists()).toBe(false)
+    expect(w.find('.specimen').exists()).toBe(false)
     expect(w.emitted('evolve')).toBeUndefined()
   })
 
@@ -280,13 +297,11 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({ id: 1, entries: ab, available: ab, candies: 9, canEvolve: true })
     await w.find('.evo-btn').trigger('click')
     // Pré-coché sur le premier disponible ('a', pas de chromatique ici).
-    let checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
-    expect(checked.element.value).toBe('github:a')
+    expect(w.find('.specimen[aria-pressed="true"]').attributes('data-key')).toBe('github:a')
 
     // L'autre appareil consomme 'a' entre-temps : un refresh() ne laisse plus que 'b'.
     await w.setProps({ available: [capture('b', 1)] })
-    checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
-    expect(checked.element.value).toBe('github:b')
+    expect(w.find('.specimen[aria-pressed="true"]').attributes('data-key')).toBe('github:b')
 
     await w.find('.evo-btn').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:b' }])
