@@ -137,4 +137,13 @@ describe('feuille de style', () => {
       expect(fautifs).toEqual([])
     })
   })
+
+  // Le légendaire a son filet, comme le shiny : or métallique au lieu d'irisé. Une case qui
+  // est les deux garde l'irisé seul — deux filets superposés se brouilleraient.
+  it('entoure une case légendaire d’un filet or, sauf si elle est aussi shiny', () => {
+    const filet = regles.find((r) => r.selecteur === '.cell.has.legendary:not(.shiny)::after')
+    expect(filet).toBeDefined()
+    expect(filet.corps).toMatch(/linear-gradient/)
+    expect(filet.corps).toMatch(/mask/)
+  })
 })
