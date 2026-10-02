@@ -14,10 +14,12 @@ quoi ce ne serait plus un jeu commun mais plusieurs jeux qui partagent une planc
 Une **carte**, dos visible. On la retourne. C'est tout — rien ne se déclenche sans le joueur,
 il n'y a ni sceau à briser ni minuteur qui court.
 
-La carte est un objet, pas une vignette. Son carton dit la rareté : papier pâle en commun,
-trame pointillée en peu commun, carton teinté ocre en rare, carton profond guilloché en
-légendaire. On l'incline au pointeur et la lumière balaie la dorure. Son dos porte la
-provenance — la PR qui l'a produite, son titre, sa date.
+La carte est un objet, pas une vignette. Son carton dit la rareté : carton nu en commun,
+trame pointillée verte en peu commun, carton cuivré en rare, or guilloché en légendaire —
+sur un carton noir en thème sombre, ivoire en thème clair. On l'incline au pointeur et la
+lumière balaie le métal. Son dos porte le logo, le numéro, la date et la provenance — la PR
+qui l'a produite et son titre. Dans le rituel, le numéro reste masqué tant que la carte n'est
+pas retournée.
 
 La fanfare du retournement suit le même barème : **rien du tout en commun**, quelques
 étincelles en peu commun, une onde et une secousse en rare, tout en légendaire. Un
@@ -38,11 +40,27 @@ Aucun serveur applicatif : le jeu s'appuie sur l'API GitHub et sur Supabase (Pos
 Auth + une fonction Edge pour le bouton de sync), en base de données et fournisseur de
 connexion — voir « Architecture » plus bas.
 
+## Le décor
+
+L'app est posée sur un velours sombre, éclairé par le dessus, avec l'or comme seul accent ;
+ou, en thème clair, sur un papier crème. Le thème suit le système tant qu'on ne l'a pas
+choisi avec le bouton de l'en-tête. La carte suit le thème (Onyx en sombre, ivoire en clair,
+même métal par palier) ; le rituel et l'évolution restent des scènes de nuit dans les deux.
+Dans la grille, un légendaire capturé porte un halo doré, un shiny un halo irisé — un seul
+halo par case, l'irisé l'emporte.
+
+La collection, l'équipe et les stats sont trois vues de la même page, en onglets ; la fiche,
+le rituel et l'évolution restent des scènes par-dessus. Espace ne retourne une carte que
+depuis la collection.
+
+Le vocabulaire est fixé : une PR mergée donne une **carte**, qu'on retourne ; « shiny » et
+non « chromatique » ; « Pokédex » pour les espèces déjà vues, « collection » pour l'onglet.
+
 ## Le tableau des scores
 
-Le 🏆 du rail ouvre le seul écran où l'on regarde les autres : un classement par espèces
-distinctes (puis shiny, puis légendaires), et ses propres stats — plis ouverts, tirages par
-palier, shiny en « 1 sur N », évolutions.
+L'onglet Équipe ouvre le seul écran où l'on regarde les autres : un classement par espèces
+distinctes (puis shiny, puis légendaires), et ses propres stats — cartes retournées, tirages par
+palier, espèces shiny sur 151, évolutions.
 
 Seules les cartes **retournées** comptent, comme dans le dex : le classement ne dévoile pas
 un légendaire avant que son propriétaire l'ait vu. Ni le titre ni le lien des PR ne sortent

@@ -37,15 +37,28 @@ describe('espèce non capturée', () => {
 })
 
 describe('la carte de la fiche', () => {
-  // La carte gagnée au tirage est celle qu'on retrouve ici : même composant, même matière.
-  // Seule la scène change — le tiroir est en lumière du jour, pas sous les projecteurs.
-  it('montre la même carte que le rituel, en lumière du jour', () => {
+  // La carte gagnée au tirage est celle qu'on retrouve ici : même composant, même matière,
+  // et désormais même lumière — la fiche est posée sur le velours, comme le rituel.
+  it('montre la même carte que le rituel, sous la même lumière de nuit', () => {
     const w = mountSheet({ id: 6, entries: [capture('a', 6)] })
     const carte = w.findComponent({ name: 'PokeCard' })
-    expect(carte.props('scene')).toBe('day')
+    expect(carte.props('scene')).toBe('night')
     expect(carte.props('tier')).toBe(DEX[6].tier)
     // On consulte une espèce, pas un exemplaire daté : pas de dos, donc pas de provenance.
     expect(carte.props('provenance')).toBeNull()
+  })
+
+  it('pose la carte à gauche et le texte à droite', () => {
+    const w = mountSheet({ id: 6, entries: [capture('a', 6)] })
+    expect(w.find('.sheet-side .panel-card').exists()).toBe(true)
+    expect(w.find('.sheet-main .panel-name').exists()).toBe(true)
+  })
+
+  it('agrandit la carte sous la même lumière', async () => {
+    const w = mountSheet({ id: 6, entries: [capture('a', 6)] })
+    await w.findComponent({ name: 'PokeCard' }).vm.$emit('activate')
+    const cartes = w.findAllComponents({ name: 'PokeCard' })
+    expect(cartes.at(-1).props('scene')).toBe('night')
   })
 
   it('porte le chromatique sur la carte', () => {
@@ -148,17 +161,17 @@ describe('journal des captures', () => {
   it('rend une évolution sans lien', () => {
     const w = mountSheet({ id: 130, entries: [evo(130, 129)] })
     expect(w.find('a.log-row').exists()).toBe(false)
-    expect(w.find('.log-evo').text()).toBe('↑ évo')
+    expect(w.find('.log-evo').text()).toBe('Évolution')
     expect(w.text()).toContain('Évolué depuis Magicarpe')
   })
 
   it('compte les exemplaires au pluriel', () => {
     const w = mountSheet({ id: 25, entries: [capture('a', 25), capture('b', 25)] })
-    expect(w.text()).toContain('2 exemplaires')
+    expect(w.text()).toContain('2 cartes')
   })
 
   it('compte un exemplaire au singulier', () => {
-    expect(mountSheet({ id: 25, entries: [capture('a', 25)] }).text()).toContain('1 exemplaire')
+    expect(mountSheet({ id: 25, entries: [capture('a', 25)] }).text()).toContain('1 carte')
   })
 })
 
@@ -179,7 +192,7 @@ describe('bonbons et évolution', () => {
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
     await w.find('.evo-btn').trigger('click')
-    expect(w.find('.picker-row').exists()).toBe(true)
+    expect(w.find('.specimen').exists()).toBe(true)
     expect(w.find('.evo-choices').exists()).toBe(false)
   })
 
@@ -224,13 +237,30 @@ describe('bonbons et évolution', () => {
 describe('sélection de l’exemplaire à évoluer', () => {
   const shinyAndNot = [capture('a', 1), capture('b', 1, { shiny: true })]
 
+  it('montre chaque carte disponible en vignette, sans bouton radio', async () => {
+    const w = mountSheet({ id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true })
+    await w.find('.evo-btn').trigger('click')
+    expect(w.findAll('input[type=radio]')).toHaveLength(0)
+    const cartes = w.findAll('.specimen')
+    expect(cartes).toHaveLength(2)
+    expect(cartes[1].text()).toContain('✦')
+    expect(cartes[0].text()).toContain('#142')
+    expect(cartes[0].find('img').exists()).toBe(true)
+  })
+
+  it('pose la question et dit le coût sur le bouton de confirmation', async () => {
+    const w = mountSheet({ id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true })
+    await w.find('.evo-btn').trigger('click')
+    expect(w.text()).toContain('Quelle carte fait évoluer en Herbizarre ?')
+    expect(w.find('.evo-btn').text()).toBe('Faire évoluer · 8 bonbons')
+  })
+
   it('pré-coche le chromatique par défaut', async () => {
     const w = mountSheet({
       id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
     })
     await w.find('.evo-btn').trigger('click')
-    const checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
-    expect(checked.element.value).toBe('github:b')
+    expect(w.find('.specimen[aria-pressed="true"]').attributes('data-key')).toBe('github:b')
   })
 
   it('permet de choisir un autre exemplaire que celui pré-coché', async () => {
@@ -238,8 +268,8 @@ describe('sélection de l’exemplaire à évoluer', () => {
       id: 1, entries: shinyAndNot, available: shinyAndNot, candies: 9, canEvolve: true,
     })
     await w.find('.evo-btn').trigger('click')
-    const radios = w.findAll('input[type=radio]')
-    await radios.find((i) => i.element.value === 'github:a').setValue()
+    await w.find('.specimen[data-key="github:a"]').trigger('click')
+    expect(w.find('.specimen[aria-pressed="true"]').attributes('data-key')).toBe('github:a')
     await w.find('.evo-btn').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:a' }])
   })
@@ -249,7 +279,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
       id: 1, entries: [capture('a', 1)], available: [capture('a', 1)], candies: 9, canEvolve: true,
     })
     await w.find('.evo-btn').trigger('click')
-    expect(w.findAll('.picker-row')).toHaveLength(1)
+    expect(w.findAll('.specimen')).toHaveLength(1)
   })
 
   it('annule la sélection sans émettre d’évolution', async () => {
@@ -258,7 +288,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     })
     await w.find('.evo-btn').trigger('click')
     await w.find('.cancel-btn').trigger('click')
-    expect(w.find('.picker-row').exists()).toBe(false)
+    expect(w.find('.specimen').exists()).toBe(false)
     expect(w.emitted('evolve')).toBeUndefined()
   })
 
@@ -267,13 +297,11 @@ describe('sélection de l’exemplaire à évoluer', () => {
     const w = mountSheet({ id: 1, entries: ab, available: ab, candies: 9, canEvolve: true })
     await w.find('.evo-btn').trigger('click')
     // Pré-coché sur le premier disponible ('a', pas de chromatique ici).
-    let checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
-    expect(checked.element.value).toBe('github:a')
+    expect(w.find('.specimen[aria-pressed="true"]').attributes('data-key')).toBe('github:a')
 
     // L'autre appareil consomme 'a' entre-temps : un refresh() ne laisse plus que 'b'.
     await w.setProps({ available: [capture('b', 1)] })
-    checked = w.findAll('input[type=radio]').find((i) => i.element.checked)
-    expect(checked.element.value).toBe('github:b')
+    expect(w.find('.specimen[aria-pressed="true"]').attributes('data-key')).toBe('github:b')
 
     await w.find('.evo-btn').trigger('click')
     expect(w.emitted('evolve')[0]).toEqual([{ from: 1, to: 2, key: 'github:b' }])
@@ -475,9 +503,50 @@ describe('notice', () => {
     expect(mountSheet({ id: 1, entries: null }).find('.dexnote').exists()).toBe(false)
   })
 
-  it('est la dernière section du panneau', () => {
+  // La notice est la phrase qu'on lit avant les chiffres : sous le nom, pas en bas de fiche.
+  it('se lit sous le nom, avant les sections', () => {
     const w = mountSheet({ id: 1, entries: [capture('a', 1)], caughtIds: new Set([1]) })
-    const sections = w.findAll('.sect')
-    expect(sections[sections.length - 1].find('.dexnote').exists()).toBe(true)
+    expect(w.find('.panel-top .dexnote').exists()).toBe(true)
+    expect(w.findAll('.sect').some((sect) => sect.find('.dexnote').exists())).toBe(false)
+  })
+})
+
+describe('les chiffres de la fiche', () => {
+  it('aligne type, bonbons et première capture', () => {
+    const w = mountSheet({
+      id: 4, entries: [capture('b', 4, { date: '2026-03-01' }), capture('a', 4, { date: '2026-02-03' })],
+      candies: 6, caughtIds: new Set([4]),
+    })
+    const facts = w.findAll('.sheet-facts > div').map((d) => d.text())
+    expect(facts[0]).toContain('Feu')
+    expect(facts[1]).toContain('6')
+    expect(facts[2]).toContain('2026-02-03')
+  })
+
+  it('n’a pas de chiffres pour une espèce jamais capturée', () => {
+    expect(mountSheet({ id: 4 }).find('.sheet-facts').exists()).toBe(false)
+  })
+
+  it('dit ce que coûte l’évolution sur le bouton', () => {
+    const w = mountSheet({ id: 4, entries: [capture('a', 4)], available: [capture('a', 4)], candies: 9, canEvolve: true, caughtIds: new Set([4]) })
+    expect(w.find('.evo-btn').text()).toBe('Faire évoluer en Reptincel · 8 bonbons')
+  })
+})
+
+describe('les textes de la fiche', () => {
+  it('explique les bonbons en une phrase qu’on comprend', () => {
+    const w = mountSheet({ id: 4, entries: [capture('a', 4)], available: [capture('a', 4)], candies: 3, caughtIds: new Set([4]) })
+    expect(w.text()).toContain('Chaque carte de la famille Salamèche rapporte 3 bonbons. Il en faut 8 pour faire évoluer Salamèche.')
+    expect(w.text()).not.toContain('Les doublons servent à ça')
+  })
+
+  it('n’appelle plus la grille « planche »', () => {
+    expect(mountSheet({ id: 4 }).text()).not.toMatch(/planche/i)
+    expect(mountSheet({ id: 4, entries: [capture('a', 4)], caughtIds: new Set([4]) }).text()).not.toMatch(/planche/i)
+  })
+
+  it('dit « shiny », pas « chromatique »', () => {
+    const w = mountSheet({ id: 4, entries: [capture('a', 4, { shiny: true })], caughtIds: new Set([4]) })
+    expect(w.find('.shiny-chip').text()).toBe('✦ Shiny')
   })
 })

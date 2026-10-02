@@ -6,10 +6,12 @@ const props = defineProps({
   pendingCount: { type: Number, required: true },
   syncing: { type: Boolean, default: false },
   syncError: { type: String, default: null }, // 'offline' | 'server' | 'conflict' | 'revoked'
-  filtersOpen: { type: Boolean, default: false },
-  filtersActive: { type: Boolean, default: false },
+  view: { type: String, default: 'collection' }, // 'collection' | 'team' | 'stats'
+  theme: { type: String, default: 'dark' }, // 'light' | 'dark'
 })
-const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'leaderboard'])
+const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
+
+const TABS = [['collection', 'Collection'], ['team', 'Équipe'], ['stats', 'Mes stats']]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
@@ -68,45 +70,47 @@ onUnmounted(() => clearTimeout(cooldownTimer))
 
 <template>
   <header class="rail">
-    <div>
-      <div class="wordmark">PR<span>·</span>DEX</div>
+    <div class="rail-brand">
+      <div class="wordmark"><i>PR</i>·DEX</div>
       <div class="eyebrow rail-sub">Une PR mergée, un Pokémon</div>
     </div>
+    <!-- Les vues sont des pages, pas des onglets d'une modale : une vraie navigation, avec
+         l'onglet courant annoncé — c'était le défaut relevé sur le panneau de classement. -->
+    <nav class="rail-nav" aria-label="Vues">
+      <button
+        v-for="[key, label] in TABS" :key="key" class="rail-tab" :class="{ active: view === key }"
+        :aria-current="view === key ? 'page' : undefined" @click="emit('navigate', key)"
+      >{{ label }}</button>
+    </nav>
     <div class="progress">
-      <div class="progress-head">
-        <span class="eyebrow">Collection</span>
-        <span class="progress-count"><b>{{ String(caughtCount).padStart(3, '0') }}</b><i> / 151</i></span>
-      </div>
+      <span class="progress-count"><b>{{ caughtCount }}</b><i> / 151</i></span>
       <div class="bar"><div class="bar-fill" :style="{ width: (caughtCount / 151 * 100) + '%' }"></div></div>
     </div>
     <div class="rail-tools">
       <button class="claim-btn" :class="{ pulsing: pendingCount }" :disabled="!pendingCount" @click="$emit('open')">
-        {{ pendingCount ? 'Ouvrir' : 'Rien à ouvrir' }}
+        {{ pendingCount ? 'Retourner' : 'Rien à retourner' }}
         <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
       </button>
-      <button
-        class="gear filter-toggle" :class="{ active: filtersOpen || filtersActive }"
-        title="Filtrer la grille" @click="$emit('toggle-filters')"
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-        ><polygon points="3 4 21 4 14 12.5 14 20 10 20 10 12.5 3 4"></polygon></svg>
-      </button>
-      <button class="gear sync" :title="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
+      <button class="gear sync" :title="syncTitle" :aria-label="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
         <span :class="{ spinning: syncing }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
             stroke-linecap="round" aria-hidden="true"
           ><path d="M19 12A7 7 0 1 1 12 5"></path><polygon points="12 1.5 12 8.5 16.5 5" fill="currentColor"
             stroke="none"></polygon></svg>
         </span><span v-if="syncError" class="err-dot"></span>
       </button>
-      <button class="gear trophy" title="Classement" @click="$emit('leaderboard')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-        ><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"></path><path d="M7 6H4v2a3 3 0 0 0 3 3"></path>
-          <path d="M17 6h3v2a3 3 0 0 1-3 3"></path><path d="M12 14v4"></path><path d="M8 20h8"></path></svg>
+      <button
+        class="gear theme-toggle" :aria-label="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'"
+        :title="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'" @click="$emit('toggle-theme')"
+      >
+        <svg v-if="theme === 'light'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
+        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
       </button>
-      <button class="gear" title="Réglages" @click="$emit('settings')">⚙</button>
+      <button class="gear" title="Réglages" aria-label="Réglages" @click="$emit('settings')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round" aria-hidden="true"
+        ><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
+      </button>
     </div>
   </header>
 </template>

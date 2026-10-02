@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { useTrayFilters } from './useTrayFilters.js'
+import { useTrayFilters, matchesQuery, normalize } from './useTrayFilters.js'
 
 describe('useTrayFilters', () => {
   it('démarre avec tous les paliers actifs et aucun filtre de statut', () => {
@@ -60,5 +60,71 @@ describe('useTrayFilters', () => {
     f.setStatusFilter('evolvable')
     f.reset()
     expect(f.statusFilter.value).toBe('all')
+  })
+})
+
+describe('matchesQuery', () => {
+  it('accepte tout quand la recherche est vide ou blanche', () => {
+    expect(matchesQuery(25, '')).toBe(true)
+    expect(matchesQuery(25, '   ')).toBe(true)
+  })
+
+  it('trouve par nom sans tenir compte de la casse ni des accents', () => {
+    expect(matchesQuery(133, 'evoli')).toBe(true)
+    expect(matchesQuery(133, 'ÉVOLI')).toBe(true)
+    expect(matchesQuery(133, 'pika')).toBe(false)
+  })
+
+  it('trouve par morceau de nom', () => {
+    expect(matchesQuery(25, 'chu')).toBe(true)
+  })
+
+  it('ignore la ponctuation et les symboles du nom', () => {
+    expect(matchesQuery(122, 'mmime')).toBe(true) // M. Mime
+    expect(matchesQuery(29, 'nidoran')).toBe(true) // Nidoran ♀
+  })
+
+  it('trouve par numéro, avec ou sans zéros ni dièse', () => {
+    expect(matchesQuery(25, '25')).toBe(true)
+    expect(matchesQuery(25, '025')).toBe(true)
+    expect(matchesQuery(25, '#25')).toBe(true)
+    expect(matchesQuery(99, '25')).toBe(false)
+  })
+
+  it('ne confond pas un numéro avec un morceau d’un autre numéro', () => {
+    expect(matchesQuery(125, '25')).toBe(false)
+  })
+})
+
+describe('normalize', () => {
+  it('retire accents, casse et ponctuation', () => {
+    expect(normalize('Évoli')).toBe('evoli')
+    expect(normalize('M. Mime')).toBe('mmime')
+    expect(normalize('Nidoran ♀')).toBe('nidoran')
+  })
+})
+
+describe('useTrayFilters — recherche', () => {
+  it('part d’une recherche vide, inactive', () => {
+    const f = useTrayFilters()
+    expect(f.query.value).toBe('')
+    expect(f.active.value).toBe(false)
+  })
+
+  it('se dit actif dès qu’une recherche est saisie', () => {
+    const f = useTrayFilters()
+    f.setQuery('pika')
+    expect(f.active.value).toBe(true)
+  })
+
+  it('reset vide aussi la recherche', () => {
+    const f = useTrayFilters()
+    f.setQuery('pika')
+    f.reset()
+    expect(f.query.value).toBe('')
+  })
+
+  it('n’expose plus de panneau repliable', () => {
+    expect(useTrayFilters().open).toBeUndefined()
   })
 })

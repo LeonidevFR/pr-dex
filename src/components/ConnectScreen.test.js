@@ -33,4 +33,16 @@ describe('ConnectScreen', () => {
     expect(w.find('.btn-solid').attributes('disabled')).toBeDefined()
     expect(w.find('.btn-solid').text()).toBe('Connexion…')
   })
+
+  it('montre les quatre paliers en éventail : Roucool, Goupix, Salamèche, Sulfura', () => {
+    const cartes = mountConnect().findAllComponents({ name: 'PokeCard' })
+    expect(cartes.map((c) => [c.props('speciesId'), c.props('tier')])).toEqual([
+      [16, 'c'], [37, 'u'], [4, 'r'], [146, 'l'],
+    ])
+    expect(cartes.every((c) => c.props('scene') === 'night')).toBe(true)
+  })
+
+  it('sort l’éventail de la tabulation', () => {
+    expect(mountConnect().find('.front-fan').attributes('inert')).toBeDefined()
+  })
 })

@@ -6,12 +6,14 @@ import SpeciesSheet from './components/SpeciesSheet.vue'
 import RitualOverlay from './components/RitualOverlay.vue'
 import EvolutionOverlay from './components/EvolutionOverlay.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
-import LeaderboardPanel from './components/LeaderboardPanel.vue'
+import TeamView from './components/TeamView.vue'
+import StatsView from './components/StatsView.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
+import { useTheme } from './composables/useTheme.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
 const collection = useCollection()
@@ -27,7 +29,9 @@ const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
-const leaderboardOpen = ref(false)
+// Une vue est une page, pas un overlay : elle ne bloque pas le clavier et Échap ne la ferme
+// pas. Rien n'est mémorisé d'un chargement à l'autre, on revient toujours à la planche.
+const view = ref('collection')
 // Le client de données reste dans `useCollection`, qui ne l'expose pas ; le panneau du
 // classement en a besoin pour sa propre lecture. On garde donc la référence ici, au seul
 // endroit qui la crée.
@@ -37,6 +41,7 @@ const dataClient = ref(null)
 const today = new Date().toISOString().slice(0, 10)
 
 const filters = useTrayFilters()
+const { theme, toggle: toggleTheme } = useTheme()
 
 // Stock disponible par espèce (une évolution passée a pu en consommer un) — recalculé sur
 // les seules espèces déjà rencontrées, pas les 151 : les autres n'ont de toute façon rien à afficher.
@@ -113,12 +118,6 @@ function showNextPacket() {
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
 
-async function skipAll() {
-  const rest = [...collection.dex.pending.value]
-  ritualEntry.value = null
-  for (const e of rest) await collection.claim(e.key)
-}
-
 async function onEvolve({ from, to, key }) {
   const shiny = collection.dex.availableEntries(from).find((e) => e.key === key)?.shiny ?? false
   // Figé avant l'écriture, pour la même raison que `ritualIsNew` plus haut : `evolve`
@@ -140,17 +139,16 @@ function finishEvo() {
 }
 
 const overlayOpen = computed(() =>
-  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value || leaderboardOpen.value),
+  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value),
 )
 
 // Priorité calquée sur l'empilement visuel donné par les z-index de styles.css :
-// évolution (70), rituel (60), puis réglages, classement et fiche (40). Fermer le rituel conserve
+// évolution (70), rituel (60), puis réglages et fiche (40). Fermer le rituel conserve
 // les plis restants, comme le fait déjà sa croix.
 function closeTopOverlay() {
   if (evoAnim.value) finishEvo()
   else if (ritualEntry.value) ritualEntry.value = null
   else if (settingsOpen.value) settingsOpen.value = false
-  else if (leaderboardOpen.value) leaderboardOpen.value = false
   else if (selected.value) selected.value = null
   else return
 
@@ -165,9 +163,10 @@ function closeTopOverlay() {
 
 useKeyboardNav({
   blocked: overlayOpen,
-  // Seul état sans bouton principal à focaliser : la home au repos. `openRitual` laisse
-  // `ritualEntry` à null quand la file est vide — rien à cas-particulariser ici.
-  onSpace: openRitual,
+  // Seul état sans bouton principal à focaliser : la planche au repos. `openRitual` laisse
+  // `ritualEntry` à null quand la file est vide — rien à cas-particulariser ici. Depuis Équipe
+  // ou Mes stats, on regarde les autres ou ses chiffres : un rituel qui surgit y serait un accident.
+  onSpace: () => { if (view.value === 'collection') openRitual() },
   onEscape: closeTopOverlay,
 })
 </script>
@@ -184,18 +183,22 @@ useKeyboardNav({
       :caught-count="collection.dex.caughtCount.value"
       :pending-count="collection.dex.pending.value.length"
       :syncing="collection.loading.value" :sync-error="collection.error.value"
-      :filters-open="filters.open.value" :filters-active="filters.active.value"
+      :view="view" :theme="theme"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
-      @leaderboard="leaderboardOpen = true"
-      @toggle-filters="filters.open.value = !filters.open.value"
+      @navigate="(v) => (view = v)" @toggle-theme="toggleTheme"
     />
     <TheTray
+      v-if="view === 'collection'"
       :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
-      :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
-      :status-filter="filters.statusFilter.value"
+      :active-tiers="filters.activeTiers.value" :status-filter="filters.statusFilter.value" :query="filters.query.value"
       @select="(id) => (selected = id)"
-      @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter" @reset-filters="filters.reset"
+      @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter"
+      @set-query="filters.setQuery" @reset-filters="filters.reset"
     />
+    <!-- Sans client, rien à lire : la démo se charge d'un `import()` dynamique, et un clic sur
+         un onglet pendant ce temps ne doit pas monter une vue qui planterait sur `null`. -->
+    <TeamView v-else-if="view === 'team' && dataClient" :client="dataClient" :today="today" />
+    <StatsView v-else-if="view === 'stats' && dataClient" :client="dataClient" :today="today" />
 
     <transition name="fade">
       <SpeciesSheet
@@ -215,7 +218,7 @@ useKeyboardNav({
       <RitualOverlay
         v-if="ritualEntry" :key="ritualEntry.key" :entry="ritualEntry"
         :remaining="ritualRemaining" :is-new="ritualIsNew"
-        @claim="collection.claim" @next="nextRitual" @skip-all="skipAll"
+        @claim="collection.claim" @next="nextRitual"
         @close="ritualEntry = null"
       />
     </transition>
@@ -230,12 +233,6 @@ useKeyboardNav({
     <transition name="fade">
       <SettingsPanel
         v-if="settingsOpen" :github-login="githubLogin" @close="settingsOpen = false" @disconnect="disconnect"
-      />
-    </transition>
-
-    <transition name="fade">
-      <LeaderboardPanel
-        v-if="leaderboardOpen" :client="dataClient" :today="today" @close="leaderboardOpen = false"
       />
     </transition>
   </template>

@@ -74,13 +74,13 @@ describe('bloc d’informations', () => {
   it('marque une espèce cible jamais rencontrée', () => {
     const w = mountEvo({ isNew: true })
     expect(w.find('.new-chip').text()).toBe('Nouveau')
-    expect(w.find('.reveal-note').text()).toContain('Première entrée à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Nouveau dans ton Pokédex')
   })
 
   it('ne marque rien pour une espèce déjà à la planche', () => {
     const w = mountEvo({ isNew: false })
     expect(w.find('.new-chip').exists()).toBe(false)
-    expect(w.find('.reveal-note').text()).toContain('Déjà à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Déjà dans ton Pokédex')
   })
 
   it('ne suppose rien quand la propriété est absente', () => {
@@ -103,7 +103,7 @@ describe('bloc d’informations', () => {
 
   it('annonce le chromatique dans le bandeau et dans les puces', () => {
     const w = mountEvo({ shiny: true })
-    expect(w.find('.reveal-banner').text()).toContain('Chromatique')
+    expect(w.find('.reveal-banner').text()).toContain('Shiny')
     expect(w.find('.shiny-chip').exists()).toBe(true)
   })
 
@@ -111,7 +111,7 @@ describe('bloc d’informations', () => {
     // Aucune évolution ne mène à un légendaire dans le dex ; on force la cible pour
     // vérifier la règle de priorité elle-même, qui doit rester alignée sur le rituel.
     const w = mountEvo({ from: 1, to: 144, shiny: true })
-    expect(w.find('.reveal-banner').text()).toContain('Chromatique')
+    expect(w.find('.reveal-banner').text()).toContain('Shiny')
   })
 
   it('garde le bandeau « Évolution » dans le cas ordinaire', () => {

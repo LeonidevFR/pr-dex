@@ -31,14 +31,13 @@ const props = defineProps({
    * mouvement — demander une permission système pour un effet décoratif est disproportionné.
    */
   tiltable: { type: Boolean, default: true },
+  // Dans le rituel, le dos se voit avant la face : le numéro d'espèce y vendrait la mèche.
+  secret: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['activate'])
 
 const species = computed(() => DEX[props.speciesId])
-// Le cachet de cire scelle ce qui vaut d'être scellé : au-dessus, il ne signifierait plus rien.
-const sealed = computed(() => props.tier === 'r' || props.tier === 'l')
-
 const pad = (n) => String(n).padStart(3, '0')
 
 // `null` tant que le pointeur n'a pas touché la carte : elle reste alors strictement à plat,
@@ -107,7 +106,6 @@ function onLeave() {
           @error="$event.target.dataset.broken = '1'"
         >
       </div>
-      <span v-if="sealed" class="pkc-wax">PR</span>
 
       <div class="pkc-sheen"></div>
       <div class="pkc-iris"></div>
@@ -119,20 +117,19 @@ function onLeave() {
       </div>
     </div>
 
-    <!-- Le dos, c'est le sachet ouvert, et l'étiquette de spécimen collée dessus. C'est ce
-         qui donne une raison de retourner la carte : elle dit d'où elle vient. -->
+    <!-- Le dos, c'est ce qu'on voit avant de savoir : le logo d'abord, puis d'où vient la carte. -->
     <div v-if="provenance" class="pkc-face pkc-back" :aria-hidden="flipped ? null : 'true'">
-      <div class="pkc-back-head">
-        <span class="pkc-mark">PR·DEX</span>
-        <span class="pkc-torn">ouvert</span>
+      <div class="pkc-back-rosace"></div>
+      <div class="pkc-back-head mono">
+        <span class="pkc-back-no">Nº {{ secret ? '···' : pad(speciesId) }}</span>
+        <span class="pkc-back-date">{{ provenance.date }}</span>
       </div>
+      <span class="pkc-mark"><i>PR</i>·DEX</span>
       <div class="pkc-lab">
         <span class="pkc-lab-eyebrow">Provenance</span>
         <span v-if="provenance.ref" class="pkc-lab-ref mono">{{ provenance.ref }}</span>
         <span class="pkc-lab-title">{{ provenance.label }}</span>
-        <span class="pkc-lab-date mono">{{ provenance.date }}</span>
       </div>
-      <span class="pkc-back-foot">Une PR mergée · un tirage</span>
     </div>
   </div>
 </template>

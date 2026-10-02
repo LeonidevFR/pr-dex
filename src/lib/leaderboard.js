@@ -43,6 +43,9 @@ export function playerStats(catches, evolutions, today) {
     species: owned.size,
     // Compté sur les captures, pas sur le dex : un shiny évolué y apparaîtrait deux fois.
     shiny: catches.filter((c) => c.shiny).length,
+    // Les espèces dont on tient un exemplaire shiny, sur 151 : c'est une collection, pas un
+    // taux. Ici l'évolution compte, puisqu'elle met une nouvelle espèce shiny au dex.
+    shinySpecies: [...owned].filter((id) => dex.bySpecies.value[id].some((e) => e.shiny)).length,
     legendaries: ofTier('l'),
     rares: ofTier('r'),
     lineages,
@@ -69,7 +72,6 @@ export function rankPlayers(rows, today) {
 }
 
 const pct = (n, total) => (total ? Math.round((n / total) * 1000) / 10 : 0)
-const oneIn = (shiny, total) => (shiny ? Math.round(total / shiny) : null)
 
 /**
  * L'onglet Stats : les chiffres du joueur courant seul, `null` s'il n'a aucune ligne (donc
@@ -83,7 +85,20 @@ export function myStats(rows, today) {
     opened: me.copies,
     species: me.species,
     tiers: TIERS.map((t) => ({ tier: t, label: TIER_LABEL[t], count: me.tiers[t], pct: pct(me.tiers[t], me.copies) })),
-    shiny: { count: me.shiny, oneIn: oneIn(me.shiny, me.copies) },
+    shiny: { species: me.shinySpecies, copies: me.shiny },
     evolved: me.evolved,
+  }
+}
+
+/**
+ * Les trois chiffres d'en-tête de la vue Équipe. Le Pokédex collectif compte les espèces vues
+ * par au moins un joueur : c'est l'objectif commun, celui où personne n'est dernier.
+ */
+export function teamTotals(rows, today) {
+  const players = rankPlayers(rows, today)
+  return {
+    collective: new Set(players.flatMap((p) => p.speciesIds)).size,
+    opened: players.reduce((n, p) => n + p.copies, 0),
+    shiny: players.reduce((n, p) => n + p.shiny, 0),
   }
 }

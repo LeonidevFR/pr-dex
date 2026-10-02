@@ -44,20 +44,20 @@ onUnmounted(() => clearTimeout(focusTimer))
       <img class="evo-to" :src="spriteUrl(to, shiny)" :alt="target.name">
     </div>
     <div class="evo-cap">
-      <div v-if="shiny" class="reveal-banner">✦ Chromatique ✦</div>
+      <div v-if="shiny" class="reveal-banner">✦ Shiny ✦</div>
       <div v-else-if="target.tier === 'l'" class="reveal-banner">★ Légendaire ★</div>
-      <div v-else class="reveal-banner" style="color:var(--ochre)">Évolution</div>
+      <div v-else class="reveal-banner">Évolution</div>
       <div class="reveal-name">{{ DEX[from].name }} → {{ target.name }}</div>
       <div class="reveal-tags">
         <span v-if="isNew" class="chip new-chip">Nouveau</span>
         <span class="chip">{{ TIER_LABEL[target.tier] }}</span>
-        <span v-if="shiny" class="chip shiny-chip">✦ Chromatique</span>
+        <span v-if="shiny" class="chip shiny-chip">✦ Shiny</span>
       </div>
       <div class="reveal-note mono">
-        {{ isNew ? 'Première entrée à la planche' : 'Déjà à la planche' }} ·
+        {{ isNew ? 'Nouveau dans ton Pokédex' : 'Déjà dans ton Pokédex' }} ·
         il reste {{ candies }} bonbon{{ candies > 1 ? 's' : '' }} <b>{{ family.name }}</b>
       </div>
-      <button ref="nextEl" class="next-btn" style="margin-top:20px" @click="$emit('done')">Voir la planche</button>
+      <button ref="nextEl" class="next-btn" style="margin-top:20px" @click="$emit('done')">Voir la collection</button>
     </div>
   </div>
 </template>

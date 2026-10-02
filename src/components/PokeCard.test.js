@@ -40,11 +40,8 @@ describe('face avant', () => {
   })
 
   // Le cachet de cire est un signe de rareté, pas un ornement systématique.
-  it('ne scelle de cire que les paliers qui la méritent', () => {
-    expect(mountCard({ tier: 'c' }).find('.pkc-wax').exists()).toBe(false)
-    expect(mountCard({ tier: 'u' }).find('.pkc-wax').exists()).toBe(false)
-    expect(mountCard({ tier: 'r' }).find('.pkc-wax').exists()).toBe(true)
-    expect(mountCard({ tier: 'l' }).find('.pkc-wax').exists()).toBe(true)
+  it('n’a plus de cachet de cire, à aucun palier', () => {
+    for (const tier of ['c', 'u', 'r', 'l']) expect(mountCard({ tier }).find('.pkc-wax').exists()).toBe(false)
   })
 })
 
@@ -59,7 +56,24 @@ describe('dos', () => {
     const w = mountCard({ provenance })
     expect(w.find('.pkc-lab-ref').text()).toBe('moi/atlas#142 · a3f8c21')
     expect(w.find('.pkc-lab-title').text()).toBe('fix: race condition sur la file de synchronisation')
-    expect(w.find('.pkc-lab-date').text()).toBe('2026-02-03')
+    expect(w.find('.pkc-back-date').text()).toBe('2026-02-03')
+  })
+
+  it('affiche le numéro d’espèce en tête', () => {
+    expect(mountCard({ speciesId: 4, provenance }).find('.pkc-back-no').text()).toBe('Nº 004')
+  })
+
+  it('cache le numéro quand la carte est secrète', () => {
+    const w = mountCard({ speciesId: 4, provenance, secret: true })
+    expect(w.find('.pkc-back-no').text()).toBe('Nº ···')
+    expect(w.find('.pkc-back').text()).not.toContain('004')
+  })
+
+  it('porte le logo, sans les restes du sachet', () => {
+    const back = mountCard({ speciesId: 4, provenance }).find('.pkc-back')
+    expect(back.find('.pkc-mark').text()).toBe('PR·DEX')
+    expect(back.text()).not.toContain('ouvert')
+    expect(back.text()).not.toContain('Une PR mergée · un tirage')
   })
 
   // Une source peut n'avoir aucune référence courte à donner — le pli scellé gère déjà ce cas,
