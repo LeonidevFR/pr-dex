@@ -56,7 +56,24 @@ describe('dos', () => {
     const w = mountCard({ provenance })
     expect(w.find('.pkc-lab-ref').text()).toBe('moi/atlas#142 · a3f8c21')
     expect(w.find('.pkc-lab-title').text()).toBe('fix: race condition sur la file de synchronisation')
-    expect(w.find('.pkc-lab-date').text()).toBe('2026-02-03')
+    expect(w.find('.pkc-back-date').text()).toBe('2026-02-03')
+  })
+
+  it('affiche le numéro d’espèce en tête', () => {
+    expect(mountCard({ speciesId: 4, provenance }).find('.pkc-back-no').text()).toBe('Nº 004')
+  })
+
+  it('cache le numéro quand la carte est secrète', () => {
+    const w = mountCard({ speciesId: 4, provenance, secret: true })
+    expect(w.find('.pkc-back-no').text()).toBe('Nº ···')
+    expect(w.find('.pkc-back').text()).not.toContain('004')
+  })
+
+  it('porte le logo, sans les restes du sachet', () => {
+    const back = mountCard({ speciesId: 4, provenance }).find('.pkc-back')
+    expect(back.find('.pkc-mark').text()).toBe('PR·DEX')
+    expect(back.text()).not.toContain('ouvert')
+    expect(back.text()).not.toContain('Une PR mergée · un tirage')
   })
 
   // Une source peut n'avoir aucune référence courte à donner — le pli scellé gère déjà ce cas,
