@@ -13,6 +13,7 @@ import { useCollection } from './composables/useCollection.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
+import { useTheme } from './composables/useTheme.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
 const collection = useCollection()
@@ -40,6 +41,7 @@ const dataClient = ref(null)
 const today = new Date().toISOString().slice(0, 10)
 
 const filters = useTrayFilters()
+const { theme, toggle: toggleTheme } = useTheme()
 
 // Stock disponible par espèce (une évolution passée a pu en consommer un) — recalculé sur
 // les seules espèces déjà rencontrées, pas les 151 : les autres n'ont de toute façon rien à afficher.
@@ -187,9 +189,9 @@ useKeyboardNav({
       :caught-count="collection.dex.caughtCount.value"
       :pending-count="collection.dex.pending.value.length"
       :syncing="collection.loading.value" :sync-error="collection.error.value"
-      :view="view"
+      :view="view" :theme="theme"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
-      @navigate="(v) => (view = v)"
+      @navigate="(v) => (view = v)" @toggle-theme="toggleTheme"
     />
     <TheTray
       v-if="view === 'collection'"

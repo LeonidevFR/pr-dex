@@ -151,4 +151,20 @@ describe('TheRail', () => {
       expect(mountRail({ pendingCount: 0 }).find('.claim-btn').text()).toBe('Rien à retourner')
     })
   })
+
+  describe('thème', () => {
+    it('propose de passer au clair depuis le sombre', () => {
+      expect(mountRail({ theme: 'dark' }).find('.theme-toggle').attributes('aria-label')).toBe('Passer au thème clair')
+    })
+
+    it('propose de passer au sombre depuis le clair', () => {
+      expect(mountRail({ theme: 'light' }).find('.theme-toggle').attributes('aria-label')).toBe('Passer au thème sombre')
+    })
+
+    it('émet toggle-theme au clic', async () => {
+      const w = mountRail()
+      await w.find('.theme-toggle').trigger('click')
+      expect(w.emitted('toggle-theme')).toHaveLength(1)
+    })
+  })
 })

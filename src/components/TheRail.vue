@@ -7,8 +7,9 @@ const props = defineProps({
   syncing: { type: Boolean, default: false },
   syncError: { type: String, default: null }, // 'offline' | 'server' | 'conflict' | 'revoked'
   view: { type: String, default: 'collection' }, // 'collection' | 'team' | 'stats'
+  theme: { type: String, default: 'dark' }, // 'light' | 'dark'
 })
-const emit = defineEmits(['open', 'settings', 'sync', 'navigate'])
+const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
 const TABS = [['collection', 'Collection'], ['team', 'Équipe'], ['stats', 'Mes stats']]
 
@@ -97,6 +98,13 @@ onUnmounted(() => clearTimeout(cooldownTimer))
           ><path d="M19 12A7 7 0 1 1 12 5"></path><polygon points="12 1.5 12 8.5 16.5 5" fill="currentColor"
             stroke="none"></polygon></svg>
         </span><span v-if="syncError" class="err-dot"></span>
+      </button>
+      <button
+        class="gear theme-toggle" :aria-label="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'"
+        :title="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'" @click="$emit('toggle-theme')"
+      >
+        <svg v-if="theme === 'light'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
+        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
       </button>
       <button class="gear" title="Réglages" aria-label="Réglages" @click="$emit('settings')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
