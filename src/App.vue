@@ -118,12 +118,6 @@ function showNextPacket() {
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
 
-async function skipAll() {
-  const rest = [...collection.dex.pending.value]
-  ritualEntry.value = null
-  for (const e of rest) await collection.claim(e.key)
-}
-
 async function onEvolve({ from, to, key }) {
   const shiny = collection.dex.availableEntries(from).find((e) => e.key === key)?.shiny ?? false
   // Figé avant l'écriture, pour la même raison que `ritualIsNew` plus haut : `evolve`
@@ -224,7 +218,7 @@ useKeyboardNav({
       <RitualOverlay
         v-if="ritualEntry" :key="ritualEntry.key" :entry="ritualEntry"
         :remaining="ritualRemaining" :is-new="ritualIsNew"
-        @claim="collection.claim" @next="nextRitual" @skip-all="skipAll"
+        @claim="collection.claim" @next="nextRitual"
         @close="ritualEntry = null"
       />
     </transition>

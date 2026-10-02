@@ -252,16 +252,29 @@ describe('TheTray', () => {
       expect(mountTray({}).findAll('.cell')[143].find('.cell-pill').exists()).toBe(false)
     })
 
-    it('donne un halo doré à une légendaire capturée', () => {
-      const halo = mountTray({ 144: [entry('a', 144)] }).findAll('.cell')[143].find('.cell-halo')
-      expect(halo.classes()).toContain('l')
+    // Plus de halo : un picto discret dit la rareté sans alourdir la grille.
+    it('n’a plus aucun halo', () => {
+      const w = mountTray({ 144: [entry('a', 144)], 25: [entry('b', 25, { shiny: true })] })
+      expect(w.findAll('.cell-halo')).toHaveLength(0)
     })
 
-    it('donne un seul halo, irisé, à une légendaire shiny', () => {
+    it('couronne une légendaire capturée', () => {
+      const cell = mountTray({ 144: [entry('a', 144)] }).findAll('.cell')[143]
+      expect(cell.find('.cell-crown').exists()).toBe(true)
+      expect(cell.find('.cell-crown').attributes('aria-label')).toBe('légendaire')
+    })
+
+    it('ne couronne pas une légendaire manquante ni une rare', () => {
+      const w = mountTray({ 4: [entry('a', 4)] })
+      expect(w.findAll('.cell')[143].find('.cell-crown').exists()).toBe(false)
+      expect(w.findAll('.cell')[3].find('.cell-crown').exists()).toBe(false)
+    })
+
+    it('montre couronne et étoile sur une légendaire shiny', () => {
       const cell = mountTray({ 144: [entry('a', 144, { shiny: true })] }).findAll('.cell')[143]
-      expect(cell.findAll('.cell-halo')).toHaveLength(1)
-      expect(cell.find('.cell-halo').classes()).toContain('s')
-      expect(cell.classes()).toContain('legendary')
+      expect(cell.find('.cell-crown').exists()).toBe(true)
+      expect(cell.find('.cell-shiny').exists()).toBe(true)
+      expect(cell.classes()).toContain('shiny')
     })
 
     it('ne montre pas ↑ sur une case shiny, même évoluable', () => {

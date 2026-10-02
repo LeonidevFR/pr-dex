@@ -9,7 +9,7 @@ const props = defineProps({
   // Lu par App.vue avant le `claim` — celui-ci inscrit l'espèce au dex dès le sceau brisé.
   isNew: { type: Boolean, default: false },
 })
-const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
+const emit = defineEmits(['claim', 'next', 'close'])
 
 /**
  * La scène du rituel, portée telle qu'elle a été validée en maquette.
@@ -207,12 +207,6 @@ watch(stage, async (s) => {
       </div>
       <button ref="nextEl" class="next-btn" @click="$emit('next')">
         {{ remaining > 1 ? `Carte suivante · ${remaining - 1} restante${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la collection' }}
-      </button>
-      <button
-        v-if="remaining > 1" class="queue-note"
-        @click="$emit('skip-all')"
-      >
-        tout retourner sans cérémonie
       </button>
     </template>
   </div>

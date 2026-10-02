@@ -89,6 +89,10 @@ const targets = computed(() => {
   return to === null ? [] : Array.isArray(to) ? to : [to]
 })
 const pad = (n) => String(n).padStart(3, '0')
+// « 10 avr. » : la vignette n'a la place que pour le jour et le mois.
+const shortDate = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+// Le numéro de PR quand il y en a un ; sinon la source, et « évolution » pour une carte fabriquée.
+const shortRef = (e) => (e.via === 'catch' ? (e.ref?.match(/#\d+/)?.[0] ?? e.source) : 'évolution')
 // La date de la toute première capture : le journal est dans l'ordre d'arrivée, mais une
 // évolution peut y précéder une capture plus ancienne, d'où le minimum plutôt que le premier.
 const firstDate = computed(() => (props.entries ?? []).map((e) => e.date).sort()[0] ?? null)
@@ -227,23 +231,25 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         </template>
 
         <template v-else>
-          <p class="muted" style="margin-bottom:12px">
-            Choisis la carte à faire évoluer en <b>{{ DEX[pickingTarget].name }}</b>.
-          </p>
-          <div class="log">
-            <label v-for="e in available" :key="e.key" class="log-row picker-row">
-              <input type="radio" name="specimen" :value="e.key" v-model="selectedKey">
-              <span v-if="e.via === 'catch'" class="log-sha">{{ e.source }}</span>
-              <span v-else class="log-evo">Évolution</span>
-              <span class="log-title">
-                {{ e.via === 'catch' ? e.label : 'Évolué depuis ' + DEX[e.from].name }}
-                <span v-if="e.shiny" class="chip shiny-chip" style="margin-left:6px">✦</span>
-              </span>
-              <span class="log-date">{{ e.date }}</span>
-            </label>
+          <p class="picker-q">Quelle carte fait évoluer en {{ DEX[pickingTarget].name }} ?</p>
+          <!-- Des vignettes plutôt qu'une liste à cocher : on choisit une carte, pas une ligne de
+               formulaire. Le titre de la PR reste en infobulle, la vignette dit l'essentiel. -->
+          <div class="specimens">
+            <button
+              v-for="e in available" :key="e.key" type="button" class="specimen"
+              :class="{ on: selectedKey === e.key, shiny: e.shiny }" :data-key="e.key"
+              :aria-pressed="selectedKey === e.key ? 'true' : 'false'"
+              :title="e.via === 'catch' ? e.label : 'Évolué depuis ' + DEX[e.from].name"
+              @click="selectedKey = e.key"
+            >
+              <span v-if="e.shiny" class="specimen-shiny" aria-label="shiny">✦</span>
+              <img :src="spriteUrl(id, e.shiny)" alt="">
+              <span class="specimen-date">{{ shortDate(e.date) }}</span>
+              <span class="specimen-ref mono">{{ shortRef(e) }}</span>
+            </button>
           </div>
           <div class="picker-actions">
-            <button class="evo-btn" :disabled="!selectedKey" @click="confirmEvolve">Confirmer</button>
+            <button class="evo-btn" :disabled="!selectedKey" @click="confirmEvolve">Faire évoluer · {{ species.cost }} bonbons</button>
             <button class="cancel-btn" @click="cancelPicking">Annuler</button>
           </div>
         </template>
