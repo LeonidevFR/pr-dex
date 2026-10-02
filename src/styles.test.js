@@ -154,4 +154,12 @@ describe('feuille de style', () => {
     expect(r.corps).toMatch(/color\s*:\s*var\(--u-text\)/)
     expect(r.corps).not.toMatch(/#cfe8da/i)
   })
+
+  // Une espèce tirée trente fois ne doit pas allonger la fiche de trente lignes : le journal
+  // s'arrête à cinq lignes et demie, et défile au-delà.
+  it('borne la hauteur du journal des captures et le fait défiler', () => {
+    const r = regles.find((x) => x.selecteur === '.log')
+    expect(r.corps).toMatch(/max-height\s*:/)
+    expect(r.corps).toMatch(/overflow-y\s*:\s*auto/)
+  })
 })

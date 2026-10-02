@@ -316,7 +316,11 @@
   .copies-count{font-family:var(--f-data);font-size:11px;color:var(--gold)}
   .dexnote{font-family:var(--f-title);font-weight:300;font-size:18px;line-height:1.55;color:var(--note);margin:22px 0 0;max-width:52ch}
 
-  .log{display:flex;flex-direction:column}
+  /* Cinq lignes et demie, puis défilement : la ligne coupée dit qu'il y en a d'autres, et une
+     espèce tirée trente fois n'étire plus la fiche. `contain` évite que la molette, arrivée au
+     bout du journal, se mette à faire défiler la fiche derrière. */
+  .log{display:flex;flex-direction:column;max-height:232px;overflow-y:auto;overscroll-behavior:contain;
+    scrollbar-width:thin;scrollbar-color:var(--line-strong-hi) transparent}
   .log-row{display:flex;gap:13px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);color:var(--fg)}
   .log-row:last-child{border-bottom:0}
   a.log-row:hover .log-title{color:var(--gold)}
