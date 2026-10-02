@@ -168,8 +168,8 @@
   .tier-chip:not(.active){color:var(--fg-2)}
   .tier-chip:not(.active)::before{opacity:.35}
   /* « Évoluables » reprend la flèche et le vert du badge de la case : même signe des deux côtés. */
-  .chip-evo{color:var(--u-text);border-color:rgba(127,181,154,.3)}
-  .chip-evo.active{background:rgba(127,181,154,.18);border-color:#7fb59a;color:#cfe8da}
+  .chip-evo{color:var(--u-text);border-color:color-mix(in srgb,var(--t-u) 40%,transparent)}
+  .chip-evo.active{background:color-mix(in srgb,var(--t-u) 18%,transparent);border-color:var(--t-u);color:var(--u-text)}
   .filter-reset{font-family:var(--f-ui);font-size:12px;font-weight:600;color:var(--fg-3);background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
   .filter-reset:hover{color:var(--gold)}
 

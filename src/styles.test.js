@@ -146,4 +146,12 @@ describe('feuille de style', () => {
     expect(filet.corps).toMatch(/linear-gradient/)
     expect(filet.corps).toMatch(/mask/)
   })
+
+  // Coché, « Évoluables » garde un fond vert pâle : son texte doit suivre le thème, pas un vert
+  // clair écrit en dur, invisible sur le papier crème.
+  it('écrit « Évoluables » coché avec le vert du thème', () => {
+    const r = regles.find((x) => x.selecteur === '.chip-evo.active')
+    expect(r.corps).toMatch(/color\s*:\s*var\(--u-text\)/)
+    expect(r.corps).not.toMatch(/#cfe8da/i)
+  })
 })
