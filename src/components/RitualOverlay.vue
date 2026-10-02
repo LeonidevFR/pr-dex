@@ -176,7 +176,7 @@ watch(stage, async (s) => {
           ref="cardEl"
           :species-id="entry.species" :tier="tier" :shiny="entry.shiny"
           :provenance="{ ref: entry.ref, label: entry.label, date: entry.date }"
-          :flipped="stage === 'awaiting'" scene="night"
+          :flipped="stage === 'awaiting'" :secret="stage === 'awaiting'" scene="night"
           @activate="reveal"
         />
       </div>

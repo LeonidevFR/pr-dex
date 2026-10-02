@@ -46,6 +46,10 @@ const retourner = async (w) => {
 const reveler = retourner
 
 describe('la carte au repos', () => {
+  it('ne dévoile pas le numéro au dos avant le retournement', () => {
+    expect(mountRitual().find('.pkc-back-no').text()).toBe('Nº ···')
+  })
+
   it('est là dès l’ouverture, dos visible, et ne divulgue rien', () => {
     const w = mountRitual()
     expect(w.findComponent({ name: 'PokeCard' }).props('flipped')).toBe(true)
