@@ -40,11 +40,8 @@ describe('face avant', () => {
   })
 
   // Le cachet de cire est un signe de rareté, pas un ornement systématique.
-  it('ne scelle de cire que les paliers qui la méritent', () => {
-    expect(mountCard({ tier: 'c' }).find('.pkc-wax').exists()).toBe(false)
-    expect(mountCard({ tier: 'u' }).find('.pkc-wax').exists()).toBe(false)
-    expect(mountCard({ tier: 'r' }).find('.pkc-wax').exists()).toBe(true)
-    expect(mountCard({ tier: 'l' }).find('.pkc-wax').exists()).toBe(true)
+  it('n’a plus de cachet de cire, à aucun palier', () => {
+    for (const tier of ['c', 'u', 'r', 'l']) expect(mountCard({ tier }).find('.pkc-wax').exists()).toBe(false)
   })
 })
 

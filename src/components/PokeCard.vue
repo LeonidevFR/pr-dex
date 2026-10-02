@@ -36,9 +36,6 @@ const props = defineProps({
 const emit = defineEmits(['activate'])
 
 const species = computed(() => DEX[props.speciesId])
-// Le cachet de cire scelle ce qui vaut d'être scellé : au-dessus, il ne signifierait plus rien.
-const sealed = computed(() => props.tier === 'r' || props.tier === 'l')
-
 const pad = (n) => String(n).padStart(3, '0')
 
 // `null` tant que le pointeur n'a pas touché la carte : elle reste alors strictement à plat,
@@ -107,7 +104,6 @@ function onLeave() {
           @error="$event.target.dataset.broken = '1'"
         >
       </div>
-      <span v-if="sealed" class="pkc-wax">PR</span>
 
       <div class="pkc-sheen"></div>
       <div class="pkc-iris"></div>

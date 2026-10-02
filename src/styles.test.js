@@ -38,21 +38,20 @@ describe('feuille de style', () => {
   })
 
   /**
-   * La carte est un objet qui ne change pas avec le décor : ses matières lisent les tokens
-   * parchemin. Le `:root` passe au velours ; si `.pkc` ne redéclarait pas ces tokens, le
-   * carton du commun virerait au brun et l'ocre du rare se perdrait.
+   * La carte suit le thème : carton noir en sombre, ivoire en clair. Ses matières lisent des
+   * tokens qui lui sont propres, pour que le décor puisse changer sans toucher au carton.
    */
-  it('redéclare sur la carte les tokens parchemin, aux valeurs d’avant la refonte', () => {
-    const carte = regles.find((r) => r.selecteur === '.pkc' && /--paper\s*:/.test(r.corps))
-    expect(carte).toBeDefined()
-    for (const [token, valeur] of [
-      ['--paper', '#e7ddc7'], ['--paper-lo', '#ddd0b3'], ['--plate', '#f2ecda'], ['--plate-hi', '#fbf6e8'],
-      ['--ink', '#2c2620'], ['--ink-2', '#6f6350'], ['--ink-3', '#9a8a6d'],
-      ['--rule', '#c3b48f'], ['--rule-hi', '#b3a179'], ['--stamp', '#9e3b2e'], ['--ochre', '#b8862b'], ['--herb', '#5c7a52'],
-      ['--t-c', '#8a8175'], ['--t-u', '#5c7a52'], ['--t-r', '#9e3b2e'], ['--t-l', '#b8862b'],
-    ]) {
-      expect(carte.corps).toMatch(new RegExp(`${token}\\s*:\\s*${valeur}`))
+  it('donne à la carte des tokens Onyx, redéfinis en clair', () => {
+    const sombre = regles.find((r) => r.selecteur === '.pkc' && /--card-a\s*:/.test(r.corps))
+    const clair = regles.find((r) => r.selecteur === '[data-theme="light"] .pkc')
+    expect(sombre).toBeDefined()
+    expect(clair).toBeDefined()
+    for (const t of ['--card-a', '--card-b', '--card-c', '--card-edge', '--card-ink', '--iris-blend']) {
+      expect(sombre.corps).toMatch(new RegExp(`${t}\\s*:`))
+      expect(clair.corps).toMatch(new RegExp(`${t}\\s*:`))
     }
+    expect(sombre.corps).toMatch(/--iris-blend\s*:\s*screen/)
+    expect(clair.corps).toMatch(/--iris-blend\s*:\s*multiply/)
   })
 
   it('pose la palette Vitrine sur :root', () => {
