@@ -14,6 +14,9 @@ préparatoire : cadre en tirets, sprite sépia fortement atténué.
 **3. La file d'attente.** Paquet par paquet, avec une échappatoire « tout ouvrir sans
 cérémonie » qui apparaît à partir du deuxième paquet.
 
+  Révisé le 2026-10-02 : l'échappatoire est retirée, à la demande de Léonard. Chaque carte
+  se retourne ; un rituel qu'on peut sauter en bloc n'est plus un rituel.
+
 ## Décisions prises pendant l'implémentation
 
 - **Vite + composants Vue 3 (SFC) plutôt que Nuxt.** Le SSR, les routes serveur et le
