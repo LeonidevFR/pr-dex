@@ -14,10 +14,12 @@ quoi ce ne serait plus un jeu commun mais plusieurs jeux qui partagent une planc
 Une **carte**, dos visible. On la retourne. C'est tout — rien ne se déclenche sans le joueur,
 il n'y a ni sceau à briser ni minuteur qui court.
 
-La carte est un objet, pas une vignette. Son carton dit la rareté : papier pâle en commun,
-trame pointillée en peu commun, carton teinté ocre en rare, carton profond guilloché en
-légendaire. On l'incline au pointeur et la lumière balaie la dorure. Son dos porte la
-provenance — la PR qui l'a produite, son titre, sa date.
+La carte est un objet, pas une vignette. Son carton dit la rareté : carton nu en commun,
+trame pointillée verte en peu commun, carton cuivré en rare, or guilloché en légendaire —
+sur un carton noir en thème sombre, ivoire en thème clair. On l'incline au pointeur et la
+lumière balaie le métal. Son dos porte le logo, le numéro, la date et la provenance — la PR
+qui l'a produite et son titre. Dans le rituel, le numéro reste masqué tant que la carte n'est
+pas retournée.
 
 La fanfare du retournement suit le même barème : **rien du tout en commun**, quelques
 étincelles en peu commun, une onde et une secousse en rare, tout en légendaire. Un
@@ -40,11 +42,12 @@ connexion — voir « Architecture » plus bas.
 
 ## Le décor
 
-La carte ne bouge pas ; c'est la pièce autour qui a changé. L'app est posée sur un velours
-sombre, éclairé par le dessus, avec l'or comme seul accent. Le parchemin du prototype
-reste là où il a un sens : dans le carton de la carte, dont les tokens sont redéclarés sur
-`.pkc`. Dans la grille, un légendaire capturé porte un halo doré, un chromatique un halo
-irisé — un seul halo par case, l'irisé l'emporte.
+L'app est posée sur un velours sombre, éclairé par le dessus, avec l'or comme seul accent ;
+ou, en thème clair, sur un papier crème. Le thème suit le système tant qu'on ne l'a pas
+choisi avec le bouton de l'en-tête. La carte suit le thème (Onyx en sombre, ivoire en clair,
+même métal par palier) ; le rituel et l'évolution restent des scènes de nuit dans les deux.
+Dans la grille, un légendaire capturé porte un halo doré, un shiny un halo irisé — un seul
+halo par case, l'irisé l'emporte.
 
 La collection, l'équipe et les stats sont trois vues de la même page, en onglets ; la fiche,
 le rituel et l'évolution restent des scènes par-dessus. Espace ne retourne une carte que

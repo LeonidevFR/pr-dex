@@ -55,8 +55,16 @@
     --panel-bg:linear-gradient(180deg,#fbf6ea,#f3ead6); --note:#5a5044;
     --u-text:#3f5d38; --r-text:#8f3427; --l-text:#6b4d15; --s-text:#6a3f94;
     --iris:radial-gradient(circle, rgba(143,91,196,.45), rgba(63,191,149,.2) 45%, transparent 70%);
+    /* Les teintes de type de la version parchemin : elles étaient faites pour un fond clair. */
+    --type-normal:#6f675c;   --type-fire:#a8552f;     --type-water:#3f5f7a;
+    --type-electric:#8a6a1b; --type-grass:#4a6a42;    --type-ice:#4f6f6f;
+    --type-fighting:#8a4a3a; --type-poison:#6f5480;   --type-ground:#7a6540;
+    --type-flying:#5f6480;   --type-psychic:#96566a;  --type-bug:#5f6b33;
+    --type-rock:#6d6246;     --type-ghost:#5f5570;    --type-dragon:#5b5a91;
+    --type-dark:#544c46;     --type-steel:#62666c;    --type-fairy:#8a5468;
   }
-  :root[data-theme="light"] .rail-tab.active{color:#f6f0e2}
+  /* En clair, le plein actif est l'encre : son texte passe au crème. */
+  :root[data-theme="light"] .rail-tab.active,:root[data-theme="light"] .filter-chip.active{color:#f6f0e2}
 
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{
@@ -184,7 +192,8 @@
   .cell.has:hover .cell-no{opacity:0}
   .cell-origin{position:absolute;left:10px;top:8px;font-family:var(--f-data);font-size:10px;color:var(--gold);opacity:0;transition:opacity .16s;z-index:2}
   .cell.has:hover .cell-origin{opacity:1}
-  .cell-pill{position:absolute;right:8px;top:7px;z-index:2;font-family:var(--f-ui);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:999px}
+  /* Serrée : en libellé complet (« Peu commun »), elle doit tenir à côté du numéro dans une case de 120 px. */
+  .cell-pill{position:absolute;right:7px;top:7px;z-index:2;font-family:var(--f-ui);font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 6px;border-radius:999px;white-space:nowrap}
   .cell-pill.u{background:rgba(127,181,154,.14);color:var(--u-text)}
   .cell-pill.r{background:rgba(215,117,106,.16);color:var(--r-text)}
   .cell-pill.l{background:rgba(212,176,106,.2);color:var(--l-text)}
@@ -194,6 +203,10 @@
   /* Silhouette éteinte : la case vide se lit comme un emplacement, pas comme une erreur. */
   .cell.ghost img{filter:grayscale(1) brightness(.3) contrast(1.1);opacity:.45}
   .cell.ghost .cell-no{color:#4a423b}
+  /* En clair, la silhouette s'éclaircit au lieu de s'assombrir : un gris foncé sur papier
+     crierait plus fort que les cases capturées. */
+  :root[data-theme="light"] .cell.ghost img{filter:grayscale(1) brightness(1.3) contrast(.55);opacity:.4}
+  :root[data-theme="light"] .cell.ghost .cell-no{color:#a39684}
 
   /* ───────── fiche ───────── */
   .scrim{position:fixed;inset:0;z-index:40;background:var(--scrim);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -224,6 +237,7 @@
   .zoom-card .pkc-art img{width:172px;height:172px}
   .zoom-card .pkc-name{font-size:25px}
   .zoom-card .pkc-lab-title{font-size:14.5px}
+  .zoom-card .pkc-mark{font-size:46px}
   .zoom-hint{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-3)}
 
   .panel-plate{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--fg-3)}
