@@ -56,7 +56,7 @@ describe('feuille de style', () => {
   })
 
   it('pose la palette Vitrine sur :root', () => {
-    const racine = regles.find((r) => r.selecteur === ':root')
+    const racine = regles.find((r) => r.selecteur.split(',').map((x) => x.trim()).includes(':root') && /--bg\s*:/.test(r.corps))
     expect(racine.corps).toMatch(/--bg\s*:\s*#14110e/)
     expect(racine.corps).toMatch(/--gold\s*:\s*#d4b06a/)
     expect(racine.corps).toMatch(/--t-r\s*:\s*#d7756a/)
@@ -78,5 +78,29 @@ describe('feuille de style', () => {
   it('n’atténue pas le texte d’une pastille de palier décochée', () => {
     const off = regles.filter((r) => r.selecteur === '.tier-chip:not(.active)')
     expect(off.some(declare('opacity'))).toBe(false)
+  })
+
+  it('redéfinit le décor en thème clair', () => {
+    const clair = regles.find((r) => r.selecteur === ':root[data-theme="light"]')
+    expect(clair).toBeDefined()
+    expect(clair.corps).toMatch(/--bg\s*:\s*#f6f0e2/)
+    expect(clair.corps).toMatch(/--fg\s*:\s*#2c2620/)
+    expect(clair.corps).toMatch(/--gold\s*:\s*#7a5c22/)
+  })
+
+  /**
+   * Le rituel et l'évolution sont des scènes de nuit dans les deux thèmes : s'ils héritaient
+   * des tokens clairs, leur texte passerait à l'encre sur fond noir.
+   */
+  it('garde le rituel et l’évolution en tokens sombres', () => {
+    const scenes = regles.find((r) => r.selecteur.split(',').map((x) => x.trim()).includes('.ritual')
+      && r.selecteur.includes('.evostage') && /--fg\s*:/.test(r.corps))
+    expect(scenes).toBeDefined()
+    expect(scenes.corps).toMatch(/--fg\s*:\s*#efe7d8/)
+  })
+
+  it('ne laisse plus le titre crème écrit en dur dans le décor', () => {
+    const horsScenes = regles.filter((r) => !r.selecteur.includes('.pkc') && !/:root|\.ritual|\.evostage|\.reveal|\.evo-|\.next-btn|\.queue-note|\.fx-/.test(r.selecteur))
+    expect(horsScenes.filter((r) => /#f4ecda/i.test(r.corps)).map((r) => r.selecteur)).toEqual([])
   })
 })
