@@ -102,4 +102,39 @@ describe('feuille de style', () => {
     const horsScenes = regles.filter((r) => !r.selecteur.includes('.pkc') && !/:root|\.ritual|\.evostage|\.reveal|\.evo-|\.next-btn|\.queue-note|\.fx-/.test(r.selecteur))
     expect(horsScenes.filter((r) => /#f4ecda/i.test(r.corps)).map((r) => r.selecteur)).toEqual([])
   })
+
+  describe('lisibilité du thème clair', () => {
+    const clair = () => regles.find((r) => r.selecteur === ':root[data-theme="light"]')
+
+    // Les pastilles de palier et « Évoluables » restent transparentes une fois cochées :
+    // leur passer le texte crème du plein encre les rendait invisibles.
+    it('ne passe au crème que le filtre actif plein, pas les pastilles transparentes', () => {
+      const r = regles.find((x) => x.selecteur.includes('[data-theme="light"]') && x.selecteur.includes('.filter-chip.active'))
+      expect(r.selecteur).toMatch(/:not\(\.tier-chip\)/)
+      expect(r.selecteur).toMatch(/:not\(\.chip-evo\)/)
+    })
+
+    it('redéfinit la couleur d’erreur', () => {
+      expect(clair().corps).toMatch(/--danger\s*:/)
+    })
+
+    // Le scrim du zoom reste noir dans les deux thèmes : son indice ne peut pas lire --fg-3.
+    it('garde l’indice du zoom lisible sur son fond noir', () => {
+      const hint = regles.find((x) => x.selecteur === '.zoom-hint')
+      expect(hint.corps).not.toMatch(/var\(--fg-3\)/)
+    })
+
+    it('assombrit le texte du carton rare en clair', () => {
+      const r = regles.find((x) => x.selecteur === '[data-theme="light"] .pkc[data-tier="r"]')
+      expect(r.corps).toMatch(/--t-r\s*:/)
+      expect(r.corps).toMatch(/--card-ink-2\s*:/)
+    })
+
+    // Un contour crème écrit en dur disparaît sur le papier : il passe par un token.
+    it('ne laisse aucun contour crème écrit en dur dans le décor', () => {
+      const fautifs = regles.filter((x) => !/:root|\.pkc|\.ritual|\.evostage|\.reveal|\.next-btn|\.queue-note/.test(x.selecteur)
+        && /border[^;]*rgba\(239,\s*230,\s*207/.test(x.corps)).map((x) => x.selecteur)
+      expect(fautifs).toEqual([])
+    })
+  })
 })

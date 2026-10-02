@@ -10,6 +10,7 @@
     --panel-bg:linear-gradient(180deg,#1b1714,#120f0d);
     --note:#c9bca7;
     --u-text:#9fd0b6; --r-text:#f0a79b; --l-text:#e8cc8e; --s-text:#e2cdf3;
+    --line-strong:rgba(239,230,207,.12); --line-strong-hi:rgba(239,230,207,.28);
     --bg:#14110e;
     --surface:#211c18;
     --surface-hi:#2b2520;
@@ -54,6 +55,7 @@
     --fg-title:#2c2620; --header-bg:rgba(246,240,226,.97); --scrim:rgba(44,38,32,.45);
     --panel-bg:linear-gradient(180deg,#fbf6ea,#f3ead6); --note:#5a5044;
     --u-text:#3f5d38; --r-text:#8f3427; --l-text:#6b4d15; --s-text:#6a3f94;
+    --line-strong:rgba(44,38,32,.35); --line-strong-hi:rgba(44,38,32,.55); --danger:#a63d2f;
     --iris:radial-gradient(circle, rgba(143,91,196,.45), rgba(63,191,149,.2) 45%, transparent 70%);
     /* Les teintes de type de la version parchemin : elles étaient faites pour un fond clair. */
     --type-normal:#6f675c;   --type-fire:#a8552f;     --type-water:#3f5f7a;
@@ -64,7 +66,7 @@
     --type-dark:#544c46;     --type-steel:#62666c;    --type-fairy:#8a5468;
   }
   /* En clair, le plein actif est l'encre : son texte passe au crème. */
-  :root[data-theme="light"] .rail-tab.active,:root[data-theme="light"] .filter-chip.active{color:#f6f0e2}
+  :root[data-theme="light"] .rail-tab.active,:root[data-theme="light"] .filter-chip.active:not(.tier-chip):not(.chip-evo){color:#f6f0e2}
 
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{
@@ -95,7 +97,7 @@
   .wordmark{font-family:var(--f-title);font-weight:300;font-size:30px;letter-spacing:-.02em;line-height:1;color:var(--fg-title)}
   .wordmark i{font-weight:600;color:var(--gold)}
   .rail-sub{margin-top:7px}
-  .rail-nav{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(239,230,207,.05);border:1px solid rgba(239,230,207,.08)}
+  .rail-nav{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(239,230,207,.05);border:1px solid var(--line-strong)}
   .rail-tab{font-family:var(--f-ui);font-size:12px;font-weight:600;letter-spacing:.04em;padding:8px 16px;border-radius:999px;
     border:0;background:transparent;color:var(--fg-2);cursor:pointer;transition:background .16s,color .16s}
   .rail-tab:hover{color:var(--fg)}
@@ -141,18 +143,18 @@
   .toolbar-sep{width:1px;height:20px;background:var(--line);margin:0 4px}
   .toolbar-grow{flex:1}
   .filter-group{display:flex;gap:6px;flex-wrap:wrap}
-  .tray-search-wrap{display:flex;align-items:center;gap:8px;border:1px solid rgba(239,230,207,.12);border-radius:999px;padding:0 14px;height:38px;width:220px;color:var(--fg-3)}
+  .tray-search-wrap{display:flex;align-items:center;gap:8px;border:1px solid var(--line-strong);border-radius:999px;padding:0 14px;height:38px;width:220px;color:var(--fg-3)}
   .tray-search-wrap:focus-within{border-color:var(--gold)}
   .tray-search{border:0;outline:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;width:100%}
   .tray-search::placeholder{color:var(--fg-3)}
   /* Coché vs non coché doit se lire d'un regard : plein crème contre contour discret. */
   .filter-chip{
     font-family:var(--f-ui);font-size:12px;font-weight:600;
-    padding:0 13px;height:34px;border:1px solid rgba(239,230,207,.12);border-radius:999px;background:transparent;
+    padding:0 13px;height:34px;border:1px solid var(--line-strong);border-radius:999px;background:transparent;
     color:var(--fg-2);cursor:pointer;display:inline-flex;align-items:center;gap:7px;
     transition:border-color .15s,color .15s,background-color .15s;
   }
-  .filter-chip:hover{color:var(--fg);border-color:rgba(239,230,207,.24)}
+  .filter-chip:hover{color:var(--fg);border-color:var(--line-strong-hi)}
   .filter-chip.active{background:var(--cream);border-color:var(--cream);color:var(--on-gold)}
   .filter-chip:focus-visible,.filter-reset:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   /* Le palier garde son point de couleur coché ou non : c'est lui qu'on cherche du regard. */
@@ -238,7 +240,8 @@
   .zoom-card .pkc-name{font-size:25px}
   .zoom-card .pkc-lab-title{font-size:14.5px}
   .zoom-card .pkc-mark{font-size:46px}
-  .zoom-hint{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-3)}
+  /* Le fond du zoom reste noir dans les deux thèmes : l'indice garde une couleur claire fixe. */
+  .zoom-hint{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#9a8d7a}
 
   .panel-plate{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--fg-3)}
   .panel-name{font-family:var(--f-title);font-size:46px;font-weight:300;letter-spacing:-.02em;line-height:1;margin:12px 0 16px;color:var(--fg-title)}
@@ -347,8 +350,8 @@
   .picker-row{cursor:pointer}
   .picker-row input{margin:0;accent-color:var(--gold)}
   .picker-actions{display:flex;gap:10px;margin-top:14px}
-  .cancel-btn{border:1px solid rgba(239,230,207,.18);border-radius:999px;background:transparent;color:var(--fg-2);font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:14px 22px;cursor:pointer}
-  .cancel-btn:hover{color:var(--fg);border-color:rgba(239,230,207,.32)}
+  .cancel-btn{border:1px solid var(--line-strong);border-radius:999px;background:transparent;color:var(--fg-2);font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:14px 22px;cursor:pointer}
+  .cancel-btn:hover{color:var(--fg);border-color:var(--line-strong-hi)}
   .muted{color:var(--fg-2);font-size:13px;line-height:1.6}
   .muted b{color:var(--fg)}
 
@@ -454,7 +457,8 @@
 
   /* rare — le carton prend le cuivre */
   .pkc[data-tier="r"]{--card-a:#4a2a20;--card-b:#24140f;--card-c:#3a2018;--card-edge:rgba(215,117,106,.5)}
-  [data-theme="light"] .pkc[data-tier="r"]{--card-a:#f2dcb0;--card-b:#e6c98e;--card-c:#d6b273;--card-edge:#a8813f}
+  /* Sur le carton ocre, le texte s'assombrit pour tenir 4,5:1 jusqu'en bas de carte. */
+  [data-theme="light"] .pkc[data-tier="r"]{--card-a:#f2dcb0;--card-b:#e6c98e;--card-c:#d6b273;--card-edge:#a8813f;--t-r:#7f2c21;--card-ink-2:#5a5044}
   .pkc[data-tier="r"] .pkc-frame{inset:9px;border-radius:5px;border:1px solid color-mix(in srgb,var(--t-r) 80%,transparent)}
   .pkc[data-tier="r"] .pkc-corner{border-color:var(--t-r);opacity:.9}
   .pkc[data-tier="r"] .pkc-sheen{z-index:5;opacity:calc(.4 * var(--pkc-light,1));
@@ -463,7 +467,7 @@
 
   /* légendaire — or guilloché, double dorure */
   .pkc[data-tier="l"]{--card-a:#3a2f1c;--card-b:#1b150c;--card-c:#2e2516;--card-edge:rgba(212,176,106,.75)}
-  [data-theme="light"] .pkc[data-tier="l"]{--card-a:#fbf0d2;--card-b:#f2e2b4;--card-c:#e4d09b;--card-edge:#a8813f}
+  [data-theme="light"] .pkc[data-tier="l"]{--card-a:#fbf0d2;--card-b:#f2e2b4;--card-c:#e4d09b;--card-edge:#a8813f;--t-l:#6b4d15}
   .pkc[data-tier="l"] .pkc-bg{z-index:1;opacity:.55;
     background-image:repeating-conic-gradient(from 0deg at 50% 46%,color-mix(in srgb,var(--t-l) 40%,transparent) 0 2deg,transparent 2deg 8deg),
                      radial-gradient(circle at 50% 46%,color-mix(in srgb,var(--t-l) 25%,transparent),transparent 62%)}
@@ -632,8 +636,8 @@
   .btn-solid{border:0;border-radius:999px;background:var(--gold-btn);color:var(--on-gold);font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.18em;text-transform:uppercase;padding:16px 28px;cursor:pointer;box-shadow:0 10px 30px rgba(212,176,106,.25)}
   .btn-solid:hover{filter:brightness(1.06)}
   .btn-solid:disabled{opacity:.6;cursor:default}
-  .btn-ghost{border:1px solid rgba(239,230,207,.18);border-radius:999px;background:transparent;color:var(--fg-2);font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:13px 22px;cursor:pointer}
-  .btn-ghost:hover{color:var(--fg);border-color:rgba(239,230,207,.32)}
+  .btn-ghost{border:1px solid var(--line-strong);border-radius:999px;background:transparent;color:var(--fg-2);font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:13px 22px;cursor:pointer}
+  .btn-ghost:hover{color:var(--fg);border-color:var(--line-strong-hi)}
   .btn-solid:focus-visible,.btn-ghost:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .banner{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid;border-radius:8px;margin-top:22px;font-size:13px;line-height:1.5}
   .banner.err{border-color:rgba(224,122,108,.5);background:rgba(224,122,108,.08);color:var(--fg)}
