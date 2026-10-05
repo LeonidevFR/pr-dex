@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
+import { formatDate, formatShortDate } from '../lib/dates.js'
 import PokeCard from './PokeCard.vue'
 import SPECIES_INFO from '../../shared/species-info.json'
 
@@ -89,8 +90,10 @@ const targets = computed(() => {
   return to === null ? [] : Array.isArray(to) ? to : [to]
 })
 const pad = (n) => String(n).padStart(3, '0')
-// « 10 avr. » : la vignette n'a la place que pour le jour et le mois.
-const shortDate = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+const shortDate = formatShortDate
+// La référence sans son hash de commit (« moi/atlas#142 · a3f8c21 » → « moi/atlas#142 ») ;
+// sans référence, le nom de la source reste le seul repère.
+const journalRef = (e) => (e.ref ? e.ref.split(' · ')[0] : e.source)
 // Le numéro de PR quand il y en a un ; sinon la source, et « évolution » pour une carte fabriquée.
 const shortRef = (e) => (e.via === 'catch' ? (e.ref?.match(/#\d+/)?.[0] ?? e.source) : 'évolution')
 // La date de la toute première capture : le journal est dans l'ordre d'arrivée, mais une
@@ -124,7 +127,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         </div>
         <div class="sheet-main">
           <div class="panel-top">
-            <span class="panel-plate">Nº {{ pad(id) }}<template v-if="caught"> · {{ availableCopies }} carte{{ availableCopies > 1 ? 's' : '' }}</template></span>
+            <span class="panel-plate">Nº {{ pad(id) }}</span>
             <h2 class="panel-name">{{ caught ? species.name : '—————' }}</h2>
             <div class="panel-chips">
               <span class="chip">{{ TIER_LABEL[species.tier] }}</span>
@@ -141,8 +144,8 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
           <!-- Trois chiffres d'un coup d'œil, avant le détail des sections. -->
           <dl v-if="caught" class="sheet-facts">
             <div><dt class="eyebrow">Type</dt><dd>{{ typeNames || '—' }}</dd></div>
-            <div><dt class="eyebrow">Bonbons</dt><dd>{{ candies }}<small v-if="species.cost"> / {{ species.cost }}</small></dd></div>
-            <div><dt class="eyebrow">Première capture</dt><dd class="mono">{{ firstDate ?? '—' }}</dd></div>
+            <div><dt class="eyebrow">Cartes</dt><dd>{{ availableCopies }}</dd></div>
+            <div><dt class="eyebrow">Première capture</dt><dd>{{ firstDate ? formatDate(firstDate) : '—' }}</dd></div>
           </dl>
 
       <div v-if="!caught" class="sect">
@@ -188,13 +191,12 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             :href="e.via === 'catch' ? e.url : null"
             target="_blank" rel="noopener"
           >
-            <span v-if="e.via === 'catch'" class="log-sha">{{ e.source }}</span>
-            <span v-else class="log-evo">Évolution</span>
+            <span v-if="e.via !== 'catch'" class="log-evo">Évolution</span>
             <span class="log-title">
               {{ e.via === 'catch' ? e.label : 'Évolué depuis ' + DEX[e.from].name }}
-              <span v-if="e.via === 'catch' && e.ref" class="log-repo"> · {{ e.ref }}</span>
+              <span v-if="e.via === 'catch'" class="log-repo"> · {{ journalRef(e) }}</span>
             </span>
-            <span class="log-date">{{ e.date }}</span>
+            <span class="log-date">{{ formatDate(e.date) }}</span>
           </component>
         </div>
       </div>
@@ -214,7 +216,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               v-if="targets.length === 1" class="evo-btn" :disabled="!canEvolve"
               @click="startPicking(targets[0])"
             >
-              Faire évoluer en {{ DEX[targets[0]].name }} · {{ species.cost }} bonbons
+              Choisir la carte à faire évoluer en {{ DEX[targets[0]].name }}
             </button>
           </div>
           <div v-if="targets.length > 1" class="evo-choices">

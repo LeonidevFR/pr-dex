@@ -56,7 +56,7 @@ describe('dos', () => {
     const w = mountCard({ provenance })
     expect(w.find('.pkc-lab-ref').text()).toBe('moi/atlas#142 · a3f8c21')
     expect(w.find('.pkc-lab-title').text()).toBe('fix: race condition sur la file de synchronisation')
-    expect(w.find('.pkc-back-date').text()).toBe('2026-02-03')
+    expect(w.find('.pkc-back-date').text()).toBe('3 févr. 2026')
   })
 
   it('affiche le numéro d’espèce en tête', () => {

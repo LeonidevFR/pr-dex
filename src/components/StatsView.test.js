@@ -37,4 +37,10 @@ describe('StatsView', () => {
     await flushPromises()
     expect(w.find('[data-stat="opened"]').exists()).toBe(true)
   })
+
+  it('s’intitule « Statistiques »', async () => {
+    const w = mountView(vi.fn().mockResolvedValue(ROWS))
+    await flushPromises()
+    expect(w.find('.eyebrow').text()).toBe('Statistiques')
+  })
 })

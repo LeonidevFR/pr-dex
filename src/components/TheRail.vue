@@ -11,7 +11,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
-const TABS = [['collection', 'Collection'], ['team', 'Équipe'], ['stats', 'Mes stats']]
+const TABS = [['collection', 'Collection'], ['team', 'Leaderboard'], ['stats', 'Statistiques']]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
@@ -83,7 +83,7 @@ onUnmounted(() => clearTimeout(cooldownTimer))
       >{{ label }}</button>
     </nav>
     <div class="progress">
-      <span class="progress-count"><b>{{ caughtCount }}</b><i> / 151</i></span>
+      <span class="progress-count"><span class="eyebrow progress-label">Pokédex</span> <b>{{ caughtCount }}</b><i> / 151</i></span>
       <div class="bar"><div class="bar-fill" :style="{ width: (caughtCount / 151 * 100) + '%' }"></div></div>
     </div>
     <div class="rail-tools">

@@ -59,19 +59,19 @@ describe('TheRail', () => {
     it('propose les trois vues dans une navigation', () => {
       const w = mountRail()
       expect(w.find('nav.rail-nav').exists()).toBe(true)
-      expect(w.findAll('.rail-tab').map((t) => t.text())).toEqual(['Collection', 'Équipe', 'Mes stats'])
+      expect(w.findAll('.rail-tab').map((t) => t.text())).toEqual(['Collection', 'Leaderboard', 'Statistiques'])
     })
 
     it('marque l’onglet courant, pour l’œil et pour les lecteurs d’écran', () => {
       const w = mountRail({ view: 'team' })
-      expect(tab(w, 'Équipe').classes()).toContain('active')
-      expect(tab(w, 'Équipe').attributes('aria-current')).toBe('page')
+      expect(tab(w, 'Leaderboard').classes()).toContain('active')
+      expect(tab(w, 'Leaderboard').attributes('aria-current')).toBe('page')
       expect(tab(w, 'Collection').attributes('aria-current')).toBeUndefined()
     })
 
     it('émet navigate avec la vue cliquée', async () => {
       const w = mountRail()
-      await tab(w, 'Mes stats').trigger('click')
+      await tab(w, 'Statistiques').trigger('click')
       expect(w.emitted('navigate')[0]).toEqual(['stats'])
     })
 
@@ -166,5 +166,9 @@ describe('TheRail', () => {
       await w.find('.theme-toggle').trigger('click')
       expect(w.emitted('toggle-theme')).toHaveLength(1)
     })
+  })
+
+  it('nomme le compteur « Pokédex »', () => {
+    expect(mountRail({ caughtCount: 41 }).find('.progress').text()).toContain('Pokédex')
   })
 })

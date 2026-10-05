@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
+import { formatDate } from '../lib/dates.js'
 
 const props = defineProps({
   speciesId: { type: Number, required: true },
@@ -122,7 +123,7 @@ function onLeave() {
       <div class="pkc-back-rosace"></div>
       <div class="pkc-back-head mono">
         <span class="pkc-back-no">Nº {{ secret ? '···' : pad(speciesId) }}</span>
-        <span class="pkc-back-date">{{ provenance.date }}</span>
+        <span class="pkc-back-date">{{ formatDate(provenance.date) }}</span>
       </div>
       <span class="pkc-mark"><i>PR</i>·DEX</span>
       <div class="pkc-lab">

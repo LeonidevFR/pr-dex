@@ -49,7 +49,7 @@ même métal par palier) ; le rituel et l'évolution restent des scènes de nuit
 Dans la grille, un légendaire capturé porte un halo doré, un shiny un halo irisé — un seul
 halo par case, l'irisé l'emporte.
 
-La collection, l'équipe et les stats sont trois vues de la même page, en onglets ; la fiche,
+La collection, le leaderboard et les statistiques sont trois vues de la même page, en onglets ; la fiche,
 le rituel et l'évolution restent des scènes par-dessus. Espace ne retourne une carte que
 depuis la collection.
 
@@ -58,7 +58,7 @@ non « chromatique » ; « Pokédex » pour les espèces déjà vues, « collect
 
 ## Le tableau des scores
 
-L'onglet Équipe ouvre le seul écran où l'on regarde les autres : un classement par espèces
+L'onglet Leaderboard ouvre le seul écran où l'on regarde les autres : un classement par espèces
 distinctes (puis shiny, puis légendaires), et ses propres stats — cartes retournées, tirages par
 palier, espèces shiny sur 151, évolutions.
 

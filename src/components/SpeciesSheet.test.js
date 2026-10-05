@@ -141,12 +141,16 @@ describe('journal des captures', () => {
     expect(row.attributes('rel')).toContain('noopener')
   })
 
-  it('affiche libellé, référence, source et date', () => {
+  // Le journal parle au joueur : le titre, le dépôt et le numéro de PR, une date lisible. Le
+  // hash de commit et le nom de la source n'apportent rien quand la référence existe.
+  it('affiche libellé, référence et date, sans hash ni source', () => {
     const w = mountSheet({ id: 25, entries: [capture('a3f8c21e9b', 25)] })
-    expect(w.text()).toContain('fix: race condition')
-    expect(w.text()).toContain('moi/atlas#142 · a3f8c21')
-    expect(w.text()).toContain('github')
-    expect(w.text()).toContain('2026-02-03')
+    const row = w.find('.log-row')
+    expect(row.text()).toContain('fix: race condition')
+    expect(row.text()).toContain('moi/atlas#142')
+    expect(row.text()).not.toContain('a3f8c21')
+    expect(row.text()).not.toContain('github')
+    expect(row.text()).toContain('3 févr. 2026')
   })
 
   // Une source qui n'expose pas de page par événement laisse `url` vide : la ligne doit
@@ -512,15 +516,18 @@ describe('notice', () => {
 })
 
 describe('les chiffres de la fiche', () => {
-  it('aligne type, bonbons et première capture', () => {
+  it('aligne type, cartes et première capture', () => {
     const w = mountSheet({
       id: 4, entries: [capture('b', 4, { date: '2026-03-01' }), capture('a', 4, { date: '2026-02-03' })],
       candies: 6, caughtIds: new Set([4]),
     })
     const facts = w.findAll('.sheet-facts > div').map((d) => d.text())
     expect(facts[0]).toContain('Feu')
-    expect(facts[1]).toContain('6')
-    expect(facts[2]).toContain('2026-02-03')
+    expect(facts[1]).toContain('Cartes')
+    expect(facts[1]).toContain('2')
+    expect(facts[2]).toContain('3 févr. 2026')
+    // Les bonbons ont leur section, avec la jauge : pas de doublon dans la rangée.
+    expect(w.find('.sheet-facts').text()).not.toContain('Bonbons')
   })
 
   it('n’a pas de chiffres pour une espèce jamais capturée', () => {
@@ -529,7 +536,8 @@ describe('les chiffres de la fiche', () => {
 
   it('dit ce que coûte l’évolution sur le bouton', () => {
     const w = mountSheet({ id: 4, entries: [capture('a', 4)], available: [capture('a', 4)], candies: 9, canEvolve: true, caughtIds: new Set([4]) })
-    expect(w.find('.evo-btn').text()).toBe('Faire évoluer en Reptincel · 8 bonbons')
+    // Le premier bouton ouvre le choix ; seul le second fait évoluer et dit le coût.
+    expect(w.find('.evo-btn').text()).toBe('Choisir la carte à faire évoluer en Reptincel')
   })
 })
 

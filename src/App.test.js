@@ -141,7 +141,7 @@ describe('vues', () => {
 
   it('passe à l’équipe au clic sur l’onglet, et la planche disparaît', async () => {
     const w = await mountApp()
-    await tab(w, 'Équipe').trigger('click')
+    await tab(w, 'Leaderboard').trigger('click')
     await flushPromises()
     expect(w.find('.tray').exists()).toBe(false)
     expect(w.find('.view-title').text()).toContain('Qui a le plus')
@@ -149,15 +149,15 @@ describe('vues', () => {
 
   it('Échap ne change pas de vue', async () => {
     const w = await mountApp()
-    await tab(w, 'Équipe').trigger('click')
+    await tab(w, 'Leaderboard').trigger('click')
     press('Escape')
     await flushPromises()
-    expect(tab(w, 'Équipe').classes()).toContain('active')
+    expect(tab(w, 'Leaderboard').classes()).toContain('active')
   })
 
   it('Espace n’ouvre pas de pli depuis l’équipe', async () => {
     const w = await mountApp()
-    await tab(w, 'Équipe').trigger('click')
+    await tab(w, 'Leaderboard').trigger('click')
     document.activeElement?.blur()
     press(' ')
     await flushPromises()
