@@ -33,11 +33,11 @@ create table public.identities (
 
 alter table public.identities enable row level security;
 
+-- Lecture seule pour le joueur, volontairement : pouvoir réécrire son `handle` suffirait à
+-- prendre celui d'un collègue pas encore inscrit, et `config.repos` à faire compter ses
+-- dépôts personnels. Les lignes s'écrivent par le trigger d'inscription ou à la main.
 create policy "identities_select_own" on public.identities
   for select using (auth.uid() = user_id);
-
-create policy "identities_update_own" on public.identities
-  for update using (auth.uid() = user_id);
 
 -- catches : l'historique des captures, toutes sources confondues. Écrit uniquement par
 -- l'Action (service_role, contourne RLS). Les joueurs n'ont qu'un accès en lecture sur leurs
