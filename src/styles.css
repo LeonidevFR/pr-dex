@@ -558,8 +558,9 @@
      seul, Holo pour le légendaire shiny. Dans le rituel, `secret` force `neutral` : ces règles
      ne s'appliquent jamais avant le retournement. */
   .pkc-back-signs{display:flex;align-items:center;gap:6px;line-height:1}
-  .pkc-back-crown{color:var(--back-gold,#d4b06a)}
-  .pkc-back-star{font-size:22px}
+  /* À l'échelle du logo : la couronne et l'étoile grandissent avec lui sur la carte agrandie. */
+  .pkc-back-crown{width:.8em;height:.8em;color:var(--back-gold,#d4b06a)}
+  .pkc-back-star{font-size:.72em}
   .pkc-back-head,.pkc-lab{z-index:2}
   .pkc-back-sheen{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;
     background:linear-gradient(105deg,transparent 34%,rgba(255,255,255,.45) 48%,transparent 62%);
@@ -587,13 +588,15 @@
   .pkc-back[data-back="iris"]{border-color:transparent}
   .pkc-back[data-back="iris"] .pkc-back-rosace{
     background-image:conic-gradient(from 200deg at calc(var(--px,.5)*100%) calc(var(--py,.5)*88%),#d94f6a,#d99a3f,#e8e06a,#3fbf95,#4a86d9,#8f5bc4,#d94f6a);
-    mix-blend-mode:screen;opacity:.32;
+    mix-blend-mode:screen;opacity:.6;
     -webkit-mask-image:repeating-radial-gradient(circle at 50% 44%,#000 0 1px,transparent 1px 7px);
     mask-image:repeating-radial-gradient(circle at 50% 44%,#000 0 1px,transparent 1px 7px)}
   .pkc-back[data-back="iris"] .pkc-back-sheen{opacity:.35}
+  /* Le numéro et la date passent sur les anneaux irisés : un halo du fond les en détache. */
+  .pkc-back[data-back="iris"] .pkc-back-head{text-shadow:0 0 4px var(--back-b,#0f0c09),0 0 8px var(--back-b,#0f0c09)}
   .pkc-back[data-back="iris"] .pkc-back-star{color:#f3e2ff;text-shadow:0 0 12px rgba(201,167,230,.95)}
   .pkc-back[data-back="iris"]::after{background:linear-gradient(135deg,#d94f6a,#d99a3f,#3fbf95,#4a86d9,#8f5bc4,#d94f6a)}
-  [data-theme="light"] .pkc-back[data-back="iris"] .pkc-back-rosace{mix-blend-mode:multiply;opacity:.45}
+  [data-theme="light"] .pkc-back[data-back="iris"] .pkc-back-rosace{mix-blend-mode:multiply;opacity:.75}
   [data-theme="light"] .pkc-back[data-back="iris"] .pkc-back-star{color:#6a3f94;text-shadow:none}
 
   /* Holo — le légendaire shiny, la carte la plus rare : toute la surface change de matière.

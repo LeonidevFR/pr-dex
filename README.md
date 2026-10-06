@@ -19,7 +19,9 @@ trame pointillée verte en peu commun, carton cuivré en rare, or guilloché en 
 sur un carton noir en thème sombre, ivoire en thème clair. On l'incline au pointeur et la
 lumière balaie le métal. Son dos porte le logo, le numéro, la date et la provenance — la PR
 qui l'a produite et son titre. Dans le rituel, le numéro reste masqué tant que la carte n'est
-pas retournée.
+pas retournée. Le dos change aussi avec la rareté une fois la carte connue :
+Dorure or pour un légendaire, Dorure iris pour un shiny, Holo pour un légendaire shiny. Avant
+le retournement, il reste neutre — rien ne se devine avant le geste.
 
 La fanfare du retournement suit le même barème : **rien du tout en commun**, quelques
 étincelles en peu commun, une onde et une secousse en rare, tout en légendaire. Un
