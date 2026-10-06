@@ -71,7 +71,7 @@ describe('dos', () => {
 
   it('porte le logo, sans les restes du sachet', () => {
     const back = mountCard({ speciesId: 4, provenance }).find('.pkc-back')
-    expect(back.find('.pkc-mark').text()).toBe('PR·DEX')
+    expect(back.find('.pkc-mark-word').text()).toBe('PR·DEX')
     expect(back.text()).not.toContain('ouvert')
     expect(back.text()).not.toContain('Une PR mergée · un tirage')
   })
@@ -181,5 +181,37 @@ describe('inclinaison et retournement', () => {
     const w = mountCard({ tiltable: false })
     await pointeSur(w, 200, 0)
     expect(w.find('.pkc').attributes('style') ?? '').not.toContain('--rx')
+  })
+})
+
+describe('dos rares', () => {
+  const variant = (props) => mountCard({ provenance, ...props }).find('.pkc-back').attributes('data-back')
+
+  it('choisit la variante selon le palier et le shiny', () => {
+    expect(variant({ tier: 'c' })).toBe('neutral')
+    expect(variant({ tier: 'r' })).toBe('neutral')
+    expect(variant({ tier: 'l' })).toBe('gold')
+    expect(variant({ tier: 'u', shiny: true })).toBe('iris')
+    expect(variant({ tier: 'l', shiny: true })).toBe('holo')
+  })
+
+  // Le rituel montre le dos avant le geste : rien de la rareté ne doit y être, même caché.
+  it('reste neutre et sans signe quand la carte est secrète', () => {
+    for (const p of [{ tier: 'l' }, { tier: 'u', shiny: true }, { tier: 'l', shiny: true }]) {
+      const back = mountCard({ provenance, secret: true, ...p }).find('.pkc-back')
+      expect(back.attributes('data-back')).toBe('neutral')
+      expect(back.find('.pkc-back-crown').exists()).toBe(false)
+      expect(back.find('.pkc-back-star').exists()).toBe(false)
+    }
+  })
+
+  it('pose la couronne sur or et holo, l’étoile sur iris et holo', () => {
+    const back = (p) => mountCard({ provenance, ...p }).find('.pkc-back')
+    expect(back({ tier: 'l' }).find('.pkc-back-crown').exists()).toBe(true)
+    expect(back({ tier: 'l' }).find('.pkc-back-star').exists()).toBe(false)
+    expect(back({ tier: 'u', shiny: true }).find('.pkc-back-star').exists()).toBe(true)
+    expect(back({ tier: 'u', shiny: true }).find('.pkc-back-crown').exists()).toBe(false)
+    expect(back({ tier: 'l', shiny: true }).find('.pkc-back-crown').exists()).toBe(true)
+    expect(back({ tier: 'l', shiny: true }).find('.pkc-back-star').exists()).toBe(true)
   })
 })

@@ -41,6 +41,17 @@ const emit = defineEmits(['activate'])
 const species = computed(() => DEX[props.speciesId])
 const pad = (n) => String(n).padStart(3, '0')
 
+// Le dos dit la rareté une fois la carte connue, jamais avant : `secret` le force au neutre.
+// Le plus rare a le dos le plus spectaculaire — Holo pour le légendaire shiny, Dorure pour
+// le légendaire ou le shiny seul — comme la fanfare monte le plafond sans toucher au plancher.
+const backVariant = computed(() => {
+  if (props.secret) return 'neutral'
+  if (props.tier === 'l' && props.shiny) return 'holo'
+  if (props.tier === 'l') return 'gold'
+  if (props.shiny) return 'iris'
+  return 'neutral'
+})
+
 // `null` tant que le pointeur n'a pas touché la carte : elle reste alors strictement à plat,
 // et aucune variable d'inclinaison n'est écrite — c'est ce que vérifie le mode non inclinable.
 const tilt = ref(null)
@@ -119,13 +130,20 @@ function onLeave() {
     </div>
 
     <!-- Le dos, c'est ce qu'on voit avant de savoir : le logo d'abord, puis d'où vient la carte. -->
-    <div v-if="provenance" class="pkc-face pkc-back" :aria-hidden="flipped ? null : 'true'">
+    <div v-if="provenance" class="pkc-face pkc-back" :data-back="backVariant" :aria-hidden="flipped ? null : 'true'">
       <div class="pkc-back-rosace"></div>
+      <div class="pkc-back-sheen"></div>
       <div class="pkc-back-head mono">
         <span class="pkc-back-no">Nº {{ secret ? '···' : pad(speciesId) }}</span>
         <span class="pkc-back-date">{{ formatDate(provenance.date) }}</span>
       </div>
-      <span class="pkc-mark"><i>PR</i>·DEX</span>
+      <span class="pkc-mark">
+        <span v-if="backVariant !== 'neutral'" class="pkc-back-signs">
+          <svg v-if="backVariant !== 'iris'" class="pkc-back-crown" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 18h18l-1.6-10-4.7 4.2L12 5l-2.7 7.2L4.6 8z"></path></svg>
+          <span v-if="backVariant !== 'gold'" class="pkc-back-star" aria-hidden="true">✦</span>
+        </span>
+        <span class="pkc-mark-word"><i>PR</i>·DEX</span>
+      </span>
       <div class="pkc-lab">
         <span class="pkc-lab-eyebrow">Provenance</span>
         <span v-if="provenance.ref" class="pkc-lab-ref mono">{{ provenance.ref }}</span>
