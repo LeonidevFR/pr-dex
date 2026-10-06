@@ -55,8 +55,7 @@ cérémonie » qui apparaît à partir du deuxième paquet.
 
 ## Décisions de la carte et de son rituel
 
-Voir `docs/superpowers/specs/2026-08-11-carte-rituel-design.md` pour le détail. Ce qui ne
-se déduit pas du code :
+Ce qui ne se déduit pas du code :
 
 - **Une seule matière, deux éclairages.** La tentation était de faire une carte
   spectaculaire au tirage (laqué noir, foil irisé) et une carte sobre dans la fiche. Refusé :
