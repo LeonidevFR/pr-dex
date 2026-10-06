@@ -159,8 +159,10 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         <div class="eyebrow sect-h"><span>Lignée</span></div>
         <div class="line">
           <template v-for="(step, i) in line" :key="i">
-            <div v-if="i" class="line-arrow mono" aria-hidden="true">
-              <span>▶</span><span class="line-cost">{{ DEX[line[i - 1][0]].cost }}</span>
+            <!-- Le coût se lit avec la flèche : « 8 bonbons » pour passer à l'étage suivant. -->
+            <div v-if="i" class="line-arrow" aria-hidden="true">
+              <svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1 5h27M23 1l4.5 4L23 9"></path></svg>
+              <span class="line-cost">{{ DEX[line[i - 1][0]].cost }} bonbons</span>
             </div>
             <div class="line-step">
               <div

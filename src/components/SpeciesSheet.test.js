@@ -439,8 +439,10 @@ describe('lignée', () => {
 
   it('porte le coût en bonbons sur chaque flèche', () => {
     const w = withLine(2, [1, 2])
+    // En toutes lettres : « 8 🍬 » sous un triangle ne se lisait pas comme un coût d'évolution.
     const costs = w.findAll('.line-cost').map((c) => c.text())
-    expect(costs).toEqual(['8', '16']) // Bulbizarre → Herbizarre → Florizarre
+    expect(costs).toEqual(['8 bonbons', '16 bonbons']) // Bulbizarre → Herbizarre → Florizarre
+    expect(w.find('.line-arrow').text()).not.toContain('🍬')
   })
 
   it('range les trois évolutions d’Évoli sur un même étage', () => {
