@@ -162,4 +162,11 @@ describe('feuille de style', () => {
     expect(r.corps).toMatch(/max-height\s*:/)
     expect(r.corps).toMatch(/overflow-y\s*:\s*auto/)
   })
+
+  it('donne une matière à chaque dos rare, en sombre et en clair', () => {
+    for (const v of ['gold', 'iris', 'holo']) {
+      expect(regles.some((r) => r.selecteur.includes(`.pkc-back[data-back="${v}"]`) && !r.selecteur.includes('data-theme'))).toBe(true)
+      expect(regles.some((r) => r.selecteur.includes('[data-theme="light"]') && r.selecteur.includes(`.pkc-back[data-back="${v}"]`))).toBe(true)
+    }
+  })
 })
