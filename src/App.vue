@@ -22,6 +22,10 @@ const connected = ref(false)
 const connectError = ref(null)
 const connecting = ref(false)
 const githubLogin = ref('')
+const isDemo = new URLSearchParams(location.search).has('demo')
+// Tant qu'on ne sait pas s'il faut se connecter, on n'affiche pas l'accueil : la démo ou une
+// session déjà ouverte le faisaient clignoter au rechargement, avant la planche.
+const restoring = computed(() => !connectError.value && (isDemo || !ready.value || !!session.value))
 
 const selected = ref(null)
 const ritualEntry = ref(null)
@@ -80,7 +84,7 @@ function disconnect() {
 }
 
 onMounted(async () => {
-  if (new URLSearchParams(location.search).has('demo')) {
+  if (isDemo) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
     githubLogin.value = 'démo'
     const client = loadDemoClient()
@@ -175,8 +179,9 @@ useKeyboardNav({
 </script>
 
 <template>
+  <div v-if="!connected && restoring" class="booting" aria-busy="true"></div>
   <ConnectScreen
-    v-if="!connected"
+    v-else-if="!connected"
     :error="connectError" :busy="connecting"
     @connect="signInWithGithub"
   />

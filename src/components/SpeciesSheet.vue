@@ -168,12 +168,11 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             <div class="line-step">
               <div
                 v-for="s in step" :key="s" class="line-cell"
-                :class="{ here: s === id, unseen: !seen(s) }"
+                :class="{ here: s === id, unseen: !seen(s) }" :aria-current="s === id ? 'true' : null"
                 :style="{ '--tier': TIER_VAR[DEX[s].tier] }"
               >
                 <img :src="spriteUrl(s)" :alt="seen(s) ? DEX[s].name : DEX[s].name + ', jamais rencontré'">
                 <span class="line-name">{{ DEX[s].name }}</span>
-                <span v-if="s === id" class="line-here mono">ici</span>
               </div>
             </div>
           </template>

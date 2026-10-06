@@ -172,3 +172,17 @@ describe('vues', () => {
     expect(w.find('.ritual').exists()).toBe(true)
   })
 })
+
+// Au rechargement, l'écran d'accueil ne doit pas apparaître le temps que la démo (ou la
+// session) se charge : il clignotait une fraction de seconde avant la planche.
+describe('démarrage', () => {
+  it('ne montre jamais l’écran de connexion en mode démo', async () => {
+    wrapper = mount(App, { attachTo: document.body })
+    for (let i = 0; i < 50 && wrapper.findAll('.cell').length === 0; i++) {
+      expect(wrapper.find('.front').exists()).toBe(false)
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    expect(wrapper.findAll('.cell').length).toBeGreaterThan(0)
+  })
+})

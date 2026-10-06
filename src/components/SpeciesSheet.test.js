@@ -419,6 +419,15 @@ describe('lignée', () => {
     expect(here[0].text()).toContain('Herbizarre')
   })
 
+  // La bordure dorée suffit à l'œil ; l'étiquette « ici » alourdissait la case et la rendait
+  // plus haute que ses voisines. Le lecteur d'écran, lui, l'apprend par aria-current.
+  it('marque l’étape courante sans étiquette « ici »', () => {
+    const w = withLine(2, [1, 2])
+    const here = w.find('.line-cell.here')
+    expect(here.attributes('aria-current')).toBe('true')
+    expect(here.text()).not.toMatch(/ici/i)
+  })
+
   // La lignée nomme ses étapes, y compris celles jamais rencontrées : c'est ce qui permet
   // de savoir vers quoi on avance. Ce n'est pas une divulgation — le bouton d'évolution
   // nomme déjà la cible deux sections plus bas, on ne peut pas évoluer à l'aveugle.
