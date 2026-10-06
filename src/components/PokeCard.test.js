@@ -40,11 +40,8 @@ describe('face avant', () => {
   })
 
   // Le cachet de cire est un signe de rareté, pas un ornement systématique.
-  it('ne scelle de cire que les paliers qui la méritent', () => {
-    expect(mountCard({ tier: 'c' }).find('.pkc-wax').exists()).toBe(false)
-    expect(mountCard({ tier: 'u' }).find('.pkc-wax').exists()).toBe(false)
-    expect(mountCard({ tier: 'r' }).find('.pkc-wax').exists()).toBe(true)
-    expect(mountCard({ tier: 'l' }).find('.pkc-wax').exists()).toBe(true)
+  it('n’a plus de cachet de cire, à aucun palier', () => {
+    for (const tier of ['c', 'u', 'r', 'l']) expect(mountCard({ tier }).find('.pkc-wax').exists()).toBe(false)
   })
 })
 
@@ -59,7 +56,24 @@ describe('dos', () => {
     const w = mountCard({ provenance })
     expect(w.find('.pkc-lab-ref').text()).toBe('moi/atlas#142 · a3f8c21')
     expect(w.find('.pkc-lab-title').text()).toBe('fix: race condition sur la file de synchronisation')
-    expect(w.find('.pkc-lab-date').text()).toBe('2026-02-03')
+    expect(w.find('.pkc-back-date').text()).toBe('3 févr. 2026')
+  })
+
+  it('affiche le numéro d’espèce en tête', () => {
+    expect(mountCard({ speciesId: 4, provenance }).find('.pkc-back-no').text()).toBe('Nº 004')
+  })
+
+  it('cache le numéro quand la carte est secrète', () => {
+    const w = mountCard({ speciesId: 4, provenance, secret: true })
+    expect(w.find('.pkc-back-no').text()).toBe('Nº ···')
+    expect(w.find('.pkc-back').text()).not.toContain('004')
+  })
+
+  it('porte le logo, sans les restes du sachet', () => {
+    const back = mountCard({ speciesId: 4, provenance }).find('.pkc-back')
+    expect(back.find('.pkc-mark-word').text()).toBe('PR·DEX')
+    expect(back.text()).not.toContain('ouvert')
+    expect(back.text()).not.toContain('Une PR mergée · un tirage')
   })
 
   // Une source peut n'avoir aucune référence courte à donner — le pli scellé gère déjà ce cas,
@@ -167,5 +181,37 @@ describe('inclinaison et retournement', () => {
     const w = mountCard({ tiltable: false })
     await pointeSur(w, 200, 0)
     expect(w.find('.pkc').attributes('style') ?? '').not.toContain('--rx')
+  })
+})
+
+describe('dos rares', () => {
+  const variant = (props) => mountCard({ provenance, ...props }).find('.pkc-back').attributes('data-back')
+
+  it('choisit la variante selon le palier et le shiny', () => {
+    expect(variant({ tier: 'c' })).toBe('neutral')
+    expect(variant({ tier: 'r' })).toBe('neutral')
+    expect(variant({ tier: 'l' })).toBe('gold')
+    expect(variant({ tier: 'u', shiny: true })).toBe('iris')
+    expect(variant({ tier: 'l', shiny: true })).toBe('holo')
+  })
+
+  // Le rituel montre le dos avant le geste : rien de la rareté ne doit y être, même caché.
+  it('reste neutre et sans signe quand la carte est secrète', () => {
+    for (const p of [{ tier: 'l' }, { tier: 'u', shiny: true }, { tier: 'l', shiny: true }]) {
+      const back = mountCard({ provenance, secret: true, ...p }).find('.pkc-back')
+      expect(back.attributes('data-back')).toBe('neutral')
+      expect(back.find('.pkc-back-legend').exists()).toBe(false)
+      expect(back.find('.pkc-back-star').exists()).toBe(false)
+    }
+  })
+
+  it('pose la gemme sur or et holo, l’étoile sur iris et holo', () => {
+    const back = (p) => mountCard({ provenance, ...p }).find('.pkc-back')
+    expect(back({ tier: 'l' }).find('.pkc-back-legend.lucide-gem').exists()).toBe(true)
+    expect(back({ tier: 'l' }).find('.pkc-back-star').exists()).toBe(false)
+    expect(back({ tier: 'u', shiny: true }).find('.pkc-back-star.lucide-sparkle').exists()).toBe(true)
+    expect(back({ tier: 'u', shiny: true }).find('.pkc-back-legend').exists()).toBe(false)
+    expect(back({ tier: 'l', shiny: true }).find('.pkc-back-legend').exists()).toBe(true)
+    expect(back({ tier: 'l', shiny: true }).find('.pkc-back-star').exists()).toBe(true)
   })
 })

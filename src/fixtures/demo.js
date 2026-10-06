@@ -130,6 +130,13 @@ export function demoCatches() {
     'moi/atlas', 225, 'perf: cache des agrégats du dashboard', '2026-07-19', 146, false,
   ))
 
+  // Un Mewtwo shiny, déjà ouvert : sans légendaire shiny, la démo ne montrerait jamais le dos
+  // Holo, réservé à la carte la plus rare du jeu. Inséré avant la file pour rester capturé.
+  drawn.splice(-3, 0, ghCatch(
+    'ev3m3wtw0sh1ny0000000000000000000000000',
+    'moi/atlas', 241, 'feat: classement d’équipe', '2026-07-20', 150, true,
+  ))
+
   // Quatre captures de la seconde source déjà ouvertes, insérées avant la file d'attente…
   drawn.splice(-3, 0, ...FAKE_CRM.slice(0, -1).map((c) => crmCatch(...c)))
 

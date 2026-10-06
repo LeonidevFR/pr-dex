@@ -46,6 +46,17 @@ const retourner = async (w) => {
 const reveler = retourner
 
 describe('la carte au repos', () => {
+  it('montre le dos neutre d’un légendaire shiny avant le retournement', () => {
+    const w = mountRitual({ entry: entryOf({ species: 150, shiny: true }) })
+    expect(w.find('.pkc-back').attributes('data-back')).toBe('neutral')
+    expect(w.find('.pkc-back-legend').exists()).toBe(false)
+    expect(w.find('.pkc-back-star').exists()).toBe(false)
+  })
+
+  it('ne dévoile pas le numéro au dos avant le retournement', () => {
+    expect(mountRitual().find('.pkc-back-no').text()).toBe('Nº ···')
+  })
+
   it('est là dès l’ouverture, dos visible, et ne divulgue rien', () => {
     const w = mountRitual()
     expect(w.findComponent({ name: 'PokeCard' }).props('flipped')).toBe(true)
@@ -218,7 +229,7 @@ describe('chromatique', () => {
     expect(w.find('.pkc').classes()).toContain('is-shiny')
 
     await retourner(w)
-    expect(w.find('.reveal-banner').text()).toContain('Chromatique')
+    expect(w.find('.reveal-banner').text()).toContain('Shiny')
     // Pikachu est commun : sans traitement particulier, un chromatique commun serait muet.
     // Il relève le plancher de la fanfare, sinon on tairait la seule chose rare du tirage.
     expect(w.findAll('.fx-spark').length).toBeGreaterThan(0)
@@ -228,7 +239,7 @@ describe('chromatique', () => {
   it('prime le chromatique sur le légendaire dans le bandeau', async () => {
     const w = mountRitual({ entry: entryOf({ species: 144, shiny: true }) })
     await reveler(w)
-    expect(w.find('.reveal-banner').text()).toContain('Chromatique')
+    expect(w.find('.reveal-banner').text()).toContain('Shiny')
   })
 })
 
@@ -238,13 +249,13 @@ describe('espèce jamais rencontrée', () => {
   it('marque la révélation d’une espèce nouvelle', async () => {
     const w = await reveal({ isNew: true })
     expect(w.find('.new-chip').text()).toBe('Nouveau')
-    expect(w.find('.reveal-note').text()).toContain('Première entrée à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Nouveau dans ton Pokédex')
   })
 
   it('ne marque rien pour une espèce déjà à la planche', async () => {
     const w = await reveal({ isNew: false })
     expect(w.find('.new-chip').exists()).toBe(false)
-    expect(w.find('.reveal-note').text()).toContain('Déjà à la planche')
+    expect(w.find('.reveal-note').text()).toContain('Déjà dans ton Pokédex')
   })
 
   it('ne suppose rien quand la propriété est absente', async () => {
@@ -271,30 +282,35 @@ describe('suite de la file', () => {
   it('propose le retour quand c’est le dernier', async () => {
     const w = mountRitual({ remaining: 1 })
     await reveler(w)
-    expect(w.find('.next-btn').text()).toBe('Retour à la planche')
+    expect(w.find('.next-btn').text()).toBe('Retour à la collection')
     expect(w.findAll('button.queue-note')).toHaveLength(0)
   })
 
-  it('décompte les plis restants après celui-ci', async () => {
+  it('décompte les cartes restantes après celle-ci', async () => {
     const w = mountRitual({ remaining: 3 })
     await reveler(w)
-    expect(w.find('.next-btn').text()).toContain('2 restants')
+    expect(w.find('.next-btn').text()).toBe('Carte suivante · 2 restantes')
   })
 
-  it('accorde le singulier à un seul pli restant', async () => {
+  it('accorde le singulier à une seule carte restante', async () => {
     const w = mountRitual({ remaining: 2 })
     await reveler(w)
-    expect(w.find('.next-btn').text()).toContain('1 restant')
-    expect(w.find('.next-btn').text()).not.toContain('restants')
+    expect(w.find('.next-btn').text()).toBe('Carte suivante · 1 restante')
   })
 
-  it('émet next et skip-all', async () => {
+  // Chaque carte se retourne : le raccourci qui les ouvrait toutes d'un coup a été retiré.
+  it('ne propose plus de tout retourner sans cérémonie', async () => {
+    const w = mountRitual({ remaining: 3 })
+    await reveler(w)
+    expect(w.find('button.queue-note').exists()).toBe(false)
+    expect(w.text()).not.toContain('sans cérémonie')
+  })
+
+  it('émet next', async () => {
     const w = mountRitual({ remaining: 3 })
     await reveler(w)
     await w.find('.next-btn').trigger('click')
     expect(w.emitted('next')).toBeTruthy()
-    await w.find('button.queue-note').trigger('click')
-    expect(w.emitted('skip-all')).toBeTruthy()
   })
 })
 
@@ -321,7 +337,7 @@ describe('fermeture anticipée', () => {
 })
 
 describe('intégration — file réelle (App.vue ne doit pas décompter sous le composant)', () => {
-  it('annonce le bon nombre de plis restants une fois le sceau brisé', async () => {
+  it('annonce le bon nombre de cartes restantes une fois la première retournée', async () => {
     const col = useCollection()
     await col.load(loadDemoClient())
     const entry = col.dex.pending.value[0]
@@ -337,7 +353,7 @@ describe('intégration — file réelle (App.vue ne doit pas décompter sous le 
     const attendu = remaining.value - 1
     await reveler(w)
 
-    expect(w.find('.next-btn').text()).toContain(`${attendu} restants`)
+    expect(w.find(".next-btn").text()).toContain(`${attendu} restantes`)
     expect(col.dex.pending.value).toHaveLength(attendu)
   })
 

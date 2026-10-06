@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { playerStats, rankPlayers, myStats } from './leaderboard.js'
+import { playerStats, rankPlayers, myStats, teamTotals } from './leaderboard.js'
 
 const TODAY = '2026-09-30'
 const c = (id, species, { shiny = false, date = '2026-06-01' } = {}) =>
@@ -12,6 +12,11 @@ describe('playerStats', () => {
     const s = playerStats([c('a', 1), c('b', 1), c('c', 4)], [{ species: 2, from: 1, date: '2026-06-02', fromKey: 'github:a' }], TODAY)
     expect(s.species).toBe(3)
     expect(s.copies).toBe(3)
+  })
+
+  it('compte les espèces shiny, évolutions comprises', () => {
+    const s = playerStats([c('a', 1, { shiny: true }), c('b', 1, { shiny: true })], [{ species: 2, from: 1, date: '2026-06-02', fromKey: 'github:a' }], TODAY)
+    expect(s.shinySpecies).toBe(2)
   })
 
   it('un shiny évolué compte une seule fois', () => {
@@ -100,7 +105,8 @@ describe('myStats', () => {
     expect(s.opened).toBe(2)
     expect(s.evolved).toBe(1)
     expect(s.species).toBe(3)
-    expect(s.shiny).toEqual({ count: 1, oneIn: 2 })
+    // Chenipan shiny a évolué en Chrysacier : deux espèces shiny, un seul exemplaire tiré.
+    expect(s.shiny).toEqual({ species: 2, copies: 1 })
   })
 
   it('donne les tirages par palier avec le nombre et la part, dans l’ordre des paliers', () => {
@@ -109,12 +115,26 @@ describe('myStats', () => {
     expect(s.tiers.find((t) => t.tier === 'r')).toEqual({ tier: 'r', label: 'Rare', count: 1, pct: 25 })
   })
 
-  it('n’a pas de division par zéro sans shiny', () => {
+  it('vaut zéro sans shiny', () => {
     const s = myStats([row('me', [c('1', 1)], [], true)], TODAY)
-    expect(s.shiny).toEqual({ count: 0, oneIn: null })
+    expect(s.shiny).toEqual({ species: 0, copies: 0 })
   })
 
   it('vaut null quand aucune ligne n’est is_me', () => {
     expect(myStats([row('a', [c('1', 1)])], TODAY)).toBeNull()
+  })
+})
+
+describe('teamTotals', () => {
+  it('somme plis ouverts et shiny, et dédoublonne le Pokédex collectif', () => {
+    const t = teamTotals([
+      row('a', [c('1', 1), c('2', 4, { shiny: true })]),
+      row('b', [c('3', 4), c('4', 7)], [], true),
+    ], TODAY)
+    expect(t).toEqual({ collective: 3, opened: 4, shiny: 1 })
+  })
+
+  it('vaut zéro partout sans joueur', () => {
+    expect(teamTotals([], TODAY)).toEqual({ collective: 0, opened: 0, shiny: 0 })
   })
 })

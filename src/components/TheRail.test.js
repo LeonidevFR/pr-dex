@@ -14,12 +14,6 @@ describe('TheRail', () => {
     expect(w.emitted('sync')).toHaveLength(1)
   })
 
-  it('émet leaderboard au clic sur le trophée', async () => {
-    const w = mountRail()
-    await w.find('.trophy').trigger('click')
-    expect(w.emitted('leaderboard')).toHaveLength(1)
-  })
-
   it('désactive le bouton de synchronisation pendant le chargement', () => {
     const w = mountRail({ syncing: true })
     expect(w.find('.sync').attributes('disabled')).toBeDefined()
@@ -59,31 +53,32 @@ describe('TheRail', () => {
     })
   })
 
-  describe('bouton de filtre', () => {
-    it('émet toggle-filters au clic', async () => {
+  describe('onglets', () => {
+    const tab = (w, label) => w.findAll('.rail-tab').find((t) => t.text() === label)
+
+    it('propose les trois vues dans une navigation', () => {
       const w = mountRail()
-      await w.find('.filter-toggle').trigger('click')
-      expect(w.emitted('toggle-filters')).toHaveLength(1)
+      expect(w.find('nav.rail-nav').exists()).toBe(true)
+      expect(w.findAll('.rail-tab').map((t) => t.text())).toEqual(['Collection', 'Leaderboard', 'Statistiques'])
     })
 
-    it('porte une vraie icône (svg), pas un glyphe texte', () => {
+    it('marque l’onglet courant, pour l’œil et pour les lecteurs d’écran', () => {
+      const w = mountRail({ view: 'team' })
+      expect(tab(w, 'Leaderboard').classes()).toContain('active')
+      expect(tab(w, 'Leaderboard').attributes('aria-current')).toBe('page')
+      expect(tab(w, 'Collection').attributes('aria-current')).toBeUndefined()
+    })
+
+    it('émet navigate avec la vue cliquée', async () => {
       const w = mountRail()
-      expect(w.find('.filter-toggle svg').exists()).toBe(true)
+      await tab(w, 'Statistiques').trigger('click')
+      expect(w.emitted('navigate')[0]).toEqual(['stats'])
     })
 
-    it('se marque actif quand le panneau est ouvert', () => {
-      const w = mountRail({ filtersOpen: true })
-      expect(w.find('.filter-toggle').classes()).toContain('active')
-    })
-
-    it('se marque actif quand un filtre est posé, même panneau fermé', () => {
-      const w = mountRail({ filtersOpen: false, filtersActive: true })
-      expect(w.find('.filter-toggle').classes()).toContain('active')
-    })
-
-    it('n’est pas actif sans filtre ni panneau ouvert', () => {
+    it('n’a plus ni filtre ni trophée', () => {
       const w = mountRail()
-      expect(w.find('.filter-toggle').classes()).not.toContain('active')
+      expect(w.find('.filter-toggle').exists()).toBe(false)
+      expect(w.find('.trophy').exists()).toBe(false)
     })
   })
 
@@ -145,5 +140,35 @@ describe('TheRail', () => {
       const w2 = mountRail()
       expect(w2.find('.sync').attributes('disabled')).toBeUndefined()
     })
+  })
+
+  describe('vocabulaire', () => {
+    it('invite à retourner les cartes en attente', () => {
+      expect(mountRail({ pendingCount: 4 }).find('.claim-btn').text()).toBe('Retourner 4')
+    })
+
+    it('dit qu’il n’y a rien à retourner', () => {
+      expect(mountRail({ pendingCount: 0 }).find('.claim-btn').text()).toBe('Rien à retourner')
+    })
+  })
+
+  describe('thème', () => {
+    it('propose de passer au clair depuis le sombre', () => {
+      expect(mountRail({ theme: 'dark' }).find('.theme-toggle').attributes('aria-label')).toBe('Passer au thème clair')
+    })
+
+    it('propose de passer au sombre depuis le clair', () => {
+      expect(mountRail({ theme: 'light' }).find('.theme-toggle').attributes('aria-label')).toBe('Passer au thème sombre')
+    })
+
+    it('émet toggle-theme au clic', async () => {
+      const w = mountRail()
+      await w.find('.theme-toggle').trigger('click')
+      expect(w.emitted('toggle-theme')).toHaveLength(1)
+    })
+  })
+
+  it('nomme le compteur « Pokédex »', () => {
+    expect(mountRail({ caughtCount: 41 }).find('.progress').text()).toContain('Pokédex')
   })
 })

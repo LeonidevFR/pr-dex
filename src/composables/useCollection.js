@@ -89,7 +89,10 @@ export function useCollection() {
   }
 
   const REFRESH_POLL_MS = 5000
-  const REFRESH_ATTEMPTS = 6 // ~30s : le temps qu'un run de l'Action se termine côté GitHub
+  // ~2 min. Un run de l'Action dure de 40 s à 80 s une fois déclenché (mesuré sur pr-dex-data
+  // en octobre 2026) : la fenêtre de 30 s d'avant abandonnait avant que la capture n'arrive, et
+  // le compteur restait figé jusqu'au rechargement de la page.
+  const REFRESH_ATTEMPTS = 24
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
   /**
