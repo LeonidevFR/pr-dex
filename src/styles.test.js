@@ -169,4 +169,21 @@ describe('feuille de style', () => {
       expect(regles.some((r) => r.selecteur.includes('[data-theme="light"]') && r.selecteur.includes(`.pkc-back[data-back="${v}"]`))).toBe(true)
     }
   })
+
+  // Les signes du Holo sont posés au centre de l'arc-en-ciel : si ce centre suit le pointeur,
+  // le fond glisse sous la couronne et l'étoile, et ce sont elles qui ont l'air de bouger.
+  it('garde le centre de l’arc-en-ciel du Holo sur le logo', () => {
+    const holo = regles.filter((r) => /\.pkc-back\[data-back="holo"\]$/.test(r.selecteur))
+    const centres = holo.flatMap((r) => [...r.corps.matchAll(/conic-gradient\(.*? at ([^,]+?),/g)].map((m) => m[1]))
+    expect(centres.length).toBeGreaterThan(0)
+    for (const c of centres) expect(c).not.toMatch(/--p[xy]/)
+  })
+
+  // En clair, la carte shiny reprend le papier pâle d'avant : sur l'ivoire chaud, le spectre
+  // multiplié tirait vers le terne.
+  it('éclaircit le carton d’une carte shiny en clair', () => {
+    const r = regles.find((x) => x.selecteur === '[data-theme="light"] .pkc.is-shiny')
+    expect(r?.corps).toMatch(/--card-a\s*:/)
+    expect(r?.corps).toMatch(/--iris-op\s*:/)
+  })
 })

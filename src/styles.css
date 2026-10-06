@@ -521,6 +521,11 @@
     background-position:calc(var(--px,.5)*100%) calc(var(--py,.5)*100%)}
   .pkc.is-shiny .pkc-iris{opacity:calc(var(--iris-op) * var(--pkc-iris,1))}
   .pkc.scene-night.is-shiny{--pkc-iris:1.5}
+  /* En clair, la carte shiny garde le papier pâle d'avant : multiplié sur l'ivoire chaud, le
+     spectre tirait vers le terne. Les rayons du légendaire s'effacent devant l'irisation. */
+  [data-theme="light"] .pkc.is-shiny{--card-a:#fffdf7;--card-b:#faf4e6;--card-c:#f3ead6;--iris-op:.3}
+  [data-theme="light"] .pkc.scene-night.is-shiny{--pkc-iris:1}
+  [data-theme="light"] .pkc.is-shiny[data-tier="l"] .pkc-bg{opacity:.28}
 
   /* Firefox n'applique `backface-visibility` qu'aux éléments qui portent eux-mêmes un
      transform ; Chromium, lui, se fie au transform accumulé du parent en `preserve-3d`.
@@ -601,10 +606,12 @@
 
   /* Holo — le légendaire shiny, la carte la plus rare : toute la surface change de matière.
      L'arc-en-ciel et le reflet suivent l'inclinaison ; le texte passe à l'encre pour rester
-     lisible dessus, l'étiquette garde un fond plein. */
+     lisible dessus, l'étiquette garde un fond plein. L'arc-en-ciel tourne autour du logo
+     sans s'en écarter : un centre qui suit le pointeur fait glisser le fond sous la couronne
+     et l'étoile, et ce sont elles qui ont l'air de bouger. */
   .pkc-back[data-back="holo"]{border-color:transparent;
     background:radial-gradient(circle at 50% 42%,rgba(255,243,200,.95) 0,rgba(226,195,124,.75) 16%,transparent 46%),
-      conic-gradient(from 200deg at calc(var(--px,.5)*100%) calc(var(--py,.5)*84%),#d94f6a,#d99a3f,#e8e06a,#3fbf95,#4a86d9,#8f5bc4,#d94f6a)}
+      conic-gradient(from calc(200deg + (var(--px,.5) - .5) * 180deg + (var(--py,.5) - .5) * 90deg) at 50% 42%,#d94f6a,#d99a3f,#e8e06a,#3fbf95,#4a86d9,#8f5bc4,#d94f6a)}
   .pkc-back[data-back="holo"] .pkc-back-rosace{
     background-image:repeating-linear-gradient(112deg,rgba(255,255,255,.2) 0 2px,transparent 2px 9px),
       repeating-conic-gradient(from 0deg at 50% 42%,rgba(255,240,190,.3) 0 3deg,transparent 3deg 10deg);
@@ -620,7 +627,7 @@
   /* En clair, le même holo en pastel sur nacre : moins saturé, l'étiquette passe sur ivoire. */
   [data-theme="light"] .pkc-back[data-back="holo"]{
     background:radial-gradient(circle at 50% 42%,rgba(255,250,232,.98) 0,rgba(240,220,170,.8) 18%,transparent 48%),
-      conic-gradient(from 200deg at calc(var(--px,.5)*100%) calc(var(--py,.5)*84%),#f2b8c4,#f2d4a4,#eeeab4,#b4e4cf,#b6cdf0,#d3bde9,#f2b8c4)}
+      conic-gradient(from calc(200deg + (var(--px,.5) - .5) * 180deg + (var(--py,.5) - .5) * 90deg) at 50% 42%,#f2b8c4,#f2d4a4,#eeeab4,#b4e4cf,#b6cdf0,#d3bde9,#f2b8c4)}
   [data-theme="light"] .pkc-back[data-back="holo"] .pkc-lab{background:rgba(251,246,234,.92);border-color:#a8813f}
   [data-theme="light"] .pkc-back[data-back="holo"] .pkc-lab-eyebrow,[data-theme="light"] .pkc-back[data-back="holo"] .pkc-lab-ref{color:#5a5044}
   [data-theme="light"] .pkc-back[data-back="holo"] .pkc-lab-title{color:#2c2620}
