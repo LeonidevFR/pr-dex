@@ -49,7 +49,7 @@ describe('la carte au repos', () => {
   it('montre le dos neutre d’un légendaire shiny avant le retournement', () => {
     const w = mountRitual({ entry: entryOf({ species: 150, shiny: true }) })
     expect(w.find('.pkc-back').attributes('data-back')).toBe('neutral')
-    expect(w.find('.pkc-back-crown').exists()).toBe(false)
+    expect(w.find('.pkc-back-legend').exists()).toBe(false)
     expect(w.find('.pkc-back-star').exists()).toBe(false)
   })
 

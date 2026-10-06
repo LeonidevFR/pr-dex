@@ -258,22 +258,22 @@ describe('TheTray', () => {
       expect(w.findAll('.cell-halo')).toHaveLength(0)
     })
 
-    it('couronne une légendaire capturée', () => {
+    it('marque d’une gemme une légendaire capturée', () => {
       const cell = mountTray({ 144: [entry('a', 144)] }).findAll('.cell')[143]
-      expect(cell.find('.cell-crown').exists()).toBe(true)
-      expect(cell.find('.cell-crown').attributes('aria-label')).toBe('légendaire')
+      expect(cell.find('.cell-legend .lucide-gem').exists()).toBe(true)
+      expect(cell.find('.cell-legend').attributes('aria-label')).toBe('légendaire')
     })
 
-    it('ne couronne pas une légendaire manquante ni une rare', () => {
+    it('ne marque pas une légendaire manquante ni une rare', () => {
       const w = mountTray({ 4: [entry('a', 4)] })
-      expect(w.findAll('.cell')[143].find('.cell-crown').exists()).toBe(false)
-      expect(w.findAll('.cell')[3].find('.cell-crown').exists()).toBe(false)
+      expect(w.findAll('.cell')[143].find('.cell-legend').exists()).toBe(false)
+      expect(w.findAll('.cell')[3].find('.cell-legend').exists()).toBe(false)
     })
 
-    it('montre couronne et étoile sur une légendaire shiny', () => {
+    it('montre gemme et étoile sur une légendaire shiny', () => {
       const cell = mountTray({ 144: [entry('a', 144, { shiny: true })] }).findAll('.cell')[143]
-      expect(cell.find('.cell-crown').exists()).toBe(true)
-      expect(cell.find('.cell-shiny').exists()).toBe(true)
+      expect(cell.find('.cell-legend').exists()).toBe(true)
+      expect(cell.find('.cell-shiny .lucide-sparkle').exists()).toBe(true)
       expect(cell.classes()).toContain('shiny')
     })
 

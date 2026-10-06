@@ -1,4 +1,5 @@
 <script setup>
+import { X } from '@lucide/vue'
 defineProps({ githubLogin: { type: String, required: true } })
 defineEmits(['close', 'disconnect'])
 </script>
@@ -6,7 +7,7 @@ defineEmits(['close', 'disconnect'])
 <template>
   <div class="scrim" @click.self="$emit('close')">
     <div class="panel settings">
-      <button class="x" aria-label="Fermer" @click="$emit('close')">✕</button>
+      <button class="x" aria-label="Fermer" @click="$emit('close')"><X :size="18" aria-hidden="true" /></button>
       <div class="settings-body">
         <span class="panel-plate">Réglages</span>
         <h2 class="panel-name settings-title">Compte</h2>

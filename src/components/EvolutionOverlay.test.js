@@ -36,7 +36,7 @@ const mountEvo = (props) =>
 
 describe('EvolutionOverlay', () => {
   it('nomme les deux formes', () => {
-    expect(mountEvo({}).find('.reveal-name').text()).toBe('Bulbizarre → Herbizarre')
+    expect(mountEvo({}).find('.reveal-name').text()).toBe('Bulbizarre devient Herbizarre')
   })
 
   it('montre les deux sprites', () => {
@@ -65,7 +65,7 @@ describe('EvolutionOverlay', () => {
 
   it('rend chacune des trois évolutions d’Évoli', () => {
     for (const [to, name] of [[134, 'Aquali'], [135, 'Voltali'], [136, 'Pyroli']]) {
-      expect(mountEvo({ from: 133, to }).find('.reveal-name').text()).toBe(`Évoli → ${name}`)
+      expect(mountEvo({ from: 133, to }).find('.reveal-name').text()).toBe(`Évoli devient ${name}`)
     }
   })
 })

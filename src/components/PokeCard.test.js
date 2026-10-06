@@ -200,18 +200,18 @@ describe('dos rares', () => {
     for (const p of [{ tier: 'l' }, { tier: 'u', shiny: true }, { tier: 'l', shiny: true }]) {
       const back = mountCard({ provenance, secret: true, ...p }).find('.pkc-back')
       expect(back.attributes('data-back')).toBe('neutral')
-      expect(back.find('.pkc-back-crown').exists()).toBe(false)
+      expect(back.find('.pkc-back-legend').exists()).toBe(false)
       expect(back.find('.pkc-back-star').exists()).toBe(false)
     }
   })
 
-  it('pose la couronne sur or et holo, l’étoile sur iris et holo', () => {
+  it('pose la gemme sur or et holo, l’étoile sur iris et holo', () => {
     const back = (p) => mountCard({ provenance, ...p }).find('.pkc-back')
-    expect(back({ tier: 'l' }).find('.pkc-back-crown').exists()).toBe(true)
+    expect(back({ tier: 'l' }).find('.pkc-back-legend.lucide-gem').exists()).toBe(true)
     expect(back({ tier: 'l' }).find('.pkc-back-star').exists()).toBe(false)
-    expect(back({ tier: 'u', shiny: true }).find('.pkc-back-star').exists()).toBe(true)
-    expect(back({ tier: 'u', shiny: true }).find('.pkc-back-crown').exists()).toBe(false)
-    expect(back({ tier: 'l', shiny: true }).find('.pkc-back-crown').exists()).toBe(true)
+    expect(back({ tier: 'u', shiny: true }).find('.pkc-back-star.lucide-sparkle').exists()).toBe(true)
+    expect(back({ tier: 'u', shiny: true }).find('.pkc-back-legend').exists()).toBe(false)
+    expect(back({ tier: 'l', shiny: true }).find('.pkc-back-legend').exists()).toBe(true)
     expect(back({ tier: 'l', shiny: true }).find('.pkc-back-star').exists()).toBe(true)
   })
 })

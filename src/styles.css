@@ -196,7 +196,7 @@
     background:linear-gradient(135deg,#d94f6a,#d99a3f,#3fbf95,#4a86d9,#8f5bc4);
     -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
     mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-  .cell-crown{position:absolute;right:9px;bottom:7px;z-index:2;color:var(--gold);line-height:0}
+  .cell-legend{position:absolute;right:9px;bottom:7px;z-index:2;color:var(--gold);line-height:0}
   .cell.legendary .cell-shiny{right:27px}
   .cell img{width:66%;height:66%;object-fit:contain;transition:transform .18s;position:relative;z-index:1}
   .cell img[data-broken]{opacity:.18;filter:grayscale(1)}
@@ -211,8 +211,9 @@
   .cell-pill.r{background:rgba(215,117,106,.16);color:var(--r-text)}
   .cell-pill.l{background:rgba(212,176,106,.2);color:var(--l-text)}
   .cell-dupes{position:absolute;left:10px;bottom:8px;z-index:2;font-family:var(--f-ui);font-size:10px;font-weight:700;color:var(--gold)}
-  .cell-shiny{position:absolute;right:10px;bottom:7px;z-index:2;font-size:12px;color:var(--l-text);text-shadow:0 0 8px rgba(201,167,230,.9)}
-  .cell-evo{position:absolute;right:9px;bottom:8px;z-index:2;width:16px;height:16px;border-radius:50%;background:rgba(127,181,154,.2);color:var(--u-text);display:grid;place-items:center;font-size:10px;font-weight:700}
+  .cell-shiny{position:absolute;right:10px;bottom:7px;z-index:2;line-height:0;color:var(--l-text);filter:drop-shadow(0 0 4px rgba(201,167,230,.9))}
+  .cell-evo{position:absolute;right:9px;bottom:8px;z-index:2;width:16px;height:16px;border-radius:50%;background:rgba(127,181,154,.2);color:var(--u-text);display:grid;place-items:center}
+  .cell-evo svg{width:11px;height:11px}
   /* Silhouette éteinte : la case vide se lit comme un emplacement, pas comme une erreur. */
   .cell.ghost img{filter:grayscale(1) brightness(.3) contrast(1.1);opacity:.45}
   .cell.ghost .cell-no{color:#4a423b}
@@ -257,14 +258,14 @@
   .panel-plate{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--fg-3)}
   .panel-name{font-family:var(--f-title);font-size:46px;font-weight:300;letter-spacing:-.02em;line-height:1;margin:12px 0 16px;color:var(--fg-title)}
   .panel-chips{display:flex;gap:6px;flex-wrap:wrap}
-  .chip{display:inline-block;font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
     padding:6px 12px;border-radius:999px;border:1px solid var(--tier);color:var(--tier);background:transparent}
   .chip.shiny-chip{border-color:#c9a7e6;color:var(--s-text)}
   .chip.new-chip{border-color:var(--u-text);color:var(--u-text)}
   .type-chip{display:inline-block;font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
     padding:6px 12px;border-radius:999px;border:1px solid var(--type);color:var(--type)}
   .x{position:absolute;right:20px;top:18px;z-index:2;width:40px;height:40px;border-radius:50%;
-    border:1px solid rgba(212,176,106,.25);background:transparent;color:var(--gold);font-size:14px;cursor:pointer;line-height:1}
+    border:1px solid rgba(212,176,106,.25);background:transparent;color:var(--gold);font-size:14px;cursor:pointer;line-height:1;display:grid;place-items:center}
   .x:hover{color:var(--fg);background:rgba(212,176,106,.1)}
   .x:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
@@ -370,7 +371,7 @@
   .specimen.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 6px 18px color-mix(in srgb,var(--gold) 25%,transparent)}
   .specimen:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .specimen img{width:56px;height:56px;object-fit:contain}
-  .specimen-shiny{position:absolute;left:8px;top:6px;font-size:12px;color:var(--l-text)}
+  .specimen-shiny{position:absolute;left:8px;top:6px;color:var(--l-text)}
   .specimen-date{font-size:12px;font-weight:600}
   .specimen-ref{font-size:10px;color:var(--fg-3)}
   .picker-actions{display:flex;gap:10px;margin-top:16px}
@@ -449,6 +450,8 @@
     background:linear-gradient(90deg,transparent,var(--tier),transparent)}
   .pkc-bot{padding:10px 15px 14px;display:flex;flex-direction:column;gap:5px;position:relative;z-index:4}
   .pkc-name{font-family:var(--f-display);font-size:20px;font-weight:600;line-height:1;color:var(--card-ink)}
+  .pkc-name-shiny{width:.62em;height:.62em;margin-left:.3em;vertical-align:.02em}
+  .reveal-arrow{width:.6em;height:.6em;margin:0 .25em;vertical-align:.08em;stroke-width:1.5}
   .pkc-tier{font-family:var(--f-label);font-size:8.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--tier)}
 
   /* le halo de la scène nocturne croît avec le palier */
@@ -542,7 +545,7 @@
     padding:18px 16px;justify-content:space-between;align-items:center}
   [data-theme="light"] .pkc-back{--back-a:#fbf3df;--back-b:#efe3c4;--back-gold:#7a5c22}
   .pkc-back-rosace{position:absolute;inset:0;pointer-events:none;
-    background-image:repeating-radial-gradient(circle at 50% 44%,color-mix(in srgb,var(--back-gold,#d4b06a) 14%,transparent) 0 1px,transparent 1px 9px);
+    background-image:repeating-radial-gradient(circle at 50% 44%,transparent 0,color-mix(in srgb,var(--back-gold,#d4b06a) 14%,transparent) .75px,transparent 1.5px 9px);
     -webkit-mask-image:radial-gradient(circle at 50% 44%,#000 38%,transparent 74%);
     mask-image:radial-gradient(circle at 50% 44%,#000 38%,transparent 74%)}
   .pkc-back-head{position:relative;width:100%;display:flex;justify-content:space-between;font-size:9px;color:var(--card-ink-2)}
@@ -564,8 +567,8 @@
      ne s'appliquent jamais avant le retournement. */
   .pkc-back-signs{display:flex;align-items:center;gap:6px;line-height:1}
   /* À l'échelle du logo : la couronne et l'étoile grandissent avec lui sur la carte agrandie. */
-  .pkc-back-crown{width:.8em;height:.8em;color:var(--back-gold,#d4b06a)}
-  .pkc-back-star{font-size:.72em}
+  .pkc-back-legend{width:.8em;height:.8em;color:var(--back-gold,#d4b06a)}
+  .pkc-back-star{width:.66em;height:.66em}
   .pkc-back-head,.pkc-lab{z-index:2}
   .pkc-back-sheen{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;
     background:linear-gradient(105deg,transparent 34%,rgba(255,255,255,.45) 48%,transparent 62%);
@@ -594,15 +597,15 @@
   .pkc-back[data-back="iris"] .pkc-back-rosace{
     background-image:conic-gradient(from 200deg at calc(var(--px,.5)*100%) calc(var(--py,.5)*88%),#d94f6a,#d99a3f,#e8e06a,#3fbf95,#4a86d9,#8f5bc4,#d94f6a);
     mix-blend-mode:screen;opacity:.6;
-    -webkit-mask-image:repeating-radial-gradient(circle at 50% 44%,#000 0 1px,transparent 1px 7px);
-    mask-image:repeating-radial-gradient(circle at 50% 44%,#000 0 1px,transparent 1px 7px)}
+    -webkit-mask-image:repeating-radial-gradient(circle at 50% 44%,transparent 0,#000 .6px 1.2px,transparent 1.8px 7px);
+    mask-image:repeating-radial-gradient(circle at 50% 44%,transparent 0,#000 .6px 1.2px,transparent 1.8px 7px)}
   .pkc-back[data-back="iris"] .pkc-back-sheen{opacity:.35}
   /* Le numéro et la date passent sur les anneaux irisés : un halo du fond les en détache. */
   .pkc-back[data-back="iris"] .pkc-back-head{text-shadow:0 0 4px var(--back-b,#0f0c09),0 0 8px var(--back-b,#0f0c09)}
-  .pkc-back[data-back="iris"] .pkc-back-star{color:#f3e2ff;text-shadow:0 0 12px rgba(201,167,230,.95)}
+  .pkc-back[data-back="iris"] .pkc-back-star{color:#f3e2ff;filter:drop-shadow(0 0 6px rgba(201,167,230,.95))}
   .pkc-back[data-back="iris"]::after{background:linear-gradient(135deg,#d94f6a,#d99a3f,#3fbf95,#4a86d9,#8f5bc4,#d94f6a)}
-  [data-theme="light"] .pkc-back[data-back="iris"] .pkc-back-rosace{mix-blend-mode:multiply;opacity:.75}
-  [data-theme="light"] .pkc-back[data-back="iris"] .pkc-back-star{color:#6a3f94;text-shadow:none}
+  [data-theme="light"] .pkc-back[data-back="iris"] .pkc-back-rosace{mix-blend-mode:multiply;opacity:.6}
+  [data-theme="light"] .pkc-back[data-back="iris"] .pkc-back-star{color:#6a3f94;filter:none}
 
   /* Holo — le légendaire shiny, la carte la plus rare : toute la surface change de matière.
      L'arc-en-ciel et le reflet suivent l'inclinaison ; le texte passe à l'encre pour rester
@@ -617,7 +620,7 @@
       repeating-conic-gradient(from 0deg at 50% 42%,rgba(255,240,190,.3) 0 3deg,transparent 3deg 10deg);
     -webkit-mask-image:none;mask-image:none}
   .pkc-back[data-back="holo"] .pkc-back-sheen{opacity:.6}
-  .pkc-back[data-back="holo"] .pkc-mark,.pkc-back[data-back="holo"] .pkc-back-crown{color:#2a1f0c}
+  .pkc-back[data-back="holo"] .pkc-mark,.pkc-back[data-back="holo"] .pkc-back-legend{color:#2a1f0c}
   .pkc-back[data-back="holo"] .pkc-back-star{color:#2a1f0c}
   .pkc-back[data-back="holo"] .pkc-back-head{color:#2a1f0c;font-weight:600}
   .pkc-back[data-back="holo"] .pkc-lab{background:rgba(15,12,9,.84);border-color:rgba(255,240,190,.5)}
@@ -669,7 +672,7 @@
   @keyframes cardIn{from{opacity:0;transform:scale(.5) translateY(-26px)}to{opacity:1;transform:none}}
   .reveal-meta{position:relative;z-index:2;text-align:center;animation:fadeUp .5s ease-out .48s both;color:var(--fg)}
   @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  .reveal-banner{font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;animation:fadeUp .4s ease-out .3s both}
+  .reveal-banner{display:flex;align-items:center;justify-content:center;gap:.6em;font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;animation:fadeUp .4s ease-out .3s both}
   .reveal-name{font-family:var(--f-title);font-size:44px;font-weight:300;letter-spacing:-.02em;line-height:1;color:#f4ecda}
   .reveal-tags{display:flex;gap:8px;justify-content:center;margin-top:14px}
   .reveal .chip{background:transparent}
@@ -743,7 +746,7 @@
   .banner{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid;border-radius:8px;margin-top:22px;font-size:13px;line-height:1.5}
   .banner.err{border-color:rgba(224,122,108,.5);background:rgba(224,122,108,.08);color:var(--fg)}
   .banner .bt{font-weight:700;color:var(--danger)}
-  .banner .bico{font-family:var(--f-data);color:var(--danger);font-size:15px;line-height:1.2}
+  .banner .bico{flex:none;color:var(--danger);margin-top:1px}
   .settings{width:min(480px,100%)}
   .settings-body{padding:36px 32px 24px}
   .settings-title{font-size:32px;margin-bottom:6px}

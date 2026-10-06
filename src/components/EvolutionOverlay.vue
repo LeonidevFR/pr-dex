@@ -1,4 +1,5 @@
 <script setup>
+import { ArrowRight, Gem, Sparkle } from '@lucide/vue'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR, familyOf } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -44,14 +45,14 @@ onUnmounted(() => clearTimeout(focusTimer))
       <img class="evo-to" :src="spriteUrl(to, shiny)" :alt="target.name">
     </div>
     <div class="evo-cap">
-      <div v-if="shiny" class="reveal-banner">✦ Shiny ✦</div>
-      <div v-else-if="target.tier === 'l'" class="reveal-banner">★ Légendaire ★</div>
+      <div v-if="shiny" class="reveal-banner"><Sparkle :size="13" fill="currentColor" aria-hidden="true" />Shiny<Sparkle :size="13" fill="currentColor" aria-hidden="true" /></div>
+      <div v-else-if="target.tier === 'l'" class="reveal-banner"><Gem :size="13" aria-hidden="true" />Légendaire<Gem :size="13" aria-hidden="true" /></div>
       <div v-else class="reveal-banner">Évolution</div>
-      <div class="reveal-name">{{ DEX[from].name }} → {{ target.name }}</div>
+      <div class="reveal-name">{{ DEX[from].name }}<span class="sr-only"> devient </span><ArrowRight class="reveal-arrow" aria-hidden="true" />{{ target.name }}</div>
       <div class="reveal-tags">
         <span v-if="isNew" class="chip new-chip">Nouveau</span>
         <span class="chip">{{ TIER_LABEL[target.tier] }}</span>
-        <span v-if="shiny" class="chip shiny-chip">✦ Shiny</span>
+        <span v-if="shiny" class="chip shiny-chip"><Sparkle :size="11" fill="currentColor" aria-hidden="true" />Shiny</span>
       </div>
       <div class="reveal-note mono">
         {{ isNew ? 'Nouveau dans ton Pokédex' : 'Déjà dans ton Pokédex' }} ·

@@ -1,4 +1,5 @@
 <script setup>
+import { Gem, Sparkle } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -124,7 +125,7 @@ function onLeave() {
 
       <div class="pkc-rule"></div>
       <div class="pkc-bot">
-        <span class="pkc-name">{{ species.name }}{{ shiny ? ' ✦' : '' }}</span>
+        <span class="pkc-name">{{ species.name }}<Sparkle v-if="shiny" class="pkc-name-shiny" fill="currentColor" aria-label="shiny" /></span>
         <span class="pkc-tier">{{ TIER_LABEL[tier] }}</span>
       </div>
     </div>
@@ -139,8 +140,8 @@ function onLeave() {
       </div>
       <span class="pkc-mark">
         <span v-if="backVariant !== 'neutral'" class="pkc-back-signs">
-          <svg v-if="backVariant !== 'iris'" class="pkc-back-crown" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 18h18l-1.6-10-4.7 4.2L12 5l-2.7 7.2L4.6 8z"></path></svg>
-          <span v-if="backVariant !== 'gold'" class="pkc-back-star" aria-hidden="true">✦</span>
+          <Gem v-if="backVariant !== 'iris'" class="pkc-back-legend" aria-hidden="true" />
+          <Sparkle v-if="backVariant !== 'gold'" class="pkc-back-star" fill="currentColor" aria-hidden="true" />
         </span>
         <span class="pkc-mark-word"><i>PR</i>·DEX</span>
       </span>

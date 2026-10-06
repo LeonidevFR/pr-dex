@@ -1,4 +1,5 @@
 <script setup>
+import { ArrowUp, Gem, Search, Sparkle } from '@lucide/vue'
 import { computed } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -65,7 +66,7 @@ const tierOf = (id) => DEX[id].tier
 <template>
   <div class="toolbar">
     <label class="tray-search-wrap">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <Search :size="14" aria-hidden="true" />
       <span class="sr-only">Chercher un Pokémon</span>
       <input
         class="tray-search" type="search" placeholder="Chercher un Pokémon" :value="query"
@@ -118,11 +119,15 @@ const tierOf = (id) => DEX[id].tier
       <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
       <!-- Des pictos plutôt que des halos : on repère le précieux en parcourant la grille, sans
            que la grille entière se mette à briller. -->
-      <span v-if="bySpecies[id] && tierOf(id) === 'l'" class="cell-crown" role="img" aria-label="légendaire">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 18h18l-1.6-10-4.7 4.2L12 5l-2.7 7.2L4.6 8z"></path></svg>
+      <span v-if="bySpecies[id] && tierOf(id) === 'l'" class="cell-legend" role="img" aria-label="légendaire">
+        <Gem :size="13" aria-hidden="true" />
       </span>
-      <span v-if="isShiny(bySpecies[id])" class="cell-shiny" aria-label="shiny">✦</span>
-      <span v-else-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer vers une forme manquante">↑</span>
+      <span v-if="isShiny(bySpecies[id])" class="cell-shiny" role="img" aria-label="shiny">
+        <Sparkle :size="12" fill="currentColor" aria-hidden="true" />
+      </span>
+      <span v-else-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer vers une forme manquante">
+        <ArrowUp :size="13" aria-hidden="true" />
+      </span>
     </button>
   </div>
 

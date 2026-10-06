@@ -186,4 +186,12 @@ describe('feuille de style', () => {
     expect(r?.corps).toMatch(/--card-a\s*:/)
     expect(r?.corps).toMatch(/--iris-op\s*:/)
   })
+
+  // Un anneau d'un pixel tracé à arrêts nets n'est pas lissé par le navigateur : à l'écran, il
+  // se casse en tirets. Chaque anneau de rosace monte et descend en douceur.
+  it('trace les anneaux des rosaces sans arrêt net', () => {
+    const rosaces = regles.filter((r) => r.selecteur.includes('.pkc-back') && /repeating-radial-gradient/.test(r.corps))
+    expect(rosaces.length).toBeGreaterThan(0)
+    for (const r of rosaces) expect(r.corps).not.toMatch(/(\d*\.?\d+px)\s*,\s*transparent \1/)
+  })
 })

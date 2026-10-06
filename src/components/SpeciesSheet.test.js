@@ -247,7 +247,7 @@ describe('sélection de l’exemplaire à évoluer', () => {
     expect(w.findAll('input[type=radio]')).toHaveLength(0)
     const cartes = w.findAll('.specimen')
     expect(cartes).toHaveLength(2)
-    expect(cartes[1].text()).toContain('✦')
+    expect(cartes[1].find('.specimen-shiny.lucide-sparkle').exists()).toBe(true)
     expect(cartes[0].text()).toContain('#142')
     expect(cartes[0].find('img').exists()).toBe(true)
   })
@@ -557,6 +557,7 @@ describe('les textes de la fiche', () => {
 
   it('dit « shiny », pas « chromatique »', () => {
     const w = mountSheet({ id: 4, entries: [capture('a', 4, { shiny: true })], caughtIds: new Set([4]) })
-    expect(w.find('.shiny-chip').text()).toBe('✦ Shiny')
+    expect(w.find('.shiny-chip').text()).toBe('Shiny')
+    expect(w.find('.shiny-chip .lucide-sparkle').exists()).toBe(true)
   })
 })

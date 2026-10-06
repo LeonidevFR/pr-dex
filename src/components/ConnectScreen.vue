@@ -1,4 +1,5 @@
 <script setup>
+import { CircleX } from '@lucide/vue'
 import PokeCard from './PokeCard.vue'
 
 defineProps({
@@ -23,7 +24,7 @@ const FAN = [[16, 'c'], [37, 'u'], [4, 'r'], [146, 'l']]
       </p>
 
       <div v-if="error" class="banner err">
-        <span class="bico">✕</span>
+        <CircleX class="bico" :size="16" aria-hidden="true" />
         <div>
           <template v-if="error === 'offline'">
             <span class="bt">Pas de réseau.</span>

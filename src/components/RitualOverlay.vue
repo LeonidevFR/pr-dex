@@ -1,4 +1,5 @@
 <script setup>
+import { Gem, Sparkle, X } from '@lucide/vue'
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import PokeCard from './PokeCard.vue'
@@ -160,7 +161,7 @@ watch(stage, async (s) => {
     <button
       class="x ritual-close" aria-label="Revenir à la collection, garder les cartes restantes pour plus tard"
       @click="$emit('close')"
-    >✕</button>
+    ><X :size="18" aria-hidden="true" /></button>
 
     <div class="vignette"></div>
 
@@ -192,13 +193,13 @@ watch(stage, async (s) => {
 
     <template v-if="stage === 'revealed'">
       <div class="reveal-meta">
-        <div v-if="entry.shiny" class="reveal-banner">✦ Shiny ✦</div>
-        <div v-else-if="tier === 'l'" class="reveal-banner">★ Légendaire ★</div>
+        <div v-if="entry.shiny" class="reveal-banner"><Sparkle :size="13" fill="currentColor" aria-hidden="true" />Shiny<Sparkle :size="13" fill="currentColor" aria-hidden="true" /></div>
+        <div v-else-if="tier === 'l'" class="reveal-banner"><Gem :size="13" aria-hidden="true" />Légendaire<Gem :size="13" aria-hidden="true" /></div>
         <div class="reveal-name">{{ species.name }}</div>
         <div class="reveal-tags">
           <span v-if="isNew" class="chip new-chip">Nouveau</span>
           <span class="chip">{{ TIER_LABEL[tier] }}</span>
-          <span v-if="entry.shiny" class="chip shiny-chip">✦ Shiny</span>
+          <span v-if="entry.shiny" class="chip shiny-chip"><Sparkle :size="11" fill="currentColor" aria-hidden="true" />Shiny</span>
         </div>
         <div class="reveal-note mono">
           {{ isNew ? 'Nouveau dans ton Pokédex' : 'Déjà dans ton Pokédex' }} ·

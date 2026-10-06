@@ -1,4 +1,5 @@
 <script setup>
+import { Moon, RefreshCw, SlidersHorizontal, Sun } from '@lucide/vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
@@ -93,23 +94,18 @@ onUnmounted(() => clearTimeout(cooldownTimer))
       </button>
       <button class="gear sync" :title="syncTitle" :aria-label="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
         <span :class="{ spinning: syncing }">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-            stroke-linecap="round" aria-hidden="true"
-          ><path d="M19 12A7 7 0 1 1 12 5"></path><polygon points="12 1.5 12 8.5 16.5 5" fill="currentColor"
-            stroke="none"></polygon></svg>
+          <RefreshCw :size="15" :stroke-width="1.75" aria-hidden="true" />
         </span><span v-if="syncError" class="err-dot"></span>
       </button>
       <button
         class="gear theme-toggle" :aria-label="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'"
         :title="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'" @click="$emit('toggle-theme')"
       >
-        <svg v-if="theme === 'light'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>
-        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <Moon v-if="theme === 'light'" :size="15" :stroke-width="1.75" aria-hidden="true" />
+        <Sun v-else :size="15" :stroke-width="1.75" aria-hidden="true" />
       </button>
       <button class="gear" title="Réglages" aria-label="Réglages" @click="$emit('settings')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round" aria-hidden="true"
-        ><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
+        <SlidersHorizontal :size="15" :stroke-width="1.75" aria-hidden="true" />
       </button>
     </div>
   </header>

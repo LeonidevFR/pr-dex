@@ -1,4 +1,5 @@
 <script setup>
+import { MoveRight, Sparkle, X } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { DEX, PARENT, TIER_LABEL, TIER_VAR, familyOf, familyLine, CANDY_PER_CATCH } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -109,7 +110,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
 <template>
   <div class="scrim" @click.self="$emit('close')">
     <div class="panel" :style="{ '--tier': TIER_VAR[species.tier] }">
-      <button class="x" aria-label="Fermer" @click="$emit('close')">✕</button>
+      <button class="x" aria-label="Fermer" @click="$emit('close')"><X :size="18" aria-hidden="true" /></button>
       <div class="sheet-grid">
         <div class="sheet-side">
           <!-- Capturée, l'espèce se montre sous la forme où on l'a gagnée : sa carte, sous la
@@ -131,7 +132,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             <h2 class="panel-name">{{ caught ? species.name : '—————' }}</h2>
             <div class="panel-chips">
               <span class="chip">{{ TIER_LABEL[species.tier] }}</span>
-              <span v-if="shiny" class="chip shiny-chip">✦ Shiny</span>
+              <span v-if="shiny" class="chip shiny-chip"><Sparkle :size="11" fill="currentColor" aria-hidden="true" />Shiny</span>
               <span
                 v-for="t in (caught ? info?.types ?? [] : [])" :key="t.slug"
                 class="type-chip" :style="{ '--type': `var(--type-${t.slug})` }"
@@ -161,7 +162,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
           <template v-for="(step, i) in line" :key="i">
             <!-- Le coût se lit avec la flèche : « 8 bonbons » pour passer à l'étage suivant. -->
             <div v-if="i" class="line-arrow" aria-hidden="true">
-              <svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1 5h27M23 1l4.5 4L23 9"></path></svg>
+              <MoveRight :size="26" :stroke-width="1.5" />
               <span class="line-cost">{{ DEX[line[i - 1][0]].cost }} bonbons</span>
             </div>
             <div class="line-step">
@@ -246,7 +247,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
               :title="e.via === 'catch' ? e.label : 'Évolué depuis ' + DEX[e.from].name"
               @click="selectedKey = e.key"
             >
-              <span v-if="e.shiny" class="specimen-shiny" aria-label="shiny">✦</span>
+              <Sparkle v-if="e.shiny" class="specimen-shiny" :size="12" fill="currentColor" aria-label="shiny" />
               <img :src="spriteUrl(id, e.shiny)" alt="">
               <span class="specimen-date">{{ shortDate(e.date) }}</span>
               <span class="specimen-ref mono">{{ shortRef(e) }}</span>
