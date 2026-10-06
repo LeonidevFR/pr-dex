@@ -38,8 +38,14 @@ tout autre endroit où le dos se voit hors rituel.
   sur les quatre dos.
 - **Mouvement** : la rosace irisée, l'holographique et le reflet suivent l'inclinaison de la
   carte (`--px`, `--py`), comme le balayage de la face. Au repos, ils sont centrés.
-- **Thème clair** : le neutre et les deux Dorure passent sur ivoire comme aujourd'hui, avec un
-  or assombri. Le Holo est identique dans les deux thèmes : c'est une matière pleine surface.
+- **Thème clair** (demandé explicitement) : chaque dos a sa version claire.
+  - Neutre : l'ivoire actuel.
+  - Dorure or : rayons et couronne en or assombri (`#7a5c22`) sur ivoire, filet or brossé foncé.
+  - Dorure iris : rosace irisée en fusion `multiply` sur ivoire (elle s'imprime au lieu
+    d'éclairer), ✦ en violet foncé, filet irisé.
+  - Holo : un holographique plus pastel sur fond nacré, cœur doré, texte en encre ; l'étiquette
+    de provenance passe sur fond ivoire.
+  - Tout texte du dos tient 4,5:1 sur son fond, dans les deux thèmes.
 - Sur le Holo, le texte (numéro, date, logo) passe en encre sombre ou garde une ombre portée,
   pour rester lisible sur l'arc-en-ciel ; l'étiquette de provenance garde son fond sombre.
 
