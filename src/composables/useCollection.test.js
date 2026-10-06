@@ -84,18 +84,37 @@ describe('refresh', () => {
     expect(client.readCatches).toHaveBeenCalledTimes(4) // 1 au chargement + 3 au refresh
   })
 
-  it('abandonne après ~30s si rien de nouveau n’est jamais apparu', async () => {
+  // Un run de l'Action dure de 40 s à 80 s une fois déclenché (mesuré sur pr-dex-data) : une
+  // capture qui arrive à 80 s doit être vue sans recharger la page.
+  it('voit encore une capture qui n’arrive qu’au bout de 80 secondes', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    let calls = 0
+    client.readCatches.mockImplementation(async () => {
+      calls++
+      return calls > 17 ? [catchOf('a', 25), catchOf('b', 1)] : [catchOf('a', 25)]
+    })
+
+    const p = c.refresh()
+    await vi.advanceTimersByTimeAsync(90000)
+    await p
+
+    expect(c.catches.value).toHaveLength(2)
+  })
+
+  it('abandonne après ~2 min si rien de nouveau n’est jamais apparu', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
     const c = useCollection()
     await c.load(client)
 
     const p = c.refresh()
-    await vi.advanceTimersByTimeAsync(30000)
+    await vi.advanceTimersByTimeAsync(120000)
     await p
 
     expect(c.catches.value).toHaveLength(1)
     expect(c.error.value).toBeNull()
-    expect(client.readCatches).toHaveBeenCalledTimes(7) // 1 au chargement + 6 tentatives de refresh
+    expect(client.readCatches).toHaveBeenCalledTimes(25) // 1 au chargement + 24 tentatives de refresh
   })
 
   it('reste en chargement pendant tout le sondage', async () => {
@@ -104,7 +123,7 @@ describe('refresh', () => {
     await c.load(client)
     const p = c.refresh()
     expect(c.loading.value).toBe(true)
-    await vi.advanceTimersByTimeAsync(30000)
+    await vi.advanceTimersByTimeAsync(120000)
     await p
     expect(c.loading.value).toBe(false)
   })

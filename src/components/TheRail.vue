@@ -25,7 +25,7 @@ const SYNC_ERROR_LABEL = {
 // Le clic déclenche un vrai run GitHub Action, pas une lecture instantanée : sans ce message,
 // le bouton semble juste tourner dans le vide pendant que le run travaille en coulisses.
 const syncTitle = computed(() => {
-  if (props.syncing) return 'Recherche en cours côté GitHub (jusqu’à 30s)…'
+  if (props.syncing) return 'Recherche en cours côté GitHub (jusqu’à 2 min)…'
   if (props.syncError) return SYNC_ERROR_LABEL[props.syncError] ?? 'La synchronisation a échoué.'
   return 'Vérifier les nouvelles captures'
 })
