@@ -196,8 +196,9 @@
     background:linear-gradient(135deg,#d94f6a,#d99a3f,#3fbf95,#4a86d9,#8f5bc4);
     -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
     mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-  .cell-legend{position:absolute;right:9px;bottom:7px;z-index:2;color:var(--gold);line-height:0}
-  .cell.legendary .cell-shiny{right:27px}
+  /* Les signes d'une case s'alignent en bas à droite : évoluable, shiny, légendaire. */
+  .cell-signs{position:absolute;right:8px;bottom:7px;z-index:2;display:flex;align-items:center;gap:5px;line-height:0}
+  .cell-legend{color:var(--gold)}
   .cell img{width:66%;height:66%;object-fit:contain;transition:transform .18s;position:relative;z-index:1}
   .cell img[data-broken]{opacity:.18;filter:grayscale(1)}
   .cell.has:hover img{transform:scale(1.08) translateY(-2px)}
@@ -211,9 +212,8 @@
   .cell-pill.r{background:rgba(215,117,106,.16);color:var(--r-text)}
   .cell-pill.l{background:rgba(212,176,106,.2);color:var(--l-text)}
   .cell-dupes{position:absolute;left:10px;bottom:8px;z-index:2;font-family:var(--f-ui);font-size:10px;font-weight:700;color:var(--gold)}
-  .cell-shiny{position:absolute;right:10px;bottom:7px;z-index:2;line-height:0;color:var(--l-text);filter:drop-shadow(0 0 4px rgba(201,167,230,.9))}
-  .cell-evo{position:absolute;right:9px;bottom:8px;z-index:2;width:16px;height:16px;border-radius:50%;background:rgba(127,181,154,.2);color:var(--u-text);display:grid;place-items:center}
-  .cell-evo svg{width:11px;height:11px}
+  .cell-shiny{color:var(--l-text);filter:drop-shadow(0 0 4px rgba(201,167,230,.9))}
+  .cell-evo{width:16px;height:16px;border-radius:50%;background:rgba(127,181,154,.2);color:var(--u-text);display:grid;place-items:center}
   /* Silhouette éteinte : la case vide se lit comme un emplacement, pas comme une erreur. */
   .cell.ghost img{filter:grayscale(1) brightness(.3) contrast(1.1);opacity:.45}
   .cell.ghost .cell-no{color:#4a423b}
@@ -422,7 +422,9 @@
     --iris-blend:multiply; --iris-op:.32;
     --t-c:#665d53; --t-u:#4a6a42; --t-r:#9e3b2e; --t-l:#7a581a;
   }
-  .pkc{position:relative;width:266px;height:372px;cursor:pointer;transform-style:preserve-3d;
+  /* `will-change` : la carte a son calque dès l'affichage. Créé seulement au premier survol, il
+     faisait redessiner le dos, et la gemme se recalait d'un demi-pixel vers le haut. */
+  .pkc{position:relative;width:266px;height:372px;cursor:pointer;transform-style:preserve-3d;will-change:transform;
     transform:rotateX(var(--rx,0deg)) rotateY(calc(var(--ry,0deg) + var(--pkc-flip,0deg)));
     transition:transform .62s cubic-bezier(.2,.8,.2,1)}
   .pkc.is-live{transition:transform .08s linear}
@@ -567,8 +569,11 @@
      ne s'appliquent jamais avant le retournement. */
   .pkc-back-signs{display:flex;align-items:center;gap:6px;line-height:1}
   /* À l'échelle du logo : la couronne et l'étoile grandissent avec lui sur la carte agrandie. */
-  .pkc-back-legend{width:.8em;height:.8em;color:var(--back-gold,#d4b06a)}
-  .pkc-back-star{width:.66em;height:.66em}
+  /* En pixels entiers, pas en em : à 0,8 × 46 px, la gemme tombait entre deux pixels. */
+  .pkc-back-legend{width:28px;height:28px;color:var(--back-gold,#d4b06a)}
+  .zoom-card .pkc-back-legend{width:36px;height:36px}
+  .pkc-back-star{width:22px;height:22px}
+  .zoom-card .pkc-back-star{width:30px;height:30px}
   .pkc-back-head,.pkc-lab{z-index:2}
   .pkc-back-sheen{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;
     background:linear-gradient(105deg,transparent 34%,rgba(255,255,255,.45) 48%,transparent 62%);

@@ -1,5 +1,5 @@
 <script setup>
-import { ArrowUp, Gem, Search, Sparkle } from '@lucide/vue'
+import { ChevronsUp, Gem, Search, Sparkle } from '@lucide/vue'
 import { computed } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -119,14 +119,16 @@ const tierOf = (id) => DEX[id].tier
       <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
       <!-- Des pictos plutôt que des halos : on repère le précieux en parcourant la grille, sans
            que la grille entière se mette à briller. -->
-      <span v-if="bySpecies[id] && tierOf(id) === 'l'" class="cell-legend" role="img" aria-label="légendaire">
-        <Gem :size="13" aria-hidden="true" />
-      </span>
-      <span v-if="isShiny(bySpecies[id])" class="cell-shiny" role="img" aria-label="shiny">
-        <Sparkle :size="12" fill="currentColor" aria-hidden="true" />
-      </span>
-      <span v-else-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer vers une forme manquante">
-        <ArrowUp :size="13" aria-hidden="true" />
+      <span class="cell-signs">
+        <span v-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer vers une forme manquante">
+          <ChevronsUp :size="11" :stroke-width="2.5" aria-hidden="true" />
+        </span>
+        <span v-if="isShiny(bySpecies[id])" class="cell-shiny" role="img" aria-label="shiny">
+          <Sparkle :size="12" fill="currentColor" aria-hidden="true" />
+        </span>
+        <span v-if="bySpecies[id] && tierOf(id) === 'l'" class="cell-legend" role="img" aria-label="légendaire">
+          <Gem :size="13" aria-hidden="true" />
+        </span>
       </span>
     </button>
   </div>

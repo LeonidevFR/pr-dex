@@ -277,9 +277,11 @@ describe('TheTray', () => {
       expect(cell.classes()).toContain('shiny')
     })
 
-    it('ne montre pas ↑ sur une case shiny, même évoluable', () => {
+    // Évoluable se lit partout, shiny compris : c'est une action à faire, pas une rareté.
+    it('montre la flèche d’évolution sur une case shiny évoluable, à côté de l’étoile', () => {
       const cell = mountTray({ 10: [entry('a', 10, { shiny: true })] }, new Set([10])).findAll('.cell')[9]
-      expect(cell.find('.cell-evo').exists()).toBe(false)
+      expect(cell.find('.cell-signs .cell-evo .lucide-chevrons-up').exists()).toBe(true)
+      expect(cell.find('.cell-signs .cell-shiny').exists()).toBe(true)
       expect(cell.classes()).toContain('shiny')
     })
 

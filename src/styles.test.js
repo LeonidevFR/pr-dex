@@ -194,4 +194,13 @@ describe('feuille de style', () => {
     expect(rosaces.length).toBeGreaterThan(0)
     for (const r of rosaces) expect(r.corps).not.toMatch(/(\d*\.?\d+px)\s*,\s*transparent \1/)
   })
+
+  // Au premier survol, une carte qui passe seulement alors sur son propre calque est
+  // redessinée : une icône à taille fractionnaire se recale d'un demi-pixel et « saute ».
+  it('pose la carte sur son calque dès le départ et donne à la gemme du dos une taille entière', () => {
+    expect(regles.find((r) => r.selecteur === '.pkc' && declare('will-change')(r))?.corps).toMatch(/will-change\s*:\s*transform/)
+    const gemmes = regles.filter((r) => /\.pkc-back-legend$/.test(r.selecteur) && declare('width')(r))
+    expect(gemmes.length).toBeGreaterThan(0)
+    for (const r of gemmes) expect(r.corps).toMatch(/width\s*:\s*\d+px/)
+  })
 })
