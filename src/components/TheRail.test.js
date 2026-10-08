@@ -56,10 +56,24 @@ describe('TheRail', () => {
   describe('onglets', () => {
     const tab = (w, label) => w.findAll('.rail-tab').find((t) => t.text() === label)
 
-    it('propose les trois vues dans une navigation', () => {
+    it('propose les quatre vues dans une navigation', () => {
       const w = mountRail()
       expect(w.find('nav.rail-nav').exists()).toBe(true)
-      expect(w.findAll('.rail-tab').map((t) => t.text())).toEqual(['Collection', 'Leaderboard', 'Statistiques'])
+      expect(w.findAll('.rail-tab').map((t) => t.text()))
+        .toEqual(['Collection', 'Arène', 'Leaderboard', 'Statistiques'])
+    })
+
+    /**
+     * L'arène compte quatre lieux et n'occupe qu'un onglet : les poser à plat aurait porté le
+     * rail à sept entrées dans une barre dessinée pour trois. L'onglet reste visible avant
+     * l'ouverture du 1er décembre — il mène au teaser, qui est fait pour ça.
+     */
+    it('replie les quatre lieux de l’arène sous un seul onglet', async () => {
+      const w = mountRail({ view: 'arena' })
+      const arene = w.findAll('.rail-tab').find((t) => t.text() === 'Arène')
+      expect(arene.classes()).toContain('active')
+      await arene.trigger('click')
+      expect(w.emitted('navigate').at(-1)).toEqual(['arena'])
     })
 
     it('marque l’onglet courant, pour l’œil et pour les lecteurs d’écran', () => {
@@ -172,3 +186,21 @@ describe('TheRail', () => {
     expect(mountRail({ caughtCount: 41 }).find('.progress').text()).toContain('Pokédex')
   })
 })
+
+/**
+ * Des onglets et non plus des icônes : une icône dit « une action », un onglet dit « tu es
+ * ici ». Avec un seul écran la nuance ne coûtait rien ; à cinq lieux, ne pas savoir où l'on se
+ * trouve devient le problème principal.
+ */
+
+/**
+ * Un jeu d'icônes tracé dans le projet plutôt qu'une bibliothèque : le build ne dépend d'aucun
+ * CDN, et six symboles ne justifient pas les dizaines de kilo-octets d'un paquet.
+ */
+
+/**
+ * La couleur du lieu doit se VOIR. Un premier essai la posait en voile à 9 % d'opacité :
+ * présente dans le code, invisible à l'écran — et une couleur qu'on ne remarque pas ne sert à
+ * rien. Elle porte désormais trois marques, dont deux que l'œil vise d'emblée.
+ */
+

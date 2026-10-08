@@ -79,6 +79,11 @@
     background-image:radial-gradient(ellipse 60% 40% at 50% -10%, rgba(212,176,106,.12), transparent 70%);
     background-attachment:fixed;
     min-height:100vh;
+    /* Le décor a le droit de dépasser de sa colonne ; il n'a pas le droit de faire défiler la
+       page. On découpe donc au bord de la fenêtre, et chaque décor garde ses bords entiers.
+       `clip` et non `hidden` : `hidden` ferait de la page un conteneur de défilement, ce qui
+       désactiverait le `position:sticky` du rail. */
+    overflow-x:clip;
   }
   img{image-rendering:pixelated}
   a{color:var(--gold);text-decoration:none}
@@ -107,6 +112,12 @@
   .rail-tab:hover{color:var(--fg)}
   .rail-tab.active{background:var(--cream);color:var(--on-gold);font-weight:700}
   .rail-tab:focus-visible,.gear:focus-visible,.claim-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  /* Le second niveau de l'arène : la même langue que le rail, un cran plus bas. Posée sous
+     l'en-tête et non dedans, elle dit qu'on navigue À L'INTÉRIEUR d'un lieu. */
+  .place-nav{display:inline-flex;gap:4px;padding:4px;margin-bottom:20px;border-radius:999px;
+    background:rgba(239,230,207,.05);border:1px solid var(--line-strong)}
+  .place-tab{font-size:11.5px;padding:7px 14px}
+
   .progress{flex:1;min-width:160px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
   .progress-count{font-family:var(--f-title);font-size:24px;font-weight:300;line-height:1;color:var(--fg-title);white-space:nowrap}
   .progress-count b{font-weight:300}
@@ -374,6 +385,13 @@
   .specimen-shiny{position:absolute;left:8px;top:6px;color:var(--l-text)}
   .specimen-date{font-size:12px;font-weight:600}
   .specimen-ref{font-size:10px;color:var(--fg-3)}
+  /* Le multiplicateur d'espèce et la forme du jour, sur la même vignette que dans la fiche.
+     La forme se colore parce qu'elle aide ou handicape ; son ampleur, elle, ne se chiffre
+     jamais — c'est aux joueurs de se faire leur idée du poids que ça pèse. */
+  .specimen-mult{font-style:normal;color:var(--gold);margin-left:4px}
+  .specimen-ref.form-up{color:var(--u-text)}
+  .specimen-ref.form-down{color:var(--danger)}
+  .specimen:disabled{opacity:.45;cursor:default}
   .picker-actions{display:flex;gap:10px;margin-top:16px}
   .cancel-btn{border:1px solid var(--line-strong);border-radius:999px;background:transparent;color:var(--fg-2);font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:14px 22px;cursor:pointer}
   .cancel-btn:hover{color:var(--fg);border-color:var(--line-strong-hi)}
@@ -733,11 +751,18 @@
   .front-mark i{font-weight:600;color:var(--gold)}
   .front-sub{margin-top:22px;font-family:var(--f-title);font-weight:300;font-size:19px;color:var(--note);line-height:1.55;max-width:42ch}
   .front-actions{display:flex;gap:16px;align-items:center;margin-top:30px;flex-wrap:wrap}
-  /* L'éventail : quatre cartes, du commun au légendaire, qui se chevauchent et s'inclinent. */
-  /* Rogné : les cartes tournées débordent de leur colonne, et la page défilait à l'horizontale
-     sur les portables de 900 à 1 200 px. Le pas suit la largeur de l'écran pour qu'à 1 280 px
-     rien ne soit coupé. */
-  .front-fan{position:relative;height:440px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  /* L'éventail : quatre cartes, du commun au légendaire, qui se chevauchent et s'inclinent.
+
+     Il ne se rogne plus. Le `overflow:hidden` posé ici contre le défilement horizontal coupait
+     les deux cartes extérieures À TOUTES les largeurs — douze pixels sur un écran de 1 440, près
+     de cent sur un portable de 940. Un décor tronqué net en plein milieu d'une carte se lit comme
+     un défaut d'affichage, et c'était le premier écran de l'application.
+
+     Le débordement se règle là où il naît : la page le découpe à son bord. `clip` et non
+     `hidden`, parce que `hidden` créerait un conteneur de défilement et casserait le
+     `position:sticky` du rail. Mesuré de 940 à 1 440 px : les cartes gardent 27 à 34 px de
+     dégagement avec le texte, ne sortent jamais de l'écran, et aucune barre n'apparaît. */
+  .front-fan{position:relative;height:440px;display:flex;align-items:center;justify-content:center}
   .front-card{position:absolute;transform:translateX(calc((var(--i) - 1.5) * min(128px, 8vw))) rotate(calc((var(--i) - 1.5) * 7deg)) translateY(calc(var(--i) * -4px));z-index:calc(var(--i) + 1)}
   .front-card .pkc{width:200px;height:280px;cursor:default}
   .front-card .pkc-art img{width:104px;height:104px}
@@ -825,3 +850,431 @@
     .reveal-name{font-size:26px}
     .reveal-note{margin-top:10px}
   }
+
+  .gen-tabs{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:0 26px 14px}
+
+  /* ───────── arène ───────── */
+  /*
+    Les chiffres de l'arène parlent la langue de la refonte : display léger, grande taille,
+    `--fg-title`. Ils vivaient en 34 px gras, un reste de l'ancienne direction où les nombres
+    criaient ; ici ils portent, sans hausser le ton.
+
+    `.arena-big` ne sert plus qu'aux chiffres DANS une page — la cérémonie, le teaser. Les
+    compteurs d'un écran sont remontés dans son en-tête, en `.view-num`.
+  */
+  .arena-big{font-family:var(--f-title);font-weight:300;font-size:36px;letter-spacing:-.02em;
+    color:var(--fg-title);line-height:1}
+  .arena-big.spent{color:var(--fg-3)}
+  .arena-unit{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--fg-3)}
+
+  /* Un engagement dépensé s'éteint plutôt que de disparaître : le zéro doit se voir. */
+  .view-num.is-spent{color:var(--fg-3)}
+
+  /* La boutique : le prix en display, le bouton au bout de la même ligne. Le motif `dt`/`dd`
+     de la refonte accepte un bouton dans sa valeur, à condition qu'il ne pousse pas le nombre. */
+  .shop-list dd{display:flex;align-items:baseline;gap:16px;justify-content:flex-end}
+  .shop-list dd .evo-btn{padding:7px 13px;font-size:10px}
+
+  /* Dans la table du classement, le nom est un lien vers un profil : il garde la couleur et le
+     poids d'un nom, et ne prend l'or qu'au survol. */
+  .saison-voir{background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit;
+    display:inline-flex;align-items:center;gap:14px}
+  .saison-voir:hover .board-login{color:var(--gold)}
+  .board-table tr.podium .board-rank{color:var(--gold)}
+
+  /* La sélection encadre la vignette sans toucher au texte : le nom et le niveau doivent rester
+     lisibles au moment précis où l'on décide de miser. */
+  .arena-pick{position:relative;background:var(--surface);border:1px solid var(--line);padding:9px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px;width:88px;
+    font-family:var(--f-label);font-size:10px;color:var(--fg-2);transition:border-color .15s,box-shadow .15s,color .15s}
+  .arena-pick:hover:not(:disabled){border-color:var(--gold);color:var(--fg)}
+  .arena-pick:disabled{opacity:.4;cursor:default}
+  .arena-pick img{width:46px;height:46px}
+  .arena-pick .nm{color:var(--fg);font-size:10.5px;text-align:center;line-height:1.25}
+  .arena-pick .lv{font-family:var(--f-data);font-size:9px;color:var(--fg-3)}
+  .arena-pick.on{border-color:var(--gold);box-shadow:inset 0 0 0 2px var(--gold);color:var(--fg)}
+  .arena-pick.on .lv{color:var(--gold)}
+
+  /* Pas de défilement propre : le panneau défile déjà, et une fenêtre dans une fenêtre
+     réduisait la grille à quelques rangées tout en donnant deux barres à manœuvrer. La barre
+     d'action étant collée en bas, on peut dérouler la liste entière sans jamais la perdre. */
+  .arena-list{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+
+  .arena-rule{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
+  .arena-rule b{color:var(--fg);font-family:var(--f-label);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;min-width:96px;padding-top:2px}
+
+  /* L'attente n'est pas décorative : elle sépare le moment où l'on voit les deux Pokémon de
+     celui où l'on apprend lequel tombe. Sans elle, le duel s'affiche au lieu de se jouer. */
+  .arena-wait{display:flex;gap:6px;align-items:center;justify-content:center;padding:18px 0}
+  .arena-wait span{width:7px;height:7px;background:var(--gold);border-radius:50%;opacity:.25;
+    animation:arena-pulse 1s infinite}
+  .arena-wait span:nth-child(2){animation-delay:.16s}
+  .arena-wait span:nth-child(3){animation-delay:.32s}
+  @keyframes arena-pulse{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+
+  /* ───────── la cérémonie du duel ─────────
+     Le seul endroit de l'application où quelque chose cesse d'exister. Il avait jusqu'ici moins
+     d'égards qu'un pli commun qu'on ouvre : deux sprites côte à côte et un filtre sépia. */
+  .duel-scene{
+    position:relative;overflow:hidden;padding:26px 22px 18px;
+    border-bottom:1.5px solid var(--line);
+    background:radial-gradient(ellipse 82% 62% at 50% 8%, #2a2419, #17140f 74%);
+  }
+  /* Le sol : une ellipse de lumière très basse, pour que les deux camps posent sur quelque chose. */
+  .duel-scene::after{
+    content:"";position:absolute;left:50%;bottom:52px;width:76%;height:74px;transform:translateX(-50%);
+    background:radial-gradient(ellipse 50% 50% at 50% 50%, rgba(240,231,212,.07), transparent 70%);
+    pointer-events:none;
+  }
+  .duel-camps{position:relative;display:flex;align-items:flex-start;justify-content:center;gap:26px}
+  .duel-camp{display:flex;flex-direction:column;align-items:center;gap:11px;width:165px}
+
+  /* La carte fait 266×372 : trop pour deux de front dans un panneau de 560. On la réduit
+     depuis le contenant plutôt que depuis `.pkc`, dont la transformation porte déjà le
+     retournement et l'inclinaison. */
+  .duel-slot{position:relative;width:165px;height:231px;perspective:900px}
+  .duel-flip{
+    position:absolute;top:50%;left:50%;width:266px;height:372px;margin:-186px 0 0 -133px;
+    transform-style:preserve-3d;transform:scale(.62) rotateY(0deg);
+    transition:transform .62s cubic-bezier(.2,.8,.2,1);
+  }
+  /* Les deux mises se retournent EN MÊME TEMPS : personne n'ajuste la sienne en voyant l'autre,
+     et c'est la règle centrale du jeu — une animation simultanée la dit sans une ligne de texte. */
+  .duel-flip.dos{transform:scale(.62) rotateY(180deg)}
+  .duel-dos,.duel-front{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  /* Le `rotateY(0deg)` ne déplace rien : il donne à la face avant le transform propre sans
+     lequel Firefox ignore `backface-visibility` et la laisse voir en miroir, carte scellée.
+     Même remède que `.pkc-front`, et le même test de feuille de style le garde en place. */
+  .duel-front{transform:rotateY(0deg)}
+  .duel-dos{
+    transform:rotateY(180deg);display:grid;place-items:center;
+    background:linear-gradient(168deg,#2f2820,#221c15 46%,#191410);
+    border:1px solid #4a4033;
+    box-shadow:0 18px 40px rgba(0,0,0,.6),inset 0 0 0 4px rgba(255,255,255,.06);
+  }
+  .duel-cire{
+    width:92px;height:92px;border-radius:50%;display:grid;place-items:center;
+    background:radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--t) 78%, #fff), var(--t) 62%, #000 190%);
+    font-family:var(--f-display);font-weight:700;font-size:25px;color:rgba(255,247,230,.86);
+    box-shadow:inset 0 -4px 10px rgba(0,0,0,.4);
+  }
+  /* Le cachet respire tant qu'il tient : une mise en attente est vivante. Il s'arrête net au
+     retournement — l'animation ne vaut que pour l'état scellé. */
+  .duel-scene[data-etat="scelle"] .duel-cire{animation:duel-respire 2.4s ease-in-out infinite}
+  @keyframes duel-respire{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+  .duel-nom{text-align:center;transition:opacity .6s ease}
+  .duel-nom b{display:block;font-family:var(--f-display);font-size:15px;font-weight:600;color:#f0e7d4}
+  .duel-nom span{display:block;margin-top:3px;font-size:10.5px;color:#8a7f68}
+
+  /* Le vainqueur s'auréole. */
+  .duel-camp.gagne .duel-front{filter:drop-shadow(0 0 22px rgba(255,214,140,.5))}
+  /* Le perdant ne se sépie pas : il s'éteint. Il blanchit comme à l'évolution — mais
+     l'évolution blanchit pour faire naître, celle-ci ne laisse rien. La carte reste en place,
+     éteinte : la retirer ferait sauter la mise en page au moment le plus lu de l'écran. */
+  .duel-camp.perd .duel-flip{animation:duel-extinction 1.5s cubic-bezier(.4,0,.75,0) .25s forwards}
+  @keyframes duel-extinction{
+    0%{filter:none}
+    26%{filter:brightness(4.5) saturate(.15)}
+    52%{filter:brightness(1.05) saturate(0) contrast(.72);opacity:.5}
+    100%{filter:brightness(.45) saturate(0) blur(6px);opacity:.12}
+  }
+  .duel-camp.perd .duel-nom{opacity:.34}
+  /* Face à l'ordinateur, rien n'est détruit : il perd le combat, pas un exemplaire — il n'en
+     possède aucun. Il s'efface donc sans brûler. */
+  .duel-camp.rien .duel-flip{animation:none;filter:saturate(.3);opacity:.42;transition:opacity .7s ease .25s,filter .7s ease .25s}
+
+  .duel-cendre{
+    position:absolute;left:calc(24% + var(--i) * 8%);top:38%;width:3px;height:3px;border-radius:50%;
+    background:#a99a7f;opacity:0;pointer-events:none;
+  }
+  .duel-camp.perd .duel-cendre{animation:duel-cendre 1.9s ease-in calc(.45s + var(--i) * .09s) forwards}
+  @keyframes duel-cendre{
+    0%{opacity:0;transform:translate(0,0) scale(1)}
+    18%{opacity:.7}
+    100%{opacity:0;transform:translate(calc(var(--i) * 3px - 11px),70px) scale(.35)}
+  }
+
+  /* La balance reste après le verdict : elle ne dit pas qui gagne, elle dit ce qui était en
+     jeu. À 95 contre 5, gagner n'est pas un exploit et perdre en est un rare — sans elle, un
+     joueur battu ne peut pas savoir s'il a joué ou subi. */
+  .duel-balance{
+    position:relative;margin:18px auto 0;max-width:330px;opacity:0;transform:translateY(8px);
+    transition:opacity .5s ease,transform .5s ease;
+  }
+  .duel-balance.vu{opacity:1;transform:none}
+  .duel-piste{display:flex;height:5px;background:#2b251c;border:1px solid #3a3226;overflow:hidden}
+  .duel-piste i{display:block;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .duel-piste .moi{background:var(--gold)}
+  .duel-piste .lui{background:#6d6250}
+  .duel-cotes{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font-size:12px;color:#a99a7f}
+  .duel-chances{font-size:10.5px;letter-spacing:.06em;color:#f0e7d4}
+
+  .duel-eclat{
+    position:absolute;left:50%;top:38%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;
+    background:#fff5e6;opacity:0;pointer-events:none;z-index:3;
+  }
+  .duel-scene[data-etat="verdict"] .duel-eclat{animation:duel-eclat .62s ease-out forwards}
+  @keyframes duel-eclat{0%{transform:scale(.12);opacity:.85}100%{transform:scale(6);opacity:0}}
+
+  .duel-annonce{
+    position:relative;text-align:center;margin-top:16px;
+    font-family:var(--f-label);font-weight:700;font-size:10.5px;letter-spacing:.38em;text-transform:uppercase;
+    color:#6d6250;transition:color .5s ease;
+  }
+  .duel-annonce.vif{color:var(--gold);animation:duel-annonce .55s cubic-bezier(.2,.9,.3,1.45) both}
+  .duel-scene{cursor:pointer}
+  .duel-passer{
+    position:relative;text-align:center;margin-top:7px;
+    font-family:var(--f-data);font-size:9.5px;letter-spacing:.1em;color:#5a5142;
+  }
+  @keyframes duel-annonce{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+
+  .arena-vs-mark{font-family:var(--f-label);font-size:11px;letter-spacing:.14em;color:var(--fg-3)}
+
+  .arena-pick .mult{color:var(--gold);font-family:var(--f-data);font-size:10px;margin-left:3px}
+
+  /* Collée au bas du panneau : sans ça, la barre d'action sortait de l'écran juste après le
+     clic qui l'avait fait apparaître. */
+  /* Même retrait horizontal que `.sect` : à 2 px, la barre était collée aux bords du panneau
+     pendant que tout le reste respirait à 26. Et deux lignes plutôt qu'une — l'information
+     au-dessus, les boutons en dessous — parce que les tasser côte à côte ne tient sur aucune
+     largeur d'écran. */
+  .arena-bar{position:sticky;bottom:0;z-index:2;background:var(--bg);
+    border-top:1.5px solid var(--line);padding:18px 26px 20px}
+  .arena-bar .line-name{line-height:1.6;font-size:13px}
+  .arena-bar .muted{line-height:1.6;margin-top:2px}
+  .arena-bar-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+  .arena-bar-actions button{flex:1 1 190px;white-space:nowrap}
+
+  /* La forme du jour se lit d'un coup d'œil : au-dessus de la normale ou en dessous. */
+  .form-up{color:var(--u-text)}
+  .form-down{color:var(--gold)}
+
+  /* L'issue arrive après l'attente : elle doit s'imposer une seconde, pas apparaître comme une
+     ligne de plus. */
+  .arena-verdict{font-family:var(--f-display);font-size:30px;font-weight:600;letter-spacing:.02em;
+    text-align:center;padding:10px 0;animation:arena-verdict .5s cubic-bezier(.2,.9,.3,1.4) both}
+  .arena-verdict.won{color:var(--t)}
+  .arena-verdict.lost{color:var(--fg-3)}
+  @keyframes arena-verdict{0%{opacity:0;transform:scale(.82)}100%{opacity:1;transform:scale(1)}}
+
+  /* Les trois chiffres qui ont décidé du duel, au-dessus du détail qui les explique. */
+  .arena-duel-nums{display:flex;gap:22px;flex-wrap:wrap;margin-top:8px}
+  .arena-duel-nums div{display:flex;flex-direction:column;gap:2px}
+  .arena-duel-nums .v{font-family:var(--f-display);font-size:26px;font-weight:600;color:var(--fg);line-height:1}
+  .arena-duel-nums .v.win{color:var(--gold)}
+
+  .arena-badges{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px}
+  .arena-badge{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px}
+
+  .arena-reward{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .arena-reward div{display:flex;flex-direction:column;gap:2px}
+  .arena-reward .v{font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--fg);line-height:1}
+
+
+/* Un achat à confirmer : le bouton change d'état, pas seulement de libellé — le libellé seul
+   se lit après coup, la couleur se voit avant de recliquer. */
+.evo-btn.confirming { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+  /* ───────── revente ───────── */
+  /* Le tas, pas l'exemplaire : une ligne par espèce, et le détail seulement si on le demande.
+     Une liste plate de cent exemplaires ferait de la revente une seconde corvée. */
+  .vendre-groupe{border-bottom:1px solid var(--line)}
+  .vendre-groupe:last-child{border-bottom:0}
+  .vendre-tete{align-items:center;gap:10px}
+  .vendre-mini{width:34px;height:34px;flex:0 0 34px;image-rendering:pixelated;
+    border:1px solid var(--line);background:color-mix(in srgb, var(--tier) 12%, var(--surface))}
+  .vendre-compte{color:var(--fg-3);margin-left:6px;font-size:11px}
+  .vendre-plier{background:transparent;border:1px solid var(--line);color:var(--fg-2);
+    width:30px;height:30px;cursor:pointer;font-size:11px;line-height:1}
+  .vendre-plier:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+  .vendre-detail{padding:4px 0 12px 44px;display:flex;flex-direction:column;gap:4px}
+  .vendre-ligne{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    background:transparent;border:1px solid transparent;padding:6px 8px;cursor:pointer;
+    font-family:var(--f-label);font-size:11px;color:var(--fg-2)}
+  .vendre-ligne:hover:not(:disabled){border-color:var(--line-strong)}
+  /* Pris = part à la vente. La croix se lit de loin, et ne dépend pas de la couleur seule. */
+  .vendre-ligne.pris{color:var(--fg);border-color:var(--gold)}
+  .vendre-ligne.bloque{opacity:.4;cursor:default}
+  .vendre-case{width:16px;height:16px;flex:0 0 16px;border:1.5px solid var(--line-strong);
+    display:grid;place-items:center;font-size:12px;line-height:1}
+  .vendre-ligne.pris .vendre-case{border-color:var(--gold);color:var(--gold)}
+  .vendre-niv{color:var(--fg-3)}
+  .vendre-tag{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);
+    border:1px solid var(--line-strong);padding:1px 5px}
+  .vendre-prix{margin-left:auto;color:var(--fg)}
+  .vendre-note{margin:6px 0 0 8px;font-size:11px}
+  .vendre-un{padding:6px 12px;white-space:nowrap}
+  /* Le lot au-dessus de la liste : c'est le geste courant, et la ligne par ligne l'exception. */
+  .vendre-lot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .forme-shiny{padding:0 5px;font-size:10px;line-height:1.5}
+  .vendre-lot-note{font-size:11px;flex:1 1 220px}
+
+  /* ───────── profil ───────── */
+  /* Un filet d'un pixel et demi entre les cases, obtenu par la couleur de fond de la grille :
+     plus net qu'une bordure par case, qui doublerait aux jointures. */
+  .prof-cases{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1.5px;
+    background:var(--line);border-bottom:1.5px solid var(--line);
+  }
+  .prof-case{background:var(--surface);padding:16px 18px}
+  .prof-case b{
+    display:block;font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .prof-case span{
+    display:block;margin-top:7px;font-family:var(--f-label);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--fg-2);
+  }
+  /* Hachurée plutôt que retirée : une case barrée montre où passe la règle, une case absente
+     laisse croire qu'il n'y avait rien à dire. */
+  .prof-case.secret{background:repeating-linear-gradient(135deg,var(--surface) 0 7px,var(--surface) 7px 8px)}
+  .prof-case.secret b{color:var(--fg-3)}
+
+  .prof-badges{display:flex;gap:20px;flex-wrap:wrap}
+  .prof-badge{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .prof-badge span{font-size:10.5px;color:var(--fg-2)}
+
+  /* ───────── saison ───────── */
+  /* Sous le chiffre des jours restants, à sa largeur : un sablier plus large que ce qu'il
+     mesure se lisait comme une barre de progression de la page entière. */
+  .saison-sablier{
+    height:4px;width:100%;min-width:88px;background:var(--surface);border:1px solid var(--line);
+    position:relative;overflow:hidden;margin-top:10px;
+  }
+  .saison-sablier i{position:absolute;inset:0 auto 0 0;background:var(--u-text)}
+
+  /* Chaque rang est un bouton : le pseudo mène au profil, ce qui donne enfin une raison de
+     cliquer sur un nom qu'on regarde depuis des semaines. */
+  .saison-rangs{display:flex;flex-direction:column}
+  .saison-rang{
+    display:flex;align-items:center;gap:13px;width:100%;padding:11px 0;cursor:pointer;
+    border:0;border-bottom:1px solid rgba(179,161,121,.4);background:transparent;
+    font-family:var(--f-label);text-align:left;color:var(--fg-2);
+  }
+  .saison-rang:last-child{border-bottom:0}
+  .saison-rang:hover{color:var(--fg)}
+  .saison-rang:hover .nom{text-decoration:underline;text-underline-offset:3px}
+  .saison-rang .pos{width:20px;font-size:11px;color:var(--fg-3)}
+  .saison-rang.podium .pos{color:var(--gold);font-weight:600}
+  .saison-rang .nom{width:88px;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .saison-rang .piste{flex:1;height:7px;background:var(--surface);position:relative;min-width:60px}
+  .saison-rang .piste i{position:absolute;inset:0 auto 0 0;background:var(--line-strong)}
+  .saison-rang .pts{width:46px;text-align:right;font-size:13px}
+  .saison-rang.moi{color:var(--fg)}
+  .saison-rang.moi .nom,.saison-rang.moi .pts{font-weight:600;color:var(--gold)}
+  .saison-rang.moi .piste i{background:var(--gold)}
+
+  .saison-bareme{display:flex;flex-direction:column}
+  .saison-ligne{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(179,161,121,.4)}
+  .saison-ligne:last-child{border-bottom:0}
+  .saison-ligne .pastille{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+  .saison-ligne .quoi{flex:1;font-size:12.5px;color:var(--fg-2)}
+  .saison-ligne .pts{font-size:13.5px}
+  .saison-ligne .sous{width:56px;text-align:right;font-size:11px;color:var(--fg-3)}
+
+  .saison-etagere{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:18px 12px}
+  .saison-socle{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .saison-socle .qd{font-size:10px;color:var(--fg-3)}
+  .saison-socle .rg{font-size:11px;color:var(--fg)}
+  .saison-socle.vide .rg{color:var(--fg-3)}
+  /* Le socle vide est gravé, pas absent : il dit qu'une place existait et n'a pas été prise. */
+  .socle-vide{
+    width:46px;height:46px;border-radius:50%;border:1px dashed var(--line-strong);opacity:.65;
+    background:radial-gradient(circle at 50% 42%, rgba(44,38,32,.06), transparent 62%);
+  }
+
+  /* ───────── une page, pas une couche ─────────
+     Les lieux étaient des panneaux flottants au-dessus de la planche, avec une croix pour les
+     refermer. Un onglet ne mène pas à une couche : il mène à un endroit. La page occupe donc le
+     flux, sans scrim ni bord de carte — c'est le rail qui la surmonte et les filets de section
+     qui la structurent, comme sur un document. On en sort par un autre onglet, pas par une croix. */
+  .page{display:block;padding-bottom:40px}
+  .page > .panel-top{padding:0 0 18px;border-bottom:1.5px solid var(--line);gap:22px}
+  .page > .sect{padding:20px 0}
+  .page .panel-name{margin-top:5px}
+
+  /* ───────── badge de saison ───────── */
+  .sbadge{position:relative;display:inline-flex;width:var(--taille);height:var(--taille)}
+  .sbadge svg{display:block;overflow:visible}
+  /* Le rang est une pastille posée sur le badge, pas une teinte appliquée dessus : les huit
+     médailles ont leurs couleurs propres, et les repeindre en or, argent et bronze ferait de
+     huit dessins distincts trois nuances de la même. */
+  .sbadge-rang{
+    position:absolute;right:-4px;bottom:-4px;
+    background:var(--medaille);color:#fdfaf3;
+    font-size:9px;font-weight:600;line-height:1;padding:2px 4px;border-radius:8px;
+    box-shadow:0 0 0 1.5px var(--surface);
+  }
+
+  /* Le badge en jeu, en tête de la saison : assez grand pour donner envie, posé à côté de ce
+     qu'il coûte d'obtenir plutôt qu'en vignette au milieu d'un tableau. */
+  .saison-prix{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .saison-prix .sbadge{flex-shrink:0}
+  .saison-prix > div{flex:1;min-width:210px}
+
+  /* Un gain nul se lit au premier coup d'œil comme une absence, pas comme un zéro perdu au
+     milieu de chiffres qui, eux, comptent. */
+  .arena-reward .v.nul{color:var(--fg-3)}
+
+  /* ───────── l'arène à venir ───────── */
+  .teaser-tete{display:flex;align-items:center;gap:34px;flex-wrap:wrap}
+  .teaser-badge{display:flex;flex-direction:column;align-items:center;gap:9px;margin-left:auto}
+  .teaser-badge span{font-size:10.5px;color:var(--fg-2)}
+  .teaser-liste{display:flex;flex-direction:column}
+  .teaser-liste p{
+    font-size:13px;line-height:1.65;color:var(--fg-2);
+    padding:11px 0;border-bottom:1px solid rgba(179,161,121,.4);
+  }
+  .teaser-liste p:last-child{border-bottom:0}
+  .teaser-liste b{color:var(--fg)}
+
+  /* La forme du jour, exemplaire par exemplaire : à plusieurs, elles diffèrent — la forme se
+     tire de la clé, pas de l'espèce — et c'est ce qui décide lequel engager aujourd'hui. */
+  .formes{display:flex;flex-direction:column;margin-bottom:12px}
+  .forme-ligne{
+    display:flex;align-items:center;gap:12px;padding:8px 0;
+    border-bottom:1px solid rgba(179,161,121,.4);
+  }
+  .forme-ligne:last-child{border-bottom:0}
+  .forme-ligne .no{font-size:10px;color:var(--fg-3);width:14px}
+  .forme-ligne .quoi{font-size:12px;color:var(--fg-2);width:52px}
+  .forme-nom{flex:1;font-size:12.5px;color:var(--fg-2)}
+  .forme-nom.up{color:var(--u-text)}
+  .forme-nom.down{color:var(--gold)}
+
+  /* ───────── pseudonyme ───────── */
+  .pseudo-form{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+  .pseudo-input{
+    flex:1;min-width:160px;font-family:var(--f-data);font-size:14px;color:var(--fg);
+    background:var(--surface-hi);border:1.5px solid var(--line-strong);padding:10px 12px;
+  }
+  .pseudo-input:focus{outline:none;border-color:var(--gold)}
+  .pseudo-input:disabled{color:var(--fg-3)}
+  .pseudo-err{margin-top:10px;color:var(--gold)}
+
+  /* Le rappel du nom manquant : un filet rouge, pas un bandeau — il informe, il n'interdit rien. */
+  .sans-nom{border-left:3px solid var(--gold);padding-left:16px}
+  .sans-nom b{color:var(--gold)}
+
+  /* ───────── avis d'échec ─────────
+     En haut du contenu et non en surimpression : on doit pouvoir continuer à jouer en le
+     lisant. Il porte le message du serveur, qui dit quoi faire, plutôt qu'un « une erreur est
+     survenue » qui n'apprend rien. */
+  .avis{
+    display:flex;align-items:flex-start;gap:14px;
+    border:1.5px solid var(--avis-t, var(--gold));border-left-width:4px;
+    background:var(--avis-f, rgba(158,59,46,.07));
+    padding:12px 16px;margin-bottom:20px;
+    font-size:13px;line-height:1.55;color:var(--fg);
+  }
+  .avis span{flex:1}
+  .avis-x{
+    border:0;background:none;cursor:pointer;color:var(--avis-t, var(--gold));padding:2px;display:flex;
+  }
+  /* Une bonne nouvelle ne porte pas la couleur d'un refus : le pli gagné est en herbe. */
+  .avis.bonne{--avis-t:var(--u-text);--avis-f:rgba(92,122,82,.08)}
+  .avis-x:hover{color:var(--fg)}

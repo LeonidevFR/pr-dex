@@ -12,7 +12,21 @@ const props = defineProps({
 })
 const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
-const TABS = [['collection', 'Collection'], ['team', 'Leaderboard'], ['stats', 'Statistiques']]
+/**
+ * L'arène prend un onglet, pas quatre.
+ *
+ * Elle compte quatre lieux — le terrain, la saison, la boutique, le profil — et les poser à plat
+ * aurait porté le rail à sept entrées, dans une barre dessinée pour trois. Ils vivent donc au
+ * second niveau, dans leur propre barre, sous cet onglet-ci.
+ *
+ * L'onglet reste visible avant le 1er décembre : il mène au teaser, qui est fait pour ça.
+ */
+const TABS = [
+  ['collection', 'Collection'],
+  ['arena', 'Arène'],
+  ['team', 'Leaderboard'],
+  ['stats', 'Statistiques'],
+]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps

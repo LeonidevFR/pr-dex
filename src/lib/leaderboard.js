@@ -23,9 +23,28 @@ export function playerStats(catches, evolutions, today) {
   // malformée chez un seul joueur ne doit pas casser le panneau de toute l'équipe. Jusqu'ici
   // un état corrompu ne gênait que celui qui l'avait écrit ; c'est le premier écran où il
   // atteint les autres. On ne garde que ce que `useDex` sait lire.
-  const evos = (Array.isArray(evolutions) ? evolutions : []).filter((e) => e && DEX[e.species])
-  const state = ref({ claimed: catches.map((c) => entryKey(c.source, c.external_id)), spent: {}, evolutions: evos })
-  const dex = useDex(ref(catches), state)
+  /**
+   * Les évolutions arrivent sous deux formes, et il faut lire les deux.
+   *
+   * L'ancienne vit dans `state.evolutions`, écrite par le client : `{ species, from, fromKey }`.
+   * La nouvelle vient de la table `evolutions`, que le serveur valide : `{ to_species,
+   * from_species, from_key }`. Le classement lit les deux tant que la bascule n'est pas faite
+   * partout — un joueur déjà migré et un autre qui ne l'est pas apparaissent dans le même
+   * tableau.
+   *
+   * Et l'on ne garde que ce que `useDex` sait lire : `state.evolutions` n'était validée par
+   * personne, et une entrée corrompue chez un seul joueur casserait le panneau de toute
+   * l'équipe. Jusqu'ici un état abîmé ne gênait que son auteur ; c'est le premier écran où il
+   * atteint les autres.
+   */
+  const evos = (Array.isArray(evolutions) ? evolutions : [])
+    .map((e, i) => (e && e.to_species != null
+      ? { id: e.id ?? i, to_species: e.to_species, from_species: e.from_species, from_key: e.from_key }
+      : e && { id: i, to_species: e.species, from_species: e.from, from_key: e.fromKey }))
+    .filter((e) => e && DEX[e.to_species])
+
+  const state = ref({ claimed: catches.map((c) => entryKey(c.source, c.external_id)), spent: {} })
+  const dex = useDex(ref(catches), state, ref(new Set()), ref(evos))
 
   const owned = new Set(Object.keys(dex.bySpecies.value).map(Number))
   const ofTier = (t) => [...owned].filter((id) => DEX[id].tier === t).length
