@@ -82,6 +82,11 @@ const palmares = computed(() => props.seasons.map((s) => ({
       <div>
         <div class="eyebrow">Jour{{ restants > 1 ? 's' : '' }} restant{{ restants > 1 ? 's' : '' }}</div>
         <div class="view-num">{{ restants }}</div>
+        <!-- Le sablier contre le chiffre qu'il illustre. Seul dans sa section, il n'était plus
+             qu'une bande sans libellé au milieu de la page. -->
+        <div class="saison-sablier" :aria-label="`${ecoule} % de la saison écoulés`">
+          <i :style="{ width: ecoule + '%' }"></i>
+        </div>
       </div>
       <div v-if="moi">
         <div class="eyebrow">Tes points</div>
@@ -109,11 +114,6 @@ const palmares = computed(() => props.seasons.map((s) => ({
     </div>
   </div>
 
-  <div class="sect">
-    <div class="saison-sablier" :aria-label="`${ecoule} % de la saison écoulés`">
-      <i :style="{ width: ecoule + '%' }"></i>
-    </div>
-  </div>
 
   <div class="sect">
     <div class="eyebrow sect-h">

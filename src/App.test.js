@@ -345,10 +345,12 @@ describe('enchaîner les engagements', () => {
   const poster = (w) => w.findAll('button').find((b) => b.text().includes('Poster un défi'))
 
   const choisir = async (w) => {
-    await w.findAll('.arena-pick')[0].trigger('click')
+    await w.findAll('.especes .specimen')[0].trigger('click')
     await flushPromises()
-    const radios = w.findAll('input[type="radio"]')
-    if (radios.length) { await radios[0].setValue(); await flushPromises() }
+    // Une espèce à plusieurs exemplaires ouvre un second choix ; une espèce unique engage
+    // directement. Les deux listes parlent la même langue : des vignettes.
+    const exemplaires = w.findAll('.exemplaires .specimen')
+    if (exemplaires.length) { await exemplaires[0].trigger('click'); await flushPromises() }
   }
 
   it('laisse poster un second défi dans la foulée du premier', async () => {

@@ -247,19 +247,25 @@ function take(duelId) {
     <p v-if="!engageable.length" class="muted">
       Aucun exemplaire à engager pour l’instant.
     </p>
-    <div v-if="!picking" class="arena-list">
+    <!--
+      Les mêmes vignettes que le choix d'exemplaire de la fiche : un seul geste de sélection
+      dans toute l'application. Les tuiles d'avant étaient un reste de l'ancienne direction,
+      avec leur cadre carré et leur typographie à part.
+    -->
+    <div v-if="!picking" class="specimens especes">
       <button
-        v-for="g in bySpecies" :key="g.species"
-        class="arena-pick"
-        :class="{ on: picking === g.species || (chosen && found(chosen)?.species === g.species) }"
-        :disabled="!canPlay"
+        v-for="g in bySpecies" :key="g.species" type="button" class="specimen"
+        :class="{ on: chosen && found(chosen)?.species === g.species, shiny: g.shiny }"
+        :aria-pressed="chosen && found(chosen)?.species === g.species ? 'true' : 'false'"
+        :disabled="!canPlay" :title="DEX[g.species].name"
         @click="openSpecies(g.species)"
       >
-        <img :src="spriteUrl(g.species, g.shiny)" :alt="DEX[g.species].name">
-        <span class="nm">
-          {{ DEX[g.species].name }}<b v-if="g.count > 1" class="mult">×{{ g.count }}</b>
+        <Sparkle v-if="g.shiny" class="specimen-shiny" :size="12" fill="currentColor" aria-label="shiny" />
+        <img :src="spriteUrl(g.species, g.shiny)" alt="">
+        <span class="specimen-date">
+          {{ DEX[g.species].name }}<i v-if="g.count > 1" class="specimen-mult">×{{ g.count }}</i>
         </span>
-        <span class="lv">niv. {{ g.maxLevel }}</span>
+        <span class="specimen-ref mono">niv. {{ g.maxLevel }}</span>
       </button>
     </div>
 
@@ -271,26 +277,27 @@ function take(duelId) {
           Changer d’espèce
         </button>
       </p>
-      <div class="log">
-        <label v-for="e in specimens" :key="e.key" class="log-row picker-row">
-          <input type="radio" name="arena-specimen" :value="e.key" v-model="chosen">
-          <span class="log-sha mono">niv. {{ levelOf(e.key) }}</span>
-          <span class="log-title">
-            {{ e.label ?? DEX[e.species].name }}
-            <span v-if="e.shiny" class="chip" style="margin-left:6px" role="img" aria-label="shiny">
-              <Sparkle :size="10" fill="currentColor" aria-hidden="true" />
-            </span>
-          </span>
-          <!--
-            La forme du jour entre dans le calcul au même titre que le niveau : l'afficher
-            ici, c'est la seule façon d'engager en connaissance de cause plutôt que de
-            perdre sans comprendre pourquoi.
-          -->
-          <span class="log-date" :class="{ 'form-up': formOfKey(e.key).factor > 1,
-                                           'form-down': formOfKey(e.key).factor < 1 }">
-            {{ formOfKey(e.key).name }}
-          </span>
-        </label>
+      <!--
+        La forme du jour entre dans le calcul au même titre que le niveau : l'afficher sur la
+        vignette, c'est la seule façon d'engager en connaissance de cause plutôt que de perdre
+        sans comprendre pourquoi.
+      -->
+      <div class="specimens exemplaires">
+        <button
+          v-for="e in specimens" :key="e.key" type="button" class="specimen"
+          :class="{ on: chosen === e.key, shiny: e.shiny }" :data-key="e.key"
+          :aria-pressed="chosen === e.key ? 'true' : 'false'"
+          :title="e.label ?? DEX[e.species].name"
+          @click="chosen = e.key"
+        >
+          <Sparkle v-if="e.shiny" class="specimen-shiny" :size="12" fill="currentColor" aria-label="shiny" />
+          <img :src="spriteUrl(e.species, e.shiny)" alt="">
+          <span class="specimen-date">niv. {{ levelOf(e.key) }}</span>
+          <span
+            class="specimen-ref" :class="{ 'form-up': formOfKey(e.key).factor > 1,
+                                           'form-down': formOfKey(e.key).factor < 1 }"
+          >{{ formOfKey(e.key).name }}</span>
+        </button>
       </div>
     </template>
   </div>

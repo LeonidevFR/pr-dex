@@ -385,6 +385,13 @@
   .specimen-shiny{position:absolute;left:8px;top:6px;color:var(--l-text)}
   .specimen-date{font-size:12px;font-weight:600}
   .specimen-ref{font-size:10px;color:var(--fg-3)}
+  /* Le multiplicateur d'espèce et la forme du jour, sur la même vignette que dans la fiche.
+     La forme se colore parce qu'elle aide ou handicape ; son ampleur, elle, ne se chiffre
+     jamais — c'est aux joueurs de se faire leur idée du poids que ça pèse. */
+  .specimen-mult{font-style:normal;color:var(--gold);margin-left:4px}
+  .specimen-ref.form-up{color:var(--u-text)}
+  .specimen-ref.form-down{color:var(--danger)}
+  .specimen:disabled{opacity:.45;cursor:default}
   .picker-actions{display:flex;gap:10px;margin-top:16px}
   .cancel-btn{border:1px solid var(--line-strong);border-radius:999px;background:transparent;color:var(--fg-2);font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:14px 22px;cursor:pointer}
   .cancel-btn:hover{color:var(--fg);border-color:var(--line-strong-hi)}
@@ -1132,9 +1139,11 @@
   .prof-badge span{font-size:10.5px;color:var(--fg-2)}
 
   /* ───────── saison ───────── */
+  /* Sous le chiffre des jours restants, à sa largeur : un sablier plus large que ce qu'il
+     mesure se lisait comme une barre de progression de la page entière. */
   .saison-sablier{
-    height:6px;background:var(--surface);border:1px solid var(--line);position:relative;
-    overflow:hidden;margin-top:16px;
+    height:4px;width:100%;min-width:88px;background:var(--surface);border:1px solid var(--line);
+    position:relative;overflow:hidden;margin-top:10px;
   }
   .saison-sablier i{position:absolute;inset:0 auto 0 0;background:var(--u-text)}
 

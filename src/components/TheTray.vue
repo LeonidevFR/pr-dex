@@ -56,8 +56,17 @@ const hasActiveFilters = computed(
   () => props.activeTiers.size < TIERS.length || props.statusFilter !== 'all' || props.query.trim() !== '',
 )
 
-const caughtInGen = computed(() =>
-  ids.value.filter((id) => props.bySpecies[id]).length)
+/**
+ * Le compte de chaque étagère, et non seulement de celle qu'on regarde.
+ *
+ * `caughtInGen` ne savait compter que la génération courante : l'autre onglet affichait donc un
+ * tiret, qui devenait un zéro dès qu'on y passait. Deux écritures pour le même chiffre, dont
+ * une fausse — il n'y a aucune raison d'ignorer un compte qu'on sait faire.
+ */
+const comptePar = computed(() => Object.fromEntries(
+  Object.entries(TABLES).map(([gen, table]) =>
+    [gen, table.filter(([id]) => props.bySpecies[id]).length]),
+))
 
 // « Évoluables » se lit sur le même jeu que le badge ▲ de la case : le filtre ne peut pas
 // montrer autre chose que ce que la grille annonçait déjà. Ce jeu ne retient que les espèces
@@ -103,10 +112,10 @@ const tierOf = (id) => DEX[id].tier
   <div class="gen-tabs">
     <button
       class="filter-chip" :class="{ active: gen === 1 }" @click="emit('set-gen', 1)"
-    >Génération 1 · {{ caughtInGen }}/151</button>
+    >Génération 1 · {{ comptePar[1] }}/151</button>
     <button
       class="filter-chip" :class="{ active: gen === 2 }" @click="emit('set-gen', 2)"
-    >Génération 2 · {{ gen === 2 ? caughtInGen : '—' }}/100</button>
+    >Génération 2 · {{ comptePar[2] }}/100</button>
     <span v-if="gen === 2" class="muted" style="font-size:11.5px">
       Ne se tire jamais au travail : elle s’achète en arène, avec des pokédollars.
     </span>

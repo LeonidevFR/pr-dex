@@ -31,13 +31,13 @@ describe('ArenaPanel', () => {
   it('garde la liste visible mais inerte quand il ne reste aucun engagement', () => {
     const w = monter({ credits: 0 })
     expect(w.text()).toContain('un par jour ouvré')
-    expect(w.findAll('.arena-pick')).toHaveLength(2)
-    expect(w.find('.arena-pick').attributes('disabled')).toBeDefined()
+    expect(w.findAll('.especes .specimen')).toHaveLength(2)
+    expect(w.find('.especes .specimen').attributes('disabled')).toBeDefined()
   })
 
   it('propose d’engager chaque exemplaire disponible, avec son niveau', () => {
     const w = monter()
-    const choix = w.findAll('.arena-pick')
+    const choix = w.findAll('.especes .specimen')
     expect(choix).toHaveLength(2)
     expect(choix[0].text()).toContain('Dracaufeu')
     expect(choix[0].text()).toContain('niv. 4')
@@ -46,7 +46,7 @@ describe('ArenaPanel', () => {
   // Rien ne part tant qu'on n'a pas confirmé : le clic sur un Pokémon choisit, il n'engage pas.
   it('ne déclenche rien au simple choix d’un exemplaire', async () => {
     const w = monter()
-    await w.findAll('.arena-pick')[0].trigger('click')
+    await w.findAll('.especes .specimen')[0].trigger('click')
     expect(w.emitted('engage')).toBeUndefined()
   })
 
@@ -54,7 +54,7 @@ describe('ArenaPanel', () => {
   // elle sortait de l'écran juste après le clic qui l'avait fait apparaître.
   it('rappelle l’enjeu dans la barre d’action, sans quitter l’écran', async () => {
     const w = monter()
-    await w.findAll('.arena-pick')[0].trigger('click')
+    await w.findAll('.especes .specimen')[0].trigger('click')
     const barre = w.find('.arena-bar')
     expect(barre.exists()).toBe(true)
     expect(barre.text()).toContain('Dracaufeu')
@@ -63,7 +63,7 @@ describe('ArenaPanel', () => {
 
   it('poste un défi avec l’exemplaire choisi', async () => {
     const w = monter()
-    await w.findAll('.arena-pick')[0].trigger('click')
+    await w.findAll('.especes .specimen')[0].trigger('click')
     await w.find('.btn-solid').trigger('click')
     expect(w.emitted('engage')[0]).toEqual(['github:a', false])
   })
@@ -72,13 +72,13 @@ describe('ArenaPanel', () => {
     const w = monter({
       engageable: [exemplaire('github:a', 6), exemplaire('github:a2', 6)],
     })
-    await w.find('.arena-pick').trigger('click')
+    await w.find('.especes .specimen').trigger('click')
     expect(w.find('.btn-solid').exists()).toBe(false)
   })
 
   it('affronte l’ordinateur avec le même exemplaire', async () => {
     const w = monter()
-    await w.findAll('.arena-pick')[1].trigger('click')
+    await w.findAll('.especes .specimen')[1].trigger('click')
     await w.findAll('.btn-ghost').find((b) => b.text().includes('ordinateur')).trigger('click')
     expect(w.emitted('engage')[0]).toEqual(['github:b', true])
   })
@@ -101,7 +101,7 @@ describe('ArenaPanel', () => {
 
   it('relève un défi une fois la mise choisie', async () => {
     const w = monter({ challenges: [{ id: 7, pseudo: 'bob', created_at: 'x' }] })
-    await w.findAll('.arena-pick')[0].trigger('click')
+    await w.findAll('.especes .specimen')[0].trigger('click')
     await w.find('.evo-btn').trigger('click')
     expect(w.emitted('accept')[0]).toEqual([7, 'github:a'])
   })
@@ -142,7 +142,7 @@ describe('ArenaPanel', () => {
       ],
       levelOf: (k) => (k === 'github:a2' ? 7 : 1),
     })
-    const choix = w.findAll('.arena-pick')
+    const choix = w.findAll('.especes .specimen')
     expect(choix).toHaveLength(2)
     expect(choix[0].text()).toContain('niv. 7')
     expect(choix[0].text()).toContain('×2')
@@ -153,25 +153,25 @@ describe('ArenaPanel', () => {
       engageable: [exemplaire('github:a', 6), exemplaire('github:a2', 6)],
       levelOf: (k) => (k === 'github:a2' ? 7 : 1),
     })
-    await w.find('.arena-pick').trigger('click')
+    await w.find('.especes .specimen').trigger('click')
     expect(w.text()).toContain('Lequel de tes')
-    expect(w.findAll('.picker-row')).toHaveLength(2)
+    expect(w.findAll('.exemplaires .specimen')).toHaveLength(2)
     // Du plus aguerri au plus frais : c'est l'ordre dans lequel on décide.
-    expect(w.findAll('.picker-row')[0].text()).toContain('niv. 7')
+    expect(w.findAll('.exemplaires .specimen')[0].text()).toContain('niv. 7')
   })
 
   // Un seul exemplaire, un seul geste possible : autant l'épargner au joueur.
   it('choisit directement quand l’espèce n’a qu’un exemplaire', async () => {
     const w = monter({ engageable: [exemplaire('github:b', 25)] })
-    await w.find('.arena-pick').trigger('click')
-    expect(w.findAll('.picker-row')).toHaveLength(0)
+    await w.find('.especes .specimen').trigger('click')
+    expect(w.findAll('.exemplaires .specimen')).toHaveLength(0)
     await w.find('.btn-solid').trigger('click')
     expect(w.emitted('engage')[0]).toEqual(['github:b', false])
   })
 
   it('bloque les boutons pendant un appel en cours', async () => {
     const w = monter({ busy: true })
-    await w.findAll('.arena-pick')[0].trigger('click')
+    await w.findAll('.especes .specimen')[0].trigger('click')
     expect(w.find('.btn-solid').attributes('disabled')).toBeDefined()
   })
 })
@@ -187,17 +187,17 @@ describe('forme du jour', () => {
 
   it('annonce la forme de l’exemplaire retenu dans la barre d’action', async () => {
     const w = monter({ formOfKey: () => enForme })
-    await w.findAll('.arena-pick')[0].trigger('click')
+    await w.findAll('.especes .specimen')[0].trigger('click')
     expect(w.find('.arena-bar').text().toLowerCase()).toContain('en pleine forme')
   })
 
   it('distingue visuellement une forme au-dessus et en dessous de la normale', async () => {
     const bon = monter({ formOfKey: () => enForme })
-    await bon.findAll('.arena-pick')[0].trigger('click')
+    await bon.findAll('.especes .specimen')[0].trigger('click')
     expect(bon.find('.arena-bar .form-up').exists()).toBe(true)
 
     const mauvais = monter({ formOfKey: () => epuise })
-    await mauvais.findAll('.arena-pick')[0].trigger('click')
+    await mauvais.findAll('.especes .specimen')[0].trigger('click')
     expect(mauvais.find('.arena-bar .form-down').exists()).toBe(true)
   })
 
@@ -206,8 +206,8 @@ describe('forme du jour', () => {
       engageable: [exemplaire('github:a', 6), exemplaire('github:a2', 6)],
       formOfKey: (k) => (k === 'github:a' ? epuise : enForme),
     })
-    await w.find('.arena-pick').trigger('click')
-    const lignes = w.findAll('.picker-row')
+    await w.find('.especes .specimen').trigger('click')
+    const lignes = w.findAll('.exemplaires .specimen')
     expect(lignes.map((l) => l.text())).toEqual(
       expect.arrayContaining([expect.stringContaining('Épuisé'), expect.stringContaining('En pleine forme')]),
     )
@@ -290,22 +290,25 @@ describe('retour à la grille après un engagement', () => {
   // On vise l'espèce qui a DEUX exemplaires : une espèce unique se choisit d'un clic, sans
   // liste — et c'est précisément la liste qu'on veut voir se refermer.
   const ouvrirLaListe = async (w) => {
-    await w.findAll('.arena-pick').find((c) => c.text().includes('Mackogneur')).trigger('click')
+    await w.findAll('.especes .specimen').find((c) => c.text().includes('Mackogneur')).trigger('click')
     await w.vm.$nextTick()
-    const radios = w.findAll('input[type="radio"]')
-    expect(radios.length).toBeGreaterThan(0)
-    await radios[0].setValue()
+    // Les exemplaires se choisissent au clic sur leur vignette, comme dans la fiche : les
+    // boutons radio ont disparu avec l'ancienne liste.
+    const vignettes = w.findAll('.exemplaires .specimen')
+    expect(vignettes.length).toBeGreaterThan(0)
+    await vignettes[0].trigger('click')
     return w
   }
 
   it('referme la liste des exemplaires en postant un défi', async () => {
     const w = await monter({ engageable: deuxMemes })
     await ouvrirLaListe(w)
-    expect(w.findAll('.arena-pick')).toHaveLength(0)
+    expect(w.findAll('.especes .specimen')).toHaveLength(0)
+    expect(w.findAll('.exemplaires .specimen')).toHaveLength(2)
 
     await w.findAll('button').find((b) => b.text().includes('Poster un défi')).trigger('click')
     expect(w.emitted('engage')).toHaveLength(1)
-    expect(w.findAll('.arena-pick').length).toBeGreaterThan(0)
+    expect(w.findAll('.especes .specimen').length).toBeGreaterThan(0)
   })
 
   it('la referme aussi en relevant un défi', async () => {
@@ -316,6 +319,6 @@ describe('retour à la grille après un engagement', () => {
     await ouvrirLaListe(w)
     await w.findAll('button').find((b) => b.text() === 'Relever').trigger('click')
     expect(w.emitted('accept')).toHaveLength(1)
-    expect(w.findAll('.arena-pick').length).toBeGreaterThan(0)
+    expect(w.findAll('.especes .specimen').length).toBeGreaterThan(0)
   })
 })

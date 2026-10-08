@@ -150,7 +150,7 @@ const settingsOpen = ref(false)
  * Déduit, et non tenu à part : un `ref` doublant l'URL diverge au premier retour navigateur.
  */
 const LIEUX_ARENE = [
-  ['arena', 'Terrain'],
+  ['arena', 'Duels'],
   ['season', 'Saison'],
   ['shop', 'Boutique'],
   ['profile', 'Profil'],
