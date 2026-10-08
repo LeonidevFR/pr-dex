@@ -35,7 +35,7 @@ describe('SaleSection', () => {
    */
   it('ne coche rien au départ', () => {
     const w = monter(TROIS_RATTATA)
-    expect(w.find('.arena-big').text()).toBe('0 ₽')
+    expect(w.find('.view-num').text()).toBe('0 ₽')
     expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
     expect(w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))).toHaveLength(0)
   })
@@ -43,8 +43,8 @@ describe('SaleSection', () => {
   it('chiffre la sélection à mesure qu’on la compose', async () => {
     const w = monter(TROIS_RATTATA)
     await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')   // « Tous »
-    expect(w.find('.arena-big').text()).toBe(`${salePrice(RATTATA, 1) * 2} ₽`)
-    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
+    expect(w.find('.view-num').text()).toBe(`${salePrice(RATTATA, 1) * 2} ₽`)
+    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
   })
 
   it('vend en deux clics, et rend les clés choisies', async () => {
@@ -71,7 +71,7 @@ describe('SaleSection', () => {
     const bouton = () => w.findAll('.vendre-tete .evo-btn')[0]
     await bouton().trigger('click')   // tous
     await bouton().trigger('click')   // aucun
-    expect(w.find('.arena-big').text()).toBe('0 ₽')
+    expect(w.find('.view-num').text()).toBe('0 ₽')
     expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
   })
 
@@ -79,7 +79,7 @@ describe('SaleSection', () => {
   it('bascule tout un groupe d’un clic, sans jamais prendre le dernier', async () => {
     const w = monter(TROIS_RATTATA)
     await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
-    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
+    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
   })
 
   it('détaille les exemplaires une fois la ligne dépliée', async () => {
@@ -114,7 +114,7 @@ describe('SaleSection', () => {
     await w.find('.vendre-plier').trigger('click')
     const pris = w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))
     await pris[0].trigger('click')
-    expect(w.find('.arena-unit').text()).toContain('1 exemplaire')
+    expect(w.find('.view-totals .eyebrow').text()).toContain('1 exemplaire')
   })
 
   // Un shiny est signalé comme tel : il ne doit pas partir sans qu'on l'ait vu.
@@ -150,7 +150,7 @@ describe('SaleSection', () => {
     await w.setProps({
       groups: saleGroups([...TROIS_RATTATA, e('d', RATTATA), e('f', RATTATA)]),
     })
-    expect(w.find('.arena-big').text()).toBe('0 ₽')
+    expect(w.find('.view-num').text()).toBe('0 ₽')
   })
 
   /**
@@ -162,22 +162,22 @@ describe('SaleSection', () => {
   it('garde la sélection quand le surplus est recalculé à l’identique', async () => {
     const w = monter(TROIS_RATTATA)
     await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
-    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
+    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
 
     await w.setProps({ groups: saleGroups([e('a', RATTATA), e('b', RATTATA), e('c', RATTATA)]) })
-    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
+    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
   })
 
   // Ce qui a disparu quitte la sélection, sinon la vente suivante porterait sur du vide.
   it('oublie un exemplaire qui n’est plus là, sans rien rajouter', async () => {
     const w = monter([e('a', RATTATA), e('b', RATTATA), e('c', RATTATA), e('d', RATTATA)])
     await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')   // tous : 3 sur 4
-    expect(w.find('.arena-unit').text()).toContain('3 exemplaires')
+    expect(w.find('.view-totals .eyebrow').text()).toContain('3 exemplaires')
 
     // « b » était choisi et disparaît ; « z » arrive et ne s'invite pas dans la vente.
     await w.setProps({
       groups: saleGroups([e('a', RATTATA), e('c', RATTATA), e('d', RATTATA), e('z', RATTATA)]),
     })
-    expect(w.find('.arena-unit').text()).toContain('2 exemplaires')
+    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
   })
 })

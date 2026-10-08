@@ -74,18 +74,18 @@ const palmares = computed(() => {
 </script>
 
 <template>
-  <section class="page">
-  <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
+  <section class="view">
+  <div class="view-head">
     <div>
-      <span class="panel-plate mono">PROFIL</span>
+      <div class="eyebrow">Profil</div>
       <!--
-        Son propre dossier porte son nom d'arène : c'est sous celui-là qu'on apparaît partout
-        ailleurs, et le voir ici confirme qu'il est bien posé. « toi » ne subsiste que tant
-        qu'aucun nom n'a été choisi.
+        Le dossier porte le nom d'arène : c'est sous celui-là qu'on apparaît partout ailleurs, et
+        le voir en gros confirme qu'il est bien posé. « toi » ne subsiste que tant qu'aucun nom
+        n'a été choisi.
       -->
-      <h2 class="panel-name" style="font-size:26px;margin-bottom:0">
-        {{ pseudo ?? monPseudo ?? 'toi' }}
-      </h2>
+      <h1 class="view-title">
+        Le dossier de <i>{{ pseudo ?? monPseudo ?? 'toi' }}</i>
+      </h1>
       <p v-if="cestMoi && !monPseudo" class="muted" style="margin-top:6px">
         Tu n’as pas encore de nom d’arène — les autres ne peuvent pas ouvrir ton profil.
       </p>

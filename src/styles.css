@@ -835,12 +835,34 @@
   .gen-tabs{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:0 26px 14px}
 
   /* ───────── arène ───────── */
-  /* Le solde d'engagements est la contrainte qui structure tout le mode : il se lit d'un coup
-     d'œil, pas en petits caractères. */
-  .arena-head{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
-  .arena-big{font-family:var(--f-display);font-size:34px;font-weight:600;color:var(--fg);line-height:1}
+  /*
+    Les chiffres de l'arène parlent la langue de la refonte : display léger, grande taille,
+    `--fg-title`. Ils vivaient en 34 px gras, un reste de l'ancienne direction où les nombres
+    criaient ; ici ils portent, sans hausser le ton.
+
+    `.arena-big` ne sert plus qu'aux chiffres DANS une page — la cérémonie, le teaser. Les
+    compteurs d'un écran sont remontés dans son en-tête, en `.view-num`.
+  */
+  .arena-big{font-family:var(--f-title);font-weight:300;font-size:36px;letter-spacing:-.02em;
+    color:var(--fg-title);line-height:1}
   .arena-big.spent{color:var(--fg-3)}
-  .arena-unit{font-family:var(--f-label);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-2)}
+  .arena-unit{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--fg-3)}
+
+  /* Un engagement dépensé s'éteint plutôt que de disparaître : le zéro doit se voir. */
+  .view-num.is-spent{color:var(--fg-3)}
+
+  /* La boutique : le prix en display, le bouton au bout de la même ligne. Le motif `dt`/`dd`
+     de la refonte accepte un bouton dans sa valeur, à condition qu'il ne pousse pas le nombre. */
+  .shop-list dd{display:flex;align-items:baseline;gap:16px;justify-content:flex-end}
+  .shop-list dd .evo-btn{padding:7px 13px;font-size:10px}
+
+  /* Dans la table du classement, le nom est un lien vers un profil : il garde la couleur et le
+     poids d'un nom, et ne prend l'or qu'au survol. */
+  .saison-voir{background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit;
+    display:inline-flex;align-items:center;gap:14px}
+  .saison-voir:hover .board-login{color:var(--gold)}
+  .board-table tr.podium .board-rank{color:var(--gold)}
 
   /* La sélection encadre la vignette sans toucher au texte : le nom et le niveau doivent rester
      lisibles au moment précis où l'on décide de miser. */

@@ -66,17 +66,31 @@ const palmares = computed(() => props.seasons.map((s) => ({
 </script>
 
 <template>
-  <section class="page">
-  <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
+  <section class="view">
+  <div class="view-head">
     <div>
-      <span class="panel-plate mono">
-        {{ seasonLabel(season).toUpperCase() }}<template v-if="seasonLabel(season) !== season"> · {{ season }}</template>
-      </span>
-      <h2 class="panel-name" style="font-size:26px;margin-bottom:0">{{ periode }}</h2>
-      <p class="muted" style="margin-top:6px">
+      <!-- Le nom, puis les mois. Les mois toujours : « Saison 1 » ne dit pas quand, et pour
+           une saison d'avant le lancement il ne reste que le code, qui ne dit rien du tout. -->
+      <div class="eyebrow">{{ seasonLabel(season) }} · {{ periode }}</div>
+      <h1 class="view-title">Qui mène <i>la saison</i></h1>
+      <p class="muted" style="margin-top:10px">
         Deux mois pour marquer des points. À la clôture, les trois premiers gardent le badge
         de la saison — elle ne se rejoue pas.
       </p>
+    </div>
+    <div class="view-totals">
+      <div>
+        <div class="eyebrow">Jour{{ restants > 1 ? 's' : '' }} restant{{ restants > 1 ? 's' : '' }}</div>
+        <div class="view-num">{{ restants }}</div>
+      </div>
+      <div v-if="moi">
+        <div class="eyebrow">Tes points</div>
+        <div class="view-num gold">{{ moi.points }}</div>
+      </div>
+      <div v-if="moi">
+        <div class="eyebrow">Ton rang</div>
+        <div class="view-num">{{ moi.rank }}<small>{{ moi.rank === 1 ? 'er' : 'e' }}</small></div>
+      </div>
     </div>
   </div>
 
@@ -96,20 +110,6 @@ const palmares = computed(() => props.seasons.map((s) => ({
   </div>
 
   <div class="sect">
-    <div class="arena-head">
-      <div>
-        <div class="arena-big">{{ restants }}</div>
-        <div class="arena-unit">jour{{ restants > 1 ? 's' : '' }} restant{{ restants > 1 ? 's' : '' }}</div>
-      </div>
-      <div v-if="moi">
-        <div class="arena-big">{{ moi.points }}</div>
-        <div class="arena-unit">tes points</div>
-      </div>
-      <div v-if="moi">
-        <div class="arena-big">{{ moi.rank }}<sup style="font-size:14px">{{ moi.rank === 1 ? 'er' : 'e' }}</sup></div>
-        <div class="arena-unit">ton rang</div>
-      </div>
-    </div>
     <div class="saison-sablier" :aria-label="`${ecoule} % de la saison écoulés`">
       <i :style="{ width: ecoule + '%' }"></i>
     </div>
@@ -125,19 +125,36 @@ const palmares = computed(() => props.seasons.map((s) => ({
       Personne n’a encore marqué. Le premier duel gagné ouvre le classement.
     </p>
 
-    <div v-else class="saison-rangs">
-      <button
-        v-for="l in leaderboard" :key="l.user_id"
-        class="saison-rang" :class="{ moi: l.user_id === userId, podium: l.rank <= 3 }"
-        :title="`Voir le profil de ${l.pseudo}`"
-        @click="$emit('profile', l.pseudo)"
-      >
-        <span class="pos mono">{{ l.rank }}</span>
-        <span class="nom">{{ l.pseudo }}</span>
-        <span class="piste"><i :style="{ width: Math.round(l.points / haut * 100) + '%' }"></i></span>
-        <span class="pts mono">{{ l.points }}</span>
-      </button>
-    </div>
+    <!--
+      La même table que le Leaderboard d'équipe. Le classement de saison est le même objet à un
+      autre moment : le résoudre deux fois sous deux formes obligeait à réapprendre à lire.
+    -->
+    <table v-else class="board-table">
+      <thead>
+        <tr>
+          <th class="board-rank">Rang</th>
+          <th class="board-who">Joueur</th>
+          <th>Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="l in leaderboard" :key="l.user_id"
+          :class="{ me: l.user_id === userId, podium: l.rank <= 3 }"
+        >
+          <td class="board-rank">{{ l.rank }}</td>
+          <td class="board-who">
+            <button
+              class="board-who-in saison-voir" :title="`Voir le profil de ${l.pseudo}`"
+              @click="$emit('profile', l.pseudo)"
+            >
+              <span class="board-login">{{ l.pseudo }}</span>
+            </button>
+          </td>
+          <td class="lead">{{ l.points }}</td>
+        </tr>
+      </tbody>
+    </table>
 
     <!-- Ce qu'il reste à faire, et non seulement où l'on est. -->
     <p v-if="retard" class="muted" style="margin-top:12px">

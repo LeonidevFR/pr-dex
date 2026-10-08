@@ -62,7 +62,7 @@ describe('boutique', () => {
 describe('confirmation d’achat', () => {
   const CATALOGUE = [{ slug: 'gen1-l', gen: 1, tier: 'l', fresh: false, price: 4500 }]
   const panel = () => monter({ shop: CATALOGUE, pokedollars: 14000 })
-  const article = (w) => w.findAll('.log-row')[0].find('button')
+  const article = (w) => w.findAll('.shop-list > div')[0].find('button')
 
   it('ne déclenche rien au premier clic', async () => {
     const w = panel()
@@ -86,7 +86,7 @@ describe('confirmation d’achat', () => {
   it('renonce si on clique ailleurs', async () => {
     const w = panel()
     await article(w).trigger('click')
-    await w.find('.page').trigger('click')
+    await w.find('.view').trigger('click')
     await article(w).trigger('click')
     expect(w.emitted('buy')).toBeUndefined()
   })

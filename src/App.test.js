@@ -192,7 +192,7 @@ describe('achat en boutique', () => {
     const w = await mountApp()
     await ouvrirBoutique(w)
 
-    const acheter = w.findAll('.log-row')[0].find('button')
+    const acheter = w.findAll('.shop-list > div')[0].find('button')
     await acheter.trigger('click')   // confirmation
     await acheter.trigger('click')
     for (let i = 0; i < 50 && !w.find('.ritual').exists(); i++) {
@@ -202,7 +202,7 @@ describe('achat en boutique', () => {
 
     expect(w.find('.ritual').exists()).toBe(true)
     // La boutique s'efface : deux couches empilées cacheraient la révélation.
-    expect(w.findAll('.panel-plate').some((p) => p.text() === 'BOUTIQUE')).toBe(false)
+    expect(w.findAll('.view-head .eyebrow').some((p) => p.text() === 'Boutique')).toBe(false)
   })
 })
 
@@ -246,19 +246,19 @@ describe('les lieux ont une URL', () => {
     const w = await mountApp()
     await cellOf(w, CHENIPAN).trigger('click')
     await flushPromises()
-    expect(w.find('.panel-name').exists()).toBe(true)
+    expect(w.find('.sheet-main .panel-name').exists()).toBe(true)
 
     window.history.replaceState({}, '', '/')
     window.dispatchEvent(new PopStateEvent('popstate'))
     await flushPromises()
-    expect(w.find('.panel-name').exists()).toBe(false)
+    expect(w.find('.sheet-main .panel-name').exists()).toBe(false)
   })
 
   // Le cas du lien partagé, et celui du rechargement : l'écran doit se reconstituer seul.
   it('ouvre directement le bon écran depuis l’adresse', async () => {
     window.history.replaceState({}, '', '/shop?demo')
     const w = await mountApp()
-    expect(w.findAll('.panel-plate').some((p) => p.text() === 'BOUTIQUE')).toBe(true)
+    expect(w.findAll('.view-head .eyebrow').some((p) => p.text() === 'Boutique')).toBe(true)
   })
 })
 
@@ -277,7 +277,7 @@ describe('le profil', () => {
   it('s’ouvre sur son propre dossier, à son adresse', async () => {
     const w = await ouvrir(await mountApp())
     expect(location.pathname).toBe('/profile')
-    expect(w.find('.panel-name').text()).toBe('toi')
+    expect(w.find('.view-title i').text()).toBe('toi')
     expect(w.findAll('.prof-case.secret')).toHaveLength(0)
   })
 
@@ -293,7 +293,7 @@ describe('le profil', () => {
     window.history.replaceState({}, '', '/profile/bob?demo')
     const w = await mountApp()
     await flushPromises()
-    expect(w.find('.panel-name').text()).toBe('bob')
+    expect(w.find('.view-title i').text()).toBe('bob')
     expect(w.findAll('.prof-case.secret')).toHaveLength(5)
   })
 
@@ -317,7 +317,7 @@ describe('la saison', () => {
     await flushPromises()
     expect(location.pathname).toBe('/season')
     // La plaque porte désormais le nom de la saison et son code : « SAISON 1 · 2026-S5 ».
-    expect(w.findAll('.panel-plate').some((p) => /SAISON/.test(p.text()))).toBe(true)
+    expect(w.findAll('.view-head .eyebrow').some((p) => /Saison/.test(p.text()))).toBe(true)
   })
 
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
@@ -325,11 +325,11 @@ describe('la saison', () => {
     window.history.replaceState({}, '', '/season?demo')
     const w = await mountApp()
     await flushPromises()
-    const autre = w.findAll('.saison-rang').find((r) => r.find('.nom').text() !== 'toi')
+    const autre = w.findAll('.saison-voir').find((r) => r.text() !== 'toi')
     await autre.trigger('click')
     await flushPromises()
     expect(location.pathname).toMatch(/^\/profile\//)
-    expect(w.find('.panel-name').exists()).toBe(true)
+    expect(w.find('.view-title').exists()).toBe(true)
   })
 })
 
@@ -413,11 +413,11 @@ describe('revente du surplus', () => {
     const w = await mountApp()
     await ouvrirBoutique(w)
 
-    const caisse = () => Number(w.findAll('.arena-big')[0].text().replace(/\D/g, ''))
+    const caisse = () => Number(w.findAll('.view-num')[0].text().replace(/\D/g, ''))
     const avant = caisse()
 
     await choisirLePremierTas(w)
-    const total = Number(w.findAll('.arena-big')[1].text().replace(/\D/g, ''))
+    const total = Number(w.findAll('.view-num')[1].text().replace(/\D/g, ''))
     expect(total).toBeGreaterThan(0)
 
     await vendreEtAttendre(w)

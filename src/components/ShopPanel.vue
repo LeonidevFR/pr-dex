@@ -29,40 +29,41 @@ function cliquer(a) {
 </script>
 
 <template>
-  <section class="page" @click="aConfirmer = null">
-  <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
-    <div>
-      <span class="panel-plate mono">BOUTIQUE</span>
-      <h2 class="panel-name" style="font-size:23px;margin-bottom:0">Cartes à acheter</h2>
-    </div>
-  </div>
-
-  <div class="sect">
-    <div class="arena-head">
+  <section class="view" @click="aConfirmer = null">
+    <div class="view-head">
       <div>
-        <div class="arena-big">{{ pokedollars }} ₽</div>
-        <div class="arena-unit">en caisse</div>
+        <div class="eyebrow">Boutique</div>
+        <h1 class="view-title">Ce que les <i>pokédollars</i> achètent</h1>
+      </div>
+      <div class="view-totals">
+        <div>
+          <div class="eyebrow">En caisse</div>
+          <div class="view-num gold">{{ pokedollars }} ₽</div>
+        </div>
       </div>
     </div>
-  </div>
 
   <div class="sect">
-    <div class="eyebrow sect-h"><span>Ce que les pokédollars achètent</span></div>
+    <div class="eyebrow sect-h"><span>Le catalogue</span></div>
     <p class="muted" style="margin-bottom:12px">
       Une carte achetée se découvre comme les autres, aux mêmes cotes — seul l’ensemble dans lequel
       il pioche est décidé d’avance. La <b>Gen 2</b> ne s’obtient que par ici ; l’<b>inédit
       garanti</b> ne tire que parmi les espèces qui te manquent encore.
     </p>
-    <div v-for="a in shop" :key="a.slug" class="log-row">
-      <span class="log-title">{{ nomArticle(a) }}</span>
-      <span class="log-sha mono">{{ a.price }} ₽</span>
-      <button
-        class="evo-btn" :class="{ confirming: aConfirmer === a.slug }"
-        :disabled="busy || pokedollars < a.price" @click.stop="cliquer(a)"
-      >{{
-        pokedollars < a.price ? `il manque ${a.price - pokedollars} ₽`
-        : aConfirmer === a.slug ? `Confirmer — ${a.price} ₽` : 'Acheter'
-      }}</button>
+    <div class="board-stats shop-list">
+      <div v-for="a in shop" :key="a.slug">
+        <dt>{{ nomArticle(a) }}</dt>
+        <dd class="stat-value">
+          {{ a.price }} ₽
+          <button
+            class="evo-btn" :class="{ confirming: aConfirmer === a.slug }"
+            :disabled="busy || pokedollars < a.price" @click.stop="cliquer(a)"
+          >{{
+            pokedollars < a.price ? `il manque ${a.price - pokedollars} ₽`
+            : aConfirmer === a.slug ? `Confirmer — ${a.price} ₽` : 'Acheter'
+          }}</button>
+        </dd>
+      </div>
     </div>
     <p v-if="aConfirmer" class="muted" style="margin-top:10px">
       La dépense est définitive. Clique ailleurs pour renoncer.

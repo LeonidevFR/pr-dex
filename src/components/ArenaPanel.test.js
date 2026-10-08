@@ -21,7 +21,7 @@ describe('ArenaPanel', () => {
   it('annonce les engagements restants et le portefeuille', () => {
     const w = monter()
     expect(w.text()).toContain('3')
-    expect(w.text()).toContain('engagements')
+    expect(w.text()).toContain('Engagements')
     expect(w.text()).toContain('250')
     expect(w.text()).toContain('₽')
   })

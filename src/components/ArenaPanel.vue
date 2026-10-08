@@ -111,13 +111,28 @@ function take(duelId) {
 </script>
 
 <template>
-  <section class="page">
-  <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
-    <div>
-      <span class="panel-plate mono">ARÈNE</span>
-      <h2 class="panel-name" style="font-size:23px;margin-bottom:0">Duels</h2>
+  <section class="view">
+    <!--
+      Le motif de la refonte : surtitre minuscule, titre éditorial, et les chiffres qui comptent
+      en haut à droite — là où le Pokédex met déjà son compteur. Les crédits et la caisse sont à
+      l'arène ce que « 42 / 151 » est à la collection : ce qu'on vient vérifier d'un coup d'œil.
+    -->
+    <div class="view-head">
+      <div>
+        <div class="eyebrow">Arène</div>
+        <h1 class="view-title">Ce que tu <i>mets en jeu</i></h1>
+      </div>
+      <div class="view-totals">
+        <div>
+          <div class="eyebrow">Engagements</div>
+          <div class="view-num" :class="{ 'is-spent': !credits }">{{ credits }}</div>
+        </div>
+        <div>
+          <div class="eyebrow">En caisse</div>
+          <div class="view-num gold">{{ pokedollars }} ₽</div>
+        </div>
+      </div>
     </div>
-  </div>
 
   <!--
     Sans nom, on n'existe pas dans l'arène : les vues publiques écartent les profils anonymes.
@@ -133,16 +148,9 @@ function take(duelId) {
   </div>
 
   <div class="sect">
-    <div class="arena-head">
-      <div>
-        <div class="arena-big" :class="{ spent: !credits }">{{ credits }}</div>
-        <div class="arena-unit">engagement{{ credits > 1 ? 's' : '' }}</div>
-      </div>
-      <div>
-        <div class="arena-big">{{ pokedollars }} ₽</div>
-        <div class="arena-unit">en caisse</div>
-      </div>
-      <button class="btn-ghost" style="margin-left:auto" @click="rulesOpen = !rulesOpen">
+    <div class="sect-h">
+      <span class="eyebrow">La règle du jeu</span>
+      <button class="btn-ghost" @click="rulesOpen = !rulesOpen">
         {{ rulesOpen ? 'Masquer les règles' : 'Comment ça marche' }}
       </button>
     </div>

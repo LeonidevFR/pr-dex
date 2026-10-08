@@ -90,11 +90,21 @@ function vendre() {
 </script>
 
 <template>
-  <section class="page">
-    <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
+  <section class="view">
+    <!-- Le total de la sélection est le chiffre qu'on vient chercher : il prend la place des
+         compteurs, en haut à droite, et suit les cases qu'on coche. -->
+    <div class="view-head">
       <div>
-        <span class="panel-plate mono">REVENTE</span>
-        <h2 class="panel-name" style="font-size:23px;margin-bottom:0">Exemplaires en trop</h2>
+        <div class="eyebrow">Revente</div>
+        <h1 class="view-title">Ce qui <i>s’entasse</i></h1>
+      </div>
+      <div v-if="groups.length" class="view-totals">
+        <div>
+          <div class="eyebrow">
+            {{ nombre }} exemplaire{{ nombre > 1 ? 's' : '' }} choisi{{ nombre > 1 ? 's' : '' }}
+          </div>
+          <div class="view-num gold">{{ total }} ₽</div>
+        </div>
       </div>
     </div>
 
@@ -107,23 +117,18 @@ function vendre() {
 
     <template v-else>
       <div class="sect">
-        <div class="arena-head">
-          <div>
-            <div class="arena-big">{{ total }} ₽</div>
-            <div class="arena-unit">
-              pour {{ nombre }} exemplaire{{ nombre > 1 ? 's' : '' }}
-            </div>
-          </div>
+        <div class="sect-h">
+          <span class="eyebrow">Ce qui part</span>
           <button
             class="evo-btn vendre-btn" :class="{ confirming: aConfirmer }"
             :disabled="busy || !nombre" @click="vendre"
           >{{ aConfirmer ? `Confirmer — ${total} ₽` : 'Vendre la sélection' }}</button>
         </div>
-        <p v-if="aConfirmer" class="muted" style="margin-top:10px">
+        <p v-if="aConfirmer" class="muted">
           {{ nombre }} exemplaire{{ nombre > 1 ? 's quittent' : ' quitte' }} ta collection pour de
           bon. L’espèce et les bonbons restent acquis.
         </p>
-        <p v-else class="muted" style="margin-top:10px">
+        <p v-else class="muted">
           Rien n’est coché : c’est à toi de désigner ce qui part. <b>Tous</b> prend le surplus
           d’une espèce d’un coup, le chevron déplie le détail exemplaire par exemplaire. Il en
           reste toujours un, quoi qu’il arrive.
@@ -131,7 +136,7 @@ function vendre() {
       </div>
 
       <div class="sect">
-        <div class="eyebrow sect-h"><span>Ce qui s’entasse</span></div>
+        <div class="eyebrow sect-h"><span>Par espèce</span></div>
         <div v-for="g in groups" :key="g.species" class="vendre-groupe">
           <div class="log-row vendre-tete">
             <img

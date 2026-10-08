@@ -28,7 +28,7 @@ afterEach(() => vi.useRealTimers())
 describe('SeasonPanel', () => {
   // Le nom de code ne dit rien à personne : ce sont les mois qu'on retient.
   it('nomme la saison par ses mois, pas par son code', () => {
-    expect(monter().find('.panel-name').text()).toBe('août et septembre 2026')
+    expect(monter().findAll('.view-head .eyebrow')[0].text()).toContain('août et septembre 2026')
   })
 
   it('compte les jours qui restent à jouer', () => {
@@ -38,8 +38,8 @@ describe('SeasonPanel', () => {
 
   it('situe le joueur dans le classement', () => {
     const w = monter()
-    expect(w.find('.saison-rang.moi .nom').text()).toBe('toi')
-    expect(w.find('.saison-rang.moi .pts').text()).toBe('95')
+    expect(w.find('tr.me .board-login').text()).toBe('toi')
+    expect(w.find('tr.me td.lead').text()).toBe('95')
   })
 
   /**
@@ -59,7 +59,7 @@ describe('SeasonPanel', () => {
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
   it('emmène au profil du joueur cliqué', async () => {
     const w = monter()
-    await w.findAll('.saison-rang')[0].trigger('click')
+    await w.findAll('.saison-voir')[0].trigger('click')
     expect(w.emitted('profile')[0]).toEqual(['marion'])
   })
 
@@ -86,7 +86,7 @@ describe('SeasonPanel', () => {
   it('le dit quand personne n’a encore marqué', () => {
     const w = monter({ leaderboard: [] })
     expect(w.text()).toContain('Personne n’a encore marqué')
-    expect(w.findAll('.saison-rang')).toHaveLength(0)
+    expect(w.findAll('.board-table tbody tr')).toHaveLength(0)
   })
 })
 

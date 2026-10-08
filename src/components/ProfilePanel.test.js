@@ -103,16 +103,16 @@ describe('ProfilePanel', () => {
  */
 describe('le titre du dossier', () => {
   it('porte son nom d’arène plutôt que « toi »', () => {
-    expect(monter({ monPseudo: 'leo' }).find('.panel-name').text()).toBe('leo')
+    expect(monter({ monPseudo: 'leo' }).find('.view-title i').text()).toBe('leo')
   })
 
   it('retombe sur « toi » tant qu’aucun nom n’est choisi, et le signale', () => {
     const w = monter({ monPseudo: null })
-    expect(w.find('.panel-name').text()).toBe('toi')
+    expect(w.find('.view-title i').text()).toBe('toi')
     expect(w.text()).toContain('pas encore de nom d’arène')
   })
 
   it('porte le nom du collègue quand on visite le sien', () => {
-    expect(monter({ pseudo: 'marion', monPseudo: 'leo' }).find('.panel-name').text()).toBe('marion')
+    expect(monter({ pseudo: 'marion', monPseudo: 'leo' }).find('.view-title i').text()).toBe('marion')
   })
 })
