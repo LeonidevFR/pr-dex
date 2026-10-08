@@ -544,11 +544,16 @@ export function demoArena(catches) {
       .sort((a, b) => b.id - a.id)
       .map((d) => ({ ...d })),
 
+    /**
+     * Le classement porte l'identité GitHub, comme celui d'équipe : `login` et `avatar_url`
+     * viennent de la vue, le pseudonyme n'y sert plus qu'à ouvrir le profil.
+     */
     readSeasonLeaderboard: async () => [
-      { user_id: 'demo-bob', pseudo: 'bob', points: 275, rank: 1 },
-      { user_id: MOI, pseudo: 'toi', points: points, rank: 2 },
-      { user_id: 'demo-ada', pseudo: 'ada', points: 90, rank: 3 },
-    ].sort((a, b) => b.points - a.points).map((l, i) => ({ ...l, rank: i + 1 })),
+      { user_id: 'demo-bob', pseudo: 'bob', login: 'bob-dev', points: 275 },
+      { user_id: MOI, pseudo: 'toi', login: 'leonard', points: points },
+      { user_id: 'demo-ada', pseudo: 'ada', login: 'ada-lov', points: 90 },
+    ].sort((a, b) => b.points - a.points)
+      .map((l, i) => ({ ...l, avatar_url: svgAvatar(l.login), rank: i + 1 })),
     readSeasons: async () => [
       { season: '2026-S3', first_id: 'demo-ada', second_id: MOI, third_id: 'demo-bob' },
     ],

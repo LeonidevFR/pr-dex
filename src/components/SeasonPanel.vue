@@ -144,12 +144,21 @@ const palmares = computed(() => props.seasons.map((s) => ({
         >
           <td class="board-rank">{{ l.rank }}</td>
           <td class="board-who">
-            <button
-              class="board-who-in saison-voir" :title="`Voir le profil de ${l.pseudo}`"
-              @click="$emit('profile', l.pseudo)"
+            <!--
+              L'identité GitHub, avatar compris, exactement comme au classement d'équipe : on se
+              reconnaît sous le nom qu'on porte partout ailleurs. Le pseudonyme reste la clé du
+              profil — il ouvre la fiche, il ne s'affiche plus.
+            -->
+            <component
+              :is="l.pseudo ? 'button' : 'span'" class="board-who-in"
+              :class="{ 'saison-voir': l.pseudo }"
+              :title="l.pseudo ? `Voir le profil de ${l.login}` : null"
+              @click="l.pseudo && $emit('profile', l.pseudo)"
             >
-              <span class="board-login">{{ l.pseudo }}</span>
-            </button>
+              <img v-if="l.avatar_url" class="board-avatar" :src="l.avatar_url" alt="">
+              <span v-else class="board-avatar">{{ (l.login ?? '?')[0].toUpperCase() }}</span>
+              <span class="board-login">{{ l.login ?? 'inconnu' }}</span>
+            </component>
           </td>
           <td class="lead">{{ l.points }}</td>
         </tr>

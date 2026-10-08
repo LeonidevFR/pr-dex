@@ -61,14 +61,27 @@ describe.skipIf(!disponible)('classement de saison', () => {
     expect(rows[0].n).toBeGreaterThanOrEqual(3)
   })
 
-  // Ce que la vue ne doit jamais exposer : la taille d'une collection est un compteur de PR
-  // mergées, et le publier dans une entreprise revient à publier un classement de productivité.
-  it('n’expose que le pseudonyme et les points', async () => {
+  /**
+   * Ce que la vue ne doit jamais exposer : la taille d'une collection est un compteur de PR
+   * mergées, et le publier dans une entreprise revient à publier un classement de productivité.
+   *
+   * L'identité GitHub, elle, s'y trouve : le classement la porte comme celui d'équipe, qui la
+   * publie déjà à tout joueur connecté. Le pseudonyme reste, mais seulement comme clé du profil
+   * public — il ne s'affiche plus.
+   */
+  it('expose l’identité et les points, jamais la taille de la collection', async () => {
     const cols = await withDb((c) => c.query(`
       select column_name from information_schema.columns
       where table_schema = 'public' and table_name = 'arena_leaderboard' order by column_name
     `).then((r) => r.rows.map((x) => x.column_name)))
-    expect(cols).toEqual(['points', 'pseudo', 'rank', 'season', 'user_id'])
+    expect(cols).toEqual(['avatar_url', 'login', 'points', 'pseudo', 'rank', 'season', 'user_id'])
+  })
+
+  // Le login vient des métadonnées GitHub, que la vue lit avec les droits de son propriétaire.
+  it('rend le login GitHub de chaque joueur classé', async () => {
+    const rows = await commeUtilisateur(A,
+      `select login from public.arena_leaderboard where user_id = '${A}' and season = '${SAISON}'`)
+    expect(rows[0].login).toBeTruthy()
   })
 
   it('sépare les saisons', async () => {

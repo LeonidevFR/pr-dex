@@ -1202,14 +1202,24 @@ grant execute on function public.arena_resolve_expired(interval) to service_role
 -- rattache un score à un nom, et surtout la vue traverse RLS de manière contrôlée — elle
 -- n'expose que ce que la spec § 5 autorise à publier, un pseudonyme et des points. Jamais la
 -- taille d'une collection, qui serait un compteur de PR mergées.
+-- Le classement porte l'identité GITHUB, comme celui d'équipe : un joueur s'y reconnaît sous
+-- le nom qu'il porte partout ailleurs dans l'application. Le pseudonyme reste dans la vue parce
+-- qu'il est la clé du profil public — mais il ne s'affiche plus ici.
+--
+-- Pas de nouvelle exposition : `leaderboard_players` publie déjà ces deux champs à tout joueur
+-- connecté. La vue les lit dans `auth.users` avec les droits de son propriétaire, comme toute
+-- vue sans `security_invoker`.
 create or replace view public.arena_leaderboard as
   select p.season,
          p.user_id,
          pr.pseudo,
+         coalesce(u.raw_user_meta_data ->> 'user_name', 'inconnu') as login,
+         u.raw_user_meta_data ->> 'avatar_url' as avatar_url,
          p.points,
          rank() over (partition by p.season order by p.points desc) as rank
   from public.arena_season_points p
-  join public.profiles pr on pr.user_id = p.user_id;
+  join public.profiles pr on pr.user_id = p.user_id
+  join auth.users u on u.id = p.user_id;
 
 grant select on public.arena_leaderboard to authenticated;
 

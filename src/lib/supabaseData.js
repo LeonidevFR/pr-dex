@@ -152,7 +152,8 @@ export function createSupabaseClient(userId) {
    * précisément pour ça que les podiums sont consignés à part.
    */
   const readSeasonLeaderboard = (season) =>
-    query(() => supabase.from('arena_leaderboard').select('user_id, pseudo, points, rank')
+    query(() => supabase.from('arena_leaderboard')
+      .select('user_id, pseudo, login, avatar_url, points, rank')
       .eq('season', season).order('rank'))
 
   const readSeasons = () =>

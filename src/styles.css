@@ -79,6 +79,11 @@
     background-image:radial-gradient(ellipse 60% 40% at 50% -10%, rgba(212,176,106,.12), transparent 70%);
     background-attachment:fixed;
     min-height:100vh;
+    /* Le décor a le droit de dépasser de sa colonne ; il n'a pas le droit de faire défiler la
+       page. On découpe donc au bord de la fenêtre, et chaque décor garde ses bords entiers.
+       `clip` et non `hidden` : `hidden` ferait de la page un conteneur de défilement, ce qui
+       désactiverait le `position:sticky` du rail. */
+    overflow-x:clip;
   }
   img{image-rendering:pixelated}
   a{color:var(--gold);text-decoration:none}
@@ -739,11 +744,18 @@
   .front-mark i{font-weight:600;color:var(--gold)}
   .front-sub{margin-top:22px;font-family:var(--f-title);font-weight:300;font-size:19px;color:var(--note);line-height:1.55;max-width:42ch}
   .front-actions{display:flex;gap:16px;align-items:center;margin-top:30px;flex-wrap:wrap}
-  /* L'éventail : quatre cartes, du commun au légendaire, qui se chevauchent et s'inclinent. */
-  /* Rogné : les cartes tournées débordent de leur colonne, et la page défilait à l'horizontale
-     sur les portables de 900 à 1 200 px. Le pas suit la largeur de l'écran pour qu'à 1 280 px
-     rien ne soit coupé. */
-  .front-fan{position:relative;height:440px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  /* L'éventail : quatre cartes, du commun au légendaire, qui se chevauchent et s'inclinent.
+
+     Il ne se rogne plus. Le `overflow:hidden` posé ici contre le défilement horizontal coupait
+     les deux cartes extérieures À TOUTES les largeurs — douze pixels sur un écran de 1 440, près
+     de cent sur un portable de 940. Un décor tronqué net en plein milieu d'une carte se lit comme
+     un défaut d'affichage, et c'était le premier écran de l'application.
+
+     Le débordement se règle là où il naît : la page le découpe à son bord. `clip` et non
+     `hidden`, parce que `hidden` créerait un conteneur de défilement et casserait le
+     `position:sticky` du rail. Mesuré de 940 à 1 440 px : les cartes gardent 27 à 34 px de
+     dégagement avec le texte, ne sortent jamais de l'écran, et aucune barre n'apparaît. */
+  .front-fan{position:relative;height:440px;display:flex;align-items:center;justify-content:center}
   .front-card{position:absolute;transform:translateX(calc((var(--i) - 1.5) * min(128px, 8vw))) rotate(calc((var(--i) - 1.5) * 7deg)) translateY(calc(var(--i) * -4px));z-index:calc(var(--i) + 1)}
   .front-card .pkc{width:200px;height:280px;cursor:default}
   .front-card .pkc-art img{width:104px;height:104px}

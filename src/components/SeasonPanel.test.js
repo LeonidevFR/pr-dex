@@ -3,11 +3,13 @@ import { mount } from '@vue/test-utils'
 import SeasonPanel from './SeasonPanel.vue'
 
 const MOI = 'u-moi'
+// Le classement porte l'identité GitHub, comme celui d'équipe ; le pseudonyme n'y sert plus
+// qu'à ouvrir le profil.
 const CLASSEMENT = [
-  { user_id: 'u-marion', pseudo: 'marion', points: 310, rank: 1 },
-  { user_id: 'u-thomas', pseudo: 'thomas', points: 185, rank: 2 },
-  { user_id: 'u-sarah', pseudo: 'sarah', points: 120, rank: 3 },
-  { user_id: MOI, pseudo: 'toi', points: 95, rank: 4 },
+  { user_id: 'u-marion', pseudo: 'marion', login: 'marion-g', points: 310, rank: 1 },
+  { user_id: 'u-thomas', pseudo: 'thomas', login: 'thomas-k', points: 185, rank: 2 },
+  { user_id: 'u-sarah', pseudo: 'sarah', login: 'sarah-b', points: 120, rank: 3 },
+  { user_id: MOI, pseudo: 'toi', login: 'leonard', points: 95, rank: 4 },
 ]
 const SAISONS = [
   { season: '2026-S3', first_id: 'u-marion', second_id: MOI, third_id: null },
@@ -36,9 +38,10 @@ describe('SeasonPanel', () => {
     expect(monter().text()).toContain('46')
   })
 
-  it('situe le joueur dans le classement', () => {
+  // Le nom affiché est le login GitHub ; l'avatar le suit, comme au classement d'équipe.
+  it('situe le joueur dans le classement, sous son identité GitHub', () => {
     const w = monter()
-    expect(w.find('tr.me .board-login').text()).toBe('toi')
+    expect(w.find('tr.me .board-login').text()).toBe('leonard')
     expect(w.find('tr.me td.lead').text()).toBe('95')
   })
 
