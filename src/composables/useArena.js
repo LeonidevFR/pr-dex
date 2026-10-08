@@ -90,7 +90,7 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
     try {
       const [arena, open, mien, articles, classement, closes, duels] = await Promise.all([
         client.readArena(), client.readOpenChallenges(), client.readMyOpen(), client.readShop(),
-        client.readLeaderboard(season.value), client.readSeasons(),
+        client.readSeasonLeaderboard(season.value), client.readSeasons(),
         // Optionnel : un client de démonstration ancien peut ne pas l'avoir, et l'absence de
         // duels récents ne doit pas empêcher l'arène entière de se charger.
         client.readMyDuels ? client.readMyDuels() : [],

@@ -1,4 +1,5 @@
 <script setup>
+import { ArrowRight, X } from '@lucide/vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import PokeCard from './PokeCard.vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
@@ -140,7 +141,9 @@ const breakdown = (s) => [
   <div class="scrim" @click.self="$emit('close')">
     <div class="panel" style="width:min(560px,100%)">
       <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
-        <button class="x" @click="$emit('close')">✕</button>
+        <button class="x" aria-label="Fermer" @click="$emit('close')">
+          <X :size="14" aria-hidden="true" />
+        </button>
         <div>
           <span class="panel-plate mono">DUEL</span>
           <h2 class="panel-name" style="font-size:23px;margin-bottom:0">
@@ -258,7 +261,11 @@ const breakdown = (s) => [
               </span>
               <span class="arena-unit">
                 {{ niveauxGagnes > 1 ? 'niveaux' : 'niveau' }}
-                <template v-if="niveauxGagnes"> · {{ gagnant.level }} → {{ Math.min(gagnant.level + niveauxGagnes, LEVEL_MAX) }}</template>
+                <template v-if="niveauxGagnes">
+                  · {{ gagnant.level }}
+                  <ArrowRight :size="11" aria-hidden="true" />
+                  {{ Math.min(gagnant.level + niveauxGagnes, LEVEL_MAX) }}
+                </template>
               </span>
             </div>
             <div>

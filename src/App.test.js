@@ -35,21 +35,34 @@ afterEach(() => {
  * plutôt que d'attendre un délai fixe, qui serait tantôt trop court tantôt gaspillé.
  *
  * Le rail et non la planche : depuis que les lieux sont des pages, la planche n'existe que sur
- * `/collection`, alors que le rail surmonte les cinq. Sonder la planche revenait à exiger d'être
+ * `/collection`, alors que le rail surmonte tous les lieux. Sonder la planche revenait à exiger d'être
  * arrivé sur un écran précis pour considérer l'application montée.
  */
 async function mountApp() {
   wrapper = mount(App, { attachTo: document.body })
-  for (let i = 0; i < 50 && wrapper.findAll('.tab').length === 0; i++) {
+  for (let i = 0; i < 50 && wrapper.findAll('.rail-tab').length === 0; i++) {
     await new Promise((r) => setTimeout(r, 5))
     await flushPromises()
   }
-  expect(wrapper.findAll('.tab').length).toBeGreaterThan(0)
+  expect(wrapper.findAll('.rail-tab').length).toBeGreaterThan(0)
   return wrapper
 }
 
 /** Les lieux se rejoignent par leur onglet dans le rail. */
-const onglet = (w, libelle) => w.findAll('.tab').find((t) => t.text().includes(libelle))
+const onglet = (w, libelle) => w.findAll('.rail-tab').find((t) => t.text().includes(libelle))
+
+/**
+ * Les quatre lieux de l'arène vivent au second niveau : on passe par son onglet, puis par la
+ * barre qui s'ouvre dessous. Deux gestes, comme à l'écran.
+ */
+async function allerDansLArene(w, libelle) {
+  await onglet(w, 'Arène').trigger('click')
+  await flushPromises()
+  if (libelle) {
+    await w.findAll('.place-tab').find((t) => t.text().includes(libelle)).trigger('click')
+    await flushPromises()
+  }
+}
 
 const press = (key, over = {}) =>
   window.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true, ...over }))
@@ -171,7 +184,7 @@ describe('envoi à l’arène depuis la fiche', () => {
 describe('achat en boutique', () => {
 
   const ouvrirBoutique = async (w) => {
-    await onglet(w, 'Boutique').trigger('click')
+    await allerDansLArene(w, 'Boutique')
     await flushPromises()
   }
 
@@ -256,7 +269,7 @@ describe('les lieux ont une URL', () => {
  */
 describe('le profil', () => {
   const ouvrir = async (w) => {
-    await onglet(w, 'Profil').trigger('click')
+    await allerDansLArene(w, 'Profil')
     await flushPromises()
     return w
   }
@@ -300,7 +313,7 @@ describe('la saison', () => {
 
   it('s’ouvre à son adresse depuis le rail', async () => {
     const w = await mountApp()
-    await onglet(w, 'Saison').trigger('click')
+    await allerDansLArene(w, 'Saison')
     await flushPromises()
     expect(location.pathname).toBe('/season')
     // La plaque porte désormais le nom de la saison et son code : « SAISON 1 · 2026-S5 ».
@@ -366,7 +379,7 @@ describe('enchaîner les engagements', () => {
  */
 describe('revente du surplus', () => {
   const ouvrirBoutique = async (w) => {
-    await onglet(w, 'Boutique').trigger('click')
+    await allerDansLArene(w, 'Boutique')
     await flushPromises()
   }
 
@@ -437,5 +450,62 @@ describe('revente du surplus', () => {
     const w2 = w.vm
     await expect(w2.$.setupState.arena.sell(['github:' + 'x'.repeat(4)]))
       .rejects.toThrow(/inconnu/)
+  })
+})
+
+describe('vues', () => {
+  const tab = (w, label) => w.findAll('.rail-tab').find((t) => t.text() === label)
+
+  it('ouvre sur la collection', async () => {
+    const w = await mountApp()
+    expect(tab(w, 'Collection').classes()).toContain('active')
+    expect(w.find('.tray').exists()).toBe(true)
+  })
+
+  it('passe à l’équipe au clic sur l’onglet, et la planche disparaît', async () => {
+    const w = await mountApp()
+    await tab(w, 'Leaderboard').trigger('click')
+    await flushPromises()
+    expect(w.find('.tray').exists()).toBe(false)
+    expect(w.find('.view-title').text()).toContain('Qui a le plus')
+  })
+
+  it('Échap ne change pas de vue', async () => {
+    const w = await mountApp()
+    await tab(w, 'Leaderboard').trigger('click')
+    press('Escape')
+    await flushPromises()
+    expect(tab(w, 'Leaderboard').classes()).toContain('active')
+  })
+
+  it('Espace n’ouvre pas de pli depuis l’équipe', async () => {
+    const w = await mountApp()
+    await tab(w, 'Leaderboard').trigger('click')
+    document.activeElement?.blur()
+    press(' ')
+    await flushPromises()
+    expect(w.find('.ritual').exists()).toBe(false)
+  })
+
+  it('Espace ouvre toujours un pli depuis la collection', async () => {
+    const w = await mountApp()
+    document.activeElement?.blur()
+    press(' ')
+    await flushPromises()
+    expect(w.find('.ritual').exists()).toBe(true)
+  })
+})
+
+// Au rechargement, l'écran d'accueil ne doit pas apparaître le temps que la démo (ou la
+// session) se charge : il clignotait une fraction de seconde avant la planche.
+describe('démarrage', () => {
+  it('ne montre jamais l’écran de connexion en mode démo', async () => {
+    wrapper = mount(App, { attachTo: document.body })
+    for (let i = 0; i < 50 && wrapper.findAll('.cell').length === 0; i++) {
+      expect(wrapper.find('.front').exists()).toBe(false)
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    expect(wrapper.findAll('.cell').length).toBeGreaterThan(0)
   })
 })

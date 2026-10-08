@@ -4,3 +4,7 @@ dist/
 *.local
 .claude/worktrees/
 .superpowers/
+# Specs et plans de travail : locaux, jamais versionnés.
+docs/superpowers/
+supabase/.temp/
+supabase/.branches/

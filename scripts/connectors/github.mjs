@@ -95,7 +95,9 @@ export async function collect({ handle, config = {}, since, secret, existing = [
   for (;;) {
     const url = `${API}/search/issues?q=${encodeURIComponent(query)}&per_page=100&page=${page}`
     const res = await ghFetch(url, secret, fetchFn, wait)
-    if (!res.ok) throw new Error(`search/issues a répondu ${res.status}`)
+    // `status` voyage avec l'erreur : `catch.mjs` s'en sert pour distinguer ce qui ne
+    // concerne que ce handle de ce qui condamne tout le run (jeton, quota).
+    if (!res.ok) throw Object.assign(new Error(`search/issues a répondu ${res.status}`), { status: res.status })
     const body = await res.json()
 
     for (const it of body.items ?? []) {

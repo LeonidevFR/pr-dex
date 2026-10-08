@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import TheRail from './components/TheRail.vue'
-import AppIcon from './components/AppIcon.vue'
+import { X } from '@lucide/vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
 import RitualOverlay from './components/RitualOverlay.vue'
@@ -14,6 +14,8 @@ import ProfilePanel from './components/ProfilePanel.vue'
 import SeasonPanel from './components/SeasonPanel.vue'
 import ArenaTeaser from './components/ArenaTeaser.vue'
 import DuelOverlay from './components/DuelOverlay.vue'
+import TeamView from './components/TeamView.vue'
+import StatsView from './components/StatsView.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useArena } from './composables/useArena.js'
@@ -26,6 +28,7 @@ import { messageDErreur } from './lib/erreurs.js'
 import { parisDay } from '../shared/battle.js'
 import { arenaIsOpen, FIRST_SEASON } from '../shared/arena-economy.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
+import { useTheme } from './composables/useTheme.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 
 const collection = useCollection()
@@ -51,6 +54,10 @@ const avisBon = ref(false)
 const signaler = (e) => { avis.value = messageDErreur(e); avisBon.value = false }
 const connecting = ref(false)
 const githubLogin = ref('')
+const isDemo = new URLSearchParams(location.search).has('demo')
+// Tant qu'on ne sait pas s'il faut se connecter, on n'affiche pas l'accueil : la démo ou une
+// session déjà ouverte le faisaient clignoter au rechargement, avant la planche.
+const restoring = computed(() => !connectError.value && (isDemo || !ready.value || !!session.value))
 
 const router = createRouter()
 const { route } = router
@@ -134,6 +141,29 @@ const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
 const evoAnim = ref(null)
 const settingsOpen = ref(false)
+// Une vue est une page, pas un overlay : elle ne bloque pas le clavier et Échap ne la ferme
+// pas. Rien n'est mémorisé d'un chargement à l'autre, on revient toujours à la planche.
+/**
+ * L'onglet du rail, déduit du lieu. Les quatre lieux de l'arène se replient sur un seul onglet :
+ * le rail dit dans quel quartier on est, l'URL dit à quelle adresse.
+ *
+ * Déduit, et non tenu à part : un `ref` doublant l'URL diverge au premier retour navigateur.
+ */
+const LIEUX_ARENE = [
+  ['arena', 'Terrain'],
+  ['season', 'Saison'],
+  ['shop', 'Boutique'],
+  ['profile', 'Profil'],
+]
+const SOUS_ARENE = LIEUX_ARENE.map(([nom]) => nom)
+const view = computed(() => (SOUS_ARENE.includes(route.value.name) ? 'arena' : route.value.name))
+// Le client de données reste dans `useCollection`, qui ne l'expose pas ; le panneau du
+// classement en a besoin pour sa propre lecture. On garde donc la référence ici, au seul
+// endroit qui la crée.
+const dataClient = ref(null)
+// Date du jour figée au chargement, au format des dates de capture : le calcul des
+// « 30 jours » est une fonction pure, elle ne lit jamais l'horloge elle-même.
+const today = new Date().toISOString().slice(0, 10)
 
 /**
  * Le pseudonyme. Sans lui on n'existe pas dans l'arène : les vues publiques écartent les
@@ -209,6 +239,7 @@ let arena = null
 let client = null
 
 const filters = useTrayFilters()
+const { theme, toggle: toggleTheme } = useTheme()
 
 /**
  * La collection ignore l'arène : les destructions vivent dans `arena_exemplars`, que seul
@@ -252,6 +283,7 @@ async function connectSession(s) {
   connectError.value = null
   githubLogin.value = s.user.user_metadata?.user_name ?? ''
   client = createSupabaseClient(s.user.id)
+  dataClient.value = client
   userId.value = s.user.id
   arena = useArena(client, collection.dex.engageables, collection.dex.consumedKeys)
   try {
@@ -418,10 +450,11 @@ function disconnect() {
 }
 
 onMounted(async () => {
-  if (new URLSearchParams(location.search).has('demo')) {
+  if (isDemo) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
     githubLogin.value = 'démo'
     client = loadDemoClient()
+    dataClient.value = client
     demo.value = true
     userId.value = 'demo-moi'
     arena = useArena(client, collection.dex.engageables, collection.dex.consumedKeys, FIRST_SEASON)
@@ -439,7 +472,10 @@ onMounted(async () => {
 watch(
   () => [ready.value, session.value],
   ([isReady, s]) => {
-    if (!isReady || connected.value) return
+    // `connecting` : Supabase émet plusieurs événements d'auth au démarrage (session initiale,
+    // jeton rafraîchi), chacun remplace `session` — sans ce garde, chacun relançait un
+    // chargement complet en parallèle du premier.
+    if (!isReady || connected.value || connecting.value) return
     if (s) connectSession(s)
   },
   { immediate: true },
@@ -462,12 +498,6 @@ function showPacket(entry) {
 const showNextPacket = () => showPacket(collection.dex.pending.value[0])
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
-
-async function skipAll() {
-  const rest = [...collection.dex.pending.value]
-  ritualEntry.value = null
-  for (const e of rest) await collection.claim(e.key)
-}
 
 async function onEvolve({ from, to, key }) {
   const shiny = collection.dex.availableEntries(from).find((e) => e.key === key)?.shiny ?? false
@@ -518,16 +548,18 @@ function closeTopOverlay() {
 
 useKeyboardNav({
   blocked: overlayOpen,
-  // Seul état sans bouton principal à focaliser : la home au repos. `openRitual` laisse
-  // `ritualEntry` à null quand la file est vide — rien à cas-particulariser ici.
-  onSpace: openRitual,
+  // Seul état sans bouton principal à focaliser : la planche au repos. `openRitual` laisse
+  // `ritualEntry` à null quand la file est vide — rien à cas-particulariser ici. Depuis Équipe
+  // ou Mes stats, on regarde les autres ou ses chiffres : un rituel qui surgit y serait un accident.
+  onSpace: () => { if (view.value === 'collection') openRitual() },
   onEscape: closeTopOverlay,
 })
 </script>
 
 <template>
+  <div v-if="!connected && restoring" class="booting" aria-busy="true"></div>
   <ConnectScreen
-    v-if="!connected"
+    v-else-if="!connected"
     :error="connectError" :busy="connecting"
     @connect="signInWithGithub"
   />
@@ -541,7 +573,7 @@ useKeyboardNav({
     <div v-if="avis" class="avis" :class="{ bonne: avisBon }" role="status">
       <span>{{ avis }}</span>
       <button class="avis-x" aria-label="Masquer" @click="avis = null">
-        <AppIcon name="close" :size="12" />
+        <X :size="12" aria-hidden="true" />
       </button>
     </div>
 
@@ -549,21 +581,37 @@ useKeyboardNav({
       :caught-count="collection.dex.caughtCount.value"
       :pending-count="collection.dex.pending.value.length"
       :syncing="collection.loading.value" :sync-error="collection.error.value"
-      :filters-open="filters.open.value" :filters-active="filters.active.value"
-      :place="route.name"
+      :view="view" :theme="theme"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
-      @go="(lieu) => router.go(lieu)"
-      @toggle-filters="filters.open.value = !filters.open.value"
+      @navigate="(v) => router.go(v)" @toggle-theme="toggleTheme"
     />
     <TheTray
       v-if="route.name === 'collection'"
       :by-species="collection.dex.bySpecies.value" :available="availableById" :evolvable="collection.dex.evolvableIds.value"
-      :filters-open="filters.open.value" :active-tiers="filters.activeTiers.value"
-      :status-filter="filters.statusFilter.value" :gen="gen"
+      :active-tiers="filters.activeTiers.value" :status-filter="filters.statusFilter.value"
+      :query="filters.query.value" :gen="gen"
       @select="(id) => router.go('collection', id)"
-      @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter" @reset-filters="filters.reset"
+      @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter"
+      @set-query="filters.setQuery" @reset-filters="filters.reset"
       @set-gen="gen = $event"
     />
+    <!-- Sans client, rien à lire : la démo se charge d'un `import()` dynamique, et un clic sur
+         un onglet pendant ce temps ne doit pas monter une vue qui planterait sur `null`. -->
+    <!--
+      Le second niveau de l'arène. Le rail dit dans quel quartier on est, cette barre dit dans
+      quelle rue : quatre lieux qui gardent chacun leur adresse, pour qu'un lien vers la
+      boutique ou vers le profil d'un collègue mène là et non à la racine.
+    -->
+    <nav v-if="view === 'arena'" class="place-nav" aria-label="L’arène">
+      <button
+        v-for="[nom, libelle] in LIEUX_ARENE" :key="nom"
+        class="rail-tab place-tab" :class="{ active: route.name === nom }"
+        :aria-current="route.name === nom ? 'page' : undefined" @click="router.go(nom)"
+      >{{ libelle }}</button>
+    </nav>
+
+    <TeamView v-else-if="route.name === 'team' && dataClient" :client="dataClient" :today="today" />
+    <StatsView v-else-if="route.name === 'stats' && dataClient" :client="dataClient" :today="today" />
 
     <transition name="fade">
       <SpeciesSheet
@@ -587,7 +635,7 @@ useKeyboardNav({
       <RitualOverlay
         v-if="ritualEntry" :key="ritualEntry.key" :entry="ritualEntry"
         :remaining="ritualRemaining" :is-new="ritualIsNew"
-        @claim="collection.claim" @next="nextRitual" @skip-all="skipAll"
+        @claim="collection.claim" @next="nextRitual"
         @close="ritualEntry = null"
       />
     </transition>

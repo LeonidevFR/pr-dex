@@ -14,10 +14,14 @@ quoi ce ne serait plus un jeu commun mais plusieurs jeux qui partagent une planc
 Une **carte**, dos visible. On la retourne. C'est tout — rien ne se déclenche sans le joueur,
 il n'y a ni sceau à briser ni minuteur qui court.
 
-La carte est un objet, pas une vignette. Son carton dit la rareté : papier pâle en commun,
-trame pointillée en peu commun, carton teinté ocre en rare, carton profond guilloché en
-légendaire. On l'incline au pointeur et la lumière balaie la dorure. Son dos porte la
-provenance — la PR qui l'a produite, son titre, sa date.
+La carte est un objet, pas une vignette. Son carton dit la rareté : carton nu en commun,
+trame pointillée verte en peu commun, carton cuivré en rare, or guilloché en légendaire —
+sur un carton noir en thème sombre, ivoire en thème clair. On l'incline au pointeur et la
+lumière balaie le métal. Son dos porte le logo, le numéro, la date et la provenance — la PR
+qui l'a produite et son titre. Dans le rituel, le numéro reste masqué tant que la carte n'est
+pas retournée. Le dos change aussi avec la rareté une fois la carte connue :
+Dorure or pour un légendaire, Dorure iris pour un shiny, Holo pour un légendaire shiny. Avant
+le retournement, il reste neutre — rien ne se devine avant le geste.
 
 La fanfare du retournement suit le même barème : **rien du tout en commun**, quelques
 étincelles en peu commun, une onde et une secousse en rare, tout en légendaire. Un
@@ -37,6 +41,35 @@ décision remonte à `ac68ba4` et vaut pour tout le jeu.
 Aucun serveur applicatif : le jeu s'appuie sur l'API GitHub et sur Supabase (Postgres +
 Auth + une fonction Edge pour le bouton de sync), en base de données et fournisseur de
 connexion — voir « Architecture » plus bas.
+
+## Le décor
+
+L'app est posée sur un velours sombre, éclairé par le dessus, avec l'or comme seul accent ;
+ou, en thème clair, sur un papier crème. Le thème suit le système tant qu'on ne l'a pas
+choisi avec le bouton de l'en-tête. La carte suit le thème (Onyx en sombre, ivoire en clair,
+même métal par palier) ; le rituel et l'évolution restent des scènes de nuit dans les deux.
+Dans la grille, un légendaire capturé porte un halo doré, un shiny un halo irisé — un seul
+halo par case, l'irisé l'emporte.
+
+La collection, le leaderboard et les statistiques sont trois vues de la même page, en onglets ; la fiche,
+le rituel et l'évolution restent des scènes par-dessus. Espace ne retourne une carte que
+depuis la collection.
+
+Le vocabulaire est fixé : une PR mergée donne une **carte**, qu'on retourne ; « shiny » et
+non « chromatique » ; « Pokédex » pour les espèces déjà vues, « collection » pour l'onglet.
+
+## Le tableau des scores
+
+L'onglet Leaderboard ouvre le seul écran où l'on regarde les autres : un classement par espèces
+distinctes (puis shiny, puis légendaires), et ses propres stats — cartes retournées, tirages par
+palier, espèces shiny sur 151, évolutions.
+
+Seules les cartes **retournées** comptent, comme dans le dex : le classement ne dévoile pas
+un légendaire avant que son propriétaire l'ait vu. Ni le titre ni le lien des PR ne sortent
+de la base pour un autre joueur — la fonction `leaderboard_players()` (voir
+`supabase/migrations/2026-09-30-leaderboard.sql`) ne renvoie que l'espèce, le chromatisme
+et la date de chaque capture ouverte. Le calcul des colonnes passe par le même `useDex`
+que le dex personnel : un classement ne peut pas contredire le compteur /151 d'un joueur.
 
 ## Lancer en local
 
@@ -103,7 +136,8 @@ source nous reconnaît**. La connexion se fait aujourd'hui en OAuth GitHub, qui 
 même geste le handle de la source `github` — mais quelqu'un hors de l'équipe technique n'a
 pas de compte GitHub, et une même personne peut relever de plusieurs sources. La contrainte
 `unique (source, handle)` empêche de réclamer le handle de quelqu'un d'autre pour recevoir
-ses captures.
+ses captures, et la table est en lecture seule pour les joueurs : personne ne peut changer
+son propre handle ni ses dépôts surveillés depuis le navigateur.
 
 Un exemplaire est identifié par sa **clé** `source:external_id` (`shared/entry.js`), et
 c'est elle que `state.claimed` et `state.evolutions[].fromKey` référencent. Le préfixe n'est
@@ -212,8 +246,14 @@ rejouer puisqu'elle part directement du schéma complet.
 
 ```
 supabase/schema.sql               tables profiles/identities/catches/state, policies RLS, trigger d'auto-création
-supabase/migrations/              copie du schéma pour la CLI — fabrique la base de TEST locale
-supabase/migrations-appliquees/   bascules déjà passées à la main sur la base en service
+supabase/migrations/              l'histoire complète du schéma, horodatée — elle fabrique la base de
+                                  TEST locale (`supabase db reset`) et sert de référence pour ce qui
+                                  reste à passer à la main sur la base en service.
+                                  Déjà appliquées en production : `20260720000000_schema_initial`,
+                                  `20260930000000_leaderboard`, `20261001000000_identities_lecture_seule`.
+                                  Restent à coller, dans cet ordre : `20260811000000_arena`,
+                                  `20260814000000_evolutions`, `20260924000000_revente`,
+                                  `20261008000000_leaderboard_evolutions`, puis `seed.sql`
 supabase/functions/trigger-catch  fonction Edge : déclenche workflow_dispatch sur catch.yml
 shared/battle.js          puissance, forme du jour, probabilité de victoire, résolution d'un duel d'arène
 shared/arena-economy.js   enjeu du duel, gains, boutique, plafonds de jeu

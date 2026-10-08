@@ -1,7 +1,9 @@
 <script setup>
+import { Gem, Sparkle } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
+import { formatDate } from '../lib/dates.js'
 
 const props = defineProps({
   speciesId: { type: Number, required: true },
@@ -31,15 +33,25 @@ const props = defineProps({
    * mouvement — demander une permission système pour un effet décoratif est disproportionné.
    */
   tiltable: { type: Boolean, default: true },
+  // Dans le rituel, le dos se voit avant la face : le numéro d'espèce y vendrait la mèche.
+  secret: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['activate'])
 
 const species = computed(() => DEX[props.speciesId])
-// Le cachet de cire scelle ce qui vaut d'être scellé : au-dessus, il ne signifierait plus rien.
-const sealed = computed(() => props.tier === 'r' || props.tier === 'l')
-
 const pad = (n) => String(n).padStart(3, '0')
+
+// Le dos dit la rareté une fois la carte connue, jamais avant : `secret` le force au neutre.
+// Le plus rare a le dos le plus spectaculaire — Holo pour le légendaire shiny, Dorure pour
+// le légendaire ou le shiny seul — comme la fanfare monte le plafond sans toucher au plancher.
+const backVariant = computed(() => {
+  if (props.secret) return 'neutral'
+  if (props.tier === 'l' && props.shiny) return 'holo'
+  if (props.tier === 'l') return 'gold'
+  if (props.shiny) return 'iris'
+  return 'neutral'
+})
 
 // `null` tant que le pointeur n'a pas touché la carte : elle reste alors strictement à plat,
 // et aucune variable d'inclinaison n'est écrite — c'est ce que vérifie le mode non inclinable.
@@ -107,32 +119,37 @@ function onLeave() {
           @error="$event.target.dataset.broken = '1'"
         >
       </div>
-      <span v-if="sealed" class="pkc-wax">PR</span>
 
       <div class="pkc-sheen"></div>
       <div class="pkc-iris"></div>
 
       <div class="pkc-rule"></div>
       <div class="pkc-bot">
-        <span class="pkc-name">{{ species.name }}{{ shiny ? ' ✦' : '' }}</span>
+        <span class="pkc-name">{{ species.name }}<Sparkle v-if="shiny" class="pkc-name-shiny" fill="currentColor" aria-label="shiny" /></span>
         <span class="pkc-tier">{{ TIER_LABEL[tier] }}</span>
       </div>
     </div>
 
-    <!-- Le dos, c'est le sachet ouvert, et l'étiquette de spécimen collée dessus. C'est ce
-         qui donne une raison de retourner la carte : elle dit d'où elle vient. -->
-    <div v-if="provenance" class="pkc-face pkc-back" :aria-hidden="flipped ? null : 'true'">
-      <div class="pkc-back-head">
-        <span class="pkc-mark">PR·DEX</span>
-        <span class="pkc-torn">ouvert</span>
+    <!-- Le dos, c'est ce qu'on voit avant de savoir : le logo d'abord, puis d'où vient la carte. -->
+    <div v-if="provenance" class="pkc-face pkc-back" :data-back="backVariant" :aria-hidden="flipped ? null : 'true'">
+      <div class="pkc-back-rosace"></div>
+      <div class="pkc-back-sheen"></div>
+      <div class="pkc-back-head mono">
+        <span class="pkc-back-no">Nº {{ secret ? '···' : pad(speciesId) }}</span>
+        <span class="pkc-back-date">{{ formatDate(provenance.date) }}</span>
       </div>
+      <span class="pkc-mark">
+        <span v-if="backVariant !== 'neutral'" class="pkc-back-signs">
+          <Gem v-if="backVariant !== 'iris'" class="pkc-back-legend" aria-hidden="true" />
+          <Sparkle v-if="backVariant !== 'gold'" class="pkc-back-star" fill="currentColor" aria-hidden="true" />
+        </span>
+        <span class="pkc-mark-word"><i>PR</i>·DEX</span>
+      </span>
       <div class="pkc-lab">
         <span class="pkc-lab-eyebrow">Provenance</span>
         <span v-if="provenance.ref" class="pkc-lab-ref mono">{{ provenance.ref }}</span>
         <span class="pkc-lab-title">{{ provenance.label }}</span>
-        <span class="pkc-lab-date mono">{{ provenance.date }}</span>
       </div>
-      <span class="pkc-back-foot">Une PR mergée · un tirage</span>
     </div>
   </div>
 </template>

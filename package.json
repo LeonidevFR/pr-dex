@@ -19,6 +19,7 @@
     "db:stop": "supabase stop"
   },
   "dependencies": {
+    "@lucide/vue": "^1.52.0",
     "@supabase/supabase-js": "^2.110.7",
     "vue": "^3.5.40"
   },

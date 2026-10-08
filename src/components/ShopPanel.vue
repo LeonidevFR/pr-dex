@@ -1,5 +1,4 @@
 <script setup>
-import AppIcon from './AppIcon.vue'
 import { ref } from 'vue'
 
 defineProps({

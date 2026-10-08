@@ -9,7 +9,7 @@ const fauxClient = (over = {}) => ({
   readOpenChallenges: vi.fn(async () => []),
   readMyOpen: vi.fn(async () => []),
   readShop: vi.fn(async () => []),
-  readLeaderboard: vi.fn(async () => []),
+  readSeasonLeaderboard: vi.fn(async () => []),
   readSeasons: vi.fn(async () => []),
   buy: vi.fn(async () => 1),
   readDuel: vi.fn(async (id) => ({ id, status: 'resolved' })),

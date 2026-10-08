@@ -79,9 +79,15 @@ export function useCollection() {
       return true
     } catch (e) {
       if (e.kind === 'conflict') {
+        // État de repli si le rejeu échoue. Tant que la relecture n'a pas abouti, c'est l'état
+        // d'avant l'appel ; ensuite c'est l'état frais, parce que `blobSha` est déjà le sien.
+        // Revenir à `before` sous ce jeton ferait passer l'écriture suivante, qui effacerait
+        // ce que l'autre appareil a écrit.
+        let fallback = before
         try {
           const fresh = await client.readState()
           blobSha.value = fresh.blobSha
+          fallback = fresh.state
           const replayed = mutate(clone(fresh.state))
           if (!replayed) { state.value = fresh.state; return false }
           state.value = replayed
@@ -90,7 +96,7 @@ export function useCollection() {
           error.value = null
           return true
         } catch (e2) {
-          state.value = before
+          state.value = fallback
           error.value = e2.kind ?? 'server'
           return false
         }
@@ -102,7 +108,10 @@ export function useCollection() {
   }
 
   const REFRESH_POLL_MS = 5000
-  const REFRESH_ATTEMPTS = 6 // ~30s : le temps qu'un run de l'Action se termine côté GitHub
+  // ~2 min. Un run de l'Action dure de 40 s à 80 s une fois déclenché (mesuré sur pr-dex-data
+  // en octobre 2026) : la fenêtre de 30 s d'avant abandonnait avant que la capture n'arrive, et
+  // le compteur restait figé jusqu'au rechargement de la page.
+  const REFRESH_ATTEMPTS = 24
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
   /**

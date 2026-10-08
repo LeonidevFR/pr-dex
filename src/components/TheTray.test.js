@@ -9,7 +9,7 @@ const entry = (id, species, extra = {}) => ({
 })
 
 const mountTray = (bySpecies, evolvable) => mount(TheTray, { props: { bySpecies, evolvable } })
-const mountFiltered = (props) => mount(TheTray, { props: { bySpecies: {}, filtersOpen: true, ...props } })
+const mountFiltered = (props) => mount(TheTray, { props: { bySpecies: {}, ...props } })
 
 describe('TheTray', () => {
   it('affiche les 151 cases', () => {
@@ -176,12 +176,36 @@ describe('TheTray', () => {
   describe('filtres', () => {
     const chipByText = (w, text) => w.findAll('.filter-chip').find((c) => c.text() === text)
 
-    it('ne rend pas le panneau quand filtersOpen est faux', () => {
-      expect(mountTray({}).find('.filters').exists()).toBe(false)
+    it('affiche toujours la barre d’outils, sans panneau à ouvrir', () => {
+      expect(mountTray({}).find('.toolbar').exists()).toBe(true)
+      expect(mountTray({}).find('.tray-search').exists()).toBe(true)
     })
 
-    it('rend le panneau quand filtersOpen est vrai', () => {
-      expect(mountFiltered().find('.filters').exists()).toBe(true)
+    it('nomme le filtre des non-capturées « Manquants »', () => {
+      expect(chipByText(mountFiltered(), 'Manquants')).toBeDefined()
+    })
+
+    it('émet set-query à la saisie, sans filtrer elle-même', async () => {
+      const w = mountFiltered()
+      await w.find('.tray-search').setValue('pika')
+      expect(w.emitted('set-query').at(-1)).toEqual(['pika'])
+    })
+
+    it('ne garde que les espèces qui répondent à la recherche', () => {
+      const w = mountFiltered({ query: 'evoli' })
+      expect(w.findAll('.cell')).toHaveLength(1)
+      expect(w.find('.cell-no').text()).toBe('133')
+    })
+
+    it('croise la recherche avec les paliers', () => {
+      expect(mountFiltered({ query: 'pika', activeTiers: new Set(['l']) }).findAll('.cell')).toHaveLength(0)
+    })
+
+    it('dit qu’aucun Pokémon ne correspond et propose d’effacer', async () => {
+      const w = mountFiltered({ query: 'zzz' })
+      expect(w.find('.tray-empty').text()).toContain('Aucun Pokémon ne correspond')
+      await w.find('.tray-empty .filter-reset').trigger('click')
+      expect(w.emitted('reset-filters')).toBeTruthy()
     })
 
     it('ne garde que les paliers listés dans activeTiers (5 légendaires)', () => {
@@ -239,9 +263,13 @@ describe('TheTray', () => {
       expect(w.findAll('.cell')).toHaveLength(1)
     })
 
+    it('compte les évoluables dans le chip', () => {
+      expect(mountFiltered({ evolvable: new Set([1, 25]) }).find('.chip-evo').text()).toBe('Évoluables · 2')
+    })
+
     it('émet set-status-filter au clic sur le chip Évoluables', async () => {
       const w = mountFiltered()
-      await chipByText(w, 'Évoluables').trigger('click')
+      await w.find('.chip-evo').trigger('click')
       expect(w.emitted('set-status-filter')[0]).toEqual(['evolvable'])
     })
 
@@ -267,6 +295,60 @@ describe('TheTray', () => {
       const w = mountFiltered({ statusFilter: 'caught' })
       await w.find('.filter-reset').trigger('click')
       expect(w.emitted('reset-filters')).toBeTruthy()
+    })
+  })
+
+  describe('pastilles et halos', () => {
+    it('nomme le palier d’une capture peu commune, rare ou légendaire', () => {
+      const w = mountTray({ 37: [entry('a', 37)], 4: [entry('b', 4)], 144: [entry('c', 144)] })
+      expect(w.findAll('.cell')[36].find('.cell-pill').text()).toBe('Peu commun')
+      expect(w.findAll('.cell')[3].find('.cell-pill').text()).toBe('Rare')
+      expect(w.findAll('.cell')[143].find('.cell-pill').text()).toBe('Légendaire')
+    })
+
+    it('ne met pas de pastille sur une capture commune', () => {
+      expect(mountTray({ 25: [entry('a', 25)] }).findAll('.cell')[24].find('.cell-pill').exists()).toBe(false)
+    })
+
+    it('ne met pas de pastille sur une silhouette', () => {
+      expect(mountTray({}).findAll('.cell')[143].find('.cell-pill').exists()).toBe(false)
+    })
+
+    // Plus de halo : un picto discret dit la rareté sans alourdir la grille.
+    it('n’a plus aucun halo', () => {
+      const w = mountTray({ 144: [entry('a', 144)], 25: [entry('b', 25, { shiny: true })] })
+      expect(w.findAll('.cell-halo')).toHaveLength(0)
+    })
+
+    it('marque d’une gemme une légendaire capturée', () => {
+      const cell = mountTray({ 144: [entry('a', 144)] }).findAll('.cell')[143]
+      expect(cell.find('.cell-legend .lucide-gem').exists()).toBe(true)
+      expect(cell.find('.cell-legend').attributes('aria-label')).toBe('légendaire')
+    })
+
+    it('ne marque pas une légendaire manquante ni une rare', () => {
+      const w = mountTray({ 4: [entry('a', 4)] })
+      expect(w.findAll('.cell')[143].find('.cell-legend').exists()).toBe(false)
+      expect(w.findAll('.cell')[3].find('.cell-legend').exists()).toBe(false)
+    })
+
+    it('montre gemme et étoile sur une légendaire shiny', () => {
+      const cell = mountTray({ 144: [entry('a', 144, { shiny: true })] }).findAll('.cell')[143]
+      expect(cell.find('.cell-legend').exists()).toBe(true)
+      expect(cell.find('.cell-shiny .lucide-sparkle').exists()).toBe(true)
+      expect(cell.classes()).toContain('shiny')
+    })
+
+    // Évoluable se lit partout, shiny compris : c'est une action à faire, pas une rareté.
+    it('montre la flèche d’évolution sur une case shiny évoluable, à côté de l’étoile', () => {
+      const cell = mountTray({ 10: [entry('a', 10, { shiny: true })] }, new Set([10])).findAll('.cell')[9]
+      expect(cell.find('.cell-signs .cell-evo .lucide-chevrons-up').exists()).toBe(true)
+      expect(cell.find('.cell-signs .cell-shiny').exists()).toBe(true)
+      expect(cell.classes()).toContain('shiny')
+    })
+
+    it('marque une rare capturée pour son cadre', () => {
+      expect(mountTray({ 4: [entry('a', 4)] }).findAll('.cell')[3].classes()).toContain('rare')
     })
   })
 })

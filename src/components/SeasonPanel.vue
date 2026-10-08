@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import AppIcon from './AppIcon.vue'
 import SeasonBadge from './SeasonBadge.vue'
 import {
   REWARD, SEASON_PODIUM, TIER_ORDER, seasonBounds, daysLeftInSeason, seasonLabel,

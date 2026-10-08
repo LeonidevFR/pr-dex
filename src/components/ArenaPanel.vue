@@ -1,4 +1,5 @@
 <script setup>
+import { Sparkle } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { REWARD } from '../../shared/arena-economy.js'
@@ -268,7 +269,9 @@ function take(duelId) {
           <span class="log-sha mono">niv. {{ levelOf(e.key) }}</span>
           <span class="log-title">
             {{ e.label ?? DEX[e.species].name }}
-            <span v-if="e.shiny" class="chip" style="margin-left:6px">✦</span>
+            <span v-if="e.shiny" class="chip" style="margin-left:6px" role="img" aria-label="shiny">
+              <Sparkle :size="10" fill="currentColor" aria-hidden="true" />
+            </span>
           </span>
           <!--
             La forme du jour entre dans le calcul au même titre que le niveau : l'afficher

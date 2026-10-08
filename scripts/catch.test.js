@@ -370,6 +370,43 @@ describe('main', () => {
     await expect(main()).rejects.toThrow(/401/)
   })
 
+  /**
+   * Un handle que GitHub ne connaît plus (compte renommé ou supprimé) fait répondre 422 à la
+   * recherche, à chaque run. Sans isolation, tous ceux qui suivent dans la liste ne
+   * recevraient plus jamais de capture. Le run finit quand même en échec, pour que ça se voie.
+   */
+  it('une identité en échec n’empêche pas les suivantes, et le run échoue à la fin', async () => {
+    const fetchMock = makeFetch({
+      identities: [identity('u1', { handle: 'parti' }), identity('u2', { handle: 'toi' })],
+      github: [
+        { ok: false, status: 422, headers: new Headers(), json: async () => ({}) },
+        searchPage([item('moi/atlas', 9, 'nouvelle')]), prDetail('sha-9', '2026-01-06T10:00:00Z'),
+      ],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(main()).rejects.toThrow(/github\/parti.*422/)
+    expect(fetchMock.inserted).toHaveLength(1)
+    expect(fetchMock.inserted[0][0].user_id).toBe('u2')
+  })
+
+  it('un quota épuisé arrête le run tout de suite, sans insister sur les identités suivantes', async () => {
+    const limited = { ok: false, status: 429, headers: new Headers({ 'retry-after': '1' }), json: async () => ({}) }
+    const fetchMock = makeFetch({
+      identities: [identity('u1'), identity('u2', { handle: 'toi' })],
+      github: [limited, limited, limited, limited],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.useFakeTimers()
+
+    const run = expect(main()).rejects.toThrow(/429/)
+    await vi.runAllTimersAsync()
+    await run
+    vi.useRealTimers()
+
+    expect(fetchMock.mock.calls.filter(([url]) => url.includes('search/issues'))).toHaveLength(4)
+  })
+
   it('n’enregistre que des sources dont le connecteur déclare la même clé', () => {
     for (const [key, connector] of Object.entries(CONNECTORS)) expect(connector.id).toBe(key)
   })

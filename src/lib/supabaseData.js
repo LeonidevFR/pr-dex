@@ -27,6 +27,7 @@ async function query(fn) {
  * ne change pas d'une ligne entre les deux backends. `blobSha` porte en réalité l'entier `version`
  * de la table `state` — nom gardé pour ne pas toucher à l'appelant, qui le traite comme un jeton opaque.
  * `triggerCatch` est une addition sans équivalent côté ancien client (pas de bouton de sync à l'époque).
+ * `readLeaderboard` est la seconde addition, pour le classement.
  */
 export function createSupabaseClient(userId) {
   async function checkAccess() {
@@ -150,7 +151,7 @@ export function createSupabaseClient(userId) {
    * ne se recalcule pas depuis les points — ceux-ci repartent à zéro à chaque saison, et c'est
    * précisément pour ça que les podiums sont consignés à part.
    */
-  const readLeaderboard = (season) =>
+  const readSeasonLeaderboard = (season) =>
     query(() => supabase.from('arena_leaderboard').select('user_id, pseudo, points, rank')
       .eq('season', season).order('rank'))
 
@@ -263,9 +264,19 @@ export function createSupabaseClient(userId) {
   const accept = (duelId, entryKey) =>
     query(() => supabase.rpc('arena_accept', { p_duel_id: duelId, p_entry_key: entryKey }))
 
+  /**
+   * Les captures ouvertes et les évolutions de tous les joueurs, réduites à ce que le
+   * classement calcule (cf. `leaderboard_players` côté base). C'est la seule lecture qui
+   * traverse RLS : elle passe par une fonction, jamais par un `from()` sur les tables.
+   */
+  async function readLeaderboard() {
+    return query(() => supabase.rpc('leaderboard_players'))
+  }
+
   return {
-    checkAccess, readCatches, readState, writeState, triggerCatch,
-    readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readLeaderboard, readSeasons, engage, accept,
+    checkAccess, readCatches, readState, writeState, triggerCatch, readLeaderboard,
+    readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readSeasonLeaderboard,
+    readSeasons, engage, accept,
     readPublicProfile, readMyProfile, readDestroyed, readMyDuels, readPseudo, setPseudo, sell,
     readEvolutions, evolve,
   }

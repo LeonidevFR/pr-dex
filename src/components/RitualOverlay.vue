@@ -1,4 +1,5 @@
 <script setup>
+import { Gem, Sparkle, X } from '@lucide/vue'
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import PokeCard from './PokeCard.vue'
@@ -9,7 +10,7 @@ const props = defineProps({
   // Lu par App.vue avant le `claim` — celui-ci inscrit l'espèce au dex dès le sceau brisé.
   isNew: { type: Boolean, default: false },
 })
-const emit = defineEmits(['claim', 'next', 'skip-all', 'close'])
+const emit = defineEmits(['claim', 'next', 'close'])
 
 /**
  * La scène du rituel, portée telle qu'elle a été validée en maquette.
@@ -160,7 +161,7 @@ watch(stage, async (s) => {
     <button
       class="x ritual-close" aria-label="Revenir à la collection, garder les cartes restantes pour plus tard"
       @click="$emit('close')"
-    >✕</button>
+    ><X :size="18" aria-hidden="true" /></button>
 
     <div class="vignette"></div>
 
@@ -176,7 +177,7 @@ watch(stage, async (s) => {
           ref="cardEl"
           :species-id="entry.species" :tier="tier" :shiny="entry.shiny"
           :provenance="{ ref: entry.ref, label: entry.label, date: entry.date }"
-          :flipped="stage === 'awaiting'" scene="night"
+          :flipped="stage === 'awaiting'" :secret="stage === 'awaiting'" scene="night"
           @activate="reveal"
         />
       </div>
@@ -192,28 +193,21 @@ watch(stage, async (s) => {
 
     <template v-if="stage === 'revealed'">
       <div class="reveal-meta">
-        <div v-if="entry.shiny" class="reveal-banner">✦ Chromatique ✦</div>
-        <div v-else-if="tier === 'l'" class="reveal-banner">★ Légendaire ★</div>
+        <div v-if="entry.shiny" class="reveal-banner"><Sparkle :size="13" fill="currentColor" aria-hidden="true" />Shiny<Sparkle :size="13" fill="currentColor" aria-hidden="true" /></div>
+        <div v-else-if="tier === 'l'" class="reveal-banner"><Gem :size="13" aria-hidden="true" />Légendaire<Gem :size="13" aria-hidden="true" /></div>
         <div class="reveal-name">{{ species.name }}</div>
         <div class="reveal-tags">
           <span v-if="isNew" class="chip new-chip">Nouveau</span>
           <span class="chip">{{ TIER_LABEL[tier] }}</span>
-          <span v-if="entry.shiny" class="chip shiny-chip">✦ Chromatique</span>
+          <span v-if="entry.shiny" class="chip shiny-chip"><Sparkle :size="11" fill="currentColor" aria-hidden="true" />Shiny</span>
         </div>
         <div class="reveal-note mono">
-          {{ isNew ? 'Première entrée à la collection' : 'Déjà à la collection' }} ·
+          {{ isNew ? 'Nouveau dans ton Pokédex' : 'Déjà dans ton Pokédex' }} ·
           +{{ CANDY_PER_CATCH }} bonbons <b>{{ DEX[familyOf(entry.species)].name }}</b>
         </div>
       </div>
       <button ref="nextEl" class="next-btn" @click="$emit('next')">
-        {{ remaining > 1 ? `Suivant · ${remaining - 1} restant${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la collection' }}
-      </button>
-      <button
-        v-if="remaining > 1" class="queue-note"
-        style="background:none;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px"
-        @click="$emit('skip-all')"
-      >
-        tout ouvrir sans cérémonie
+        {{ remaining > 1 ? `Carte suivante · ${remaining - 1} restante${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la collection' }}
       </button>
     </template>
   </div>

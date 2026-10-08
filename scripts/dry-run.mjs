@@ -4,8 +4,9 @@
  *
  * On ne colle pas trois fichiers SQL sur trois semaines de collections sans les avoir joués
  * ailleurs d'abord. Ce script rejoue exactement la mise en service : il remet la base locale
- * dans l'état du serveur AUJOURD'HUI — c'est-à-dire avec la seule migration de juillet —, y
- * verse les données exportées, applique les quatre fichiers dans l'ordre, puis vérifie.
+ * dans l'état du serveur AUJOURD'HUI — c'est-à-dire avec le schéma de juillet, le classement
+ * du 30 septembre et les identités en lecture seule du 6 octobre —, y verse les données
+ * exportées, applique les cinq fichiers dans l'ordre, puis vérifie.
  *
  * Ce qu'il vérifie, et qui est le seul vrai risque : la reprise des évolutions. Elles vivent
  * dans une colonne jsonb que le client réécrivait ; elles deviennent des lignes. Une entrée
@@ -26,6 +27,9 @@ const MIGRATIONS = 'supabase/migrations'
 const ARENE = `${MIGRATIONS}/20260811000000_arena.sql`
 const EVOLUTIONS = `${MIGRATIONS}/20260814000000_evolutions.sql`
 const REVENTE = `${MIGRATIONS}/20260924000000_revente.sql`
+// Le classement d'équipe lit les évolutions là où l'arène les a mises : cette bascule vient
+// donc APRÈS elle, et part avec le même lot.
+const CLASSEMENT = `${MIGRATIONS}/20261008000000_leaderboard_evolutions.sql`
 const SEED = 'supabase/seed.sql'
 
 const dump = process.argv[2]
@@ -48,13 +52,13 @@ async function avec(fn) {
 
 /**
  * Remet la base locale dans l'état de la production : la migration de juillet, et rien d'autre.
- * Les trois nouvelles migrations et le seed sont écartés le temps de la remise à zéro, sinon
+ * Les quatre nouvelles migrations et le seed sont écartés le temps de la remise à zéro, sinon
  * `supabase db reset` les appliquerait et l'on testerait un déploiement déjà fait.
  */
 function etatDeLaProduction() {
   const ecartes = [
     [ARENE, `${ARENE}.hors`], [EVOLUTIONS, `${EVOLUTIONS}.hors`],
-    [REVENTE, `${REVENTE}.hors`], [SEED, `${SEED}.hors`],
+    [REVENTE, `${REVENTE}.hors`], [CLASSEMENT, `${CLASSEMENT}.hors`], [SEED, `${SEED}.hors`],
   ]
   for (const [de, vers] of ecartes) renameSync(de, vers)
   try {
@@ -111,9 +115,10 @@ const avant = await avec(async (c) => ({
 dire(`   ${avant.joueurs} joueur(s), ${avant.captures} capture(s), `
   + `${avant.evolutions} évolution(s) dans les états.`)
 
-dire('\n3. Application des quatre fichiers, dans l’ordre du déploiement…')
+dire('\n3. Application des cinq fichiers, dans l’ordre du déploiement…')
 for (const [nom, fichier] of [
-  ['arène', ARENE], ['évolutions', EVOLUTIONS], ['revente', REVENTE], ['seed', SEED],
+  ['arène', ARENE], ['évolutions', EVOLUTIONS], ['revente', REVENTE],
+  ['classement', CLASSEMENT], ['seed', SEED],
 ]) {
   sansContraintes(fichier)
   dire(`   ${nom} : appliqué.`)
@@ -200,5 +205,5 @@ if (ko.length) {
   for (const l of ko) dire(`  · ${l}`)
   process.exit(1)
 }
-dire('Répétition réussie. Les quatre fichiers passent sur une copie de la production,')
+dire('Répétition réussie. Les cinq fichiers passent sur une copie de la production,')
 dire('la reprise des évolutions est exacte et rien de l’existant n’a bougé.')

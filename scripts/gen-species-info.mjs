@@ -1,4 +1,5 @@
 import { writeFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
 import { SPECIES, DEX, familyOf } from '../shared/species.js'
 import { SPECIES_GEN2, STATS_GEN2 } from '../shared/species-gen2.js'
 import { SHOP } from '../shared/arena-economy.js'
@@ -185,7 +186,6 @@ async function seedOnly() {
   console.log(`${Object.keys(STATS).length} espèces écrites dans supabase/seed.sql`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const run = process.argv.includes('--seed-only') ? seedOnly : main
-  run().catch((e) => { console.error(e); process.exit(1) })
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => { console.error(e); process.exit(1) })
 }

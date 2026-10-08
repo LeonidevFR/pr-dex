@@ -19,7 +19,12 @@ import { DEX } from '../../shared/species.js'
  * le jour où un vrai domaine arrive il n'y ait qu'une ligne de configuration à changer.
  */
 /** Les cinq lieux de l'application, chacun avec son écran. */
-export const ROUTES = ['collection', 'arena', 'season', 'shop', 'profile']
+/**
+ * Les lieux, et leur adresse. Les quatre derniers vivent sous l'onglet « Arène » — le rail n'en
+ * montre que quatre, mais chacun garde son URL : un lien vers la boutique ou vers le profil d'un
+ * collègue doit mener là, pas à la racine de l'arène.
+ */
+export const ROUTES = ['collection', 'team', 'stats', 'arena', 'season', 'shop', 'profile']
 
 /** Seuls ces deux lieux désignent quelque chose de précis : une espèce, une personne. */
 const AVEC_PARAM = { collection: 'species', profile: 'pseudo' }

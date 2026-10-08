@@ -271,7 +271,7 @@ describe('DuelOverlay', () => {
     const w = await revele(monter({ challenger_power: 700, opponent_power: 610, challenger_level: 4 }))
     const recompense = w.find('.arena-reward').text()
     expect(recompense).toContain('+1')
-    expect(recompense).toContain('4 → 5')
+    expect(recompense).toMatch(/4\s+5/)
   })
 
   it('monte jusqu’à cinq niveaux face à bien plus fort que soi', async () => {

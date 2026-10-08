@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import AppIcon from './AppIcon.vue'
 import SeasonBadge from './SeasonBadge.vue'
 import { seasonLabel } from '../../shared/arena-economy.js'
 

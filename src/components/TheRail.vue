@@ -1,5 +1,5 @@
 <script setup>
-import AppIcon from './AppIcon.vue'
+import { Moon, RefreshCw, SlidersHorizontal, Sun } from '@lucide/vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
@@ -7,27 +7,25 @@ const props = defineProps({
   pendingCount: { type: Number, required: true },
   syncing: { type: Boolean, default: false },
   syncError: { type: String, default: null }, // 'offline' | 'server' | 'conflict' | 'revoked'
-  filtersOpen: { type: Boolean, default: false },
-  filtersActive: { type: Boolean, default: false },
-  /** Le lieu courant, pour marquer l'onglet actif. */
-  place: { type: String, default: 'collection' },
+  view: { type: String, default: 'collection' }, // 'collection' | 'team' | 'stats'
+  theme: { type: String, default: 'dark' }, // 'light' | 'dark'
 })
-const emit = defineEmits(['open', 'settings', 'sync', 'toggle-filters', 'go'])
+const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
 /**
- * Les cinq lieux, dans l'ordre où on les traverse : on collectionne, on se bat, on regarde où
- * ça mène, on dépense, on se contemple.
+ * L'arène prend un onglet, pas quatre.
  *
- * Des onglets et non plus des icônes : une icône dit « une action », un onglet dit « tu es
- * ici ». Avec un seul écran la nuance ne coûtait rien ; à cinq lieux, ne pas savoir où l'on se
- * trouve devient le problème principal.
+ * Elle compte quatre lieux — le terrain, la saison, la boutique, le profil — et les poser à plat
+ * aurait porté le rail à sept entrées, dans une barre dessinée pour trois. Ils vivent donc au
+ * second niveau, dans leur propre barre, sous cet onglet-ci.
+ *
+ * L'onglet reste visible avant le 1er décembre : il mène au teaser, qui est fait pour ça.
  */
-const LIEUX = [
-  { nom: 'collection', icone: 'grid', libelle: 'Collection' },
-  { nom: 'arena', icone: 'arena', libelle: 'Arène' },
-  { nom: 'season', icone: 'season', libelle: 'Saison' },
-  { nom: 'shop', icone: 'shop', libelle: 'Boutique' },
-  { nom: 'profile', icone: 'profile', libelle: 'Profil' },
+const TABS = [
+  ['collection', 'Collection'],
+  ['arena', 'Arène'],
+  ['team', 'Leaderboard'],
+  ['stats', 'Statistiques'],
 ]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
@@ -42,7 +40,7 @@ const SYNC_ERROR_LABEL = {
 // Le clic déclenche un vrai run GitHub Action, pas une lecture instantanée : sans ce message,
 // le bouton semble juste tourner dans le vide pendant que le run travaille en coulisses.
 const syncTitle = computed(() => {
-  if (props.syncing) return 'Recherche en cours côté GitHub (jusqu’à 30s)…'
+  if (props.syncing) return 'Recherche en cours côté GitHub (jusqu’à 2 min)…'
   if (props.syncError) return SYNC_ERROR_LABEL[props.syncError] ?? 'La synchronisation a échoué.'
   return 'Vérifier les nouvelles captures'
 })
@@ -86,58 +84,43 @@ onUnmounted(() => clearTimeout(cooldownTimer))
 </script>
 
 <template>
-  <header class="rail" :data-place="place">
-    <div class="rail-haut">
-      <div class="wordmark">PR<span>·</span>DEX</div>
-
-      <nav class="tabs" aria-label="Les lieux">
-        <button
-          v-for="l in LIEUX" :key="l.nom"
-          class="tab" :aria-current="place === l.nom ? 'page' : null"
-          @click="emit('go', l.nom)"
-        >
-          <AppIcon :name="l.icone" :size="14" />
-          <span>{{ l.libelle }}</span>
-          <!-- La pastille suit l'onglet concerné : un pli en attente doit se voir depuis
-               n'importe quel lieu, sans quoi on l'oublie en jouant ailleurs. -->
-          <span v-if="l.nom === 'collection' && pendingCount" class="pip">{{ pendingCount }}</span>
-        </button>
-      </nav>
-
-      <div class="rail-tools">
-        <button class="gear sync" :title="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
-          <span :class="{ spinning: syncing }"><AppIcon name="sync" /></span>
-          <span v-if="syncError" class="err-dot"></span>
-        </button>
-        <button class="gear" title="Réglages" @click="$emit('settings')"><AppIcon name="settings" /></button>
-      </div>
+  <header class="rail">
+    <div class="rail-brand">
+      <div class="wordmark"><i>PR</i>·DEX</div>
+      <div class="eyebrow rail-sub">Une PR mergée, un Pokémon</div>
     </div>
-
-    <!--
-      La progression et l'ouverture appartiennent à la planche, pas à l'application : les
-      afficher au-dessus de la boutique ou du classement, c'est proposer un geste qui n'a rien
-      à voir avec l'écran qu'on regarde. Elles suivent donc leur lieu.
-    -->
-    <div v-if="place === 'collection'" class="rail-bas">
-      <div class="progress">
-        <div class="progress-head">
-          <span class="eyebrow">Espèces rencontrées</span>
-          <span class="progress-count"><b>{{ String(caughtCount).padStart(3, '0') }}</b><i> / 151</i></span>
-        </div>
-        <div class="bar"><div class="bar-fill" :style="{ width: (caughtCount / 151 * 100) + '%' }"></div></div>
-      </div>
-      <div class="rail-tools">
-        <button class="claim-btn" :class="{ pulsing: pendingCount }" :disabled="!pendingCount" @click="$emit('open')">
-          {{ pendingCount ? 'Ouvrir' : 'Rien à ouvrir' }}
-          <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
-        </button>
-        <button
-          class="gear filter-toggle" :class="{ active: filtersOpen || filtersActive }"
-          title="Filtrer la grille" @click="$emit('toggle-filters')"
-        >
-          <AppIcon name="filter" />
-        </button>
-      </div>
+    <!-- Les vues sont des pages, pas des onglets d'une modale : une vraie navigation, avec
+         l'onglet courant annoncé — c'était le défaut relevé sur le panneau de classement. -->
+    <nav class="rail-nav" aria-label="Vues">
+      <button
+        v-for="[key, label] in TABS" :key="key" class="rail-tab" :class="{ active: view === key }"
+        :aria-current="view === key ? 'page' : undefined" @click="emit('navigate', key)"
+      >{{ label }}</button>
+    </nav>
+    <div class="progress">
+      <span class="progress-count"><span class="eyebrow progress-label">Pokédex</span> <b>{{ caughtCount }}</b><i> / 151</i></span>
+      <div class="bar"><div class="bar-fill" :style="{ width: (caughtCount / 151 * 100) + '%' }"></div></div>
+    </div>
+    <div class="rail-tools">
+      <button class="claim-btn" :class="{ pulsing: pendingCount }" :disabled="!pendingCount" @click="$emit('open')">
+        {{ pendingCount ? 'Retourner' : 'Rien à retourner' }}
+        <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
+      </button>
+      <button class="gear sync" :title="syncTitle" :aria-label="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
+        <span :class="{ spinning: syncing }">
+          <RefreshCw :size="15" :stroke-width="1.75" aria-hidden="true" />
+        </span><span v-if="syncError" class="err-dot"></span>
+      </button>
+      <button
+        class="gear theme-toggle" :aria-label="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'"
+        :title="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'" @click="$emit('toggle-theme')"
+      >
+        <Moon v-if="theme === 'light'" :size="15" :stroke-width="1.75" aria-hidden="true" />
+        <Sun v-else :size="15" :stroke-width="1.75" aria-hidden="true" />
+      </button>
+      <button class="gear" title="Réglages" aria-label="Réglages" @click="$emit('settings')">
+        <SlidersHorizontal :size="15" :stroke-width="1.75" aria-hidden="true" />
+      </button>
     </div>
   </header>
 </template>

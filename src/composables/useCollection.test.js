@@ -88,18 +88,37 @@ describe('refresh', () => {
     expect(client.readCatches).toHaveBeenCalledTimes(4) // 1 au chargement + 3 au refresh
   })
 
-  it('abandonne après ~30s si rien de nouveau n’est jamais apparu', async () => {
+  // Un run de l'Action dure de 40 s à 80 s une fois déclenché (mesuré sur pr-dex-data) : une
+  // capture qui arrive à 80 s doit être vue sans recharger la page.
+  it('voit encore une capture qui n’arrive qu’au bout de 80 secondes', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    let calls = 0
+    client.readCatches.mockImplementation(async () => {
+      calls++
+      return calls > 17 ? [catchOf('a', 25), catchOf('b', 1)] : [catchOf('a', 25)]
+    })
+
+    const p = c.refresh()
+    await vi.advanceTimersByTimeAsync(90000)
+    await p
+
+    expect(c.catches.value).toHaveLength(2)
+  })
+
+  it('abandonne après ~2 min si rien de nouveau n’est jamais apparu', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })
     const c = useCollection()
     await c.load(client)
 
     const p = c.refresh()
-    await vi.advanceTimersByTimeAsync(30000)
+    await vi.advanceTimersByTimeAsync(120000)
     await p
 
     expect(c.catches.value).toHaveLength(1)
     expect(c.error.value).toBeNull()
-    expect(client.readCatches).toHaveBeenCalledTimes(7) // 1 au chargement + 6 tentatives de refresh
+    expect(client.readCatches).toHaveBeenCalledTimes(25) // 1 au chargement + 24 tentatives de refresh
   })
 
   it('reste en chargement pendant tout le sondage', async () => {
@@ -108,7 +127,7 @@ describe('refresh', () => {
     await c.load(client)
     const p = c.refresh()
     expect(c.loading.value).toBe(true)
-    await vi.advanceTimersByTimeAsync(30000)
+    await vi.advanceTimersByTimeAsync(120000)
     await p
     expect(c.loading.value).toBe(false)
   })
@@ -208,6 +227,34 @@ describe('claim', () => {
     await c.claim(K('a'))
     expect(client.writeState).toHaveBeenCalledTimes(2)
     expect(c.error.value).toBe('conflict')
+  })
+
+  /**
+   * Après un conflit, le jeton de version est déjà celui de l'état frais. Revenir à l'état
+   * d'avant l'appel laisserait un état périmé sous un jeton à jour : l'écriture suivante
+   * passerait le contrôle de version et effacerait ce que l'autre appareil a écrit.
+   */
+  it('garde l’état de l’autre appareil quand le rejeu échoue, pour ne pas l’écraser ensuite', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25), catchOf('b', 1), catchOf('c', 4)] })
+    client.writeState
+      .mockRejectedValueOnce(new SupabaseDataError('conflict', 'stale', 409))
+      .mockRejectedValueOnce(new SupabaseDataError('offline', 'pas de réseau'))
+      .mockResolvedValueOnce({ blobSha: 'blob9' })
+    client.readState
+      .mockResolvedValueOnce({ state: { claimed: [], spent: {}, evolutions: [] }, blobSha: 'blob1' })
+      .mockResolvedValueOnce({ state: { claimed: [K('b')], spent: {}, evolutions: [] }, blobSha: 'blob8' })
+
+    const c = useCollection()
+    await c.load(client)
+    await c.claim(K('a'))
+
+    expect(c.error.value).toBe('offline')
+    expect(c.state.value.claimed).toEqual([K('b')])
+
+    await c.claim(K('c'))
+    expect(client.writeState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ claimed: [K('b'), K('c')] }), 'blob8', expect.anything(),
+    )
   })
 
   it('signale une écriture hors ligne et restaure l’état', async () => {
