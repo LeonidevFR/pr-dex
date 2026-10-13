@@ -102,6 +102,12 @@ describe('planSources', () => {
   it('repère une source déclarée sans connecteur sans la confondre avec un secret manquant', () => {
     expect(planSources([identity('u1', { source: 'hubspot' })])).toEqual({ unknown: ['hubspot'], missing: [] })
   })
+
+  it('réclame le dossier d’attributions dès qu’une identité slack existe', () => {
+    delete process.env.ATTRIBUTIONS_DIR
+    expect(planSources([identity('u1', { source: 'slack', handle: 'U0ALICE' })]))
+      .toEqual({ unknown: [], missing: ['ATTRIBUTIONS_DIR'] })
+  })
 })
 
 describe('main', () => {

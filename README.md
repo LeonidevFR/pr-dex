@@ -2,7 +2,7 @@
 
 Un pokédex personnel qui se remplit tout seul depuis les actes qu'on pose au travail.
 Chaque événement d'une **source** déclarée — aujourd'hui les pull requests mergées sur
-GitHub — tire, de façon déterministe, un Pokémon à partir de son identifiant chez cette
+GitHub et les participations au monkey-testing — tire, de façon déterministe, un Pokémon à partir de son identifiant chez cette
 source. L'ouverture se joue comme un booster, dans l'application.
 
 Une source choisit **quel acte vaut un tirage** ; elle ne choisit pas ce que vaut un
@@ -170,6 +170,17 @@ connecteur dans `CONNECTORS` et à ajouter son secret dans `pr-dex-data`.
 Le critère auquel ce découpage se juge : **ajouter un pôle ne doit toucher ni le front, ni
 le schéma, ni la logique de jeu.**
 
+### La source `slack` : des attributions plutôt qu'une API
+
+Certaines activités n'ont pas d'API à interroger : c'est un agent qui décide qui a participé.
+Il écrit un fichier par session dans `pr-dex-data/attributions/<activité>/`, et le
+connecteur `slack` (`scripts/connectors/slack.mjs`) le lit au passage suivant de `catch.yml`.
+Une personne y est reconnue par son identifiant Slack.
+
+Ajouter une activité de ce genre ne demande aucun code ici : un dossier et un agent.
+Le connecteur plafonne `draws` à 10 et ignore la fenêtre de sept jours — une attribution
+n'expire pas. Un fichier mal formé fait finir le run en rouge, avec son chemin.
+
 `state.version` remplace le SHA de blob git de l'ancienne version comme jeton de
 concurrence optimiste (un appareil qui écrit sur une version périmée reçoit un conflit,
 rejoué une fois sur l'état frais — même logique qu'avant, autre mécanisme de stockage).
@@ -193,6 +204,8 @@ n'apparaissent qu'après, à un refresh suivant.
     l'organisation si aucune identité ne restreint `config.repos`. Aucun droit d'écriture
     nulle part. Chaque source ajoutée apporte son propre secret, déclaré par son connecteur
     (`secretEnv`) et posé dans `pr-dex-data`.
+  - **`ATTRIBUTIONS_DIR`** (pas un secret) : chemin du dossier `attributions/` du checkout
+    de `pr-dex-data`, posé par `catch.yml`. Requis dès qu'une identité `slack` existe.
   - **`SUPABASE_SERVICE_ROLE_KEY`** : contourne RLS — c'est le seul moyen d'écrire dans
     `catches` pour n'importe quel `user_id`, puisque les utilisateurs n'ont eux-mêmes
     aucune permission d'écriture sur cette table.
@@ -224,7 +237,7 @@ shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasE
 shared/draw.js            fnv1a + drawFrom, partagé front ↔ Action
 shared/entry.js           entryKey(source, externalId) — clé d'exemplaire et seed du tirage
 scripts/catch.mjs         Action : registre des sources, boucle sur les identités, tirage, insertion
-scripts/connectors/       une source par fichier ; github.mjs est la seule pour l'instant
+scripts/connectors/       une source par fichier ; github.mjs, slack.mjs
 src/lib/                  supabaseClient.js, supabaseData.js (seul module réseau du jeu), sprites.js
 src/composables/          useAuth.js (session OAuth), useDex.js (dérivation pure), useCollection.js (effets)
 src/components/           TheRail, TheTray, SpeciesSheet, RitualOverlay, EvolutionOverlay,
