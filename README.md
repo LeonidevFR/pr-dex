@@ -188,6 +188,30 @@ n'expire pas. Un fichier mal formé fait finir le run en rouge, avec son chemin.
 concurrence optimiste (un appareil qui écrit sur une version périmée reçoit un conflit,
 rejoué une fois sur l'état frais — même logique qu'avant, autre mécanisme de stockage).
 
+## L'agent du monkey-testing
+
+`pr-dex-data/.github/workflows/monkey-testing.yml` tourne chaque jour ouvré, ou à la main
+avec le lien d'un thread. Il clone `main` d'ici et enchaîne quatre scripts de
+`scripts/agents/monkey-testing/` :
+
+1. `collect.mjs` lit #monkey-testing et prépare une entrée par session terminée (24 h sans
+   message). Une session est un message dont le thread a des réponses d'au moins deux
+   personnes autres que son auteur. Un retour posté dans la room rejoint la session ouverte.
+2. `judge.mjs` fait juger chaque entrée par Claude Code, **sans aucun outil**, selon
+   `agents/monkey-testing.md`. Il tourne sur un abonnement (`CLAUDE_CODE_OAUTH_TOKEN`).
+3. `apply.mjs` contrôle chaque verdict — ni l'organisateur, ni quelqu'un d'absent, ni une
+   preuve qui n'est pas un message de la personne — puis écrit
+   `attributions/monkey-testing/<date>-<ts>.json`. On ajoute, on ne retire jamais.
+4. Après le push, `announce.mjs` poste le récap dans le thread, et le workflow lance
+   `catch.yml`.
+
+Les messages Slack sont écrits par n'importe qui, et Claude les lit : c'est pour ça qu'il n'a
+aucun outil et que ses verdicts sont contrôlés. Une consigne glissée dans un message ne peut
+changer que la liste des gagnants d'une session, dans les limites de ces contrôles.
+
+Un mode « à blanc » (`dry_run`) juge sans commiter ni poster ; le résultat est dans
+l'artefact du run.
+
 ## Le bouton de sync
 
 `refresh()` (bouton ⟳ dans `TheRail`) fait deux choses : déclencher `catch.yml` tout de
@@ -235,12 +259,16 @@ supabase/migrations/              bascules à appliquer sur une base déjà en s
                                   classement ; sans elle, seul le panneau 🏆 est en erreur
                                   `2026-10-01-identities-lecture-seule.sql` retire aux joueurs le droit
                                   de réécrire leur identité ; indépendante du front
+                                  `2026-10-13-connexion-slack.sql` crée les identités GitHub et Slack
+                                  par un trigger sur auth.identities ; AVANT de merger le front
 supabase/functions/trigger-catch  fonction Edge : déclenche workflow_dispatch sur catch.yml
 shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
 shared/draw.js            fnv1a + drawFrom, partagé front ↔ Action
 shared/entry.js           entryKey(source, externalId) — clé d'exemplaire et seed du tirage
 scripts/catch.mjs         Action : registre des sources, boucle sur les identités, tirage, insertion
 scripts/connectors/       une source par fichier ; github.mjs, slack.mjs
+scripts/agents/monkey-testing/  l'agent du monkey-testing : collecte, jugement, écriture, récap
+agents/monkey-testing.md  le prompt du jugement, et son schéma de sortie
 src/lib/                  supabaseClient.js, supabaseData.js (seul module réseau du jeu), sprites.js
 src/composables/          useAuth.js (session OAuth), useDex.js (dérivation pure), useCollection.js (effets)
 src/components/           TheRail, TheTray, SpeciesSheet, RitualOverlay, EvolutionOverlay,
