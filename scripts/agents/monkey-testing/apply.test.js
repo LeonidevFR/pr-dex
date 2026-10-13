@@ -61,6 +61,15 @@ describe('apply', () => {
     expect(a.text).toMatch(/^🎴 En plus/)
   })
 
+  // Un fichier que le connecteur rejette bloquerait les cartes slack de tout le monde, à chaque
+  // run, et le récap aurait promis un booster qui n'arrive pas.
+  it('n’écrit pas un fichier que le connecteur rejetterait', async () => {
+    await writeJson(join(env.WORK_DIR, 'verdicts', `${session.id}.json`), { participants: [p('U0ALICE', '1791878460.000100')] })
+    expect(await apply({ ...env, SLACK_WORKSPACE_URL: 'guestsuite.slack.com' })).toEqual({ written: 0, announcements: 0 })
+    const failures = JSON.parse(await readFile(join(env.WORK_DIR, 'failures.json'), 'utf8'))
+    expect(failures[0]).toMatch(/url/)
+  })
+
   it('ne fait rien sans verdict', async () => {
     expect(await apply(env)).toEqual({ written: 0, announcements: 0 })
   })

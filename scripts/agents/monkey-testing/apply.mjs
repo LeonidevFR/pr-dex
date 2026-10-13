@@ -2,6 +2,7 @@ import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { ACTIVITY, fileNameOf, mergeAttribution, recapText, validateVerdict } from './attribution.mjs'
+import { parseAttribution } from '../../connectors/slack.mjs'
 import { paths, readJson, writeJson, addFailure, readExisting } from './work.mjs'
 
 /**
@@ -34,7 +35,11 @@ export async function main(env = process.env) {
       const { data, added, created } = mergeAttribution({
         existing: existing ? previous : null, session, accepted, names, base: env.SLACK_WORKSPACE_URL,
       })
-      await writeJson(join(dir, file ?? fileNameOf(id)), data)
+      const fileName = file ?? fileNameOf(id)
+      // Le connecteur relira ce fichier : un fichier qu'il rejette bloquerait les cartes slack
+      // de tout le monde, et le récap aurait promis un booster qui n'arrive pas.
+      parseAttribution(data, `${ACTIVITY}/${fileName}`, ACTIVITY)
+      await writeJson(join(dir, fileName), data)
       written++
       const text = recapText({ created, added, prdexUrl: env.PRDEX_URL })
       if (text) announcements.push({ channel: session.channel, thread_ts: session.id, text })
