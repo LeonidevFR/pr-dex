@@ -2,9 +2,14 @@
 -- À coller dans SQL Editor (Supabase dashboard) et exécuter UNE fois, sur la base en
 -- service, AVANT de merger le front. Une base neuve part de `supabase/schema.sql`.
 --
--- AVANT d'exécuter : remplacer `T_GUESTSUITE` (deux occurrences) par l'identifiant du
+-- AVANT d'exécuter : remplacer `T_GUESTSUITE` (trois occurrences) par l'identifiant du
 -- workspace Slack de Guest Suite, ici et dans `schema.sql`, et vérifier dans `auth.identities`
--- que le team id est bien rangé sous `custom_claims`.
+-- que le team id est bien rangé sous `custom_claims`. Le bloc de garde plus bas refuse de
+-- tourner tant que ce n'est pas fait : sinon la migration passerait, et aucune identité Slack
+-- ne serait jamais créée.
+--
+-- Ordre : `catch.yml` de pr-dex-data doit déjà passer `ATTRIBUTIONS_DIR`. Dès qu'une identité
+-- `slack` existe, `planSources` arrête sinon chaque run, captures GitHub comprises.
 --
 -- Retour arrière :
 --   drop trigger on_auth_identity_created on auth.identities;
@@ -18,6 +23,15 @@
 -- alors ses PR.
 
 begin;
+
+-- Concaténé pour ne pas être remplacé avec les autres occurrences.
+do $$
+begin
+  if 'T_GUESTSUITE' = 'T_GUEST' || 'SUITE' then
+    raise exception 'Remplacer T_GUESTSUITE par l''identifiant du workspace Slack avant d''exécuter cette migration.';
+  end if;
+end;
+$$;
 
 create or replace function public.handle_new_user()
 returns trigger
