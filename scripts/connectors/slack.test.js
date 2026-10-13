@@ -1,4 +1,3 @@
-// scripts/connectors/slack.test.js
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'

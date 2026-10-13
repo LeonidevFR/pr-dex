@@ -1,4 +1,3 @@
-// src/lib/account.test.js
 import { describe, it, expect } from 'vitest'
 import { accountName, providersOf, readAuthError, withoutAuthError } from './account.js'
 

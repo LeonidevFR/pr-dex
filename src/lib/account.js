@@ -1,4 +1,3 @@
-// src/lib/account.js
 export const GITHUB = 'github'
 export const SLACK = 'slack_oidc'
 
