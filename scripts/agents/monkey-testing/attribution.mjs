@@ -76,7 +76,9 @@ export function mergeAttribution({ existing, session, accepted, names, base }) {
         draws: DRAWS,
         recipients: [],
       }
-  const whereOf = new Map(session.messages.map((m) => [m.ts, m.where]))
+  // Le thread de chaque message : celui de la session, celui d'un retour posté dans la room
+  // (`thread`), ou aucun pour un message de la room.
+  const threadOf = new Map(session.messages.map((m) => [m.ts, m.thread ?? (m.where === 'thread' ? session.id : null)]))
   const known = new Set(data.recipients.map((r) => r.slack_id))
   const added = []
   for (const p of accepted) {
@@ -84,8 +86,7 @@ export function mergeAttribution({ existing, session, accepted, names, base }) {
     data.recipients.push({
       slack_id: p.slack_id,
       name: names[p.slack_id] ?? p.slack_id,
-      evidence: p.evidence_ts.map((ts) =>
-        permalink(base, session.channel, ts, whereOf.get(ts) === 'thread' ? session.id : null)),
+      evidence: p.evidence_ts.map((ts) => permalink(base, session.channel, ts, threadOf.get(ts))),
     })
     known.add(p.slack_id)
     added.push(p.slack_id)

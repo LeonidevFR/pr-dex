@@ -106,6 +106,17 @@ describe('mergeAttribution', () => {
     expect(data.seen_until).toBe('1791885600.000100')
   })
 
+  it('pointe la preuve d’une réponse à un retour de la room vers le thread de ce retour', () => {
+    const reply = { ts: '1791885700.000100', user: 'U0BOB', text: 'pareil chez moi', where: 'room', thread: '1791885600.000100' }
+    const withReply = { ...session, messages: [...session.messages, reply] }
+    const { data } = mergeAttribution({
+      existing: null, session: withReply, accepted: [{ slack_id: 'U0BOB', evidence_ts: [reply.ts] }], names, base: BASE,
+    })
+    expect(data.recipients[0].evidence).toEqual([
+      'https://guestsuite.slack.com/archives/C1/p1791885700000100?thread_ts=1791885600.000100&cid=C1',
+    ])
+  })
+
   it('ne réajoute pas quelqu’un déjà listé', () => {
     const existing = mergeAttribution({ existing: null, session, accepted, names, base: BASE }).data
     expect(mergeAttribution({ existing, session, accepted, names, base: BASE }).added).toEqual([])

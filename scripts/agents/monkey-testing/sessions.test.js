@@ -45,6 +45,38 @@ describe('buildSessions', () => {
     expect(s.lastTs).toBe(ts(2 * H))
   })
 
+  // Un testeur poste son bug dans la room, le dev et un collègue lui répondent : ce n'est pas
+  // une nouvelle session dont le testeur serait l'organisateur, c'est un retour de la session
+  // en cours, réponses comprises.
+  it('rattache à la session ouverte un retour de la room que d’autres ont commenté', () => {
+    const stray = msg(2 * H, 'U0CHLOE', 'bug : le bouton Y plante', { reply_count: 2 })
+    const replies = {
+      [root.ts]: thread,
+      [stray.ts]: [stray, msg(2 * H + 60, 'U0LEO', 'merci je regarde'), msg(2 * H + 120, 'U0BOB', 'pareil chez moi')],
+    }
+    const sessions = build([root, stray], replies)
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].organizer).toBe('U0LEO')
+    expect(sessions[0].messages.filter((m) => m.where === 'room')).toEqual([
+      { ts: stray.ts, user: 'U0CHLOE', text: 'bug : le bouton Y plante', where: 'room' },
+      { ts: ts(2 * H + 60), user: 'U0LEO', text: 'merci je regarde', where: 'room', thread: stray.ts },
+      { ts: ts(2 * H + 120), user: 'U0BOB', text: 'pareil chez moi', where: 'room', thread: stray.ts },
+    ])
+    expect(sessions[0].lastTs).toBe(ts(2 * H + 120))
+  })
+
+  it('ouvre une nouvelle session une fois la précédente terminée', () => {
+    const next = msg(180 + QUIET_SECONDS + 1, 'U0ZOE', 'Nouvelle session : l’export', { reply_count: 2 })
+    const replies = { [root.ts]: thread, [next.ts]: [next, msg(180 + QUIET_SECONDS + 60, 'U0ALICE'), msg(180 + QUIET_SECONDS + 90, 'U0BOB')] }
+    expect(build([root, next], replies).map((s) => s.organizer)).toEqual(['U0LEO', 'U0ZOE'])
+  })
+
+  it('fait une session du thread forcé même pendant une session ouverte', () => {
+    const forced = msg(H, 'U0ZOE', 'x', { reply_count: 1 })
+    const replies = { [root.ts]: thread, [forced.ts]: [forced, msg(H + 60, 'U0ALICE')] }
+    expect(build([root, forced], replies, { forcedRoot: forced.ts }).map((s) => s.id)).toEqual([root.ts, forced.ts])
+  })
+
   it('ne rattache pas un message posté après la fin de la session', () => {
     const [s] = build([root, msg(180 + QUIET_SECONDS + 1, 'U0CHLOE')])
     expect(s.messages.some((m) => m.user === 'U0CHLOE')).toBe(false)
@@ -98,5 +130,11 @@ describe('planJudgments', () => {
   it('juge toujours le thread forcé', () => {
     const existingById = { [s.id]: { seen_until: ts(180) } }
     expect(planJudgments({ sessions: [s], existingById, nowSec: T0, forcedId: s.id })).toEqual([s])
+  })
+  // Relancer à la main un vieux thread lit l'historique depuis lui : les sessions suivantes,
+  // hors de la fenêtre de sept jours, ne doivent pas être jugées au passage.
+  it('ne juge que le thread forcé', () => {
+    const other = { id: ts(1000), lastTs: ts(1100) }
+    expect(planJudgments({ sessions: [s, other], existingById: {}, nowSec: later + 2000, forcedId: s.id })).toEqual([s])
   })
 })
