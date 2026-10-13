@@ -124,7 +124,7 @@ Quatre tables Supabase (schéma complet dans `supabase/schema.sql`), RLS activé
 | Table | Écrite par | Contenu |
 |---|---|---|
 | `profiles` | auto-créée par un trigger à la première connexion OAuth | la personne, rien de spécifique à une source |
-| `identities` | le trigger pour GitHub, à la main pour les autres sources | comment chaque source la reconnaît : `(source, handle, config)` |
+| `identities` | le trigger `on_auth_identity_created` pour GitHub et Slack, à la main pour les autres sources | comment chaque source la reconnaît : `(source, handle, config)` |
 | `catches` | uniquement l'Action `catch.yml`, via `service_role` | l'historique des captures, par `user_id` et par source |
 | `state` | uniquement le navigateur du joueur concerné (RLS : `auth.uid() = user_id`) | ce qu'il a réclamé, dépensé, fait évoluer |
 
@@ -132,9 +132,12 @@ Chaque joueur ne lit/écrit que ses propres lignes (RLS), sans repo ni jeton à 
 connecter une fois suffit, le profil se crée tout seul.
 
 `identities` existe parce que **la façon dont on se connecte n'est pas la façon dont une
-source nous reconnaît**. La connexion se fait aujourd'hui en OAuth GitHub, qui prouve du
-même geste le handle de la source `github` — mais quelqu'un hors de l'équipe technique n'a
-pas de compte GitHub, et une même personne peut relever de plusieurs sources. La contrainte
+source nous reconnaît**. Une même personne peut relever de plusieurs sources. La connexion
+se fait en OAuth GitHub ou Slack, et chacune prouve du même geste le handle de sa source :
+le login pour `github`, l'identifiant de membre pour `slack`. Seul le workspace Slack de
+Guest Suite crée une identité. Un dev déjà connecté avec GitHub lie son compte Slack depuis
+les Réglages (« Manual linking » doit être activé dans Supabase), et garde une seule
+collection. La contrainte
 `unique (source, handle)` empêche de réclamer le handle de quelqu'un d'autre pour recevoir
 ses captures, et la table est en lecture seule pour les joueurs : personne ne peut changer
 son propre handle ni ses dépôts surveillés depuis le navigateur.
