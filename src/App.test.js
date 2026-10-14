@@ -529,3 +529,36 @@ describe('réglages du compte', () => {
     expect(w.find('.slack-invite').exists()).toBe(false)
   })
 })
+
+/**
+ * La démonstration ouvre l'arène par construction — c'est sa raison d'être — et cachait donc
+ * le seul écran que tout le monde verra avant le 1er décembre. `?demo&teaser` le rend visible
+ * sans toucher à la date, qui reste la seule autorité en production.
+ */
+describe('l’annonce de l’arène', () => {
+  it('ne s’affiche pas en démo, où l’arène est ouverte', async () => {
+    const w = await mountApp()
+    await allerDansLArene(w)
+    expect(w.find('.teaser').exists()).toBe(false)
+    expect(w.find('.especes').exists()).toBe(true)
+  })
+
+  it('s’affiche sur les trois lieux avec ?demo&teaser', async () => {
+    for (const lieu of ['Duels', 'Saison', 'Boutique']) {
+      window.history.replaceState({}, '', '/?demo&teaser')
+      const w = await mountApp()
+      await allerDansLArene(w, lieu === 'Duels' ? null : lieu)
+      expect(w.find('.teaser').exists()).toBe(true)
+      expect(w.find('.arena-big').text()).toMatch(/^\d+$/)
+      w.unmount()
+    }
+  })
+
+  // Le profil existait avant l'arène et n'en dépend pas : il reste ouvert.
+  it('laisse le profil accessible', async () => {
+    window.history.replaceState({}, '', '/?demo&teaser')
+    const w = await mountApp()
+    await allerDansLArene(w, 'Profil')
+    expect(w.find('.teaser').exists()).toBe(false)
+  })
+})

@@ -59,6 +59,12 @@ const connecting = ref(false)
 const accountName = ref('')
 const identities = ref([])
 const isDemo = new URLSearchParams(location.search).has('demo')
+/**
+ * `?demo&teaser` montre l'arène fermée alors qu'on est avant son ouverture — c'est le seul
+ * moyen de relire l'écran d'annonce, que la démonstration cache par construction puisqu'elle
+ * ouvre tout. Sans effet une fois l'arène ouverte : la date reste la seule autorité.
+ */
+const teaserForce = new URLSearchParams(location.search).has('teaser')
 // Tant qu'on ne sait pas s'il faut se connecter, on n'affiche pas l'accueil : la démo ou une
 // session déjà ouverte le faisaient clignoter au rechargement, avant la planche.
 const restoring = computed(() => !connectError.value && (isDemo || !ready.value || !!session.value))
@@ -95,7 +101,7 @@ const seasonOpen = computed(() => route.value.name === 'season')
  * fonctionnalité à ceux qui viennent précisément la voir.
  */
 const demo = ref(false)
-const areneOuverte = computed(() => demo.value || arenaIsOpen())
+const areneOuverte = computed(() => (demo.value && !teaserForce) || arenaIsOpen())
 const teaser = computed(() => !areneOuverte.value && ['arena', 'season', 'shop'].includes(route.value.name))
 
 /**
