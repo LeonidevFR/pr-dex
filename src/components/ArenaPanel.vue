@@ -225,7 +225,7 @@ function take(duelId) {
   <div v-if="myOpen.length" class="sect">
     <div class="eyebrow sect-h">
       <span>{{ myOpen.length > 1 ? 'Tes défis en cours' : 'Ton défi en cours' }}</span>
-      <span v-if="myOpen.length > 1" class="mono" style="font-size:11px;color:var(--ink-3)">
+      <span v-if="myOpen.length > 1" class="mono" style="font-size:11px;color:var(--fg-3)">
         {{ myOpen.length }} exemplaires immobilisés
       </span>
     </div>

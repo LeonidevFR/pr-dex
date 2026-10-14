@@ -132,7 +132,7 @@ const palmares = computed(() => {
     <div class="sect">
       <div class="eyebrow sect-h">
         <span>Palmarès</span>
-        <span class="mono" style="font-size:11px;color:var(--ink-3)">
+        <span class="mono" style="font-size:11px;color:var(--fg-3)">
           {{ palmares.length }} podium{{ palmares.length > 1 ? 's' : '' }}
         </span>
       </div>

@@ -118,7 +118,7 @@ const palmares = computed(() => props.seasons.map((s) => ({
   <div class="sect">
     <div class="eyebrow sect-h">
       <span>Le classement</span>
-      <span class="mono" style="font-size:11px;color:var(--ink-3)">{{ leaderboard.length }} joueurs</span>
+      <span class="mono" style="font-size:11px;color:var(--fg-3)">{{ leaderboard.length }} joueurs</span>
     </div>
 
     <p v-if="!leaderboard.length" class="muted">
@@ -196,7 +196,7 @@ const palmares = computed(() => props.seasons.map((s) => ({
   <div class="sect">
     <div class="eyebrow sect-h">
       <span>Ton étagère</span>
-      <span class="mono" style="font-size:11px;color:var(--ink-3)">
+      <span class="mono" style="font-size:11px;color:var(--fg-3)">
         {{ palmares.filter((p) => p.rank).length }} sur {{ palmares.length }} saisons closes
       </span>
     </div>
