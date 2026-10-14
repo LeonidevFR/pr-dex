@@ -1,5 +1,6 @@
 <script setup>
 import { watch, onUnmounted } from 'vue'
+import { X } from '@lucide/vue'
 import AchievementBadge from './AchievementBadge.vue'
 import { BY_CODE } from '../lib/achievements.js'
 import { TIER_LABEL } from '../../shared/species.js'
@@ -32,17 +33,19 @@ const who = (n) => (n ? `${n} joueur${n > 1 ? 's' : ''} l’${n > 1 ? 'ont' : 'a
 <template>
   <div class="ach-toasts" aria-live="polite">
     <transition-group name="ach-toast">
-      <button
-        v-for="t in toasts" :key="t.id" class="ach-toast" :class="`ach-t-${BY_CODE[t.code].tier}`"
-        @click="emit('open', t.code); emit('dismiss', t.id)"
-      >
-        <AchievementBadge :achievement="BY_CODE[t.code]" :size="44" />
-        <span class="ach-toast-text">
-          <span class="ach-toast-kicker">Succès débloqué</span>
-          <span class="ach-toast-name">{{ BY_CODE[t.code].name }}</span>
-          <span class="ach-toast-sub">{{ TIER_LABEL[BY_CODE[t.code].tier] }} · {{ who(counts[t.code]) }}</span>
-        </span>
-      </button>
+      <!-- Deux gestes : le toast ouvre le succès, la croix le ferme seulement. En mobile, il
+           couvre la barre d'onglets ; on doit pouvoir s'en défaire sans quitter l'écran. -->
+      <div v-for="t in toasts" :key="t.id" class="ach-toast" :class="`ach-t-${BY_CODE[t.code].tier}`">
+        <button class="ach-toast-open" @click="emit('open', t.code); emit('dismiss', t.id)">
+          <AchievementBadge :achievement="BY_CODE[t.code]" :size="44" />
+          <span class="ach-toast-text">
+            <span class="ach-toast-kicker">Succès débloqué</span>
+            <span class="ach-toast-name">{{ BY_CODE[t.code].name }}</span>
+            <span class="ach-toast-sub">{{ TIER_LABEL[BY_CODE[t.code].tier] }} · {{ who(counts[t.code]) }}</span>
+          </span>
+        </button>
+        <button class="ach-toast-x" aria-label="Fermer" @click="emit('dismiss', t.id)"><X :size="13" aria-hidden="true" /></button>
+      </div>
     </transition-group>
   </div>
 </template>
