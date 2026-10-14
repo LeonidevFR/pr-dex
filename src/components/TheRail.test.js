@@ -56,10 +56,10 @@ describe('TheRail', () => {
   describe('onglets', () => {
     const tab = (w, label) => w.findAll('.rail-tab').find((t) => t.text() === label)
 
-    it('propose les trois vues dans une navigation', () => {
+    it('propose les quatre vues dans une navigation', () => {
       const w = mountRail()
       expect(w.find('nav.rail-nav').exists()).toBe(true)
-      expect(w.findAll('.rail-tab').map((t) => t.text())).toEqual(['Collection', 'Leaderboard', 'Statistiques'])
+      expect(w.findAll('.rail-tab').map((t) => t.text())).toEqual(['Collection', 'Leaderboard', 'Statistiques', 'Succès'])
     })
 
     it('marque l’onglet courant, pour l’œil et pour les lecteurs d’écran', () => {
@@ -170,5 +170,18 @@ describe('TheRail', () => {
 
   it('nomme le compteur « Pokédex »', () => {
     expect(mountRail({ caughtCount: 41 }).find('.progress').text()).toContain('Pokédex')
+  })
+
+  it('propose un 4e onglet Succès', async () => {
+    const w = mountRail()
+    const tabs = w.findAll('.rail-tab')
+    expect(tabs.map((t) => t.text())).toEqual(['Collection', 'Leaderboard', 'Statistiques', 'Succès'])
+    await tabs[3].trigger('click')
+    expect(w.emitted('navigate')).toEqual([['achievements']])
+  })
+
+  it('pastille l’onglet Succès des succès pas encore montrés', () => {
+    expect(mountRail({ achievementsBadge: 8 }).find('.rail-tab-pip').text()).toBe('8')
+    expect(mountRail({ achievementsBadge: 0 }).find('.rail-tab-pip').exists()).toBe(false)
   })
 })

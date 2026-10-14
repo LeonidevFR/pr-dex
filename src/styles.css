@@ -111,6 +111,8 @@
     border:0;background:transparent;color:var(--fg-2);cursor:pointer;transition:background .16s,color .16s}
   .rail-tab:hover{color:var(--fg)}
   .rail-tab.active{background:var(--cream);color:var(--on-gold);font-weight:700}
+  .rail-tab-pip{display:inline-grid;place-items:center;min-width:16px;height:16px;margin-left:6px;padding:0 4px;border-radius:999px;
+    background:var(--gold);color:var(--on-gold);font-size:10px;font-weight:700;vertical-align:1px}
   .rail-tab:focus-visible,.gear:focus-visible,.claim-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .progress{flex:1;min-width:160px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
   .progress-count{font-family:var(--f-title);font-size:24px;font-weight:300;line-height:1;color:var(--fg-title);white-space:nowrap}
