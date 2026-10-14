@@ -60,6 +60,15 @@ describe('feuille de style', () => {
     expect(grid.corps).toMatch(/min-height\s*:\s*0/)
   })
 
+  /**
+   * Le toast entre par une animation retardée de 0,9 s. Laissée en place à la sortie, Vue
+   * mesure la plus longue des deux et attend 1,25 s au lieu des 0,25 s du fondu.
+   */
+  it('coupe l’animation d’entrée d’un toast qui sort', () => {
+    const leave = regles.find((r) => r.selecteur === '.ach-toast-leave-active')
+    expect(leave.corps).toMatch(/animation\s*:\s*none/)
+  })
+
   it('centre verticalement le libellé et la pastille d’un onglet', () => {
     const tab = regles.find((r) => r.selecteur === '.rail-tab' && /font-family/.test(r.corps))
     expect(tab.corps).toMatch(/display\s*:\s*inline-flex/)

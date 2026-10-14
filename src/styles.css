@@ -382,7 +382,8 @@
   .ach-toast-kicker{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2)}
   .ach-toast-name{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:16px;line-height:1.15}
   .ach-toast-sub{font-family:var(--f-data);font-size:11px;color:var(--ink-2)}
-  .ach-toast-leave-active{transition:opacity .25s,transform .25s}
+  /* Sans `animation:none`, Vue attendrait la fin de l'animation d'entrée (1,25 s) pour retirer le toast. */
+  .ach-toast-leave-active{transition:opacity .25s,transform .25s;animation:none}
   .ach-toast-leave-to{opacity:0;transform:translateX(24px)}
   @keyframes ach-toast-in{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
 
