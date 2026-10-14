@@ -368,9 +368,14 @@
   /* Le toast : en bas à droite, au-dessus du rituel (60) et de l'évolution (70). Il entre
      après 0,9 s, quand la carte a fini de se retourner. */
   .ach-toasts{position:fixed;right:20px;bottom:20px;z-index:80;display:flex;flex-direction:column;gap:8px;width:300px;pointer-events:none}
-  .ach-toast{pointer-events:auto;display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;text-align:left;cursor:pointer;
-    border:0;border-radius:6px;padding:11px 14px 11px 12px;position:relative;overflow:hidden;font:inherit;
+  .ach-toast{pointer-events:auto;border-radius:6px;position:relative;overflow:hidden;
     box-shadow:0 12px 26px rgba(0,0,0,.55);animation:ach-toast-in .35s cubic-bezier(.2,.8,.2,1) .9s both}
+  .ach-toast-open{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;width:100%;text-align:left;cursor:pointer;
+    border:0;background:none;color:inherit;font:inherit;padding:11px 34px 11px 12px}
+  .ach-toast-x{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+    border:0;background:transparent;color:var(--ink-2);cursor:pointer}
+  .ach-toast-x:hover{color:var(--ink);background:rgba(120,90,40,.1)}
+  .ach-toast-open:focus-visible,.ach-toast-x:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
   .ach-toast::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ach-ink)}
   .ach-toast.ach-t-l::before{background:var(--ach-foil)}
   .ach-toast-text{display:flex;flex-direction:column}

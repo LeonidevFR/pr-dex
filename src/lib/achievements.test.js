@@ -142,6 +142,10 @@ describe('evaluate — coups de dés', () => {
     expect(run(gap(11)).unlocked['shiny-double']).toBeUndefined()
   })
 
+  it('doublé chromatique : la description dit la même règle que le code, écart de 10 compris', () => {
+    expect(BY_CODE['shiny-double'].desc).toBe('Tirer 2 chromatiques à 10 cartes d’écart au plus.')
+  })
+
   it('numéro gagnant : les 3 derniers chiffres de la PR', () => {
     expect(run([gh('a', 25, { pr: 4025 })]).unlocked['lucky-number']).toBeDefined()
     expect(run([gh('a', 25, { pr: 25 })]).unlocked['lucky-number']).toBeDefined()

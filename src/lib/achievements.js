@@ -32,7 +32,7 @@ export const ACHIEVEMENTS = [
   { code: 'golden-booster', group: 'dice', name: 'Booster doré', desc: '3 cartes rares ou mieux dans un même booster.', tier: 'u', hidden: true, icon: { sprite: 52 } },
   { code: 'shiny-booster', group: 'dice', name: 'Booster chromatique', desc: 'Un chromatique dans un booster de monkey-testing.', tier: 'r', hidden: true, icon: { glyph: '✦' } },
   { code: 'twins', group: 'dice', name: 'Jumeaux', desc: 'Tirer la même espèce qu’un coéquipier, le même jour.', tier: 'r', hidden: true, icon: { sprite: 102 } },
-  { code: 'shiny-double', group: 'dice', name: 'Doublé chromatique', desc: 'Tirer 2 chromatiques à moins de 10 cartes d’écart.', tier: 'l', hidden: true, icon: { glyph: '★★' } },
+  { code: 'shiny-double', group: 'dice', name: 'Doublé chromatique', desc: 'Tirer 2 chromatiques à 10 cartes d’écart au plus.', tier: 'l', hidden: true, icon: { glyph: '★★' } },
   { code: 'too-late', group: 'actions', name: 'Trop tard', desc: 'Tirer une espèce que tu avais déjà obtenue par évolution.', tier: 'c', hidden: true, icon: { sprite: 79 } },
   { code: 'right-away', group: 'actions', name: 'Sitôt dit', desc: 'Faire évoluer une carte le jour où elle a été tirée.', tier: 'c', hidden: true, icon: { sprite: 63 } },
   { code: 'big-leap', group: 'actions', name: 'Le grand saut', desc: 'Mener un même exemplaire du 1er au 3e stade.', tier: 'c', hidden: true, icon: { sprite: 3 } },

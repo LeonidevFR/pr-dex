@@ -19,9 +19,18 @@ describe('AchievementToasts', () => {
 
   it('un clic ouvre le succès et ferme le toast', async () => {
     const w = mount(AchievementToasts, { props: { toasts: [{ id: 7, code: 'on-top' }], counts: {} } })
-    await w.find('.ach-toast').trigger('click')
+    await w.find('.ach-toast-open').trigger('click')
     expect(w.emitted('open')).toEqual([['on-top']])
     expect(w.emitted('dismiss')).toEqual([[7]])
+  })
+
+  it('la croix ferme le toast sans ouvrir le succès', async () => {
+    const w = mount(AchievementToasts, { props: { toasts: [{ id: 7, code: 'on-top' }], counts: {} } })
+    const x = w.find('.ach-toast-x')
+    expect(x.attributes('aria-label')).toBe('Fermer')
+    await x.trigger('click')
+    expect(w.emitted('dismiss')).toEqual([[7]])
+    expect(w.emitted('open')).toBeUndefined()
   })
 
   it('se ferme seul après 5,9 s', async () => {

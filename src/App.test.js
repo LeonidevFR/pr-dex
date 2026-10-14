@@ -263,7 +263,7 @@ describe('succès', () => {
       await new Promise((r) => setTimeout(r, 5))
       await flushPromises()
     }
-    await w.find('.ach-toast').trigger('click')
+    await w.find('.ach-toast-open').trigger('click')
     await flushPromises()
     expect(w.find('.ritual').exists()).toBe(false)
     expect(tabOf(w, 'Succès').classes()).toContain('active')
