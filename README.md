@@ -294,7 +294,7 @@ supabase/migrations/              l'histoire complète du schéma, horodatée �
                                   `20261013000000_connexion_slack`.
                                   Restent à coller, dans cet ordre : `20260811000000_arena`,
                                   `20260814000000_evolutions`, `20260924000000_revente`,
-                                  `20261008000000_leaderboard_evolutions`, puis `seed.sql`
+                                  `20261014000000_leaderboard_evolutions`, puis `seed.sql`
 supabase/functions/trigger-catch  fonction Edge : déclenche workflow_dispatch sur catch.yml
 shared/battle.js          puissance, forme du jour, probabilité de victoire, résolution d'un duel d'arène
 shared/arena-economy.js   enjeu du duel, gains, boutique, plafonds de jeu

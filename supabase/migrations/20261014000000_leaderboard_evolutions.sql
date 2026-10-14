@@ -9,6 +9,12 @@
 -- Le format change avec la source. L'ancien disait `{ species, from, fromKey }`, le nouveau
 -- `{ to_species, from_species, from_key }` ; `playerStats` lit les deux, le temps que tous les
 -- joueurs soient passés par la reprise.
+--
+-- Cette bascule passe APRÈS la connexion Slack, qui redéfinit la même fonction pour nommer les
+-- comptes sans login GitHub. Datée du 8 octobre, elle se serait appliquée avant et aurait été
+-- écrasée en silence : la fonction est entière à chaque fois, la dernière écrite gagne. On
+-- reprend donc le nommage de la connexion Slack à l'identique, et on n'en change que la source
+-- des évolutions.
 create or replace function public.leaderboard_players()
 returns table (
   login text,
@@ -23,8 +29,13 @@ set search_path = public
 stable
 as $$
   select
-    coalesce(u.raw_user_meta_data ->> 'user_name', 'inconnu') as login,
-    u.raw_user_meta_data ->> 'avatar_url' as avatar_url,
+    coalesce(
+      u.raw_user_meta_data ->> 'user_name',
+      u.raw_user_meta_data ->> 'name',
+      u.raw_user_meta_data ->> 'full_name',
+      'inconnu'
+    ) as login,
+    coalesce(u.raw_user_meta_data ->> 'avatar_url', u.raw_user_meta_data ->> 'picture') as avatar_url,
     u.id = auth.uid() as is_me,
     opened.catches,
     coalesce(evos.evolutions, '[]'::jsonb) as evolutions

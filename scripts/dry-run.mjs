@@ -29,7 +29,7 @@ const EVOLUTIONS = `${MIGRATIONS}/20260814000000_evolutions.sql`
 const REVENTE = `${MIGRATIONS}/20260924000000_revente.sql`
 // Le classement d'équipe lit les évolutions là où l'arène les a mises : cette bascule vient
 // donc APRÈS elle, et part avec le même lot.
-const CLASSEMENT = `${MIGRATIONS}/20261008000000_leaderboard_evolutions.sql`
+const CLASSEMENT = `${MIGRATIONS}/20261014000000_leaderboard_evolutions.sql`
 const SEED = 'supabase/seed.sql'
 
 const dump = process.argv[2]
