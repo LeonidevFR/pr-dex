@@ -18,8 +18,14 @@ const props = defineProps({
  *
  * Le rang ne colore pas le badge : les huit ont leurs teintes propres, les repeindre en or,
  * argent et bronze les rendrait méconnaissables et ferait de huit médailles distinctes trois
- * nuances de la même. Il est porté à côté, par une pastille, et écrit en clair — la couleur
- * seule ne se lit pas de la même façon par tout le monde.
+ * nuances de la même. Il est écrit SOUS la médaille, par l'étagère qui la pose, comme la plaque
+ * d'un trophée.
+ *
+ * Il a d'abord été une pastille d'or, d'argent ou de bronze posée sur la médaille. Deux raisons
+ * de l'abandonner, dans cet ordre. Le texte y était illisible — crème sur métal moyen, 2,32:1
+ * pour l'or, et du gras de 9 px demande PLUS que 4,5:1, pas moins. Et même corrigée, à la taille
+ * d'une étagère elle mangeait la silhouette et débordait d'un conteneur qui n'a pas à s'ouvrir
+ * pour elle. Un mot sous le trophée se lit à toute taille et ne cache rien.
  */
 const badge = computed(() => badgeOf(props.season))
 
@@ -31,17 +37,11 @@ const badge = computed(() => badgeOf(props.season))
  */
 const metal = computed(() => ({
   '--taille': props.size + 'px',
-  '--medaille': teinte.value,
   '--b-plaque': badge.value.plaque,
   '--b-biseau': badge.value.biseau,
   '--b-email': EMAIL,
 }))
 
-const OR = ['#c9a227', '#9aa0a6', '#a9713b']
-const teinte = computed(() => OR[Math.min(Math.max(props.rank, 1), 3) - 1])
-
-const RANG = { 1: '1er', 2: '2e', 3: '3e' }
-const rangCourt = computed(() => RANG[props.rank] ?? `${props.rank}e`)
 </script>
 
 <template>
@@ -53,6 +53,5 @@ const rangCourt = computed(() => RANG[props.rank] ?? `${props.rank}e`)
       : `Badge ${badge.nom}, en jeu pour la saison ${season}`"
   >
     <svg :viewBox="VIEWBOX" :width="size" :height="size" aria-hidden="true" v-html="badge.body"></svg>
-    <span v-if="rank" class="sbadge-rang mono" aria-hidden="true">{{ rangCourt }}</span>
   </span>
 </template>

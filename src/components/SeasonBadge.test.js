@@ -62,21 +62,26 @@ describe('SeasonBadge', () => {
   })
 
   /**
-   * Le rang est une pastille posée à côté, pas une teinte appliquée au dessin : les huit
-   * médailles ont leurs couleurs propres, et les repeindre en or, argent et bronze ferait de
-   * huit dessins distincts trois nuances de la même.
+   * Le rang ne touche jamais au dessin : les huit médailles ont leurs couleurs propres, et les
+   * repeindre en or, argent et bronze ferait de huit dessins distincts trois nuances de la même.
+   * Il est écrit sous la médaille, par l'étagère qui la pose.
+   *
+   * Il a été une pastille posée dessus. Elle est partie pour deux raisons mesurées : son texte
+   * plafonnait à 2,32:1 — du crème sur l'or — là où du gras de 9 px demande plus que 4,5 ; et
+   * même corrigée, elle mangeait la silhouette et débordait du conteneur à la taille d'une
+   * étagère.
    */
-  it('porte le rang à côté du badge, sans toucher à ses couleurs', () => {
-    const un = badge({ rank: 1 })
-    const trois = badge({ rank: 3 })
-    expect(un.find('.sbadge-rang').text()).toBe('1er')
-    expect(trois.find('.sbadge-rang').text()).toBe('3e')
-    expect(un.find('svg').html()).toBe(trois.find('svg').html())
+  it('ne touche pas au dessin selon le rang', () => {
+    expect(badge({ rank: 1 }).find('svg').html()).toBe(badge({ rank: 3 }).find('svg').html())
   })
 
-  it('distingue les trois marches par la couleur de la pastille', () => {
-    const couleurs = [1, 2, 3].map((rank) => badge({ rank }).attributes('style'))
-    expect(new Set(couleurs).size).toBe(3)
+  it('ne pose plus de pastille sur la médaille', () => {
+    expect(badge({ rank: 1 }).find('.sbadge-rang').exists()).toBe(false)
+  })
+
+  // Le rang reste annoncé aux lecteurs d'écran : c'est la seule place où il voyage avec l'image.
+  it('garde le rang dans son étiquette', () => {
+    expect(badge({ rank: 2 }).attributes('aria-label')).toContain('rang 2')
   })
 
   it('se décrit aux lecteurs d’écran', () => {

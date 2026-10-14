@@ -1159,8 +1159,11 @@
   .prof-case.secret b{color:var(--fg-3)}
 
   .prof-badges{display:flex;gap:20px;flex-wrap:wrap}
-  .prof-badge{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .prof-badge{display:flex;flex-direction:column;align-items:center;gap:6px}
   .prof-badge span{font-size:10.5px;color:var(--fg-2)}
+  /* Le rang sous le trophée plutôt que sur lui : posé en pastille, il mangeait la silhouette
+     à cette taille et débordait du conteneur, qui n'a pas à s'ouvrir pour l'accueillir. */
+  .prof-badge .prof-rang{font-size:11.5px;color:var(--fg);margin-top:-3px}
 
   /* ───────── saison ───────── */
   /* Sous le chiffre des jours restants, à sa largeur : un sablier plus large que ce qu'il
@@ -1239,11 +1242,6 @@
   /* Le rang est une pastille posée sur le badge, pas une teinte appliquée dessus : les huit
      médailles ont leurs couleurs propres, et les repeindre en or, argent et bronze ferait de
      huit dessins distincts trois nuances de la même. */
-  .sbadge-rang{
-    position:absolute;right:-4px;bottom:-4px;
-    background:var(--medaille);color:#fdfaf3;
-    font-size:9px;font-weight:600;line-height:1;padding:2px 4px;border-radius:8px;
-    box-shadow:0 0 0 1.5px var(--surface);
   }
 
   /* Le badge en jeu, en tête de la saison : assez grand pour donner envie, posé à côté de ce

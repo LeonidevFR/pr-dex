@@ -210,7 +210,7 @@ const palmares = computed(() => props.seasons.map((s) => ({
       <!-- Les saisons manquées gardent leur socle, vide : une étagère à trous raconte une
            histoire qu'une liste de badges gagnés ne raconte pas. -->
       <div v-for="p in palmares" :key="p.season" class="saison-socle" :class="{ vide: !p.rank }">
-        <SeasonBadge v-if="p.rank" :season="p.season" :rank="p.rank" :size="46" />
+        <SeasonBadge v-if="p.rank" :season="p.season" :rank="p.rank" :size="58" />
         <span v-else class="socle-vide" aria-hidden="true"></span>
         <span class="mono qd">{{ p.season }}</span>
         <span class="rg">{{ p.rank ? `${p.rank}${p.rank === 1 ? 'er' : 'e'}` : 'hors podium' }}</span>

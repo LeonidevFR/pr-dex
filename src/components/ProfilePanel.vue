@@ -135,8 +135,9 @@ const palmares = computed(() => {
       </div>
       <div v-if="palmares.length" class="prof-badges">
         <div v-for="p in palmares" :key="p.season" class="prof-badge">
-          <SeasonBadge :season="p.season" :rank="p.rank" :size="46" />
+          <SeasonBadge :season="p.season" :rank="p.rank" :size="58" />
           <span class="mono">{{ seasonLabel(p.season) }}</span>
+          <span class="prof-rang">{{ p.rank === 1 ? '1er' : `${p.rank}e` }}</span>
         </div>
       </div>
       <p v-else class="muted">
