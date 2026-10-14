@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
+import { X } from '@lucide/vue'
 import AchievementBadge from './AchievementBadge.vue'
 import { BY_CODE } from '../lib/achievements.js'
 
@@ -25,6 +26,7 @@ onMounted(() => closeEl.value?.focus())
 <template>
   <div class="scrim" @click.self="emit('close')">
     <div class="ach-sheet ach-recap" role="dialog" aria-modal="true" :aria-label="title">
+      <button class="x" aria-label="Fermer" @click="emit('close')"><X :size="16" aria-hidden="true" /></button>
       <div class="eyebrow ach-recap-kicker">Succès</div>
       <h2 class="ach-recap-title">{{ title }}</h2>
       <ul class="ach-recap-grid">
