@@ -349,6 +349,33 @@
   .ach-badge.ach-todo::after,.ach-badge.ach-hidden::after{display:none}
   .ach-badge.ach-todo .ach-sprite,.ach-badge.ach-todo .ach-glyph{opacity:.4}
   .ach-q{font-style:italic;font-weight:300}
+
+  /* Le toast : en bas à droite, au-dessus du rituel (60) et de l'évolution (70). Il entre
+     après 0,9 s, quand la carte a fini de se retourner. */
+  .ach-toasts{position:fixed;right:20px;bottom:20px;z-index:80;display:flex;flex-direction:column;gap:8px;width:300px;pointer-events:none}
+  .ach-toast{pointer-events:auto;display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;text-align:left;cursor:pointer;
+    border:0;border-radius:6px;padding:11px 14px 11px 12px;position:relative;overflow:hidden;font:inherit;
+    box-shadow:0 12px 26px rgba(0,0,0,.55);animation:ach-toast-in .35s cubic-bezier(.2,.8,.2,1) .9s both}
+  .ach-toast::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ach-ink)}
+  .ach-toast.ach-t-l::before{background:var(--ach-foil)}
+  .ach-toast-text{display:flex;flex-direction:column}
+  .ach-toast-kicker{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2)}
+  .ach-toast-name{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:16px;line-height:1.15}
+  .ach-toast-sub{font-family:var(--f-data);font-size:11px;color:var(--ink-2)}
+  .ach-toast-leave-active{transition:opacity .25s,transform .25s}
+  .ach-toast-leave-to{opacity:0;transform:translateX(24px)}
+  @keyframes ach-toast-in{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+
+  /* Le récap : une feuille posée sur le scrim des panneaux. */
+  .ach-recap{width:min(640px,100%);padding:30px 34px 26px;text-align:center}
+  .ach-recap-kicker{color:var(--ink-2)}
+  .ach-recap-title{font-family:var(--f-title);font-weight:300;font-size:32px;letter-spacing:-.02em;margin:8px 0 22px;color:var(--ink)}
+  .ach-recap-grid{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:18px 10px;margin-bottom:24px}
+  .ach-recap-grid li{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .ach-recap-grid .ach-name{font-size:13px}
+  .ach-recap-close{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:13px;letter-spacing:.2em;text-transform:uppercase;
+    background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:12px 24px;cursor:pointer}
+  .ach-recap-close:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
   .board-table{width:100%;border-collapse:collapse;font-size:14px}
   .board-table th{font-family:var(--f-ui);font-weight:700;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
     color:var(--fg-3);text-align:right;padding:0 10px 12px;border-bottom:1px solid rgba(212,176,106,.2);white-space:nowrap}
