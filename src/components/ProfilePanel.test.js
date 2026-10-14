@@ -2,39 +2,35 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ProfilePanel from './ProfilePanel.vue'
 
-const FICHE = { user_id: 'u-moi', slug: 'leo-dev', login: 'leo-dev', species: 87, wins: 18, losses: 7 }
-const PRIVE = { copies: 243, pokedollars: 1250, credits: 3, destroyed: 4 }
+const FICHE = { user_id: 'u-lui', slug: 'leo-dev', login: 'leo-dev', species: 87, wins: 18, losses: 7 }
 const SAISONS = [
-  { season: '2026-S3', first_id: 'u-lui', second_id: 'u-moi', third_id: null },
-  { season: '2026-S2', first_id: 'u-moi', second_id: null, third_id: null },
+  { season: '2026-S3', first_id: 'u-autre', second_id: 'u-lui', third_id: null },
+  { season: '2026-S2', first_id: 'u-lui', second_id: null, third_id: null },
 ]
 
 const monter = (props = {}) => mount(ProfilePanel, {
-  props: { fiche: FICHE, prive: PRIVE, seasons: SAISONS, points: 240, season: '2026-S4', ...props },
+  props: { fiche: FICHE, cherche: 'leo-dev', seasons: SAISONS, points: 240, season: '2026-S4', ...props },
 })
 
 const valeurDe = (w, label) => w.findAll('.prof-case')
   .find((c) => c.find('span').text() === label)
 
 /**
- * Le profil applique la règle de visibilité de la spec § 5, mais ne la porte pas : c'est la
- * vue SQL qui la garantit, en n'ayant tout simplement pas les colonnes interdites. Ce qui se
- * teste ici est que l'écran ne trahisse pas cette règle en sens inverse — en montrant à un
- * visiteur ce que seul le propriétaire fournit.
+ * La fiche publique d'un collègue, et rien d'autre.
+ *
+ * Elle servait aussi à sa propre fiche, avec un caviardage conditionnel sur chaque case : la
+ * même case montrait un chiffre chez soi et une barre chez l'autre. « Moi » a repris le cas du
+ * propriétaire, qui n'a aucune raison de voir ses propres affaires hachurées.
+ *
+ * L'écran applique la règle de visibilité de la spec § 5 sans la porter : c'est la vue SQL qui
+ * la garantit, en n'ayant tout simplement pas les colonnes interdites. Ce qui se teste ici est
+ * qu'il ne la trahisse pas en sens inverse.
  */
 describe('ProfilePanel', () => {
-  it('montre tout de sa propre fiche', () => {
+  // L'économie d'arène et le stock ne figurent dans aucune vue publique : la case reste en
+  // place, barrée, pour montrer où passe la règle plutôt que de raccourcir la page en silence.
+  it('caviarde ce qui ne se publie pas', () => {
     const w = monter()
-    expect(valeurDe(w, 'Exemplaires').find('b').text()).toBe('243')
-    expect(valeurDe(w, 'Pokédollars').find('b').text()).toBe('1250 ₽')
-    expect(valeurDe(w, 'Crédits d’arène').find('b').text()).toBe('3')
-    expect(valeurDe(w, 'Exemplaires perdus').find('b').text()).toBe('4')
-  })
-
-  // Le nombre d'exemplaires est un compteur brut de PR mergées : le publier dans une entreprise
-  // reviendrait à afficher un classement de productivité.
-  it('caviarde chez un collègue ce qui ne se publie pas', () => {
-    const w = monter({ cherche: 'marion', prive: null })
     for (const l of ['Exemplaires', 'Pokédollars', 'Crédits d’arène', 'Exemplaires perdus']) {
       expect(valeurDe(w, l).classes()).toContain('secret')
       expect(valeurDe(w, l).find('b').text()).toBe('—')
@@ -56,22 +52,11 @@ describe('ProfilePanel', () => {
     expect(w.findAll('.prof-case.secret')).toHaveLength(5)
   })
 
-  // Vendre n'est pas perdre : deux compteurs, et celui de la revente porte ce qu'elle a rapporté.
+  // Vendre n'est pas perdre : deux compteurs distincts, barrés tous les deux chez un collègue.
   it('sépare les exemplaires perdus des exemplaires revendus', () => {
-    const w = monter({ prive: { ...PRIVE, destroyed: 4, sold: 12, soldTotal: 140 } })
-    expect(valeurDe(w, 'Exemplaires perdus').find('b').text()).toBe('4')
-    expect(valeurDe(w, 'Revendus · 140 ₽').find('b').text()).toBe('12')
-  })
-
-  /**
-   * Chez soi, on veut voir ses affaires — pas les trous qu'un tiers verrait à leur place. Aucun
-   * caviardage, et aucun bouton pour en demander : la règle de visibilité se lit en une phrase
-   * sous le tableau, elle n'a pas à abîmer l'écran de son propriétaire.
-   */
-  it('ne caviarde jamais sa propre fiche, et n’offre pas de le faire', () => {
     const w = monter()
-    expect(w.findAll('.prof-case.secret')).toHaveLength(0)
-    expect(w.text()).not.toContain('Caviarder')
+    expect(valeurDe(w, 'Exemplaires perdus').find('b').text()).toBe('—')
+    expect(valeurDe(w, 'Revendus').find('b').text()).toBe('—')
   })
 
   // Le mot « crédits » seul se lisait comme des plis à ouvrir : ce sont des engagements d'arène.
@@ -107,15 +92,14 @@ describe('le titre de la fiche', () => {
     expect(monter().find('.view-title i').text()).toBe('leo-dev')
   })
 
-  // La base fait foi, y compris chez soi : c'est le nom que les autres lisent.
-  it('préfère le nom de la base au nom du compte en session', () => {
-    expect(monter({ moi: 'autre-chose' }).find('.view-title i').text()).toBe('leo-dev')
+  // La base fait foi : le login de l'URL ne sert qu'avant qu'elle ait répondu.
+  it('préfère le nom de la base à celui de l’URL', () => {
+    expect(monter({ cherche: 'ancien-login' }).find('.view-title i').text()).toBe('leo-dev')
   })
 
   // Le temps du chargement, la fiche n'est pas encore là : le titre tient quand même, avec ce
   // qu'on sait — le login de l'URL chez un collègue, son propre nom de compte chez soi.
   it('tient pendant le chargement, sans fiche', () => {
     expect(monter({ fiche: null, cherche: 'marion', loading: true }).find('.view-title i').text()).toBe('marion')
-    expect(monter({ fiche: null, moi: 'leo-dev', loading: true }).find('.view-title i').text()).toBe('leo-dev')
   })
 })

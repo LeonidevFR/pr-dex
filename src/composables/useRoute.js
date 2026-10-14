@@ -18,13 +18,17 @@ import { DEX } from '../../shared/species.js'
  * dans l'URL sans jamais faire partie de la route, et c'est `BASE_URL` qui le porte, pour que
  * le jour où un vrai domaine arrive il n'y ait qu'une ligne de configuration à changer.
  */
-/** Les cinq lieux de l'application, chacun avec son écran. */
 /**
- * Les lieux, et leur adresse. Les quatre derniers vivent sous l'onglet « Arène » — le rail n'en
- * montre que quatre, mais chacun garde son URL : un lien vers la boutique ou vers le profil d'un
- * collègue doit mener là, pas à la racine de l'arène.
+ * Les lieux, et leur adresse. Les cinq premiers sont les onglets du rail ; le sixième n'en a
+ * pas, parce qu'on n'y va jamais de soi-même — on y arrive par un lien ou par un nom cliqué
+ * dans un classement.
+ *
+ * Il y en a eu sept, dont quatre repliés sous un onglet « Arène » avec leur propre barre.
+ * Ce second niveau venait d'un classement par famille — la collection d'un côté, l'arène de
+ * l'autre — qui dédoublait les écrans : deux classements des mêmes personnes, deux pages « ce
+ * que j'ai ». Regroupés par fonction, ils tiennent en cinq sans second niveau.
  */
-export const ROUTES = ['collection', 'team', 'stats', 'arena', 'season', 'shop', 'profile']
+export const ROUTES = ['collection', 'duels', 'shop', 'classements', 'moi', 'profile']
 
 /** Seuls ces deux lieux désignent quelque chose de précis : une espèce, une personne. */
 const AVEC_PARAM = { collection: 'species', profile: 'login' }

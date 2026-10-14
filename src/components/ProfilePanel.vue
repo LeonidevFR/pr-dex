@@ -6,15 +6,8 @@ import { seasonLabel } from '../../shared/arena-economy.js'
 const props = defineProps({
   /** La fiche publique telle que la base la rend : nom, espèces, victoires, défaites. */
   fiche: { type: Object, default: null },
-  /** Le login cherché dans l'URL. Absent : c'est la sienne. */
+  /** Le login cherché dans l'URL, pour titrer la page avant que la fiche n'arrive. */
   cherche: { type: String, default: null },
-  /** Son propre nom de compte, pour titrer sa fiche autrement que « toi ». */
-  moi: { type: String, default: null },
-  /**
-   * Ce qui ne se publie jamais, et n'est donc fourni que pour sa propre fiche :
-   * `{ copies, pokedollars, credits, destroyed }`.
-   */
-  prive: { type: Object, default: null },
   /** Les saisons closes, avec leur podium, pour dresser l'étagère. */
   seasons: { type: Array, default: () => [] },
   points: { type: Number, default: 0 },
@@ -23,16 +16,14 @@ const props = defineProps({
   introuvable: { type: Boolean, default: false },
 })
 
-const cestMoi = computed(() => !props.cherche)
-
 /**
- * Le caviardage ne concerne QUE la fiche d'un collègue. On avait offert de relire le sien
- * avec les yeux des autres, sous un bouton : chez soi, on veut voir ses affaires, pas les
- * trous qu'un tiers verrait à leur place. La règle de visibilité se lit en une phrase sous le
- * tableau ; elle n'a pas besoin d'abîmer l'écran de son propriétaire pour se faire comprendre.
+ * La fiche publique d'un collègue, et rien d'autre.
+ *
+ * Elle servait aussi à sa propre fiche, avec un caviardage conditionnel partout : la même case
+ * montrait un chiffre chez soi et une barre chez l'autre. « Moi » a repris le cas de son
+ * propriétaire, qui n'a aucune raison de voir ses propres affaires hachurées. Ce qui reste ici
+ * est toujours la vue d'un tiers, donc toujours caviardé — une condition de moins par case.
  */
-const public_ = computed(() => !cestMoi.value)
-
 /**
  * La fiche, dans l'ordre où on la lit. `secret` marque ce qui ne sort jamais de chez soi —
  * la case reste alors en place, hachurée : la retirer ferait une page plus courte dont on ne
@@ -40,25 +31,19 @@ const public_ = computed(() => !cestMoi.value)
  */
 const cases = computed(() => {
   const d = props.fiche ?? {}
-  const p = props.prive ?? {}
   return [
     { v: String(d.species ?? 0).padStart(3, '0'), l: 'Espèces' },
-    { v: p.copies ?? '—', l: 'Exemplaires', secret: true },
-    { v: p.pokedollars != null ? `${p.pokedollars} ₽` : '—', l: 'Pokédollars', secret: true },
+    { secret: true, l: 'Exemplaires' },
+    { secret: true, l: 'Pokédollars' },
     // « Crédits » tout court se lisait comme des plis à ouvrir. Ce sont des engagements
     // d'arène : un par jour ouvré, cinq au plus, perdus le dimanche soir.
-    { v: p.credits ?? '—', l: 'Crédits d’arène', secret: true },
+    { secret: true, l: 'Crédits d’arène' },
     { v: d.wins ?? 0, l: 'Duels gagnés' },
     { v: d.losses ?? 0, l: 'Perdus' },
     { v: props.points, l: `Points · ${seasonLabel(props.season)}` },
-    { v: p.destroyed ?? '—', l: 'Exemplaires perdus', secret: true },
-    // Vendu n'est pas perdu : l'un est une défaite, l'autre une décision — et celle-ci a
-    // rapporté quelque chose, qu'on affiche avec elle.
-    {
-      v: p.sold != null ? `${p.sold}` : '—',
-      l: p.soldTotal ? `Revendus · ${p.soldTotal} ₽` : 'Revendus',
-      secret: true,
-    },
+    { secret: true, l: 'Exemplaires perdus' },
+    // Vendu n'est pas perdu : l'un est une défaite, l'autre une décision.
+    { secret: true, l: 'Revendus' },
   ]
 })
 
@@ -84,7 +69,7 @@ const palmares = computed(() => {
         autres lisent — le sien ensuite, quand on regarde chez soi.
       -->
       <h1 class="view-title">
-        La fiche de <i>{{ fiche?.login ?? cherche ?? moi ?? 'toi' }}</i>
+        La fiche de <i>{{ fiche?.login ?? cherche }}</i>
       </h1>
     </div>
   </div>
@@ -104,22 +89,15 @@ const palmares = computed(() => {
     <div class="prof-cases">
       <div
         v-for="c in cases" :key="c.l"
-        class="prof-case" :class="{ secret: c.secret && public_ }"
+        class="prof-case" :class="{ secret: c.secret }"
       >
-        <b>{{ c.secret && public_ ? '—' : c.v }}</b>
+        <b>{{ c.secret ? '—' : c.v }}</b>
         <span>{{ c.l }}</span>
       </div>
     </div>
 
     <div class="sect">
-      <p v-if="cestMoi" class="muted">
-        <b>Ce tableau n’est visible que par toi.</b> Les collègues voient tes espèces, tes
-        victoires et tes défaites — jamais tes exemplaires, ta caisse ni tes crédits. Le
-        nombre d’exemplaires compte les PR mergées et les monkey-testings un par un, et
-        l’afficher reviendrait à publier un classement de productivité. La règle est tenue en base : l’agrégat public
-        est une vue qui ne contient pas ces colonnes.
-      </p>
-      <p v-else class="muted">
+      <p class="muted">
         <b>Les cases barrées ne se publient pas</b>, et personne ne les voit — pas plus toi
         chez les autres qu’eux chez toi. Ce sont l’économie d’arène et le stock : la caisse, les
         crédits, les pertes et les ventes. Les espèces, les victoires et les défaites, elles, se

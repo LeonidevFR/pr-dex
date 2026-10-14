@@ -11,11 +11,11 @@ import ArenaPanel from './components/ArenaPanel.vue'
 import ShopPanel from './components/ShopPanel.vue'
 import SaleSection from './components/SaleSection.vue'
 import ProfilePanel from './components/ProfilePanel.vue'
-import SeasonPanel from './components/SeasonPanel.vue'
 import ArenaTeaser from './components/ArenaTeaser.vue'
 import DuelOverlay from './components/DuelOverlay.vue'
-import TeamView from './components/TeamView.vue'
-import StatsView from './components/StatsView.vue'
+import BoardsView from './components/BoardsView.vue'
+import MeView from './components/MeView.vue'
+import RewardTable from './components/RewardTable.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import SlackInvite from './components/SlackInvite.vue'
 import { useCollection } from './composables/useCollection.js'
@@ -83,18 +83,34 @@ onUnmounted(router.stop)
  * ref : un pli qu'on rouvrirait en collant un lien n'aurait aucun sens.
  */
 const selected = computed(() => (route.value.name === 'collection' ? route.value.param : null))
-const arenaOpen = computed(() => route.value.name === 'arena')
+const duelsOpen = computed(() => route.value.name === 'duels')
 const shopOpen = computed(() => route.value.name === 'shop')
 const profileOpen = computed(() => route.value.name === 'profile')
-const seasonOpen = computed(() => route.value.name === 'season')
+const boardsOpen = computed(() => route.value.name === 'classements')
+/**
+ * Ses points et son rang dans la saison en cours. Lus au classement plutôt que comptés à part :
+ * un second calcul finirait par ne plus dire la même chose que le tableau d'à côté.
+ *
+ * `connected` est lu en premier, et ce n'est pas décoratif : `arena` est un `let` ordinaire, non
+ * réactif. Sans dépendance qui bascule APRÈS son affectation, ce calcul tournerait une fois sur
+ * une arène encore nulle, mettrait zéro en cache et n'en sortirait jamais. `userId` ne suffit
+ * pas — il est posé juste avant l'arène, pas après.
+ */
+const monRang = computed(() => {
+  if (!connected.value || !arena) return { points: 0, rang: 0 }
+  const moi = arena.leaderboard.value.find((l) => l.user_id === userId.value)
+  return { points: moi?.points ?? 0, rang: moi?.rank ?? 0 }
+})
+const meOpen = computed(() => route.value.name === 'moi')
 
 /**
- * L'arène n'ouvre qu'au premier jour de la saison 1. Avant, ses trois écrans — duels, saison,
- * boutique — annoncent sa venue au lieu de fonctionner à vide : un classement sans points et
- * une boutique sans monnaie ne se comprennent pas, ils inquiètent.
+ * L'arène n'ouvre qu'au premier jour de la saison 1. Avant, ses deux écrans — les duels et la
+ * boutique — annoncent sa venue au lieu de fonctionner à vide : des duels sans crédits et une
+ * boutique sans monnaie ne se comprennent pas, ils inquiètent.
  *
- * La collection et le profil, eux, continuent : ils existaient avant l'arène et n'en dépendent
- * pas.
+ * Les trois autres continuent, et se réduisent d'eux-mêmes : la collection n'a jamais dépendu
+ * de l'arène, les classements gardent celui de la collection, et « Moi » garde ses
+ * statistiques. Aucun n'annonce une caisse vide.
  *
  * La démonstration fait exception, et c'est sa raison d'être : elle existe pour essayer ce qui
  * n'est pas encore ouvert. Lui appliquer la date de lancement reviendrait à cacher la
@@ -102,12 +118,12 @@ const seasonOpen = computed(() => route.value.name === 'season')
  */
 const demo = ref(false)
 const areneOuverte = computed(() => (demo.value && !teaserForce) || arenaIsOpen())
-const teaser = computed(() => !areneOuverte.value && ['arena', 'season', 'shop'].includes(route.value.name))
+const teaser = computed(() => !areneOuverte.value && ['duels', 'shop'].includes(route.value.name))
 
 /**
- * La fiche affichée. Sans login dans l'URL c'est la sienne, avec c'est celle d'un collègue —
- * la même vue SQL dans les deux cas, ce qui garantit qu'aucun écran ne peut publier plus que
- * ce qu'elle contient. Ce qui ne se publie jamais est composé à part, et seulement pour soi.
+ * La fiche lue. Celle d'un collègue sur `/profile/<login>`, la sienne sur « Moi » — la même vue
+ * SQL dans les deux cas, ce qui garantit qu'aucun écran ne peut publier plus qu'elle ne
+ * contient. Ce qui ne se publie jamais est composé à part, et seulement pour soi.
  */
 const fiche = ref(null)
 const ficheChargee = ref(false)
@@ -120,7 +136,7 @@ const detruits = ref([])
  * Le client, lui, n'existe qu'une fois la session ouverte : c'est son apparition qui donne le
  * signal quand l'URL, elle, n'a pas bougé.
  */
-watch([profileOpen, () => route.value.param, connected], async ([ouvert, login, pret]) => {
+watch([() => profileOpen.value || meOpen.value, () => route.value.param, connected], async ([ouvert, login, pret]) => {
   if (!ouvert || !pret || !client) return
   ficheChargee.value = false
   fiche.value = null
@@ -134,7 +150,11 @@ watch([profileOpen, () => route.value.param, connected], async ([ouvert, login, 
   }
 }, { immediate: true })
 
-const fichePrivee = computed(() => (route.value.param ? null : {
+/**
+ * Ce qui ne sort jamais de chez soi. Composé ici et servi au seul écran « Moi » : la fiche d'un
+ * collègue ne le reçoit pas, et ne peut donc pas le laisser échapper par distraction.
+ */
+const fichePrivee = computed(() => ({
   // Les exemplaires qu'on a ENCORE : à côté de « Perdus à l'arène », un total qui compterait
   // les disparus se lirait comme un stock, et se contredirait tout seul.
   copies: Object.values(availableById.value).reduce((n, l) => n + l.length, 0),
@@ -159,19 +179,14 @@ const showSlackInvite = computed(() =>
 // Une vue est une page, pas un overlay : elle ne bloque pas le clavier et Échap ne la ferme
 // pas. Rien n'est mémorisé d'un chargement à l'autre, on revient toujours à la planche.
 /**
- * L'onglet du rail, déduit du lieu. Les quatre lieux de l'arène se replient sur un seul onglet :
- * le rail dit dans quel quartier on est, l'URL dit à quelle adresse.
+ * L'onglet du rail, déduit du lieu — et non tenu à part : un `ref` doublant l'URL diverge au
+ * premier retour navigateur.
  *
- * Déduit, et non tenu à part : un `ref` doublant l'URL diverge au premier retour navigateur.
+ * Chaque lieu est un onglet, sauf la fiche d'un collègue, qui n'en a pas : on n'y va jamais de
+ * soi-même, on y arrive en cliquant un nom dans un classement. Le rail garde donc l'onglet d'où
+ * l'on vient allumé, plutôt que de n'en allumer aucun.
  */
-const LIEUX_ARENE = [
-  ['arena', 'Duels'],
-  ['season', 'Saison'],
-  ['shop', 'Boutique'],
-  ['profile', 'Fiche'],
-]
-const SOUS_ARENE = LIEUX_ARENE.map(([nom]) => nom)
-const view = computed(() => (SOUS_ARENE.includes(route.value.name) ? 'arena' : route.value.name))
+const view = computed(() => (route.value.name === 'profile' ? 'classements' : route.value.name))
 // Le client de données reste dans `useCollection`, qui ne l'expose pas ; le panneau du
 // classement en a besoin pour sa propre lecture. On garde donc la référence ici, au seul
 // endroit qui la crée.
@@ -330,7 +345,7 @@ async function playArena(fn) {
       await marquerVu(duel.id)
       router.go('collection')
     } else {
-      router.go('arena')
+      router.go('duels')
     }
   } catch (e) {
     signaler(e)
@@ -384,7 +399,7 @@ const onEngage = (key, vsComputer) => playArena(() => arena.engage(key, vsComput
  */
 function onEngageFromSheet(key) {
   arenaPreselect.value = key
-  router.go('arena')
+  router.go('duels')
 }
 
 function quitterArene() {
@@ -609,21 +624,21 @@ useKeyboardNav({
     />
     <!-- Sans client, rien à lire : la démo se charge d'un `import()` dynamique, et un clic sur
          un onglet pendant ce temps ne doit pas monter une vue qui planterait sur `null`. -->
-    <!--
-      Le second niveau de l'arène. Le rail dit dans quel quartier on est, cette barre dit dans
-      quelle rue : quatre lieux qui gardent chacun leur adresse, pour qu'un lien vers la
-      boutique ou vers le profil d'un collègue mène là et non à la racine.
-    -->
-    <nav v-if="view === 'arena'" class="place-nav" aria-label="L’arène">
-      <button
-        v-for="[nom, libelle] in LIEUX_ARENE" :key="nom"
-        class="rail-tab place-tab" :class="{ active: route.name === nom }"
-        :aria-current="route.name === nom ? 'page' : undefined" @click="router.go(nom)"
-      >{{ libelle }}</button>
-    </nav>
+    <BoardsView
+      v-if="boardsOpen && dataClient"
+      :client="dataClient" :today="today" :user-id="userId"
+      :leaderboard="arena ? arena.leaderboard.value : []"
+      :season="arena ? arena.season.value : ''" :arena-open="areneOuverte && !!arena"
+      @profile="(p) => router.go('profile', p)"
+    />
 
-    <TeamView v-else-if="route.name === 'team' && dataClient" :client="dataClient" :today="today" />
-    <StatsView v-else-if="route.name === 'stats' && dataClient" :client="dataClient" :today="today" />
+    <MeView
+      v-if="meOpen && dataClient"
+      :client="dataClient" :today="today" :user-id="userId"
+      :prive="fichePrivee" :fiche="fiche" :seasons="arena ? arena.seasons.value : []"
+      :points="monRang.points" :rank="monRang.rang"
+      :season="arena ? arena.season.value : ''" :arena-open="areneOuverte && !!arena"
+    />
 
     <transition name="fade">
       <SpeciesSheet
@@ -662,7 +677,7 @@ useKeyboardNav({
     <ArenaTeaser v-if="teaser" />
 
     <ArenaPanel
-      v-if="arenaOpen && arena && areneOuverte"
+      v-if="duelsOpen && arena && areneOuverte"
       :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
       :challenges="arena.challenges.value" :engageable="arena.engageable.value"
       :my-open="arena.myOpen.value" :level-of="arena.levelOf"
@@ -670,6 +685,10 @@ useKeyboardNav({
       :preselect="arenaPreselect"
       @engage="onEngage" @accept="onAccept"
     />
+
+    <!-- La table des gains tient avec les duels : on la consulte en choisissant quoi engager,
+         pas en lisant un classement. -->
+    <RewardTable v-if="duelsOpen && arena && areneOuverte" />
 
     <ShopPanel
       v-if="shopOpen && arena && areneOuverte"
@@ -682,16 +701,9 @@ useKeyboardNav({
       :groups="surplus" :busy="arenaBusy" @sell="onSell"
     />
 
-    <SeasonPanel
-      v-if="seasonOpen && arena && areneOuverte"
-      :season="arena.season.value" :leaderboard="arena.leaderboard.value"
-      :seasons="arena.seasons.value" :user-id="userId"
-      @profile="(p) => router.go('profile', p)"
-    />
-
     <ProfilePanel
       v-if="profileOpen"
-      :fiche="fiche" :cherche="route.param" :moi="accountName" :prive="fichePrivee"
+      :fiche="fiche" :cherche="route.param"
       :seasons="arena ? arena.seasons.value : []"
       :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (fiche?.user_id ?? userId))?.points ?? 0) : 0"
       :season="arena ? arena.season.value : ''"

@@ -18,7 +18,7 @@ describe('parseRoute', () => {
   })
 
   it('reconnaît les lieux qui ont un écran', () => {
-    for (const nom of ['collection', 'arena', 'season', 'shop', 'profile']) {
+    for (const nom of ['collection', 'duels', 'shop', 'classements', 'moi', 'profile']) {
       expect(parse(`/pr-dex/${nom}`)).toEqual({ name: nom, param: null })
     }
   })
@@ -30,7 +30,7 @@ describe('parseRoute', () => {
   })
 
   it('tolère la barre finale, que le navigateur ajoute ou non', () => {
-    expect(parse('/pr-dex/arena/')).toEqual({ name: 'arena', param: null })
+    expect(parse('/pr-dex/duels/')).toEqual({ name: 'duels', param: null })
   })
 
   // Le seul lien qu'on ait envie d'envoyer à un collègue : une espèce, ou un profil.
@@ -53,13 +53,13 @@ describe('parseRoute', () => {
 
   // Seuls la collection et le profil portent un paramètre : `/arena/quelquechose` n'a pas de sens.
   it('ignore un paramètre sur un lieu qui n’en prend pas', () => {
-    expect(parse('/pr-dex/arena/42')).toEqual({ name: 'arena', param: null })
+    expect(parse('/pr-dex/duels/42')).toEqual({ name: 'duels', param: null })
   })
 })
 
 describe('routePath', () => {
   it('reconstruit une URL complète, préfixe compris', () => {
-    expect(routePath({ name: 'arena' }, '/pr-dex/')).toBe('/pr-dex/arena')
+    expect(routePath({ name: 'duels' }, '/pr-dex/')).toBe('/pr-dex/duels')
     expect(routePath({ name: 'collection', param: 25 }, '/pr-dex/')).toBe('/pr-dex/collection/025')
     expect(routePath({ name: 'shop' }, '/pr-dex/')).toBe('/pr-dex/shop')
     expect(routePath({ name: 'profile', param: 'marion' }, '/pr-dex/')).toBe('/pr-dex/profile/marion')
@@ -75,9 +75,9 @@ describe('routePath', () => {
   it('se relit à l’identique', () => {
     const routes = [
       { name: 'collection', param: null }, { name: 'collection', param: 25 },
-      { name: 'arena', param: null }, { name: 'shop', param: null },
+      { name: 'duels', param: null }, { name: 'shop', param: null },
       { name: 'profile', param: null }, { name: 'profile', param: 'marion' },
-      { name: 'season', param: null },
+      { name: 'classements', param: null },
     ]
     for (const r of routes) expect(parseRoute(routePath(r, '/pr-dex/'), '/pr-dex/')).toEqual(r)
   })
@@ -97,8 +97,8 @@ describe('createRouter', () => {
   const monte = () => (router = createRouter('/'))
 
   it('part de l’URL courante', () => {
-    window.history.replaceState({}, '', '/arena')
-    expect(monte().route.value).toEqual({ name: 'arena', param: null })
+    window.history.replaceState({}, '', '/duels')
+    expect(monte().route.value).toEqual({ name: 'duels', param: null })
   })
 
   it('écrit l’URL en naviguant, sans recharger', () => {
@@ -133,7 +133,7 @@ describe('createRouter', () => {
   it('n’empile pas deux fois la même route', () => {
     const r = monte()
     const avant = history.length
-    r.go('arena'); r.go('arena'); r.go('arena')
+    r.go('duels'); r.go('duels'); r.go('duels')
     expect(history.length).toBeLessThanOrEqual(avant + 1)
   })
 

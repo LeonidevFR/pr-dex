@@ -283,7 +283,9 @@ export function loadDemoClient() {
         .map(({ source, external_id, species, shiny, date }) => ({ source, external_id, species, shiny, date }))
       return [
         ...demoPlayers(),
-        { login: 'démo', avatar_url: svgAvatar('démo'), is_me: true, catches: opened, evolutions: state.evolutions },
+        // Le même nom que dans le classement de saison : les deux tableaux se touchent désormais
+        // sur un seul écran, et deux identités pour la même personne s'y lisaient comme un bug.
+        { login: 'leonard', avatar_url: svgAvatar('leonard'), is_me: true, catches: opened, evolutions: state.evolutions },
       ]
     },
 

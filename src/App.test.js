@@ -55,16 +55,13 @@ async function mountApp() {
 const onglet = (w, libelle) => w.findAll('.rail-tab').find((t) => t.text().includes(libelle))
 
 /**
- * Les quatre lieux de l'arène vivent au second niveau : on passe par son onglet, puis par la
- * barre qui s'ouvre dessous. Deux gestes, comme à l'écran.
+ * Chaque lieu est un onglet du rail : un seul geste. Il y a eu un second niveau — un onglet
+ * « Arène » qui en cachait quatre autres dans leur propre barre — et les tests passaient alors
+ * par deux clics.
  */
-async function allerDansLArene(w, libelle) {
-  await onglet(w, 'Arène').trigger('click')
+async function aller(w, libelle) {
+  await onglet(w, libelle).trigger('click')
   await flushPromises()
-  if (libelle) {
-    await w.findAll('.place-tab').find((t) => t.text().includes(libelle)).trigger('click')
-    await flushPromises()
-  }
 }
 
 const press = (key, over = {}) =>
@@ -187,7 +184,7 @@ describe('envoi à l’arène depuis la fiche', () => {
 describe('achat en boutique', () => {
 
   const ouvrirBoutique = async (w) => {
-    await allerDansLArene(w, 'Boutique')
+    await aller(w, 'Boutique')
     await flushPromises()
   }
 
@@ -221,9 +218,9 @@ describe('les lieux ont une URL', () => {
 
   it('écrit l’adresse de l’arène en y entrant, et revient à la planche en sortant', async () => {
     const w = await mountApp()
-    await onglet(w, 'Arène').trigger('click')
+    await onglet(w, 'Duels').trigger('click')
     await flushPromises()
-    expect(chemin()).toBe('/arena')
+    expect(chemin()).toBe('/duels')
     // La planche n'est plus dessous : un lieu remplace l'autre, il ne se pose pas par-dessus.
     expect(w.findAll('.cell')).toHaveLength(0)
 
@@ -272,19 +269,19 @@ describe('les lieux ont une URL', () => {
  */
 describe('le profil', () => {
   const ouvrir = async (w) => {
-    await allerDansLArene(w, 'Fiche')
+    await aller(w, 'Moi')
     await flushPromises()
     return w
   }
 
-  it('s’ouvre sur sa propre fiche, à son adresse', async () => {
+  it('s’ouvre sur sa propre page, à son adresse', async () => {
     const w = await ouvrir(await mountApp())
-    expect(location.pathname).toBe('/profile')
-    expect(w.find('.view-title i').text()).toBe('leonard')
+    expect(location.pathname).toBe('/moi')
     expect(w.findAll('.prof-case.secret')).toHaveLength(0)
+    expect(w.text()).toContain('Ta collection')
   })
 
-  it('compte les exemplaires depuis la collection, et non depuis la fiche publique', async () => {
+  it('compte les exemplaires depuis la collection, et non depuis la vue publique', async () => {
     const w = await ouvrir(await mountApp())
     const exemplaires = w.findAll('.prof-case')
       .find((c) => c.find('span').text() === 'Exemplaires').find('b').text()
@@ -316,16 +313,16 @@ describe('la saison', () => {
 
   it('s’ouvre à son adresse depuis le rail', async () => {
     const w = await mountApp()
-    await allerDansLArene(w, 'Saison')
+    await aller(w, 'Scores')
     await flushPromises()
-    expect(location.pathname).toBe('/season')
-    // La plaque porte désormais le nom de la saison et son code : « SAISON 1 · 2026-S5 ».
-    expect(w.findAll('.view-head .eyebrow').some((p) => /Saison/.test(p.text()))).toBe(true)
+    expect(location.pathname).toBe('/classements')
+    // Les deux classements, puisque l'arène est ouverte en démonstration.
+    expect(w.findAll('.board-table')).toHaveLength(2)
   })
 
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
   it('emmène à la fiche d’un joueur du classement', async () => {
-    window.history.replaceState({}, '', '/season?demo')
+    window.history.replaceState({}, '', '/classements?demo')
     const w = await mountApp()
     await flushPromises()
     const autre = w.findAll('.saison-voir').find((r) => !r.text().includes('leonard'))
@@ -357,7 +354,7 @@ describe('enchaîner les engagements', () => {
   }
 
   it('laisse poster un second défi dans la foulée du premier', async () => {
-    window.history.replaceState({}, '', '/arena?demo')
+    window.history.replaceState({}, '', '/duels?demo')
     const w = await mountApp()
 
     await choisir(w)
@@ -384,7 +381,7 @@ describe('enchaîner les engagements', () => {
  */
 describe('revente du surplus', () => {
   const ouvrirBoutique = async (w) => {
-    await allerDansLArene(w, 'Boutique')
+    await aller(w, 'Boutique')
     await flushPromises()
   }
 
@@ -469,23 +466,23 @@ describe('vues', () => {
 
   it('passe à l’équipe au clic sur l’onglet, et la planche disparaît', async () => {
     const w = await mountApp()
-    await tab(w, 'Leaderboard').trigger('click')
+    await tab(w, 'Scores').trigger('click')
     await flushPromises()
     expect(w.find('.tray').exists()).toBe(false)
-    expect(w.find('.view-title').text()).toContain('Qui a le plus')
+    expect(w.find('.view-head .eyebrow').text()).toBe('Scores')
   })
 
   it('Échap ne change pas de vue', async () => {
     const w = await mountApp()
-    await tab(w, 'Leaderboard').trigger('click')
+    await tab(w, 'Scores').trigger('click')
     press('Escape')
     await flushPromises()
-    expect(tab(w, 'Leaderboard').classes()).toContain('active')
+    expect(tab(w, 'Scores').classes()).toContain('active')
   })
 
   it('Espace n’ouvre pas de pli depuis l’équipe', async () => {
     const w = await mountApp()
-    await tab(w, 'Leaderboard').trigger('click')
+    await tab(w, 'Scores').trigger('click')
     document.activeElement?.blur()
     press(' ')
     await flushPromises()
@@ -538,18 +535,36 @@ describe('réglages du compte', () => {
 describe('l’annonce de l’arène', () => {
   it('ne s’affiche pas en démo, où l’arène est ouverte', async () => {
     const w = await mountApp()
-    await allerDansLArene(w)
+    await aller(w, 'Duels')
     expect(w.find('.teaser').exists()).toBe(false)
     expect(w.find('.especes').exists()).toBe(true)
   })
 
-  it('s’affiche sur les trois lieux avec ?demo&teaser', async () => {
-    for (const lieu of ['Duels', 'Saison', 'Boutique']) {
+  it('s’affiche sur les deux lieux fermés avec ?demo&teaser', async () => {
+    for (const lieu of ['Duels', 'Boutique']) {
       window.history.replaceState({}, '', '/?demo&teaser')
       const w = await mountApp()
-      await allerDansLArene(w, lieu === 'Duels' ? null : lieu)
+      await aller(w, lieu)
       expect(w.find('.teaser').exists()).toBe(true)
       expect(w.find('.arena-big').text()).toMatch(/^\d+$/)
+      w.unmount()
+    }
+  })
+
+  /**
+   * Les classements et « Moi » ne ferment pas : le classement de la collection existe depuis
+   * juillet, et les statistiques aussi. Ils se réduisent à cette moitié-là plutôt que d'annoncer
+   * une arène qui n'a pas ouvert.
+   */
+  it('laisse les classements et « Moi » ouverts, réduits à la collection', async () => {
+    for (const [lieu, attendu] of [['Scores', '.board-table'], ['Moi', '[data-stat="species"]']]) {
+      window.history.replaceState({}, '', '/?demo&teaser')
+      const w = await mountApp()
+      await aller(w, lieu)
+      await flushPromises()
+      expect(w.find('.teaser').exists()).toBe(false)
+      expect(w.find(attendu).exists()).toBe(true)
+      expect(w.findAll('.prof-case')).toHaveLength(0)
       w.unmount()
     }
   })
@@ -573,7 +588,7 @@ describe('l’annonce de l’arène', () => {
   it('laisse le profil accessible', async () => {
     window.history.replaceState({}, '', '/?demo&teaser')
     const w = await mountApp()
-    await allerDansLArene(w, 'Fiche')
+    await aller(w, 'Moi')
     expect(w.find('.teaser').exists()).toBe(false)
   })
 })

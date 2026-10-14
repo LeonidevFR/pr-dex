@@ -7,25 +7,29 @@ const props = defineProps({
   pendingCount: { type: Number, required: true },
   syncing: { type: Boolean, default: false },
   syncError: { type: String, default: null }, // 'offline' | 'server' | 'conflict' | 'revoked'
-  view: { type: String, default: 'collection' }, // 'collection' | 'team' | 'stats'
+  view: { type: String, default: 'collection' },
   theme: { type: String, default: 'dark' }, // 'light' | 'dark'
 })
 const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
 /**
- * L'arène prend un onglet, pas quatre.
+ * Cinq onglets et aucun second niveau.
  *
- * Elle compte quatre lieux — le terrain, la saison, la boutique, le profil — et les poser à plat
- * aurait porté le rail à sept entrées, dans une barre dessinée pour trois. Ils vivent donc au
- * second niveau, dans leur propre barre, sous cet onglet-ci.
+ * Il y en a eu quatre, dont un « Arène » qui en cachait quatre autres dans leur propre barre.
+ * Ce second niveau venait d'un classement par famille — la collection d'un côté, l'arène de
+ * l'autre — qui dédoublait les écrans : deux classements des mêmes personnes, deux pages « ce
+ * que j'ai ». Regroupés par fonction, les cinq tiennent au premier niveau, dans la largeur que
+ * le rail avait déjà.
  *
- * L'onglet reste visible avant le 1er décembre : il mène au teaser, qui est fait pour ça.
+ * Duels et Boutique restent visibles avant le 1er décembre : ils mènent au teaser, qui est fait
+ * pour ça. Classements et Moi fonctionnent déjà — ils se réduisent à leur moitié collection.
  */
 const TABS = [
   ['collection', 'Collection'],
-  ['arena', 'Arène'],
-  ['team', 'Leaderboard'],
-  ['stats', 'Statistiques'],
+  ['duels', 'Duels'],
+  ['shop', 'Boutique'],
+  ['classements', 'Scores'],
+  ['moi', 'Moi'],
 ]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas

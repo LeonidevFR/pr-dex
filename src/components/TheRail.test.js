@@ -56,37 +56,39 @@ describe('TheRail', () => {
   describe('onglets', () => {
     const tab = (w, label) => w.findAll('.rail-tab').find((t) => t.text() === label)
 
-    it('propose les quatre vues dans une navigation', () => {
+    it('propose les cinq vues dans une navigation', () => {
       const w = mountRail()
       expect(w.find('nav.rail-nav').exists()).toBe(true)
       expect(w.findAll('.rail-tab').map((t) => t.text()))
-        .toEqual(['Collection', 'Arène', 'Leaderboard', 'Statistiques'])
+        .toEqual(['Collection', 'Duels', 'Boutique', 'Scores', 'Moi'])
     })
 
     /**
-     * L'arène compte quatre lieux et n'occupe qu'un onglet : les poser à plat aurait porté le
-     * rail à sept entrées dans une barre dessinée pour trois. L'onglet reste visible avant
-     * l'ouverture du 1er décembre — il mène au teaser, qui est fait pour ça.
+     * Il y a eu un onglet « Arène » qui en cachait quatre autres dans leur propre barre. Ce
+     * second niveau venait d'un classement par famille, qui dédoublait les écrans : deux
+     * classements des mêmes personnes, deux pages « ce que j'ai ». Regroupés par fonction, les
+     * cinq tiennent au premier niveau, dans la largeur que le rail avait déjà.
      */
-    it('replie les quatre lieux de l’arène sous un seul onglet', async () => {
-      const w = mountRail({ view: 'arena' })
-      const arene = w.findAll('.rail-tab').find((t) => t.text() === 'Arène')
-      expect(arene.classes()).toContain('active')
-      await arene.trigger('click')
-      expect(w.emitted('navigate').at(-1)).toEqual(['arena'])
+    it('ne cache plus aucun lieu derrière un second niveau', async () => {
+      const w = mountRail({ view: 'duels' })
+      const duels = w.findAll('.rail-tab').find((t) => t.text() === 'Duels')
+      expect(duels.classes()).toContain('active')
+      await duels.trigger('click')
+      expect(w.emitted('navigate').at(-1)).toEqual(['duels'])
+      expect(w.find('.place-nav').exists()).toBe(false)
     })
 
     it('marque l’onglet courant, pour l’œil et pour les lecteurs d’écran', () => {
-      const w = mountRail({ view: 'team' })
-      expect(tab(w, 'Leaderboard').classes()).toContain('active')
-      expect(tab(w, 'Leaderboard').attributes('aria-current')).toBe('page')
+      const w = mountRail({ view: 'classements' })
+      expect(tab(w, 'Scores').classes()).toContain('active')
+      expect(tab(w, 'Scores').attributes('aria-current')).toBe('page')
       expect(tab(w, 'Collection').attributes('aria-current')).toBeUndefined()
     })
 
     it('émet navigate avec la vue cliquée', async () => {
       const w = mountRail()
-      await tab(w, 'Statistiques').trigger('click')
-      expect(w.emitted('navigate')[0]).toEqual(['stats'])
+      await tab(w, 'Moi').trigger('click')
+      expect(w.emitted('navigate')[0]).toEqual(['moi'])
     })
 
     it('n’a plus ni filtre ni trophée', () => {
