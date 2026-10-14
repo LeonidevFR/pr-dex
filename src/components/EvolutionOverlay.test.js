@@ -11,6 +11,10 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   document.body.innerHTML = ''
+  // Un fichier ne laisse pas de global derrière lui. Sans ce retrait, le dernier `matchMedia`
+  // posé ici — celui qui répond `matches: true` — survit au fichier et se retrouve servi à tous
+  // ceux qui tournent après dans le même processus.
+  vi.unstubAllGlobals()
 })
 
 const catchOf = (id, species) => {
