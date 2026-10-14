@@ -252,4 +252,23 @@ describe('succès', () => {
     }
     expect(w.find('.ach-toast-name').text()).toBe('Sur la tête')
   })
+
+  it('un clic sur le toast ferme le rituel et ouvre le succès dans le registre', async () => {
+    const w = await mountApp()
+    await untilBadge(w)
+    press(' ')
+    await flushPromises()
+    w.findComponent(PokeCard).vm.$emit('activate')
+    for (let i = 0; i < 50 && !w.find('.ach-toast').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    await w.find('.ach-toast').trigger('click')
+    await flushPromises()
+    expect(w.find('.ritual').exists()).toBe(false)
+    expect(tabOf(w, 'Succès').classes()).toContain('active')
+    await w.find('.ach-recap-close').trigger('click')
+    await flushPromises()
+    expect(w.find('[data-code="on-top"]').classes()).toContain('open')
+  })
 })

@@ -22,7 +22,6 @@ import AchievementsView from './components/AchievementsView.vue'
 import AchievementToasts from './components/AchievementToasts.vue'
 import AchievementRecap from './components/AchievementRecap.vue'
 import { useAchievements } from './composables/useAchievements.js'
-import { formatDate } from './lib/dates.js'
 import { DEX } from '../shared/species.js'
 import { entryKey } from '../shared/entry.js'
 
@@ -70,10 +69,10 @@ const collectionData = () => ({ catches: collection.catches.value, state: collec
 const achievementTriggers = computed(() => {
   const map = {}
   for (const c of collection.catches.value) {
-    map[entryKey(c.source, c.external_id)] = `${DEX[c.species]?.name ?? '?'}, tiré le ${formatDate(c.date)}`
+    map[entryKey(c.source, c.external_id)] = `Grâce à ${DEX[c.species]?.name ?? '?'}, tiré de « ${c.label} »`
   }
   collection.state.value.evolutions.forEach((e, i) => {
-    if (e && DEX[e.species]) map[`evo:${i}`] = `${DEX[e.species].name}, par évolution`
+    if (e && DEX[e.species]) map[`evo:${i}`] = `Grâce à l’évolution en ${DEX[e.species].name}`
   })
   return map
 })
@@ -88,6 +87,17 @@ watch(
     recap.value = { items: [...achievements.unannounced.value], first: achievements.isFirstRecap.value }
   },
 )
+// Un clic sur un toast mène au succès. Le rituel se ferme comme à la croix : les plis restants
+// attendent dans la file.
+const achievementFocus = ref(null)
+let focusSeq = 0
+function openAchievement(code) {
+  ritualEntry.value = null
+  selected.value = null
+  view.value = 'achievements'
+  achievementFocus.value = { code, seq: ++focusSeq }
+}
+
 function closeRecap() {
   recap.value = null
   achievements.acknowledge()
@@ -288,6 +298,7 @@ useKeyboardNav({
       v-else-if="view === 'achievements'"
       :owned="achievements.owned.value" :counts="achievements.counts.value" :progress="achievements.progress.value"
       :triggers="achievementTriggers" :ready="achievements.ready.value" :error="achievements.error.value"
+      :focus="achievementFocus"
       @retry="achievements.load(dataClient, collectionData)"
     />
 
@@ -333,6 +344,6 @@ useKeyboardNav({
       <AchievementRecap v-if="recap" :items="recap.items" :first="recap.first" @close="closeRecap" />
     </transition>
 
-    <AchievementToasts :toasts="achievements.toasts.value" :counts="achievements.counts.value" @dismiss="achievements.dismissToast" />
+    <AchievementToasts :toasts="achievements.toasts.value" :counts="achievements.counts.value" @dismiss="achievements.dismissToast" @open="openAchievement" />
   </template>
 </template>

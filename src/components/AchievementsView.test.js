@@ -10,7 +10,7 @@ const mountView = (props = {}) => mount(AchievementsView, {
   props: {
     owned: OWNED, counts: { 'deja-vu': 4, 'species-100': 1, 'hot-hand': 3 },
     progress: { 'species-140': { current: 131, target: 140 } },
-    triggers: { 'github:b': 'Rattata, tiré le 2 sept. 2026' }, ready: true, error: null,
+    triggers: { 'github:b': 'Grâce à Rattata, tiré de « fix: race condition »' }, ready: true, error: null,
     ...props,
   },
 })
@@ -58,7 +58,7 @@ describe('AchievementsView', () => {
   it('un clic sur un succès obtenu déplie ce qui l’a déclenché', async () => {
     const w = mountView()
     await row(w, 'deja-vu').trigger('click')
-    expect(row(w, 'deja-vu').find('.ach-detail').text()).toBe('Débloqué le 2 sept. 2026 · Rattata, tiré le 2 sept. 2026')
+    expect(row(w, 'deja-vu').find('.ach-detail').text()).toBe('Grâce à Rattata, tiré de « fix: race condition »')
   })
 
   it('affiche l’erreur et réessaie', async () => {
@@ -70,5 +70,13 @@ describe('AchievementsView', () => {
 
   it('affiche le chargement avant la première lecture', () => {
     expect(mountView({ ready: false }).find('.board-loading').exists()).toBe(true)
+  })
+
+  it('ouvre et déplie le succès demandé depuis un toast, en revenant sur « Tous »', async () => {
+    const w = mountView()
+    await w.findAll('.ach-filter').find((b) => b.text().startsWith('Cachés')).trigger('click')
+    await w.setProps({ focus: { code: 'deja-vu', seq: 1 } })
+    expect(w.find('.ach-filter.active').text()).toMatch(/^Tous/)
+    expect(row(w, 'deja-vu').classes()).toContain('open')
   })
 })
