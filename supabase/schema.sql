@@ -133,6 +133,26 @@ create trigger on_auth_identity_created
   after insert on auth.identities
   for each row execute procedure public.handle_new_identity();
 
+-- Déliaison : quand un compte est délié dans les Réglages, son identité pr-dex disparaît
+-- aussi. Sans ça, les cartes de cette source continueraient d'arriver, et le handle resterait
+-- réservé (`unique (source, handle)`). Les captures déjà faites restent.
+create function public.handle_removed_identity()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  delete from public.identities
+  where user_id = old.user_id
+    and source = case old.provider when 'github' then 'github' when 'slack_oidc' then 'slack' end;
+  return old;
+end;
+$$;
+
+create trigger on_auth_identity_deleted
+  after delete on auth.identities
+  for each row execute procedure public.handle_removed_identity();
+
 -- leaderboard_players : voir supabase/migrations/2026-09-30-leaderboard.sql pour le pourquoi.
 create function public.leaderboard_players()
 returns table (

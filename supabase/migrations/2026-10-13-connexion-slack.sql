@@ -13,6 +13,8 @@
 -- Retour arrière :
 --   drop trigger on_auth_identity_created on auth.identities;
 --   drop function public.handle_new_identity();
+--   drop trigger on_auth_identity_deleted on auth.identities;
+--   drop function public.handle_removed_identity();
 --   puis réappliquer `handle_new_user` et `leaderboard_players` tels qu'avant (git).
 --
 -- Pourquoi un trigger sur `auth.identities` : `handle_new_user` ne se déclenche qu'une fois, à
@@ -61,6 +63,26 @@ $$;
 create trigger on_auth_identity_created
   after insert on auth.identities
   for each row execute procedure public.handle_new_identity();
+
+-- Déliaison : quand un compte est délié dans les Réglages, son identité pr-dex disparaît
+-- aussi. Sans ça, les cartes de cette source continueraient d'arriver, et le handle resterait
+-- réservé (`unique (source, handle)`). Les captures déjà faites restent.
+create function public.handle_removed_identity()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  delete from public.identities
+  where user_id = old.user_id
+    and source = case old.provider when 'github' then 'github' when 'slack_oidc' then 'slack' end;
+  return old;
+end;
+$$;
+
+create trigger on_auth_identity_deleted
+  after delete on auth.identities
+  for each row execute procedure public.handle_removed_identity();
 
 -- Rattrapage : les comptes Slack créés avant ce trigger (dont le compte de test).
 insert into public.identities (user_id, source, handle)
