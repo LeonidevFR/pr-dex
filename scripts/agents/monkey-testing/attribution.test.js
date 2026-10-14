@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  dateOf, labelOf, fileNameOf, permalink, judgmentInput, validateVerdict, mergeAttribution, recapText,
+  dateOf, labelOf, subjectOf, fileNameOf, permalink, judgmentInput, validateVerdict, mergeAttribution, recapText,
 } from './attribution.mjs'
 
 const BASE = 'https://guestsuite.slack.com'
@@ -26,12 +26,39 @@ describe('dates et noms', () => {
   })
   it('compose le libellé et le nom de fichier', () => {
     expect(labelOf('2026-10-13')).toBe('Monkey-testing · 13 oct.')
+    expect(labelOf('2026-10-13', 'Création de campagne')).toBe('Monkey-testing · Création de campagne')
     expect(fileNameOf('1791878400.000100')).toBe('2026-10-13-1791878400.000100.json')
   })
   it('construit un lien vers un message de thread ou de la room', () => {
     expect(permalink(BASE, 'C1', '1791878460.000100', '1791878400.000100'))
       .toBe('https://guestsuite.slack.com/archives/C1/p1791878460000100?thread_ts=1791878400.000100&cid=C1')
     expect(permalink(BASE, 'C1', '1791878400.000100')).toBe('https://guestsuite.slack.com/archives/C1/p1791878400000100')
+  })
+})
+
+// Le dos d'une carte de PR montre son titre ; celui d'une carte de monkey-testing montre le
+// sujet de la session, tiré de la première ligne du message qui la lance.
+describe('subjectOf', () => {
+  it('prend la première ligne du message', () => {
+    expect(subjectOf('Testez la création de campagne\nMerci de répondre dans le thread')).toBe('Testez la création de campagne')
+  })
+  it('retire le mot « monkey-testing » répété en tête', () => {
+    expect(subjectOf('Monkey-testing : la création de campagne')).toBe('La création de campagne')
+    expect(subjectOf(':monkey: *Monkey testing* - export CSV')).toBe('Export CSV')
+  })
+  it('nettoie le balisage Slack', () => {
+    expect(subjectOf('<!here> *Nouvelle* :rocket: version de <https://app.guest-suite.com|l’app> pour <@U0LEO> dans <#C1|support>'))
+      .toBe('Nouvelle version de l’app pour dans #support')
+  })
+  it('coupe un sujet trop long au mot', () => {
+    const subject = subjectOf('On teste aujourd’hui le nouveau parcours de création de campagne avec plusieurs établissements')
+    expect(subject.length).toBeLessThanOrEqual(61)
+    expect(subject).toMatch(/…$/)
+    expect(subject).toMatch(/^On teste aujourd’hui le nouveau parcours/)
+  })
+  it('rend une chaîne vide sans texte utile', () => {
+    expect(subjectOf(':monkey: <!here>')).toBe('')
+    expect(subjectOf('')).toBe('')
   })
 })
 
@@ -85,7 +112,7 @@ describe('mergeAttribution', () => {
     expect(data).toEqual({
       activity: 'monkey-testing',
       id: '1791878400.000100',
-      label: 'Monkey-testing · 13 oct.',
+      label: 'Monkey-testing · Testez la création de campagne',
       url: 'https://guestsuite.slack.com/archives/C1/p1791878400000100',
       date: '2026-10-13',
       draws: 10,
@@ -115,6 +142,11 @@ describe('mergeAttribution', () => {
     expect(data.recipients[0].evidence).toEqual([
       'https://guestsuite.slack.com/archives/C1/p1791885700000100?thread_ts=1791885600.000100&cid=C1',
     ])
+  })
+
+  it('date le libellé quand le message de lancement n’a pas de sujet', () => {
+    const { data } = mergeAttribution({ existing: null, session: { ...session, rootText: ':monkey:' }, accepted, names, base: BASE })
+    expect(data.label).toBe('Monkey-testing · 13 oct.')
   })
 
   it('ne réajoute pas quelqu’un déjà listé', () => {

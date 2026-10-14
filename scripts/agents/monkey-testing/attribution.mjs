@@ -7,7 +7,36 @@ const shortDay = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'shor
 
 /** Jour de Paris d'un message : une session lancée à 0 h 30 appartient au jour qui commence. */
 export const dateOf = (ts) => parisDay.format(new Date(Number(ts) * 1000))
-export const labelOf = (date) => `Monkey-testing · ${shortDay.format(new Date(`${date}T00:00:00Z`))}`
+/**
+ * Libellé de la carte, au dos et dans le journal : le sujet de la session, comme le titre d'une
+ * PR. À défaut de sujet, la date — le dos l'affiche déjà, mais la ligne ne reste pas vide.
+ */
+export const labelOf = (date, subject = '') =>
+  `Monkey-testing · ${subject || shortDay.format(new Date(`${date}T00:00:00Z`))}`
+
+const MAX_SUBJECT = 60
+
+/**
+ * Sujet d'une session : la première ligne du message qui la lance, débarrassée du balisage
+ * Slack (mentions, liens, emojis, gras) et du mot « monkey-testing » que tout le monde y met.
+ * Le dos de carte coupe à trois lignes : on coupe avant, au mot.
+ */
+export function subjectOf(text) {
+  let s = (text ?? '').split('\n').find((line) => line.trim()) ?? ''
+  s = s
+    .replace(/<([^|>]+)\|([^>]+)>/g, (_, target, label) => (target.startsWith('#') ? `#${label}` : label))
+    .replace(/<[^>]*>/g, '')
+    .replace(/:[a-z][a-z0-9_+-]*:/gi, '')
+    .replace(/[*_~`]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^monkey[\s-]?testing\s*[:\-–—·]?\s*/i, '')
+  if (!s) return ''
+  s = s[0].toUpperCase() + s.slice(1)
+  if (s.length <= MAX_SUBJECT) return s
+  const cut = s.slice(0, MAX_SUBJECT)
+  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[\s,;:.\-]+$/, '')}…`
+}
 export const fileNameOf = (sessionId) => `${dateOf(sessionId)}-${sessionId}.json`
 
 export function permalink(base, channel, ts, threadTs = null) {
@@ -70,7 +99,7 @@ export function mergeAttribution({ existing, session, accepted, names, base }) {
     : {
         activity: ACTIVITY,
         id: session.id,
-        label: labelOf(date),
+        label: labelOf(date, subjectOf(session.rootText)),
         url: permalink(base, session.channel, session.id),
         date,
         draws: DRAWS,
