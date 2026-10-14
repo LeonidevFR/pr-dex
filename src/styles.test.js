@@ -26,6 +26,17 @@ describe('feuille de style', () => {
    * transform accumulé du parent en `preserve-3d` et la masque. Un `rotateY(0deg)`, qui ne
    * déplace rien, suffit à ce que les deux navigateurs racontent la même chose.
    */
+  /**
+   * La barre d'onglets du bas, en mobile, partage la largeur entre ses onglets. À quatre, le
+   * padding de 16 px du desktop fait sortir « Succès » de l'écran à 390 px.
+   */
+  it('resserre les onglets de la barre mobile pour que les quatre tiennent', () => {
+    const mobile = regles.find((r) => r.selecteur === '.rail-tab' && declare('flex')(r))
+    expect(mobile).toBeDefined()
+    expect(mobile.corps).toMatch(/padding\s*:\s*0 4px/)
+    expect(mobile.corps).toMatch(/min-width\s*:\s*0/)
+  })
+
   it('donne un transform propre à toute face qui compte sur backface-visibility', () => {
     const faces = regles.filter((r) => /backface-visibility\s*:\s*hidden/.test(r.corps))
     expect(faces.length).toBeGreaterThan(0)

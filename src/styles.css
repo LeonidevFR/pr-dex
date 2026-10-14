@@ -922,8 +922,9 @@
     .bar{width:100%}
     .rail-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;border-radius:0;border:0;border-top:1px solid var(--line-gold);
       background:var(--header-bg);backdrop-filter:blur(10px);padding:8px 12px calc(8px + env(safe-area-inset-bottom));
-      justify-content:space-around}
-    .rail-tab{flex:1;height:48px}
+      justify-content:space-around;padding-left:6px;padding-right:6px}
+    /* Quatre onglets depuis les succès : sans padding resserré, « Succès » sort de l'écran à 390 px. */
+    .rail-tab{flex:1;height:48px;padding:0 4px;min-width:0;letter-spacing:.02em}
     .claim-btn{padding:11px 16px;letter-spacing:.12em}
     .ach-sheet{padding:22px 18px 16px}
     .ach-row{grid-template-columns:48px 1fr;gap:12px}
