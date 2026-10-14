@@ -168,7 +168,7 @@ const LIEUX_ARENE = [
   ['arena', 'Duels'],
   ['season', 'Saison'],
   ['shop', 'Boutique'],
-  ['profile', 'Profil'],
+  ['profile', 'Fiche'],
 ]
 const SOUS_ARENE = LIEUX_ARENE.map(([nom]) => nom)
 const view = computed(() => (SOUS_ARENE.includes(route.value.name) ? 'arena' : route.value.name))

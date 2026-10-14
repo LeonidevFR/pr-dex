@@ -77,7 +77,7 @@ const palmares = computed(() => {
   <section class="view">
   <div class="view-head">
     <div>
-      <div class="eyebrow">Profil</div>
+      <div class="eyebrow">Fiche</div>
       <!--
         La fiche porte le nom du compte : celui que les deux classements affichent et sous
         lequel l'équipe se connaît. Le nom rendu par la base d'abord — c'est celui que les

@@ -272,7 +272,7 @@ describe('les lieux ont une URL', () => {
  */
 describe('le profil', () => {
   const ouvrir = async (w) => {
-    await allerDansLArene(w, 'Profil')
+    await allerDansLArene(w, 'Fiche')
     await flushPromises()
     return w
   }
@@ -558,7 +558,7 @@ describe('l’annonce de l’arène', () => {
   it('laisse le profil accessible', async () => {
     window.history.replaceState({}, '', '/?demo&teaser')
     const w = await mountApp()
-    await allerDansLArene(w, 'Profil')
+    await allerDansLArene(w, 'Fiche')
     expect(w.find('.teaser').exists()).toBe(false)
   })
 })
