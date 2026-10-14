@@ -44,6 +44,31 @@ describe('feuille de style', () => {
   })
 
   /**
+   * Alignée sur la ligne de base, la pastille tirait le texte « Succès » vers le haut et
+   * tombait elle-même plus bas que les autres libellés. L'onglet centre donc son contenu.
+   */
+  /**
+   * Au lancement, un joueur ancien peut recevoir une vingtaine de succès d'un coup : la
+   * feuille doit tenir dans l'écran, titre et bouton visibles, la grille seule défilant.
+   */
+  it('borne le récap à la hauteur de l’écran et fait défiler la seule grille', () => {
+    const recap = regles.find((r) => r.selecteur === '.ach-recap')
+    expect(recap.corps).toMatch(/max-height\s*:\s*calc\(100dvh - 40px\)/)
+    expect(recap.corps).toMatch(/flex-direction\s*:\s*column/)
+    const grid = regles.find((r) => r.selecteur === '.ach-recap-grid')
+    expect(grid.corps).toMatch(/overflow-y\s*:\s*auto/)
+    expect(grid.corps).toMatch(/min-height\s*:\s*0/)
+  })
+
+  it('centre verticalement le libellé et la pastille d’un onglet', () => {
+    const tab = regles.find((r) => r.selecteur === '.rail-tab' && /font-family/.test(r.corps))
+    expect(tab.corps).toMatch(/display\s*:\s*inline-flex/)
+    expect(tab.corps).toMatch(/align-items\s*:\s*center/)
+    const pip = regles.find((r) => r.selecteur === '.rail-tab-pip')
+    expect(pip.corps).not.toMatch(/vertical-align/)
+  })
+
+  /**
    * L'en-tête colle en haut sur la largeur de la colonne seulement : ce qui défile dessous
    * (l'ombre d'une feuille, une carte) restait visible de part et d'autre, en gouttières.
    */
