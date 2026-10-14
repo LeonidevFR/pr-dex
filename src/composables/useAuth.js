@@ -28,9 +28,18 @@ export function useAuth() {
     supabase.auth.signInWithOAuth({ provider, options: { redirectTo: location.href } })
   // Ajoute Slack au compte déjà connecté, au lieu d'en créer un second : un dev qui participe
   // au monkey-testing garde une seule collection. Demande « Manual linking » côté dashboard.
-  const linkSlack = () =>
-    supabase.auth.linkIdentity({ provider: SLACK, options: { redirectTo: location.href } })
+  // Un refus peut arriver avant toute redirection : il s'affiche alors dans les Réglages.
+  async function linkSlack() {
+    const { error } = await supabase.auth.linkIdentity({ provider: SLACK, options: { redirectTo: location.href } })
+    if (error) authError.value = { code: error.code ?? 'link_failed', description: error.message ?? '' }
+  }
+  // La session gardée par supabase-js peut dater d'avant une liaison faite ailleurs : seule une
+  // lecture auprès de Supabase dit quels comptes sont réellement liés.
+  async function freshUser() {
+    const { data, error } = await supabase.auth.getUser()
+    return error ? null : data.user
+  }
   const signOut = () => supabase.auth.signOut()
 
-  return { session, ready, authError, signIn, linkSlack, signOut }
+  return { session, ready, authError, signIn, linkSlack, freshUser, signOut }
 }

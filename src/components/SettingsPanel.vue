@@ -28,9 +28,13 @@ const connectedWith = computed(() => props.providers.map((p) => LABELS[p] ?? p).
         <div v-if="linkError" class="sect">
           <div class="banner err">
             <CircleX class="bico" :size="16" aria-hidden="true" />
-            <div v-if="linkError.code === 'identity_already_exists'">
+            <div v-if="linkError.code === 'identity_already_exists' && /another user/i.test(linkError.description)">
               <span class="bt">Liaison impossible.</span>
               Ce compte Slack est déjà relié à un autre profil pr-dex.
+            </div>
+            <div v-else-if="linkError.code === 'identity_already_exists'">
+              <span class="bt">Rien à faire.</span>
+              Ce compte Slack est déjà relié à ton compte.
             </div>
             <div v-else>
               <span class="bt">La liaison avec Slack a échoué.</span>

@@ -18,7 +18,7 @@ import { createSupabaseClient } from './lib/supabaseData.js'
 import { accountName as nameOf, providersOf, SLACK } from './lib/account.js'
 
 const collection = useCollection()
-const { session, ready, authError, signIn, linkSlack, signOut } = useAuth()
+const { session, ready, authError, signIn, linkSlack, freshUser, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
 const connecting = ref(false)
@@ -68,6 +68,9 @@ async function connectSession(s) {
   connectError.value = null
   accountName.value = nameOf(s.user)
   providers.value = providersOf(s.user)
+  // La session en mémoire peut dater d'avant une liaison Slack : on relit le compte auprès de
+  // Supabase, sans bloquer le chargement de la collection.
+  freshUser().then((u) => { if (u) providers.value = providersOf(u) })
   const client = createSupabaseClient(s.user.id)
   dataClient.value = client
   try {

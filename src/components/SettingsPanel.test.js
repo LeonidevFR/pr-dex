@@ -31,9 +31,16 @@ describe('SettingsPanel', () => {
     expect(mountPanel({ providers: ['github'] }).find('.link-slack').exists()).toBe(false)
   })
 
+  // Supabase renvoie le même code dans les deux cas ; seule la description les distingue.
   it('explique un compte Slack déjà relié à un autre profil', () => {
-    const w = mountPanel({ linkError: { code: 'identity_already_exists', description: 'x' } })
+    const w = mountPanel({ linkError: { code: 'identity_already_exists', description: 'Identity is already linked to another user' } })
     expect(w.find('.banner.err').text()).toContain('déjà relié à un autre profil')
+  })
+
+  it('ne parle pas d’autre profil quand Slack est déjà relié à ce compte', () => {
+    const w = mountPanel({ linkError: { code: 'identity_already_exists', description: 'Identity is already linked' } })
+    expect(w.text()).not.toContain('autre profil')
+    expect(w.text()).toContain('déjà relié à ton compte')
   })
 
   it('affiche la cause brute pour toute autre erreur de liaison', () => {

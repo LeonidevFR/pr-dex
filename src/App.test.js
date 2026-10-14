@@ -9,7 +9,7 @@ import App from './App.vue'
 vi.mock('./composables/useAuth.js', () => ({
   useAuth: () => ({
     session: ref(null), ready: ref(true), authError: ref(null),
-    signIn: () => {}, linkSlack: () => {}, signOut: () => {},
+    signIn: () => {}, linkSlack: () => {}, freshUser: async () => null, signOut: () => {},
   }),
 }))
 
