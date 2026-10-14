@@ -5,6 +5,21 @@ import { ACTIVITY, judgmentInput } from './attribution.mjs'
 import { slackClient, parseThreadUrl } from './slack.mjs'
 import { paths, readExisting, writeJson } from './work.mjs'
 
+const SLACK_ID = /^[UW][A-Z0-9]+$/
+
+/**
+ * Identifiants Slack des personnes autorisées à lancer une session, séparés par des virgules.
+ * Absente ou mal formée, la liste arrête le run : sans elle, n'importe qui lancerait une session.
+ */
+export function readOrganizers(value) {
+  const ids = (value ?? '').split(',').map((id) => id.trim()).filter(Boolean)
+  const bad = ids.filter((id) => !SLACK_ID.test(id))
+  if (!ids.length || bad.length) {
+    throw new Error(`MONKEY_TESTING_ORGANIZERS doit lister des identifiants Slack séparés par des virgules${bad.length ? ` (invalides : ${bad.join(', ')})` : ''}.`)
+  }
+  return ids
+}
+
 /**
  * Étape 1 : lire la room et préparer une entrée par session à juger. Aucun appel à Claude ici,
  * aucune écriture hors de `WORK_DIR`.
@@ -14,6 +29,7 @@ export async function main(env = process.env, now = Date.now(), slack = slackCli
   if (!channel || !env.ATTRIBUTIONS_DIR || !env.WORK_DIR) {
     throw new Error('SLACK_CHANNEL_ID, ATTRIBUTIONS_DIR et WORK_DIR sont requis.')
   }
+  const organizers = readOrganizers(env.MONKEY_TESTING_ORGANIZERS)
   const forced = env.THREAD_URL ? parseThreadUrl(env.THREAD_URL) : null
   if (forced && forced.channel !== channel) {
     throw new Error(`Le thread est dans ${forced.channel}, pas dans la room de monkey-testing (${channel}).`)
@@ -28,7 +44,7 @@ export async function main(env = process.env, now = Date.now(), slack = slackCli
     if (m.reply_count > 0) repliesByRoot[m.ts] = await slack.replies(channel, m.ts)
   }
 
-  const sessions = buildSessions({ channel, history, repliesByRoot, forcedRoot: forced?.ts ?? null })
+  const sessions = buildSessions({ channel, history, repliesByRoot, organizers, forcedRoot: forced?.ts ?? null })
   const existingById = await readExisting(join(env.ATTRIBUTIONS_DIR, ACTIVITY))
   const todo = planJudgments({ sessions, existingById, nowSec, forcedId: forced?.ts ?? null })
 

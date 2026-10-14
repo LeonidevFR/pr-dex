@@ -10,7 +10,7 @@ const msg = (s, user, text = 'retour', extra = {}) => ({ ts: ts(s), user, text, 
 const root = msg(0, 'U0LEO', 'Monkey-testing : la création de campagne', { reply_count: 3 })
 const thread = [root, msg(60, 'U0ALICE'), msg(120, 'U0BOB'), msg(180, 'U0LEO', 'merci')]
 const build = (history, replies = { [root.ts]: thread }, extra = {}) =>
-  buildSessions({ channel: 'C1', history, repliesByRoot: replies, ...extra })
+  buildSessions({ channel: 'C1', history, repliesByRoot: replies, organizers: ['U0LEO', 'U0ZOE'], ...extra })
 
 describe('isHuman', () => {
   it('écarte les bots et les messages système', () => {
@@ -97,6 +97,27 @@ describe('buildSessions', () => {
     const lone = msg(0, 'U0LEO', 'x', { reply_count: 1 })
     const out = build([lone], { [lone.ts]: [lone, msg(60, 'U0ALICE')] }, { forcedRoot: lone.ts })
     expect(out).toHaveLength(1)
+  })
+})
+
+// Sans liste, n'importe qui lance une session : un message et deux complices qui répondent
+// suffisent à se distribuer des boosters, à tour de rôle.
+describe('organisateurs', () => {
+  it('ne fait pas une session d’un message posté par quelqu’un hors de la liste', () => {
+    const fake = msg(0, 'U0MALLORY', 'Test de la page X', { reply_count: 2 })
+    const replies = { [fake.ts]: [fake, msg(60, 'U0ALICE', 'bug sur X'), msg(120, 'U0BOB', 'testé l’écran X, ok')] }
+    expect(build([fake], replies)).toEqual([])
+  })
+
+  it('garde les retours de n’importe qui pendant une vraie session', () => {
+    const [s] = build([root, msg(2 * H, 'U0MALLORY', 'le bouton ne répond pas')])
+    expect(s.messages.some((m) => m.user === 'U0MALLORY' && m.where === 'room')).toBe(true)
+  })
+
+  it('accepte un thread passé à la main, quel que soit son auteur', () => {
+    const fake = msg(0, 'U0MALLORY', 'x', { reply_count: 2 })
+    const replies = { [fake.ts]: [fake, msg(60, 'U0ALICE'), msg(120, 'U0BOB')] }
+    expect(build([fake], replies, { forcedRoot: fake.ts })).toHaveLength(1)
   })
 })
 
