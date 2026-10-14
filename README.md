@@ -199,7 +199,10 @@ avec le lien d'un thread. Il clone `main` d'ici et enchaîne quatre scripts de
    `MONKEY_TESTING_ORGANIZERS` de pr-dex-data, identifiants Slack séparés par des virgules),
    dont le thread a des réponses d'au moins deux autres personnes. Sans cette liste, un
    message et deux complices suffiraient à se distribuer des boosters. Un retour posté dans
-   la room, par n'importe qui, rejoint la session ouverte.
+   la room, par n'importe qui, rejoint la session ouverte. Une **relance** est un message
+   d'organisateur qui contient le lien du lancement d'une session pas encore jugée : ses
+   réponses comptent pour cette session (un booster par personne, un récap). Une fois la
+   session jugée, un message qui renvoie vers elle est un nouveau test.
 2. `judge.mjs` fait juger chaque entrée par Claude Code, **sans aucun outil**, selon
    `agents/monkey-testing.md`. Il tourne sur un abonnement (`CLAUDE_CODE_OAUTH_TOKEN`).
 3. `apply.mjs` contrôle chaque verdict — ni l'organisateur, ni quelqu'un d'absent, ni une

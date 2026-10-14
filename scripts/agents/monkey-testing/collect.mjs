@@ -44,8 +44,12 @@ export async function main(env = process.env, now = Date.now(), slack = slackCli
     if (m.reply_count > 0) repliesByRoot[m.ts] = await slack.replies(channel, m.ts)
   }
 
-  const sessions = buildSessions({ channel, history, repliesByRoot, organizers, forcedRoot: forced?.ts ?? null })
   const existingById = await readExisting(join(env.ATTRIBUTIONS_DIR, ACTIVITY))
+  const sessions = buildSessions({
+    channel, history, repliesByRoot, organizers,
+    judged: new Set(Object.keys(existingById)),
+    forcedRoot: forced?.ts ?? null,
+  })
   const todo = planJudgments({ sessions, existingById, nowSec, forcedId: forced?.ts ?? null })
 
   for (const session of todo) {
