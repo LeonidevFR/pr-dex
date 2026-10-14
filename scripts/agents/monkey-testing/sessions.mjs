@@ -3,8 +3,9 @@ export const QUIET_SECONDS = 24 * 3600
 /** Au-delà, une réponse tardive ne rapporte plus rien. */
 export const LOOKBACK_SECONDS = 7 * 24 * 3600
 /**
- * Hors de toute session ouverte, un message lance une session si son auteur est un
- * organisateur, et si au moins deux personnes, en dehors de lui, ont répondu dans son thread.
+ * Un message lance une session si son auteur est un organisateur, et si au moins deux
+ * personnes, en dehors de lui, ont répondu dans son thread — même si une autre session est
+ * encore ouverte : deux sessions le même jour restent deux sessions.
  * La liste ferme une faille : sans elle, un message et deux complices suffisaient à se
  * distribuer des boosters à tour de rôle. Un retour isolé reçoit en général une
  * seule réponse, celle du dev : il ne doit pas devenir une session, ni son auteur un
@@ -31,11 +32,11 @@ const repliersOf = (root, replies) => {
  * (`conversations.history`). `repliesByRoot` : les réponses de chaque thread
  * (`conversations.replies`, message racine compris).
  *
- * Pendant une session ouverte, tout message de premier niveau est un retour posté dans la room
- * au lieu du thread, même si d'autres lui ont répondu : il revient à cette session, avec ses
- * réponses. Sinon un testeur dont le bug a suscité deux réponses deviendrait l'organisateur
- * d'une session à lui, et perdrait son booster. Le prix : deux sessions lancées à moins de
- * 24 h d'intervalle se fondent en une, sauf si la seconde est passée à la main.
+ * Un message de premier niveau qui ne lance pas de session, posté pendant une session
+ * ouverte, est un retour posté dans la room au lieu du thread : il revient à cette session, avec ses réponses. C'est aussi
+ * le sort d'une relance d'organisateur que personne n'a commentée. Le message d'un
+ * non-organisateur ne lance jamais de session, même commenté : sinon un testeur dont le bug a
+ * suscité deux réponses en deviendrait l'organisateur, et perdrait son booster.
  *
  * `thread` désigne le thread d'un message qui n'est pas celui de la session : il sert à
  * construire le lien vers ce message.
@@ -48,11 +49,8 @@ export function buildSessions({ channel, history, repliesByRoot, organizers, for
   const sessions = []
   for (const m of top) {
     const replies = (repliesByRoot[m.ts] ?? []).filter((r) => r.ts !== m.ts)
-    const open = m.ts === forcedRoot
-      ? null
-      : [...sessions].reverse().find((s) => Number(m.ts) - Number(s.lastTs) < QUIET_SECONDS)
     // Un thread passé à la main est lancé par celui qui lance l'agent : il fait foi.
-    if (!open && (m.ts === forcedRoot || (canStart.has(m.user) && repliersOf(m, replies) >= MIN_REPLIERS))) {
+    if (m.ts === forcedRoot || (canStart.has(m.user) && repliersOf(m, replies) >= MIN_REPLIERS)) {
       const humans = replies.filter(isHuman).sort(byTs)
       sessions.push({
         id: m.ts,
@@ -64,6 +62,7 @@ export function buildSessions({ channel, history, repliesByRoot, organizers, for
       })
       continue
     }
+    const open = [...sessions].reverse().find((s) => Number(m.ts) - Number(s.lastTs) < QUIET_SECONDS)
     if (!open) continue
     const added = [
       { ts: m.ts, user: m.user, text: m.text ?? '', where: 'room' },

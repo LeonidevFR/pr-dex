@@ -65,6 +65,24 @@ describe('buildSessions', () => {
     expect(sessions[0].lastTs).toBe(ts(2 * H + 120))
   })
 
+  // Deux sessions lancées le même jour sont deux sessions : un testeur qui répond aux deux
+  // gagne deux boosters, et chacune a son récap et son sujet.
+  it('ouvre une nouvelle session pour un organisateur pendant qu’une autre est ouverte', () => {
+    const next = msg(H, 'U0ZOE', 'Nouveau monkey-testing : l’export', { reply_count: 2 })
+    const replies = { [root.ts]: thread, [next.ts]: [next, msg(H + 60, 'U0ALICE', 'bug export'), msg(H + 120, 'U0BOB', 'export ok sur 2 établissements')] }
+    const sessions = build([root, next], replies)
+    expect(sessions.map((x) => x.organizer)).toEqual(['U0LEO', 'U0ZOE'])
+    expect(sessions[0].messages.some((m) => m.ts === next.ts)).toBe(false)
+    expect(sessions[1].messages.map((m) => m.user)).toEqual(['U0ALICE', 'U0BOB'])
+  })
+
+  it('range dans la session ouverte la relance d’un organisateur que personne n’a commentée', () => {
+    const reminder = msg(H, 'U0LEO', 'On compte sur vos retours aujourd’hui, en thread au-dessus')
+    const sessions = build([root, reminder])
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].messages.some((m) => m.ts === reminder.ts)).toBe(true)
+  })
+
   it('ouvre une nouvelle session une fois la précédente terminée', () => {
     const next = msg(180 + QUIET_SECONDS + 1, 'U0ZOE', 'Nouvelle session : l’export', { reply_count: 2 })
     const replies = { [root.ts]: thread, [next.ts]: [next, msg(180 + QUIET_SECONDS + 60, 'U0ALICE'), msg(180 + QUIET_SECONDS + 90, 'U0BOB')] }
