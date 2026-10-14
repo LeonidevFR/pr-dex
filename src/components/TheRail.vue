@@ -85,7 +85,7 @@ onUnmounted(() => clearTimeout(cooldownTimer))
       <button
         v-for="[key, label] in TABS" :key="key" class="rail-tab" :class="{ active: view === key }"
         :aria-current="view === key ? 'page' : undefined" @click="emit('navigate', key)"
-      >{{ label }}<span v-if="key === 'achievements' && achievementsBadge" class="rail-tab-pip">{{ achievementsBadge }}</span></button>
+      >{{ label }}<span v-if="key === 'achievements' && achievementsBadge" class="rail-tab-pip"><span>{{ achievementsBadge }}</span></span></button>
     </nav>
     <div class="progress">
       <span class="progress-count"><span class="eyebrow progress-label">Pokédex</span> <b>{{ caughtCount }}</b><i> / 151</i></span>

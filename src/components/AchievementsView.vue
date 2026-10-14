@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import AchievementBadge from './AchievementBadge.vue'
 import { ACHIEVEMENTS } from '../lib/achievements.js'
 import { TIER_LABEL } from '../../shared/species.js'
@@ -12,6 +12,9 @@ const props = defineProps({
   triggers: { type: Object, default: () => ({}) },
   ready: { type: Boolean, default: false },
   error: { type: String, default: null },
+  // `{ code, seq }` : le succès à montrer, demandé depuis un toast. `seq` change à chaque
+  // demande, pour qu'un second clic sur le même succès le remontre.
+  focus: { type: Object, default: null },
 })
 defineEmits(['retry'])
 
@@ -43,6 +46,18 @@ const byTier = computed(() =>
 
 const who = (n) => (n === 0 ? 'Personne encore' : `${n} joueur${n > 1 ? 's' : ''} l’${n > 1 ? 'ont' : 'a'}`)
 const pct = (p) => `${Math.min(100, (p.current / p.target) * 100)}%`
+
+watch(
+  () => props.focus?.seq,
+  async () => {
+    if (!props.focus) return
+    filter.value = 'all'
+    openCode.value = props.focus.code
+    await nextTick()
+    document.querySelector(`[data-code="${props.focus.code}"]`)?.scrollIntoView?.({ block: 'center' })
+  },
+  { immediate: true },
+)
 
 function toggle(item) {
   if (item.state !== 'owned') return
@@ -100,8 +115,9 @@ function toggle(item) {
               <div class="ach-desc">
                 {{ item.state === 'hidden' ? 'Il se révèle le jour où tu le débloques.' : item.a.desc }}
               </div>
-              <div v-if="openCode === item.a.code" class="ach-detail">
-                Débloqué le {{ formatDate(item.row.unlocked_at) }}<template v-if="triggers[item.row.trigger_key]"> · {{ triggers[item.row.trigger_key] }}</template>
+              <!-- La date est déjà sur la ligne : le détail dit ce qui l'a déclenché. -->
+              <div v-if="openCode === item.a.code && triggers[item.row.trigger_key]" class="ach-detail">
+                {{ triggers[item.row.trigger_key] }}
               </div>
             </div>
             <div class="ach-when">

@@ -17,9 +17,10 @@ describe('AchievementToasts', () => {
     expect(w.findAll('.ach-toast')).toHaveLength(2)
   })
 
-  it('se ferme au clic', async () => {
+  it('un clic ouvre le succès et ferme le toast', async () => {
     const w = mount(AchievementToasts, { props: { toasts: [{ id: 7, code: 'on-top' }], counts: {} } })
     await w.find('.ach-toast').trigger('click')
+    expect(w.emitted('open')).toEqual([['on-top']])
     expect(w.emitted('dismiss')).toEqual([[7]])
   })
 

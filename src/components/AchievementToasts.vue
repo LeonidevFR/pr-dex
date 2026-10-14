@@ -8,7 +8,7 @@ const props = defineProps({
   toasts: { type: Array, required: true },
   counts: { type: Object, default: () => ({}) },
 })
-const emit = defineEmits(['dismiss'])
+const emit = defineEmits(['dismiss', 'open'])
 
 // Le toast entre après 0,9 s (animation CSS), le temps que la carte finisse de se retourner,
 // puis reste 5 s. Le délai court depuis l'arrivée dans la liste, entrée comprise.
@@ -34,7 +34,7 @@ const who = (n) => (n ? `${n} joueur${n > 1 ? 's' : ''} l’${n > 1 ? 'ont' : 'a
     <transition-group name="ach-toast">
       <button
         v-for="t in toasts" :key="t.id" class="ach-toast" :class="`ach-t-${BY_CODE[t.code].tier}`"
-        @click="emit('dismiss', t.id)"
+        @click="emit('open', t.code); emit('dismiss', t.id)"
       >
         <AchievementBadge :achievement="BY_CODE[t.code]" :size="44" />
         <span class="ach-toast-text">

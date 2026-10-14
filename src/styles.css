@@ -98,28 +98,37 @@
   .rail{
     position:sticky;top:0;z-index:20;
     background:var(--header-bg);
+    /* Le fond déborde de la colonne jusqu'aux bords de la fenêtre : ce qui défile dessous
+       (l'ombre d'une feuille, une carte) ne doit pas réapparaître en gouttières de part et
+       d'autre. `clip-path` coupe le débord en haut et en bas, pas sur les côtés. */
+    box-shadow:0 0 0 100vmax var(--header-bg);clip-path:inset(0 -100vmax);
     backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line-gold);
     padding:22px 0 18px;margin-bottom:22px;
-    display:flex;align-items:center;gap:32px;flex-wrap:wrap;
+    /* 24 et non 32 : avec l'onglet Succès, l'en-tête passait sur deux lignes sous 1 280 px. */
+    display:flex;align-items:center;gap:24px;flex-wrap:wrap;
   }
   .wordmark{font-family:var(--f-title);font-weight:300;font-size:30px;letter-spacing:-.02em;line-height:1;color:var(--fg-title)}
   .wordmark i{font-weight:600;color:var(--gold)}
   .rail-sub{margin-top:7px}
   .rail-nav{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(239,230,207,.05);border:1px solid var(--line-strong)}
-  .rail-tab{font-family:var(--f-ui);font-size:12px;font-weight:600;letter-spacing:.04em;padding:8px 16px;border-radius:999px;
+  .rail-tab{font-family:var(--f-ui);font-size:12px;font-weight:600;letter-spacing:.04em;padding:8px 13px;border-radius:999px;
     border:0;background:transparent;color:var(--fg-2);cursor:pointer;transition:background .16s,color .16s}
   .rail-tab:hover{color:var(--fg)}
   .rail-tab.active{background:var(--cream);color:var(--on-gold);font-weight:700}
-  .rail-tab-pip{display:inline-grid;place-items:center;min-width:16px;height:16px;margin-left:6px;padding:0 4px;border-radius:999px;
-    background:var(--gold);color:var(--on-gold);font-size:10px;font-weight:700;vertical-align:1px}
+  /* La pastille prend la couleur du texte de l'onglet, le chiffre celle de son fond : elle
+     contraste pareil sur l'onglet actif et sur les autres, dans les deux thèmes. */
+  .rail-tab-pip{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;margin-left:7px;padding:0 5px;
+    border-radius:999px;background:currentColor;vertical-align:-3px}
+  .rail-tab-pip span{color:var(--bg);font-size:10px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  .rail-tab.active .rail-tab-pip span{color:var(--cream)}
   .rail-tab:focus-visible,.gear:focus-visible,.claim-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-  .progress{flex:1;min-width:160px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .progress{flex:1;min-width:110px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
   .progress-count{font-family:var(--f-title);font-size:24px;font-weight:300;line-height:1;color:var(--fg-title);white-space:nowrap}
   .progress-count b{font-weight:300}
   .progress-count i{font-style:normal;font-family:var(--f-ui);font-size:12px;letter-spacing:.1em;color:var(--fg-3)}
   .progress-label{margin-right:6px;vertical-align:4px}
-  .bar{width:180px;height:2px;background:rgba(212,176,106,.15);position:relative}
+  .bar{width:min(180px,100%);height:2px;background:rgba(212,176,106,.15);position:relative}
   .bar-fill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#8a6f3a,var(--gold));box-shadow:0 0 10px rgba(212,176,106,.6);transition:width .8s cubic-bezier(.2,.8,.2,1)}
   .rail-tools{display:flex;align-items:center;gap:8px}
   .gear{

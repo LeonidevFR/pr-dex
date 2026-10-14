@@ -37,6 +37,22 @@ describe('feuille de style', () => {
     expect(mobile.corps).toMatch(/min-width\s*:\s*0/)
   })
 
+  it('donne à la pastille de l’onglet Succès la couleur du texte, le chiffre dans celle du fond', () => {
+    const pip = regles.find((r) => r.selecteur === '.rail-tab-pip')
+    expect(pip.corps).toMatch(/background\s*:\s*currentColor/)
+    expect(pip.corps).toMatch(/display\s*:\s*inline-flex/)
+  })
+
+  /**
+   * L'en-tête colle en haut sur la largeur de la colonne seulement : ce qui défile dessous
+   * (l'ombre d'une feuille, une carte) restait visible de part et d'autre, en gouttières.
+   */
+  it('étend le fond de l’en-tête collant à toute la largeur de la fenêtre', () => {
+    const rail = regles.find((r) => r.selecteur === '.rail' && /position\s*:\s*sticky/.test(r.corps))
+    expect(rail.corps).toMatch(/box-shadow\s*:\s*0 0 0 100vmax var\(--header-bg\)/)
+    expect(rail.corps).toMatch(/clip-path\s*:\s*inset\(0 -100vmax\)/)
+  })
+
   it('donne un transform propre à toute face qui compte sur backface-visibility', () => {
     const faces = regles.filter((r) => /backface-visibility\s*:\s*hidden/.test(r.corps))
     expect(faces.length).toBeGreaterThan(0)
