@@ -86,6 +86,22 @@ const crmCatch = (id, client, note, date) => {
   }
 }
 
+/**
+ * Une capture de monkey-testing telle que le connecteur `slack` la produit : un des dix tirages
+ * d'une participation, au libellé du sujet de la session. L'espèce est imposée, choisie hors
+ * de toute famille, pour ne rien changer aux bonbons ni aux évolutions de la démo.
+ */
+const slackCatch = (session, n, subject, date, species) => ({
+  source: 'slack',
+  external_id: `monkey-testing:${session}:U0DEMO:${n}`,
+  label: `Monkey-testing · ${subject}`,
+  ref: 'monkey-testing',
+  url: `https://guestsuite.slack.com/archives/C0DEMO/p${session.replace('.', '')}`,
+  date,
+  species,
+  shiny: false,
+})
+
 const FAKE_CRM = [
   ['104428', 'Groupe Meridiem', 9, '2026-06-12'],
   ['104517', 'Hôtels du Littoral', 10, '2026-06-19'],
@@ -137,6 +153,13 @@ export function demoCatches() {
     'moi/atlas', 241, 'feat: classement d’équipe', '2026-07-20', 150, true,
   ))
 
+  // Deux cartes de monkey-testing déjà ouvertes : leur dos se voit dans la fiche de Tauros et
+  // de Métamorph.
+  drawn.splice(-3, 0,
+    slackCatch('1783328400.000100', 1, 'Création de campagne multi-établissements', '2026-07-06', 128),
+    slackCatch('1783328400.000100', 2, 'Création de campagne multi-établissements', '2026-07-06', 132),
+  )
+
   // Quatre captures de la seconde source déjà ouvertes, insérées avant la file d'attente…
   drawn.splice(-3, 0, ...FAKE_CRM.slice(0, -1).map((c) => crmCatch(...c)))
 
@@ -154,6 +177,10 @@ export function demoCatches() {
     'ev1eg3ndary2000000000000000000000000000',
     'moi/atlas', 227, 'feat: file d’attente prioritaire sur la synchro', '2026-07-15', 144, false,
   ))
+
+  // Une carte de monkey-testing encore scellée, la cinquième de la file : son dos se voit au
+  // rituel, avant de la retourner. `loadDemoClient` laisse donc cinq plis en attente.
+  drawn.push(slackCatch('1784538000.000200', 1, 'Export CSV des avis', '2026-07-20', 131))
 
   return drawn
 }
@@ -207,7 +234,7 @@ function demoPlayers() {
 export function loadDemoClient() {
   const catches = demoCatches()
   let state = {
-    claimed: catches.slice(0, -4).map((c) => entryKey(c.source, c.external_id)),
+    claimed: catches.slice(0, -5).map((c) => entryKey(c.source, c.external_id)),
     spent: {},
     evolutions: [],
   }

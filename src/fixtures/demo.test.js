@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { loadDemoClient } from './demo.js'
+import { demoCatches, loadDemoClient } from './demo.js'
 import { entryKey } from '../../shared/entry.js'
 
 describe('loadDemoClient.readLeaderboard', () => {
@@ -32,5 +32,27 @@ describe('loadDemoClient.readLeaderboard', () => {
     expect(rows.some((r) => r.catches.some((c) => c.shiny))).toBe(true)
     expect(rows.some((r) => r.catches.some((c) => c.species >= 144))).toBe(true)
     expect(rows.some((r) => r.evolutions.length >= 2)).toBe(true)
+  })
+})
+
+// La démo montre les cartes de monkey-testing telles que le connecteur `slack` les produit :
+// une au dos de la fiche d'espèce une fois ouverte, une autre au rituel, encore scellée.
+describe('cartes de monkey-testing de la démo', () => {
+  const slack = demoCatches().filter((c) => c.source === 'slack')
+
+  it('existent, au format du connecteur slack', () => {
+    expect(slack.length).toBeGreaterThanOrEqual(2)
+    for (const c of slack) {
+      expect(c.label).toMatch(/^Monkey-testing · /)
+      expect(c.ref).toBe('monkey-testing')
+      expect(c.url).toMatch(/^https:\/\/.+\.slack\.com\/archives\//)
+    }
+  })
+
+  it('comptent une carte ouverte et une encore scellée', async () => {
+    const { state: { claimed } } = await loadDemoClient().readState()
+    const keys = slack.map((c) => entryKey(c.source, c.external_id))
+    expect(keys.some((k) => claimed.includes(k))).toBe(true)
+    expect(keys.some((k) => !claimed.includes(k))).toBe(true)
   })
 })
