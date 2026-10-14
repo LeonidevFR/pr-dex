@@ -120,7 +120,7 @@ begin
     values (new.user_id, 'github', new.identity_data ->> 'user_name')
     on conflict do nothing;
   elsif new.provider = 'slack_oidc'
-    and new.identity_data -> 'custom_claims' ->> 'https://slack.com/team_id' = 'T_GUESTSUITE' then
+    and new.identity_data -> 'custom_claims' ->> 'https://slack.com/team_id' = 'T04HSC3TM' then
     insert into public.identities (user_id, source, handle)
     values (new.user_id, 'slack', new.provider_id)
     on conflict do nothing;

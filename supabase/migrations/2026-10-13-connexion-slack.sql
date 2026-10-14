@@ -2,11 +2,10 @@
 -- À coller dans SQL Editor (Supabase dashboard) et exécuter UNE fois, sur la base en
 -- service, AVANT de merger le front. Une base neuve part de `supabase/schema.sql`.
 --
--- AVANT d'exécuter : remplacer `T_GUESTSUITE` (trois occurrences) par l'identifiant du
--- workspace Slack de Guest Suite, ici et dans `schema.sql`, et vérifier dans `auth.identities`
--- que le team id est bien rangé sous `custom_claims`. Le bloc de garde plus bas refuse de
--- tourner tant que ce n'est pas fait : sinon la migration passerait, et aucune identité Slack
--- ne serait jamais créée.
+-- `T04HSC3TM` est l'identifiant du workspace Slack de Guest Suite, relevé le 2026-10-14 dans
+-- `auth.identities` après une première liaison : Supabase le range sous
+-- `identity_data -> 'custom_claims' ->> 'https://slack.com/team_id'`, et l'identifiant de
+-- membre dans `provider_id`.
 --
 -- Ordre : `catch.yml` de pr-dex-data doit déjà passer `ATTRIBUTIONS_DIR`. Dès qu'une identité
 -- `slack` existe, `planSources` arrête sinon chaque run, captures GitHub comprises.
@@ -23,15 +22,6 @@
 -- alors ses PR.
 
 begin;
-
--- Concaténé pour ne pas être remplacé avec les autres occurrences.
-do $$
-begin
-  if 'T_GUESTSUITE' = 'T_GUEST' || 'SUITE' then
-    raise exception 'Remplacer T_GUESTSUITE par l''identifiant du workspace Slack avant d''exécuter cette migration.';
-  end if;
-end;
-$$;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -59,7 +49,7 @@ begin
     values (new.user_id, 'github', new.identity_data ->> 'user_name')
     on conflict do nothing;
   elsif new.provider = 'slack_oidc'
-    and new.identity_data -> 'custom_claims' ->> 'https://slack.com/team_id' = 'T_GUESTSUITE' then
+    and new.identity_data -> 'custom_claims' ->> 'https://slack.com/team_id' = 'T04HSC3TM' then
     insert into public.identities (user_id, source, handle)
     values (new.user_id, 'slack', new.provider_id)
     on conflict do nothing;
@@ -77,7 +67,7 @@ insert into public.identities (user_id, source, handle)
 select i.user_id, 'slack', i.provider_id
 from auth.identities i
 where i.provider = 'slack_oidc'
-  and i.identity_data -> 'custom_claims' ->> 'https://slack.com/team_id' = 'T_GUESTSUITE'
+  and i.identity_data -> 'custom_claims' ->> 'https://slack.com/team_id' = 'T04HSC3TM'
 on conflict do nothing;
 
 -- Le classement nommait « inconnu » tout joueur sans login GitHub. Même signature : les
