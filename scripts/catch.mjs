@@ -2,13 +2,14 @@ import { pathToFileURL } from 'node:url'
 import { drawFrom } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
 import * as github from './connectors/github.mjs'
+import * as slack from './connectors/slack.mjs'
 
 /**
  * Registre des sources : ajouter un pôle, c'est écrire un connecteur et l'inscrire ici.
  * Ni le schéma, ni le front, ni la logique de jeu n'ont à bouger — c'est le critère auquel
  * ce découpage se juge.
  */
-export const CONNECTORS = Object.fromEntries([github].map((c) => [c.id, c]))
+export const CONNECTORS = Object.fromEntries([github, slack].map((c) => [c.id, c]))
 
 /** Statuts d'une source qui condamnent tout le run, pas la seule identité en cours. */
 const GLOBAL_FAILURES = new Set([401, 403, 429])

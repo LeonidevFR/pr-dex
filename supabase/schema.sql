@@ -35,7 +35,7 @@ alter table public.identities enable row level security;
 
 -- Lecture seule pour le joueur, volontairement : pouvoir réécrire son `handle` suffirait à
 -- prendre celui d'un collègue pas encore inscrit, et `config.repos` à faire compter ses
--- dépôts personnels. Les lignes s'écrivent par le trigger d'inscription ou à la main.
+-- dépôts personnels. Les lignes s'écrivent par le trigger `on_auth_identity_created` ou à la main.
 create policy "identities_select_own" on public.identities
   for select using (auth.uid() = user_id);
 
@@ -85,12 +85,8 @@ create policy "state_select_own" on public.state
 create policy "state_update_own" on public.state
   for update using (auth.uid() = user_id);
 
--- Auto-création du profil, de l'état vide et de l'identité GitHub à l'inscription.
--- `raw_user_meta_data->>'user_name'` est le login GitHub peuplé par le provider OAuth.
---
--- C'est aujourd'hui la seule identité qu'une connexion prouve, donc la seule qui puisse être
--- créée automatiquement : toute autre source se déclare à la main. `on conflict do nothing`
--- parce qu'un handle déjà réclamé ne doit pas faire échouer l'inscription elle-même.
+-- Auto-création du profil et de l'état vide à l'inscription. Les identités viennent de
+-- `handle_new_identity`, plus bas.
 create function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -99,13 +95,6 @@ as $$
 begin
   insert into public.profiles (user_id) values (new.id);
   insert into public.state (user_id) values (new.id);
-
-  if new.raw_user_meta_data ->> 'user_name' is not null then
-    insert into public.identities (user_id, source, handle)
-    values (new.id, 'github', new.raw_user_meta_data ->> 'user_name')
-    on conflict do nothing;
-  end if;
-
   return new;
 end;
 $$;
@@ -113,6 +102,56 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Identité de chaque source qu'une connexion prouve : le login pour `github`, l'identifiant
+-- de membre pour `slack`. Sur `auth.identities` plutôt que `auth.users` pour voir aussi la
+-- liaison d'un compte après l'inscription : voir
+-- supabase/migrations/2026-10-13-connexion-slack.sql pour le pourquoi. Seul le workspace
+-- Slack de Guest Suite crée une identité. `on conflict do nothing` parce qu'un handle déjà
+-- réclamé ne doit pas faire échouer la connexion elle-même.
+create function public.handle_new_identity()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if new.provider = 'github' and new.identity_data ->> 'user_name' is not null then
+    insert into public.identities (user_id, source, handle)
+    values (new.user_id, 'github', new.identity_data ->> 'user_name')
+    on conflict do nothing;
+  elsif new.provider = 'slack_oidc'
+    and new.identity_data -> 'custom_claims' ->> 'https://slack.com/team_id' = 'T04HSC3TM' then
+    insert into public.identities (user_id, source, handle)
+    values (new.user_id, 'slack', new.provider_id)
+    on conflict do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger on_auth_identity_created
+  after insert on auth.identities
+  for each row execute procedure public.handle_new_identity();
+
+-- Déliaison : quand un compte est délié dans les Réglages, son identité pr-dex disparaît
+-- aussi. Sans ça, les cartes de cette source continueraient d'arriver, et le handle resterait
+-- réservé (`unique (source, handle)`). Les captures déjà faites restent.
+create function public.handle_removed_identity()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  delete from public.identities
+  where user_id = old.user_id
+    and source = case old.provider when 'github' then 'github' when 'slack_oidc' then 'slack' end;
+  return old;
+end;
+$$;
+
+create trigger on_auth_identity_deleted
+  after delete on auth.identities
+  for each row execute procedure public.handle_removed_identity();
 
 -- leaderboard_players : voir supabase/migrations/2026-09-30-leaderboard.sql pour le pourquoi.
 create function public.leaderboard_players()
@@ -129,8 +168,13 @@ set search_path = public
 stable
 as $$
   select
-    coalesce(u.raw_user_meta_data ->> 'user_name', 'inconnu') as login,
-    u.raw_user_meta_data ->> 'avatar_url' as avatar_url,
+    coalesce(
+      u.raw_user_meta_data ->> 'user_name',
+      u.raw_user_meta_data ->> 'name',
+      u.raw_user_meta_data ->> 'full_name',
+      'inconnu'
+    ) as login,
+    coalesce(u.raw_user_meta_data ->> 'avatar_url', u.raw_user_meta_data ->> 'picture') as avatar_url,
     u.id = auth.uid() as is_me,
     opened.catches,
     s.evolutions

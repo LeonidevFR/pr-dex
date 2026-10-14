@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slack_id": { "type": "string" },
+          "evidence_ts": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "reason": { "type": "string" }
+        },
+        "required": ["slack_id", "evidence_ts", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["participants"],
+  "additionalProperties": false
+}
