@@ -3,8 +3,10 @@ export const QUIET_SECONDS = 24 * 3600
 /** Au-delà, une réponse tardive ne rapporte plus rien. */
 export const LOOKBACK_SECONDS = 7 * 24 * 3600
 /**
- * Hors de toute session ouverte, un message lance une session si au moins deux personnes, en
- * dehors de son auteur, ont répondu dans son thread. Un retour isolé reçoit en général une
+ * Hors de toute session ouverte, un message lance une session si son auteur est un
+ * organisateur, et si au moins deux personnes, en dehors de lui, ont répondu dans son thread.
+ * La liste ferme une faille : sans elle, un message et deux complices suffisaient à se
+ * distribuer des boosters à tour de rôle. Un retour isolé reçoit en général une
  * seule réponse, celle du dev : il ne doit pas devenir une session, ni son auteur un
  * organisateur.
  */
@@ -38,7 +40,8 @@ const repliersOf = (root, replies) => {
  * `thread` désigne le thread d'un message qui n'est pas celui de la session : il sert à
  * construire le lien vers ce message.
  */
-export function buildSessions({ channel, history, repliesByRoot, forcedRoot = null }) {
+export function buildSessions({ channel, history, repliesByRoot, organizers, forcedRoot = null }) {
+  const canStart = new Set(organizers)
   // Une réponse « aussi envoyée dans la room » y apparaît une seconde fois : on ne garde que
   // l'exemplaire du thread.
   const top = history.filter((m) => isHuman(m) && (!m.thread_ts || m.thread_ts === m.ts)).sort(byTs)
@@ -48,7 +51,8 @@ export function buildSessions({ channel, history, repliesByRoot, forcedRoot = nu
     const open = m.ts === forcedRoot
       ? null
       : [...sessions].reverse().find((s) => Number(m.ts) - Number(s.lastTs) < QUIET_SECONDS)
-    if (!open && (m.ts === forcedRoot || repliersOf(m, replies) >= MIN_REPLIERS)) {
+    // Un thread passé à la main est lancé par celui qui lance l'agent : il fait foi.
+    if (!open && (m.ts === forcedRoot || (canStart.has(m.user) && repliersOf(m, replies) >= MIN_REPLIERS))) {
       const humans = replies.filter(isHuman).sort(byTs)
       sessions.push({
         id: m.ts,

@@ -195,8 +195,11 @@ avec le lien d'un thread. Il clone `main` d'ici et enchaîne quatre scripts de
 `scripts/agents/monkey-testing/` :
 
 1. `collect.mjs` lit #monkey-testing et prépare une entrée par session terminée (24 h sans
-   message). Une session est un message dont le thread a des réponses d'au moins deux
-   personnes autres que son auteur. Un retour posté dans la room rejoint la session ouverte.
+   message). Une session est un message posté par un **organisateur** (variable
+   `MONKEY_TESTING_ORGANIZERS` de pr-dex-data, identifiants Slack séparés par des virgules),
+   dont le thread a des réponses d'au moins deux autres personnes. Sans cette liste, un
+   message et deux complices suffiraient à se distribuer des boosters. Un retour posté dans
+   la room, par n'importe qui, rejoint la session ouverte.
 2. `judge.mjs` fait juger chaque entrée par Claude Code, **sans aucun outil**, selon
    `agents/monkey-testing.md`. Il tourne sur un abonnement (`CLAUDE_CODE_OAUTH_TOKEN`).
 3. `apply.mjs` contrôle chaque verdict — ni l'organisateur, ni quelqu'un d'absent, ni une

@@ -19,7 +19,10 @@ let dir, env
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'collect-'))
   await mkdir(join(dir, 'attributions', 'monkey-testing'), { recursive: true })
-  env = { SLACK_CHANNEL_ID: 'C1', ATTRIBUTIONS_DIR: join(dir, 'attributions'), WORK_DIR: join(dir, 'work') }
+  env = {
+    SLACK_CHANNEL_ID: 'C1', ATTRIBUTIONS_DIR: join(dir, 'attributions'), WORK_DIR: join(dir, 'work'),
+    MONKEY_TESTING_ORGANIZERS: 'U0LEO, U0ZOE',
+  }
 })
 afterEach(async () => { await rm(dir, { recursive: true, force: true }) })
 
@@ -48,6 +51,15 @@ describe('collect', () => {
   it('juge tout de suite le thread passé à la main', async () => {
     const forced = { ...env, THREAD_URL: `https://x.slack.com/archives/C1/p${ts(0).replace('.', '')}` }
     expect(await main(forced, (T0 + 200) * 1000, fakeSlack())).toBe(1)
+  })
+
+  it('ne prépare rien pour une session lancée hors de la liste d’organisateurs', async () => {
+    expect(await main({ ...env, MONKEY_TESTING_ORGANIZERS: 'U0ZOE' }, later, fakeSlack())).toBe(0)
+  })
+
+  // Une liste absente laisserait n'importe qui lancer une session : on refuse de tourner.
+  it.each([undefined, '', 'leo, U0ZOE'])('refuse une liste d’organisateurs absente ou mal formée (%j)', async (value) => {
+    await expect(main({ ...env, MONKEY_TESTING_ORGANIZERS: value }, later, fakeSlack())).rejects.toThrow(/MONKEY_TESTING_ORGANIZERS/)
   })
 
   it('refuse un thread d’une autre room', async () => {
