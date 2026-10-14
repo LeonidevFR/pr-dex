@@ -62,12 +62,21 @@ describe('feuille de style', () => {
   })
 
   /**
-   * L'éventail de la connexion tourne et décale ses cartes au-delà de sa colonne : sans
-   * rognage, la page défile à l'horizontale entre 900 et 1 200 px de large.
+   * L'éventail de la connexion tourne et décale ses cartes au-delà de sa colonne. Il ne doit
+   * surtout PAS se rogner lui-même : mesuré de 940 à 1 440 px, le `overflow:hidden` qu'il
+   * portait coupait les deux cartes extérieures à toutes les largeurs — douze pixels sur un
+   * grand écran, près de cent sur un portable.
+   *
+   * Le débordement se règle au bord de la page, en `clip` et non en `hidden` : `hidden` ferait
+   * de la page un conteneur de défilement et désactiverait le `position:sticky` du rail.
    */
-  it('rogne l’éventail de la connexion', () => {
+  it('ne rogne pas l’éventail de la connexion, mais découpe au bord de la page', () => {
     const fan = regles.find((r) => r.selecteur === '.front-fan')
-    expect(fan.corps).toMatch(/overflow(-x)?\s*:\s*(hidden|clip)/)
+    expect(fan.corps).not.toMatch(/overflow/)
+
+    const page = regles.find((r) => r.selecteur === 'html,body')
+    expect(page.corps).toMatch(/overflow-x\s*:\s*clip/)
+    expect(page.corps).not.toMatch(/overflow\s*:\s*hidden/)
   })
 
   /**
