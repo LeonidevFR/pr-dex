@@ -7,12 +7,15 @@ const props = defineProps({
   pendingCount: { type: Number, required: true },
   syncing: { type: Boolean, default: false },
   syncError: { type: String, default: null }, // 'offline' | 'server' | 'conflict' | 'revoked'
-  view: { type: String, default: 'collection' }, // 'collection' | 'team' | 'stats'
+  view: { type: String, default: 'collection' }, // 'collection' | 'team' | 'stats' | 'achievements'
   theme: { type: String, default: 'dark' }, // 'light' | 'dark'
+  // Succès débloqués pas encore montrés : sans pastille, le récap attendrait une visite que
+  // rien ne suggère.
+  achievementsBadge: { type: Number, default: 0 },
 })
 const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
-const TABS = [['collection', 'Collection'], ['team', 'Leaderboard'], ['stats', 'Statistiques']]
+const TABS = [['collection', 'Collection'], ['team', 'Leaderboard'], ['stats', 'Statistiques'], ['achievements', 'Succès']]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
@@ -82,7 +85,7 @@ onUnmounted(() => clearTimeout(cooldownTimer))
       <button
         v-for="[key, label] in TABS" :key="key" class="rail-tab" :class="{ active: view === key }"
         :aria-current="view === key ? 'page' : undefined" @click="emit('navigate', key)"
-      >{{ label }}</button>
+      >{{ label }}<span v-if="key === 'achievements' && achievementsBadge" class="rail-tab-pip">{{ achievementsBadge }}</span></button>
     </nav>
     <div class="progress">
       <span class="progress-count"><span class="eyebrow progress-label">Pokédex</span> <b>{{ caughtCount }}</b><i> / 151</i></span>
