@@ -290,7 +290,7 @@ export function loadDemoClient() {
     writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'demo' } },
     // Rien à déclencher en démo : pas de vraie Action, pas de vrai repo derrière.
     triggerCatch: async () => {},
-    ...demoArena(catches),
+    ...demoArena(catches, state.claimed),
   }
 }
 
@@ -302,7 +302,7 @@ export function loadDemoClient() {
  * Ce qu'elle ne reproduit pas, et ne peut pas : la concurrence, l'atomicité et les policies —
  * tout ce qui n'existe que parce qu'il y a plusieurs joueurs et une base.
  */
-export function demoArena(catches) {
+export function demoArena(catches, ouvertes = []) {
   const RIVAUX = [
     { id: 'demo-bob', slug: 'bob-dev', login: 'bob-dev', species: 130, level: 6 },
     { id: 'demo-ada', slug: 'ada-lov', login: 'ada-lov', species: 59, level: 2 },
@@ -466,10 +466,13 @@ export function demoArena(catches) {
         user_id: MOI,
         slug: 'leonard',
         login: 'leonard',
-        // Captures ET évolutions, comme la vue `arena_public_profile` : un Pokémon obtenu par
-        // évolution compte dans la collection, il doit compter dans le profil.
+        // Les cartes OUVERTES et les évolutions, comme la vue `arena_public_profile`. Les cartes
+        // encore en file n'y sont pas : leur compter des espèces divulgâcherait les plis en
+        // attente, et l'écart avec le compteur du Pokédex dirait combien d'inédits y dorment.
         species: new Set([
-          ...catches.map((c) => c.species), ...evolutions.map((e) => e.to_species),
+          ...catches.filter((c) => ouvertes.includes(entryKey(c.source, c.external_id)))
+            .map((c) => c.species),
+          ...evolutions.map((e) => e.to_species),
         ]).size,
         wins: joues.filter((d) => d.winner_id === MOI).length,
         losses: joues.filter((d) => d.winner_id !== MOI).length,

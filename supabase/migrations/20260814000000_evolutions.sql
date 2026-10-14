@@ -333,6 +333,15 @@ commit;
 -- Le profil public comptait les espèces depuis les seules captures — la table des évolutions
 -- n'existait pas encore quand la vue a été écrite. Un Pokémon obtenu par évolution comptait donc
 -- dans la collection de son propriétaire et pas dans le chiffre que ses collègues lisaient.
+--
+-- Et il comptait les cartes NON OUVERTES, ce qui divulgâchait les plis en attente : le compteur
+-- du Pokédex affichait 44 espèces quand la fiche en annonçait 47, et l'écart disait sans
+-- ambiguïté que trois inédits dormaient dans la file d'ouverture. Un chiffre ne doit jamais
+-- apprendre ce qu'un rituel est là pour révéler.
+--
+-- `state.claimed` porte les clés des captures ouvertes ; c'est déjà ce que lit le compteur du
+-- Pokédex et `leaderboard_players`. Les évolutions, elles, comptent toujours : on ne fait pas
+-- évoluer un exemplaire sans l'avoir ouvert.
 create or replace view public.arena_public_profile as
   select pr.user_id,
          ai.slug,
@@ -340,7 +349,10 @@ create or replace view public.arena_public_profile as
          ai.avatar_url,
          (
            select count(*) :: int from (
-             select c.species from public.catches c where c.user_id = pr.user_id
+             select c.species from public.catches c
+             join public.state s on s.user_id = c.user_id
+             where c.user_id = pr.user_id
+               and s.claimed ? (c.source || ':' || c.external_id)
              union
              select v.to_species from public.evolutions v where v.user_id = pr.user_id
            ) vues

@@ -41,11 +41,24 @@ const fiche = async (c, slug) => (await c.query(
   'select * from public.arena_public_profile where slug = $1', [slug],
 )).rows[0]
 
-const capture = (c, uid, species, n) => c.query(
-  `insert into public.catches (user_id, source, external_id, label, date, species, shiny)
-   values ($1, 'github', $2, 'PR', current_date, $3, false)`,
-  [uid, `sha-${uid}-${n}`, species],
-)
+/**
+ * Une capture, ouverte par défaut. La fiche ne compte que les cartes OUVERTES : compter les
+ * autres divulgâcherait les plis en attente — l'écart entre deux compteurs dirait combien
+ * d'inédits dorment dans la file d'ouverture.
+ */
+const capture = async (c, uid, species, n, { ouvert = true } = {}) => {
+  const cle = `sha-${uid}-${n}`
+  await c.query(
+    `insert into public.catches (user_id, source, external_id, label, date, species, shiny)
+     values ($1, 'github', $2, 'PR', current_date, $3, false)`,
+    [uid, cle, species],
+  )
+  if (ouvert) {
+    await c.query(
+      `update public.state set claimed = claimed || to_jsonb('github:' || $2 :: text)
+       where user_id = $1`, [uid, cle])
+  }
+}
 
 const duel = (c, { challenger, opponent, status, winner }) => c.query(
   `insert into public.arena_duels (challenger_id, challenger_key, opponent_id, opponent_key, status, winner_id)
@@ -86,6 +99,19 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
       await capture(c, MOI, 129, 3)
       await capture(c, MOI, 25, 4)
       expect((await fiche(c, 'moi')).species).toBe(2)
+    })
+  })
+
+  /**
+   * Le compteur du Pokédex affichait 44 espèces quand la fiche en annonçait 47 : l'écart disait
+   * sans ambiguïté que trois inédits dormaient dans la file d'ouverture. Un chiffre ne doit
+   * jamais apprendre ce qu'un rituel est là pour révéler.
+   */
+  it('ne compte pas une carte encore fermée', async () => {
+    await scene(async (c) => {
+      await capture(c, MOI, 25, 1)
+      await capture(c, MOI, 150, 2, { ouvert: false })
+      expect((await fiche(c, 'moi')).species).toBe(1)
     })
   })
 
