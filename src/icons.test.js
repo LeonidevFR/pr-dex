@@ -13,8 +13,8 @@ const templates = [new URL('./App.vue', import.meta.url), ...readdirSync(dir).fi
  */
 /**
  * `SeasonBadge` échappe à la règle du SVG : ce n'est pas une icône mais une ILLUSTRATION — les
- * badges de Kanto, découpés du jeu Vecteezy cité dans les réglages. La règle vise l'uniformité
- * du trait entre icônes ; une médaille dessinée n'a pas à ressembler à un chevron.
+ * huit médailles d'arène, dessinées pour ce dex. La règle vise l'uniformité du trait entre
+ * icônes ; une médaille frappée n'a pas à ressembler à un chevron.
  */
 const ILLUSTRATIONS = ['SeasonBadge.vue']
 

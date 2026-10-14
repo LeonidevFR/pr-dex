@@ -1,19 +1,35 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import SeasonBadge from './SeasonBadge.vue'
-import { BADGES, badgeOf } from '../lib/badges.js'
+import { BADGES, badgeOf, VIEWBOX } from '../lib/badges.js'
 
 const badge = (props) => mount(SeasonBadge, { props: { season: '2026-S4', ...props } })
 
 /**
- * Les badges étaient dessinés par le programme — une étoile dérivée du nom de la saison. C'était
- * une solution au manque de médailles ; il n'y a plus de manque, et un vrai badge d'arène vaut
- * mieux qu'une forme tirée d'un hachage.
+ * Les badges ont eu trois vies. Une étoile dérivée du nom de la saison, d'abord — une forme
+ * tirée d'un hachage, qui ne valait pas une médaille. Puis les badges de Kanto, découpés d'une
+ * planche tierce : des couleurs bonbon qui ne tenaient dans aucun des deux thèmes, une
+ * attribution à porter, et trente-cinq classes CSS identiques par badge. Ceux-ci sont dessinés
+ * pour ce dex, et c'est la SILHOUETTE qui les distingue — on reconnaît le sien à sa découpe
+ * avant sa couleur.
  */
 describe('la roue des badges', () => {
   it('en tient huit, tous distincts', () => {
     expect(BADGES).toHaveLength(8)
     expect(new Set(BADGES.map((b) => b.body)).size).toBe(8)
+  })
+
+  // La découpe avant la couleur : deux médailles de même contour ne se distingueraient plus
+  // une fois posées en vignette de 22 px dans l'étagère des podiums.
+  it('donne à chacun sa propre silhouette et sa propre teinte', () => {
+    expect(new Set(BADGES.map((b) => b.contour)).size).toBe(8)
+    expect(new Set(BADGES.map((b) => b.plaque)).size).toBe(8)
+  })
+
+  // Chaque médaille porte une mécanique du jeu : une étagère pleine raconte la partie.
+  it('nomme chaque badge et ce qu’il représente', () => {
+    expect(BADGES.every((b) => b.nom && b.mecanique)).toBe(true)
+    expect(new Set(BADGES.map((b) => b.nom)).size).toBe(8)
   })
 
   it('donne un badge différent à deux saisons qui se suivent', () => {
@@ -41,7 +57,8 @@ describe('la roue des badges', () => {
 describe('SeasonBadge', () => {
   it('dessine le badge de sa saison', () => {
     const svg = badge({ season: '2026-S4' }).find('svg')
-    expect(svg.attributes('viewBox')).toBe(badgeOf('2026-S4').viewBox)
+    expect(svg.attributes('viewBox')).toBe(VIEWBOX)
+    expect(svg.html()).toContain(badgeOf('2026-S4').contour)
   })
 
   /**
@@ -68,14 +85,29 @@ describe('SeasonBadge', () => {
     expect(etiquette).toContain('rang 3')
   })
 
-  // Les huit badges partagent les noms de classes de la planche d'origine : sans préfixe, deux
-  // badges affichés côte à côte se repeindraient l'un l'autre.
-  it('isole les styles d’un badge à l’autre', () => {
-    const classes = BADGES.map((b) => new Set(b.css.match(/\.b\d+-st\d+/g) ?? []))
-    for (let i = 0; i < classes.length; i++) {
-      for (let j = i + 1; j < classes.length; j++) {
-        expect([...classes[i]].some((c) => classes[j].has(c))).toBe(false)
-      }
+  /**
+   * Aucune couleur dans le dessin : le métal passe par des variables, que le composant pose sur
+   * l'élément. C'est ce qui permet à deux badges de cohabiter sans se repeindre — la planche
+   * d'origine réglait le même problème en préfixant trente-cinq classes à la main, par badge.
+   */
+  it('ne met aucune couleur dans le dessin', () => {
+    for (const b of BADGES) {
+      expect(b.body).not.toMatch(/#[0-9a-f]{3,6}/i)
+      expect(b.body).not.toMatch(/fill="(?!none)[a-z]/i)
     }
+  })
+
+  it('pose le métal du badge sur l’élément', () => {
+    const style = badge({ season: '2026-S4' }).attributes('style')
+    const b = badgeOf('2026-S4')
+    expect(style).toContain(b.plaque)
+    expect(style).toContain(b.biseau)
+  })
+
+  // Le nom de la médaille se dit aux lecteurs d'écran : « badge Éclat » porte ce qu'on a gagné,
+  // là où « badge de la saison 2026-S4 » ne nomme qu'une date.
+  it('nomme la médaille aux lecteurs d’écran', () => {
+    expect(badge({ season: '2026-S4' }).attributes('aria-label'))
+      .toContain(badgeOf('2026-S4').nom)
   })
 })

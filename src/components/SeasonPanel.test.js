@@ -3,13 +3,13 @@ import { mount } from '@vue/test-utils'
 import SeasonPanel from './SeasonPanel.vue'
 
 const MOI = 'u-moi'
-// Le classement porte l'identité GitHub, comme celui d'équipe ; le pseudonyme n'y sert plus
+// Le classement porte l'identité GitHub, comme celui d'équipe ; `slug` adresse la fiche
 // qu'à ouvrir le profil.
 const CLASSEMENT = [
-  { user_id: 'u-marion', pseudo: 'marion', login: 'marion-g', points: 310, rank: 1 },
-  { user_id: 'u-thomas', pseudo: 'thomas', login: 'thomas-k', points: 185, rank: 2 },
-  { user_id: 'u-sarah', pseudo: 'sarah', login: 'sarah-b', points: 120, rank: 3 },
-  { user_id: MOI, pseudo: 'toi', login: 'leonard', points: 95, rank: 4 },
+  { user_id: 'u-marion', slug: 'marion-g', login: 'marion-g', points: 310, rank: 1 },
+  { user_id: 'u-thomas', slug: 'thomas-k', login: 'thomas-k', points: 185, rank: 2 },
+  { user_id: 'u-sarah', slug: 'sarah-b', login: 'sarah-b', points: 120, rank: 3 },
+  { user_id: MOI, slug: 'leonard', login: 'leonard', points: 95, rank: 4 },
 ]
 const SAISONS = [
   { season: '2026-S3', first_id: 'u-marion', second_id: MOI, third_id: null },
@@ -60,10 +60,10 @@ describe('SeasonPanel', () => {
   })
 
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
-  it('emmène au profil du joueur cliqué', async () => {
+  it('emmène à la fiche du joueur cliqué, adressée par son login', async () => {
     const w = monter()
     await w.findAll('.saison-voir')[0].trigger('click')
-    expect(w.emitted('profile')[0]).toEqual(['marion'])
+    expect(w.emitted('profile')[0]).toEqual(['marion-g'])
   })
 
   it('publie le barème depuis le moteur, pas une liste recopiée', () => {
@@ -106,9 +106,11 @@ describe('le badge en jeu', () => {
     expect(prix.attributes('aria-label')).toContain('en jeu')
   })
 
+  // Les huit médailles partagent la même géométrie — c'est leur contour et leur métal qui
+  // changent, pas leur cadre. On compare donc le dessin, et non le `viewBox`.
   it('donne à chaque saison le sien', () => {
-    const a = monter({ season: '2026-S4' }).find('.saison-prix svg').attributes('viewBox')
-    const b = monter({ season: '2026-S5' }).find('.saison-prix svg').attributes('viewBox')
+    const a = monter({ season: '2026-S4' }).find('.saison-prix svg').html()
+    const b = monter({ season: '2026-S5' }).find('.saison-prix svg').html()
     expect(a).not.toBe(b)
   })
 })

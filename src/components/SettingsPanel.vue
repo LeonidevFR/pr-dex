@@ -83,9 +83,8 @@ function onUnlink(provider) {
         <div class="sect">
           <div class="eyebrow sect-h"><span>Illustrations</span></div>
           <p class="muted">
-            Les badges de saison sont découpés de « Pokemon Badges Kanto Vector », par
-            <a href="https://www.vecteezy.com" target="_blank" rel="noopener">Vecteezy</a>.
-            Les sprites viennent de PokéAPI. Pokémon est une marque de Nintendo, Game
+            Les badges de saison sont dessinés pour ce dex : huit médailles, une par mécanique
+            du jeu. Les sprites viennent de PokéAPI. Pokémon est une marque de Nintendo, Game
             Freak et Creatures : ce dex est un jouet d'équipe, sans rapport avec eux et sans
             usage commercial.
           </p>
