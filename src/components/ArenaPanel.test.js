@@ -86,13 +86,13 @@ describe('ArenaPanel', () => {
   // Les deux mises se révèlent en même temps : on choisit la sienne avant de savoir contre qui,
   // et jamais après avoir vu celle d'en face.
   it('n’affiche jamais la mise d’un défi ouvert', () => {
-    const w = monter({ challenges: [{ id: 7, pseudo: 'bob', created_at: 'x' }] })
+    const w = monter({ challenges: [{ id: 7, login: 'bob-dev', created_at: 'x' }] })
     expect(w.text()).toContain('bob')
     expect(w.text()).toContain('Pokémon caché')
   })
 
   it('refuse de relever tant qu’on n’a rien engagé', async () => {
-    const w = monter({ challenges: [{ id: 7, pseudo: 'bob', created_at: 'x' }] })
+    const w = monter({ challenges: [{ id: 7, login: 'bob-dev', created_at: 'x' }] })
     // Le bouton porte lui-même son état : muet, il se lisait comme cassé.
     expect(w.find('.evo-btn').attributes('disabled')).toBeDefined()
     expect(w.find('.evo-btn').text()).toBe('Choisis ta mise')
@@ -100,7 +100,7 @@ describe('ArenaPanel', () => {
   })
 
   it('relève un défi une fois la mise choisie', async () => {
-    const w = monter({ challenges: [{ id: 7, pseudo: 'bob', created_at: 'x' }] })
+    const w = monter({ challenges: [{ id: 7, login: 'bob-dev', created_at: 'x' }] })
     await w.findAll('.especes .specimen')[0].trigger('click')
     await w.find('.evo-btn').trigger('click')
     expect(w.emitted('accept')[0]).toEqual([7, 'github:a'])
@@ -110,7 +110,7 @@ describe('ArenaPanel', () => {
   // que l'on est seul à voir.
   it('sort son propre défi de la liste des défis relevables', () => {
     const w = monter({
-      challenges: [{ id: 7, pseudo: 'moi', created_at: 'x' }],
+      challenges: [{ id: 7, login: 'leonard', created_at: 'x' }],
       myOpen: [{ id: 7, challenger_key: 'github:a', species: 6 }],
     })
     expect(w.findAll('.evo-btn')).toHaveLength(0)
@@ -226,7 +226,7 @@ describe('arrivée depuis la fiche d’une espèce', () => {
   it('laisse alors toutes les options ouvertes', () => {
     const w = monter({
       preselect: 'github:b',
-      challenges: [{ id: 7, pseudo: 'bob', created_at: 'x' }],
+      challenges: [{ id: 7, login: 'bob-dev', created_at: 'x' }],
     })
     expect(w.find('.btn-solid').text()).toContain('Poster un défi')
     expect(w.findAll('.btn-ghost').some((b) => b.text().includes('ordinateur'))).toBe(true)
@@ -256,19 +256,6 @@ describe('la saison n’est plus dans l’arène', () => {
   // depuis l'arène ne saurait pas où aller.
   it('renvoie vers l’écran qui la porte', async () => {
     expect((await monter()).text()).toContain('Saison')
-  })
-})
-
-describe('jouer sans nom', () => {
-  it('prévient qu’on n’apparaîtra ni sur ses défis ni au classement', async () => {
-    const w = await monter({ pseudo: null })
-    expect(w.find('.sans-nom').exists()).toBe(true)
-    expect(w.text()).toContain('Sans nom')
-    expect(w.text()).toContain('classement')
-  })
-
-  it('se tait dès qu’un nom est posé', async () => {
-    expect((await monter({ pseudo: 'leo' })).find('.sans-nom').exists()).toBe(false)
   })
 })
 
@@ -314,7 +301,7 @@ describe('retour à la grille après un engagement', () => {
   it('la referme aussi en relevant un défi', async () => {
     const w = await monter({
       engageable: deuxMemes,
-      challenges: [{ id: 7, challenger_id: 'u-x', pseudo: 'bob', created_at: '2026-09-02' }],
+      challenges: [{ id: 7, challenger_id: 'u-x', login: 'bob-dev', created_at: '2026-09-02' }],
     })
     await ouvrirLaListe(w)
     await w.findAll('button').find((b) => b.text() === 'Relever').trigger('click')

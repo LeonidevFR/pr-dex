@@ -105,12 +105,12 @@ const areneOuverte = computed(() => (demo.value && !teaserForce) || arenaIsOpen(
 const teaser = computed(() => !areneOuverte.value && ['arena', 'season', 'shop'].includes(route.value.name))
 
 /**
- * Le dossier affiché. Sans pseudo dans l'URL c'est le sien, avec c'est celui d'un collègue —
+ * La fiche affichée. Sans login dans l'URL c'est la sienne, avec c'est celle d'un collègue —
  * la même vue SQL dans les deux cas, ce qui garantit qu'aucun écran ne peut publier plus que
  * ce qu'elle contient. Ce qui ne se publie jamais est composé à part, et seulement pour soi.
  */
-const dossier = ref(null)
-const dossierCharge = ref(false)
+const fiche = ref(null)
+const ficheChargee = ref(false)
 const detruits = ref([])
 
 /**
@@ -120,21 +120,21 @@ const detruits = ref([])
  * Le client, lui, n'existe qu'une fois la session ouverte : c'est son apparition qui donne le
  * signal quand l'URL, elle, n'a pas bougé.
  */
-watch([profileOpen, () => route.value.param, connected], async ([ouvert, pseudo, pret]) => {
+watch([profileOpen, () => route.value.param, connected], async ([ouvert, login, pret]) => {
   if (!ouvert || !pret || !client) return
-  dossierCharge.value = false
-  dossier.value = null
+  ficheChargee.value = false
+  fiche.value = null
   try {
-    dossier.value = pseudo ? await client.readPublicProfile(pseudo) : await client.readMyProfile(userId.value)
-    detruits.value = pseudo ? [] : await client.readDestroyed()
+    fiche.value = login ? await client.readPublicProfile(login) : await client.readMyProfile(userId.value)
+    detruits.value = login ? [] : await client.readDestroyed()
   } catch (e) {
     connectError.value = e.kind ?? 'server'
   } finally {
-    dossierCharge.value = true
+    ficheChargee.value = true
   }
 }, { immediate: true })
 
-const dossierPrive = computed(() => (route.value.param ? null : {
+const fichePrivee = computed(() => (route.value.param ? null : {
   // Les exemplaires qu'on a ENCORE : à côté de « Perdus à l'arène », un total qui compterait
   // les disparus se lirait comme un stock, et se contredirait tout seul.
   copies: Object.values(availableById.value).reduce((n, l) => n + l.length, 0),
@@ -180,30 +180,6 @@ const dataClient = ref(null)
 // « 30 jours » est une fonction pure, elle ne lit jamais l'horloge elle-même.
 const today = new Date().toISOString().slice(0, 10)
 
-/**
- * Le pseudonyme. Sans lui on n'existe pas dans l'arène : les vues publiques écartent les
- * profils anonymes. C'est donc la première chose à régler en entrant, et l'écran des réglages
- * le réclame tant qu'il manque.
- */
-const pseudo = ref(null)
-const pseudoBusy = ref(false)
-const pseudoError = ref(null)
-
-async function onSetPseudo(nom) {
-  pseudoBusy.value = true
-  pseudoError.value = null
-  try {
-    await client.setPseudo(nom)
-    pseudo.value = nom
-    // Le classement et les défis portent le pseudo : ils doivent le refléter sans attendre un
-    // rechargement de page.
-    if (arena) await arena.load()
-  } catch (e) {
-    pseudoError.value = e.kind === 'taken' ? 'taken' : 'server'
-  } finally {
-    pseudoBusy.value = false
-  }
-}
 const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
 const gen = ref(1)
@@ -315,7 +291,6 @@ async function connectSession(s) {
   await collection.load(client)
   await arena.load()
   reporterLesPertes()
-  pseudo.value = await client.readPseudo()
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
@@ -489,7 +464,6 @@ onMounted(async () => {
     await collection.load(client)
     await arena.load()
     reporterLesPertes()
-    pseudo.value = await client.readPseudo()
     connected.value = true
     await rattraperLesDuels()
   }
@@ -683,7 +657,7 @@ useKeyboardNav({
       :credits="arena.credits.value" :pokedollars="arena.pokedollars.value"
       :challenges="arena.challenges.value" :engageable="arena.engageable.value"
       :my-open="arena.myOpen.value" :level-of="arena.levelOf"
-      :form-of-key="arena.formOfKey" :busy="arenaBusy" :pseudo="pseudo"
+      :form-of-key="arena.formOfKey" :busy="arenaBusy"
       :preselect="arenaPreselect"
       @engage="onEngage" @accept="onAccept"
     />
@@ -708,11 +682,11 @@ useKeyboardNav({
 
     <ProfilePanel
       v-if="profileOpen"
-      :dossier="dossier" :pseudo="route.param" :mon-pseudo="pseudo" :prive="dossierPrive"
+      :fiche="fiche" :cherche="route.param" :moi="accountName" :prive="fichePrivee"
       :seasons="arena ? arena.seasons.value : []"
-      :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (dossier?.user_id ?? userId))?.points ?? 0) : 0"
+      :points="arena ? (arena.leaderboard.value.find((l) => l.user_id === (fiche?.user_id ?? userId))?.points ?? 0) : 0"
       :season="arena ? arena.season.value : ''"
-      :loading="!dossierCharge" :introuvable="dossierCharge && !dossier"
+      :loading="!ficheChargee" :introuvable="ficheChargee && !fiche"
     />
 
     <transition name="fade">
@@ -726,9 +700,7 @@ useKeyboardNav({
       <SettingsPanel
         v-if="settingsOpen" :account-name="accountName" :identities="identities"
         :manageable="!isDemo" :account-error="authError"
-        :pseudo="pseudo" :saving="pseudoBusy" :pseudo-error="pseudoError"
         @close="settingsOpen = false" @disconnect="disconnect" @link="link" @unlink="onUnlink"
-        @set-pseudo="onSetPseudo"
       />
     </transition>
   </template>

@@ -266,9 +266,9 @@ describe('les lieux ont une URL', () => {
 })
 
 /**
- * Le profil, de bout en bout. Deux dossiers pour un seul gabarit : le sien, complet, et celui
- * d'un collègue, caviardé. C'est la vue SQL qui garantit la règle ; ce qui se vérifie ici est
- * que l'écran sait lequel des deux il regarde.
+ * La fiche d'un joueur, de bout en bout. Deux fiches pour un seul gabarit : la sienne, complète,
+ * et celle d'un collègue, caviardée. C'est la vue SQL qui garantit la règle ; ce qui se vérifie
+ * ici est que l'écran sait laquelle des deux il regarde.
  */
 describe('le profil', () => {
   const ouvrir = async (w) => {
@@ -277,14 +277,14 @@ describe('le profil', () => {
     return w
   }
 
-  it('s’ouvre sur son propre dossier, à son adresse', async () => {
+  it('s’ouvre sur sa propre fiche, à son adresse', async () => {
     const w = await ouvrir(await mountApp())
     expect(location.pathname).toBe('/profile')
-    expect(w.find('.view-title i').text()).toBe('toi')
+    expect(w.find('.view-title i').text()).toBe('leonard')
     expect(w.findAll('.prof-case.secret')).toHaveLength(0)
   })
 
-  it('compte les exemplaires depuis la collection, et non depuis le dossier public', async () => {
+  it('compte les exemplaires depuis la collection, et non depuis la fiche publique', async () => {
     const w = await ouvrir(await mountApp())
     const exemplaires = w.findAll('.prof-case')
       .find((c) => c.find('span').text() === 'Exemplaires').find('b').text()
@@ -292,15 +292,15 @@ describe('le profil', () => {
   })
 
   // Un lien reçu d'un collègue : l'écran doit se reconstituer seul, et caviarder.
-  it('ouvre le dossier d’un collègue depuis l’adresse, caviardé', async () => {
-    window.history.replaceState({}, '', '/profile/bob?demo')
+  it('ouvre la fiche d’un collègue depuis l’adresse, caviardée', async () => {
+    window.history.replaceState({}, '', '/profile/bob-dev?demo')
     const w = await mountApp()
     await flushPromises()
-    expect(w.find('.view-title i').text()).toBe('bob')
+    expect(w.find('.view-title i').text()).toBe('bob-dev')
     expect(w.findAll('.prof-case.secret')).toHaveLength(5)
   })
 
-  it('explique un pseudonyme qui ne joue pas, au lieu d’un dossier vide', async () => {
+  it('explique un login qui ne joue pas, au lieu d’une fiche vide', async () => {
     window.history.replaceState({}, '', '/profile/fantome?demo')
     const w = await mountApp()
     await flushPromises()
@@ -309,8 +309,8 @@ describe('le profil', () => {
 })
 
 /**
- * La saison ferme la boucle des cinq lieux : c'est le seul écran qui mène à un autre profil
- * que le sien, et donc le seul endroit d'où un pseudonyme devient une adresse.
+ * La saison ferme la boucle des cinq lieux : c'est le seul écran qui mène à la fiche d'un autre
+ * joueur, et donc le seul endroit d'où un login devient une adresse.
  */
 describe('la saison', () => {
 
@@ -324,11 +324,11 @@ describe('la saison', () => {
   })
 
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
-  it('emmène au profil d’un joueur du classement', async () => {
+  it('emmène à la fiche d’un joueur du classement', async () => {
     window.history.replaceState({}, '', '/season?demo')
     const w = await mountApp()
     await flushPromises()
-    const autre = w.findAll('.saison-voir').find((r) => r.text() !== 'toi')
+    const autre = w.findAll('.saison-voir').find((r) => !r.text().includes('leonard'))
     await autre.trigger('click')
     await flushPromises()
     expect(location.pathname).toMatch(/^\/profile\//)

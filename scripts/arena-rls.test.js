@@ -8,9 +8,9 @@ const disponible = await dbAvailable()
 // au-delà du test. Deux fichiers sur le même uuid, et l'ordre d'exécution décide qui casse.
 const ALICE = 'a1a1a1a1-1111-1111-1111-111111111111'
 const BOB = 'b0b0b0b0-2222-2222-2222-222222222222'
-// Carol n'a pas de pseudonyme : elle sert de tiers aux duels — quelqu'un qui n'est ni le
+// Carol n'a aucune identité liée : elle sert de tiers aux duels — quelqu'un qui n'est ni le
 // challenger ni l'adversaire — et vérifie au passage que `arena_players` écarte bien les
-// profils sans pseudo.
+// comptes qu'on ne sait pas adresser.
 const CAROL = 'ca201ca2-3333-3333-3333-333333333333'
 
 /**
@@ -39,16 +39,23 @@ describe.skipIf(!disponible)('isolation entre deux joueurs', () => {
       // Insérer dans `auth.users` déclenche `on_auth_user_created`, qui crée les lignes
       // `profiles` et `state`. On ne les crée donc pas à la main : le test emprunte le même
       // chemin qu'une vraie inscription, trigger compris.
-      for (const [id, pseudo] of [[ALICE, 'alice'], [BOB, 'bob'], [CAROL, null]]) {
+      for (const [id, login] of [[ALICE, 'alice'], [BOB, 'bob'], [CAROL, null]]) {
         await c.query(`
           insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
-                                  email_confirmed_at, created_at, updated_at)
+                                  email_confirmed_at, created_at, updated_at, raw_user_meta_data)
           values ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-                  $2 || '@test.local', '', now(), now(), now())
-          on conflict (id) do nothing
-        `, [id, pseudo ?? 'carol'])
-        if (pseudo) {
-          await c.query('update public.profiles set pseudo = $2 where user_id = $1', [id, pseudo])
+                  $2 || '@test.local', '', now(), now(), now(),
+                  case when $3 :: text is null then '{}' :: jsonb
+                       else jsonb_build_object('user_name', $3 :: text) end)
+          on conflict (id) do update set raw_user_meta_data = excluded.raw_user_meta_data
+        `, [id, login ?? 'carol', login])
+        if (login) {
+          await c.query(`
+            insert into public.identities (user_id, source, handle) values ($1, 'github', $2)
+            on conflict (user_id, source) do update set handle = excluded.handle
+          `, [id, login])
+        } else {
+          await c.query('delete from public.identities where user_id = $1', [id])
         }
       }
 
@@ -116,12 +123,12 @@ describe.skipIf(!disponible)('isolation entre deux joueurs', () => {
     expect(rows).toEqual([{ user_id: BOB, entry_key: 'github:bob-1', level: 7 }])
   })
 
-  it('rend les pseudonymes de tout le monde', async () => {
+  it('rend le nom de tout le monde', async () => {
     const rows = await withDb((c) =>
-      commeUtilisateur(c, ALICE, 'select pseudo from public.arena_players order by pseudo'))
+      commeUtilisateur(c, ALICE, 'select login from public.arena_players order by login'))
     // Une liste exacte serait fragile : d'autres fichiers de tests créent leurs propres
     // joueurs, et ce qu'on vérifie ici est qu'on voit ceux des AUTRES, pas qu'on soit seuls.
-    expect(rows.map((r) => r.pseudo)).toEqual(expect.arrayContaining(['alice', 'bob']))
+    expect(rows.map((r) => r.login)).toEqual(expect.arrayContaining(['alice', 'bob']))
   })
 
   // La vue traverse RLS à dessein : on publie les espèces d'autrui. Ce qu'elle ne doit pas

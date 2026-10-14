@@ -1171,7 +1171,7 @@
   }
   .saison-sablier i{position:absolute;inset:0 auto 0 0;background:var(--u-text)}
 
-  /* Chaque rang est un bouton : le pseudo mène au profil, ce qui donne enfin une raison de
+  /* Chaque rang est un bouton : le nom mène à la fiche, ce qui donne enfin une raison de
      cliquer sur un nom qu'on regarde depuis des semaines. */
   .saison-rangs{display:flex;flex-direction:column}
   .saison-rang{
@@ -1224,6 +1224,18 @@
   /* ───────── badge de saison ───────── */
   .sbadge{position:relative;display:inline-flex;width:var(--taille);height:var(--taille)}
   .sbadge svg{display:block;overflow:visible}
+
+  /* La frappe : une plaque, un biseau décalé d'un cheveu vers le bas qui lui donne son relief,
+     et la figure en émail. Le biseau est le MÊME contour que la plaque — c'est ce décalage,
+     et lui seul, qui fait l'épaisseur du métal. Trois couleurs par badge au lieu de trente-cinq
+     classes recopiées. */
+  .sbadge .bg-plaque{fill:var(--b-biseau)}
+  .sbadge .bg-biseau{fill:var(--b-plaque);transform:translateY(-2.5%) scale(.955);transform-origin:center}
+  .sbadge .bg-figure{fill:var(--b-email);stroke:var(--b-email)}
+  .sbadge .bg-figure [fill="none"]{fill:none}
+  /* Un détail creusé DANS l'émail se peint de la couleur de la plaque : peint en émail sur
+     l'émail, il disparaît — c'est ce qui a d'abord rendu le rabat du Pli invisible. */
+  .sbadge .bg-trait{stroke:var(--b-plaque)}
   /* Le rang est une pastille posée sur le badge, pas une teinte appliquée dessus : les huit
      médailles ont leurs couleurs propres, et les repeindre en or, argent et bronze ferait de
      huit dessins distincts trois nuances de la même. */
@@ -1270,19 +1282,8 @@
   .forme-nom.up{color:var(--u-text)}
   .forme-nom.down{color:var(--gold)}
 
-  /* ───────── pseudonyme ───────── */
-  .pseudo-form{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
-  .pseudo-input{
-    flex:1;min-width:160px;font-family:var(--f-data);font-size:14px;color:var(--fg);
-    background:var(--surface-hi);border:1.5px solid var(--line-strong);padding:10px 12px;
-  }
-  .pseudo-input:focus{outline:none;border-color:var(--gold)}
-  .pseudo-input:disabled{color:var(--fg-3)}
-  .pseudo-err{margin-top:10px;color:var(--gold)}
 
   /* Le rappel du nom manquant : un filet rouge, pas un bandeau — il informe, il n'interdit rien. */
-  .sans-nom{border-left:3px solid var(--gold);padding-left:16px}
-  .sans-nom b{color:var(--gold)}
 
   /* ───────── avis d'échec ─────────
      En haut du contenu et non en surimpression : on doit pouvoir continuer à jouer en le

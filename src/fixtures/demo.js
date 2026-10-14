@@ -304,15 +304,14 @@ export function loadDemoClient() {
  */
 export function demoArena(catches) {
   const RIVAUX = [
-    { id: 'demo-bob', pseudo: 'bob', species: 130, level: 6 },
-    { id: 'demo-ada', pseudo: 'ada', species: 59, level: 2 },
+    { id: 'demo-bob', slug: 'bob-dev', login: 'bob-dev', species: 130, level: 6 },
+    { id: 'demo-ada', slug: 'ada-lov', login: 'ada-lov', species: 59, level: 2 },
   ]
   const JOUR = '2026-08-11'
   const MOI = 'demo-moi'
 
   let credits = 5
   const evolutions = []
-  let pseudo = null
   // De quoi essayer tous les articles, légendaire inédit compris : la démo sert à voir.
   let pokedollars = 14000
   let points = 120
@@ -325,16 +324,16 @@ export function demoArena(catches) {
   /** Ses propres défis postés. Pluriel : on peut en poster autant qu'on a de crédits. */
   const miens = []
   const challenges = RIVAUX.map((r, i) => ({
-    id: i + 1, challenger_id: r.id, pseudo: r.pseudo, created_at: JOUR, rival: r,
+    id: i + 1, challenger_id: r.id, slug: r.slug, login: r.login, created_at: JOUR, rival: r,
   }))
 
   /**
-   * Les dossiers des adversaires, cohérents avec le classement affiché à côté : un profil qui
+   * Les fiches des adversaires, cohérentes avec le classement affiché à côté : une fiche qui
    * dirait autre chose que le tableau d'où l'on vient de cliquer se lirait comme un bug.
    */
-  const DOSSIERS_RIVAUX = {
-    bob: { user_id: 'demo-bob', pseudo: 'bob', species: 112, wins: 31, losses: 4 },
-    ada: { user_id: 'demo-ada', pseudo: 'ada', species: 64, wins: 9, losses: 12 },
+  const FICHES_RIVAUX = {
+    'bob-dev': { user_id: 'demo-bob', slug: 'bob-dev', login: 'bob-dev', species: 112, wins: 31, losses: 4 },
+    'ada-lov': { user_id: 'demo-ada', slug: 'ada-lov', login: 'ada-lov', species: 64, wins: 9, losses: 12 },
   }
 
   const especeDe = (key) => catches.find((c) => entryKey(c.source, c.external_id) === key)?.species
@@ -456,16 +455,17 @@ export function demoArena(catches) {
     }),
     readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
     /**
-     * Les dossiers publics. Celui des autres est fixe ; le sien se recalcule depuis les duels
-     * réellement joués — un dossier figé donnerait l'impression que l'écran n'a pas vu ce qui
+     * Les fiches publiques. Celle des autres est fixe ; la sienne se recalcule depuis les duels
+     * réellement joués — une fiche figée donnerait l'impression que l'écran n'a pas vu ce qui
      * vient de se passer, alors que c'est précisément ce qu'on essaie en démo.
      */
-    readPublicProfile: async (pseudo) => DOSSIERS_RIVAUX[pseudo] ?? null,
+    readPublicProfile: async (login) => FICHES_RIVAUX[login] ?? null,
     readMyProfile: async () => {
       const joues = [...duels.values()]
       return {
         user_id: MOI,
-        pseudo: 'toi',
+        slug: 'leonard',
+        login: 'leonard',
         // Captures ET évolutions, comme la vue `arena_public_profile` : un Pokémon obtenu par
         // évolution compte dans la collection, il doit compter dans le profil.
         species: new Set([
@@ -555,30 +555,18 @@ export function demoArena(catches) {
       return id
     },
 
-    readPseudo: async () => pseudo,
-    setPseudo: async (nom) => {
-      // Les deux adversaires de la démonstration occupent déjà leur nom : c'est ce qui permet
-      // d'essayer le refus, qui est la moitié intéressante de cet écran.
-      if (['bob', 'ada'].includes(nom.trim().toLowerCase())) {
-        const err = new Error('Ce pseudonyme est déjà pris.')
-        err.kind = 'taken'
-        throw err
-      }
-      pseudo = nom
-    },
-
     readMyDuels: async () => [...duels.values()]
       .sort((a, b) => b.id - a.id)
       .map((d) => ({ ...d })),
 
     /**
-     * Le classement porte l'identité GitHub, comme celui d'équipe : `login` et `avatar_url`
-     * viennent de la vue, le pseudonyme n'y sert plus qu'à ouvrir le profil.
+     * Le classement porte l'identité GitHub, comme celui d'équipe : `login` nomme, `slug`
+     * adresse la fiche.
      */
     readSeasonLeaderboard: async () => [
-      { user_id: 'demo-bob', pseudo: 'bob', login: 'bob-dev', points: 275 },
-      { user_id: MOI, pseudo: 'toi', login: 'leonard', points: points },
-      { user_id: 'demo-ada', pseudo: 'ada', login: 'ada-lov', points: 90 },
+      { user_id: 'demo-bob', slug: 'bob-dev', login: 'bob-dev', points: 275 },
+      { user_id: MOI, slug: 'leonard', login: 'leonard', points: points },
+      { user_id: 'demo-ada', slug: 'ada-lov', login: 'ada-lov', points: 90 },
     ].sort((a, b) => b.points - a.points)
       .map((l, i) => ({ ...l, avatar_url: svgAvatar(l.login), rank: i + 1 })),
     readSeasons: async () => [

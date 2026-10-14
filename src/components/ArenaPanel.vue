@@ -15,7 +15,6 @@ const props = defineProps({
   levelOf: { type: Function, required: true },
   formOfKey: { type: Function, required: true },
   /** Le nom sous lequel on apparaît, ou `null` tant qu'on n'en a pas choisi. */
-  pseudo: { type: String, default: null },
   busy: { type: Boolean, default: false },
   preselect: { type: String, default: null },
 })
@@ -133,19 +132,6 @@ function take(duelId) {
         </div>
       </div>
     </div>
-
-  <!--
-    Sans nom, on n'existe pas dans l'arène : les vues publiques écartent les profils anonymes.
-    Le rappel se pose ici plutôt que dans les réglages, à l'endroit où le manque a une
-    conséquence — on ne va pas chercher un réglage dont on ignore l'existence.
-  -->
-  <div v-if="!pseudo" class="sect sans-nom">
-    <p class="muted">
-      <b>Tu joues encore sans nom.</b> Les autres te verront « Sans nom » sur tes défis, et tu
-      n’apparaîtras pas au classement de la saison. Choisis-le dans les réglages — c’est la
-      seule chose qu’ils verront de toi.
-    </p>
-  </div>
 
   <div class="sect">
     <div class="sect-h">
@@ -340,7 +326,7 @@ function take(duelId) {
       choix en même temps.
     </p>
     <div v-for="d in others" :key="d.id" class="log-row">
-      <span class="log-title">{{ d.pseudo ?? 'Sans nom' }}</span>
+      <span class="log-title">{{ d.login ?? 'Un collègue' }}</span>
       <span class="log-sha mono">Pokémon caché</span>
       <button class="evo-btn" :disabled="busy || !chosen" @click="take(d.id)">
         {{ chosen ? 'Relever' : 'Choisis ta mise' }}

@@ -8,7 +8,7 @@ import { TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 
 const props = defineProps({
   season: { type: String, required: true },
-  /** Le classement de la saison en cours : `{ user_id, pseudo, points, rank }`. */
+  /** Le classement de la saison en cours : `{ user_id, slug, login, points, rank }`. */
   leaderboard: { type: Array, default: () => [] },
   /** Les saisons closes, avec leur podium. */
   seasons: { type: Array, default: () => [] },
@@ -146,14 +146,15 @@ const palmares = computed(() => props.seasons.map((s) => ({
           <td class="board-who">
             <!--
               L'identité GitHub, avatar compris, exactement comme au classement d'équipe : on se
-              reconnaît sous le nom qu'on porte partout ailleurs. Le pseudonyme reste la clé du
-              profil — il ouvre la fiche, il ne s'affiche plus.
+              reconnaît sous le nom qu'on porte partout ailleurs. `slug` adresse la fiche, `login`
+              la nomme : les deux coïncident pour un dev, et diffèrent pour un testeur venu de
+              Slack, dont l'URL porte l'identifiant de membre.
             -->
             <component
-              :is="l.pseudo ? 'button' : 'span'" class="board-who-in"
-              :class="{ 'saison-voir': l.pseudo }"
-              :title="l.pseudo ? `Voir le profil de ${l.login}` : null"
-              @click="l.pseudo && $emit('profile', l.pseudo)"
+              :is="l.slug ? 'button' : 'span'" class="board-who-in"
+              :class="{ 'saison-voir': l.slug }"
+              :title="l.slug ? `Voir la fiche de ${l.login}` : null"
+              @click="l.slug && $emit('profile', l.slug)"
             >
               <img v-if="l.avatar_url" class="board-avatar" :src="l.avatar_url" alt="">
               <span v-else class="board-avatar">{{ (l.login ?? '?')[0].toUpperCase() }}</span>

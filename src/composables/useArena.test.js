@@ -21,7 +21,7 @@ const fauxClient = (over = {}) => ({
 describe('useArena', () => {
   it('charge crédits, portefeuille et défis en une fois', async () => {
     const client = fauxClient({
-      readOpenChallenges: async () => [{ id: 1, pseudo: 'bob' }],
+      readOpenChallenges: async () => [{ id: 1, login: 'bob-dev' }],
     })
     const a = useArena(client, ref([]))
     await a.load()

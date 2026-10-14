@@ -335,7 +335,9 @@ commit;
 -- dans la collection de son propriétaire et pas dans le chiffre que ses collègues lisaient.
 create or replace view public.arena_public_profile as
   select pr.user_id,
-         pr.pseudo,
+         ai.slug,
+         ai.login,
+         ai.avatar_url,
          (
            select count(*) :: int from (
              select c.species from public.catches c where c.user_id = pr.user_id
@@ -348,9 +350,10 @@ create or replace view public.arena_public_profile as
            where d.status <> 'open' and d.winner_id is distinct from pr.user_id
          ) :: int as losses
   from public.profiles pr
+  join public.arena_identities ai on ai.user_id = pr.user_id
   left join public.arena_duels d
     on d.challenger_id = pr.user_id or d.opponent_id = pr.user_id
-  where pr.pseudo is not null
-  group by pr.user_id, pr.pseudo;
+  where ai.slug is not null
+  group by pr.user_id, ai.slug, ai.login, ai.avatar_url;
 
 grant select on public.arena_public_profile to authenticated;

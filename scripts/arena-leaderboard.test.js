@@ -31,12 +31,16 @@ describe.skipIf(!disponible)('classement de saison', () => {
       for (const [u, p] of [[A, 'lb-ada'], [B, 'lb-bob'], [C, 'lb-cyd']]) {
         await c.query(`
           insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
-                                  email_confirmed_at, created_at, updated_at)
+                                  email_confirmed_at, created_at, updated_at, raw_user_meta_data)
           values ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-                  $2 || '@classement.local', '', now(), now(), now())
-          on conflict (id) do nothing
+                  $2 || '@classement.local', '', now(), now(), now(),
+                  jsonb_build_object('user_name', $2 :: text))
+          on conflict (id) do update set raw_user_meta_data = excluded.raw_user_meta_data
         `, [u, p])
-        await c.query('update public.profiles set pseudo = $2 where user_id = $1', [u, p])
+        await c.query(`
+          insert into public.identities (user_id, source, handle) values ($1, 'github', $2)
+          on conflict (user_id, source) do update set handle = excluded.handle
+        `, [u, p])
       }
       await c.query('delete from public.arena_season_points where season = $1', [SAISON])
       await c.query(`
@@ -48,9 +52,9 @@ describe.skipIf(!disponible)('classement de saison', () => {
 
   it('classe par points décroissants et nomme chacun', async () => {
     const rows = await commeUtilisateur(A,
-      `select pseudo, points, rank from public.arena_leaderboard
-       where season = '${SAISON}' order by rank, pseudo`)
-    expect(rows.map((r) => r.pseudo)).toEqual(['lb-ada', 'lb-bob', 'lb-cyd'])
+      `select login, points, rank from public.arena_leaderboard
+       where season = '${SAISON}' order by rank, login`)
+    expect(rows.map((r) => r.login)).toEqual(['lb-ada', 'lb-bob', 'lb-cyd'])
     expect(rows.map((r) => Number(r.rank))).toEqual([1, 1, 3])
   })
 
@@ -66,15 +70,14 @@ describe.skipIf(!disponible)('classement de saison', () => {
    * mergées, et le publier dans une entreprise revient à publier un classement de productivité.
    *
    * L'identité GitHub, elle, s'y trouve : le classement la porte comme celui d'équipe, qui la
-   * publie déjà à tout joueur connecté. Le pseudonyme reste, mais seulement comme clé du profil
-   * public — il ne s'affiche plus.
+   * publie déjà à tout joueur connecté. `login` nomme, `slug` adresse la fiche.
    */
   it('expose l’identité et les points, jamais la taille de la collection', async () => {
     const cols = await withDb((c) => c.query(`
       select column_name from information_schema.columns
       where table_schema = 'public' and table_name = 'arena_leaderboard' order by column_name
     `).then((r) => r.rows.map((x) => x.column_name)))
-    expect(cols).toEqual(['avatar_url', 'login', 'points', 'pseudo', 'rank', 'season', 'user_id'])
+    expect(cols).toEqual(['avatar_url', 'login', 'points', 'rank', 'season', 'slug', 'user_id'])
   })
 
   // Le login vient des métadonnées GitHub, que la vue lit avec les droits de son propriétaire.

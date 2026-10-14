@@ -4,14 +4,14 @@ import SeasonBadge from './SeasonBadge.vue'
 import { seasonLabel } from '../../shared/arena-economy.js'
 
 const props = defineProps({
-  /** Le dossier public tel que la base le rend : espèces, victoires, défaites. */
-  dossier: { type: Object, default: null },
-  /** Le pseudo regardé. Absent : c'est le sien. */
-  pseudo: { type: String, default: null },
-  /** Son propre pseudonyme, pour titrer son dossier autrement que « toi ». */
-  monPseudo: { type: String, default: null },
+  /** La fiche publique telle que la base la rend : nom, espèces, victoires, défaites. */
+  fiche: { type: Object, default: null },
+  /** Le login cherché dans l'URL. Absent : c'est la sienne. */
+  cherche: { type: String, default: null },
+  /** Son propre nom de compte, pour titrer sa fiche autrement que « toi ». */
+  moi: { type: String, default: null },
   /**
-   * Ce qui ne se publie jamais, et n'est donc fourni que pour son propre dossier :
+   * Ce qui ne se publie jamais, et n'est donc fourni que pour sa propre fiche :
    * `{ copies, pokedollars, credits, destroyed }`.
    */
   prive: { type: Object, default: null },
@@ -23,10 +23,10 @@ const props = defineProps({
   introuvable: { type: Boolean, default: false },
 })
 
-const cestMoi = computed(() => !props.pseudo)
+const cestMoi = computed(() => !props.cherche)
 
 /**
- * Le caviardage ne concerne QUE le dossier d'un collègue. On avait offert de relire le sien
+ * Le caviardage ne concerne QUE la fiche d'un collègue. On avait offert de relire le sien
  * avec les yeux des autres, sous un bouton : chez soi, on veut voir ses affaires, pas les
  * trous qu'un tiers verrait à leur place. La règle de visibilité se lit en une phrase sous le
  * tableau ; elle n'a pas besoin d'abîmer l'écran de son propriétaire pour se faire comprendre.
@@ -34,12 +34,12 @@ const cestMoi = computed(() => !props.pseudo)
 const public_ = computed(() => !cestMoi.value)
 
 /**
- * Le dossier, dans l'ordre où on le lit. `secret` marque ce qui ne sort jamais de chez soi —
+ * La fiche, dans l'ordre où on la lit. `secret` marque ce qui ne sort jamais de chez soi —
  * la case reste alors en place, hachurée : la retirer ferait une page plus courte dont on ne
  * saurait pas ce qu'elle a perdu. Une case barrée montre où passe la règle.
  */
 const cases = computed(() => {
-  const d = props.dossier ?? {}
+  const d = props.fiche ?? {}
   const p = props.prive ?? {}
   return [
     { v: String(d.species ?? 0).padStart(3, '0'), l: 'Espèces' },
@@ -65,7 +65,7 @@ const cases = computed(() => {
 /** Les trois marches, et rien d'autre : une saison sans podium n'a pas de badge à montrer. */
 const RANGS = ['first_id', 'second_id', 'third_id']
 const palmares = computed(() => {
-  const id = props.dossier?.user_id
+  const id = props.fiche?.user_id
   if (!id) return []
   return props.seasons
     .map((s) => ({ season: s.season, rank: RANGS.findIndex((r) => s[r] === id) + 1 }))
@@ -79,16 +79,13 @@ const palmares = computed(() => {
     <div>
       <div class="eyebrow">Profil</div>
       <!--
-        Le dossier porte le nom d'arène : c'est sous celui-là qu'on apparaît partout ailleurs, et
-        le voir en gros confirme qu'il est bien posé. « toi » ne subsiste que tant qu'aucun nom
-        n'a été choisi.
+        La fiche porte le nom du compte : celui que les deux classements affichent et sous
+        lequel l'équipe se connaît. Le nom rendu par la base d'abord — c'est celui que les
+        autres lisent — le sien ensuite, quand on regarde chez soi.
       -->
       <h1 class="view-title">
-        Le dossier de <i>{{ pseudo ?? monPseudo ?? 'toi' }}</i>
+        La fiche de <i>{{ fiche?.login ?? cherche ?? moi ?? 'toi' }}</i>
       </h1>
-      <p v-if="cestMoi && !monPseudo" class="muted" style="margin-top:6px">
-        Tu n’as pas encore de nom d’arène — les autres ne peuvent pas ouvrir ton profil.
-      </p>
     </div>
   </div>
 
@@ -98,8 +95,8 @@ const palmares = computed(() => {
 
   <div v-else-if="introuvable" class="sect">
     <p class="muted">
-      Personne ne joue sous ce nom. Un pseudonyme se change — le lien que tu as suivi
-      désigne peut-être quelqu’un qui s’est renommé depuis.
+      Personne ne joue sous ce nom. Le lien que tu as suivi désigne peut-être un collègue qui
+      a changé de login GitHub depuis, ou qui n’a pas encore ouvert sa première carte.
     </p>
   </div>
 

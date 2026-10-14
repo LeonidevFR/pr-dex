@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { X, CircleX } from '@lucide/vue'
 
 const props = defineProps({
@@ -8,13 +8,8 @@ const props = defineProps({
   // Faux en démo : aucune session réelle à laquelle lier ou retirer un compte.
   manageable: { type: Boolean, default: false },
   accountError: { type: Object, default: null },
-  /** Le pseudonyme actuel, ou `null` tant qu'on n'en a pas choisi. */
-  pseudo: { type: String, default: null },
-  saving: { type: Boolean, default: false },
-  /** `taken` quand le nom est déjà pris, `server` pour le reste. */
-  pseudoError: { type: String, default: null },
 })
-const emit = defineEmits(['close', 'disconnect', 'link', 'unlink', 'set-pseudo'])
+const emit = defineEmits(['close', 'disconnect', 'link', 'unlink'])
 
 const PROVIDERS = [['github', 'GitHub'], ['slack_oidc', 'Slack']]
 const linked = (provider) => props.identities.find((i) => i.provider === provider)
@@ -27,35 +22,6 @@ function onUnlink(provider) {
   confirming.value = null
   emit('unlink', provider)
 }
-
-/**
- * Le pseudonyme est la seule donnée personnelle qu'un adversaire lira, et sans lui on n'existe
- * pas dans l'arène : les vues publiques écartent les profils anonymes, si bien qu'on
- * n'apparaît ni au classement, ni dans les défis autrement que « Sans nom ».
- *
- * Bornes volontairement étroites — lettres, chiffres, tiret, point souligné, de 2 à 20 signes.
- * Un nom qui se lit à voix haute et se retape sans hésiter : c'est ce qu'on va coller à côté
- * d'un badge et dans une URL de profil.
- */
-const MOTIF = /^[a-zA-Z0-9À-ÿ._-]{2,20}$/
-
-/**
- * Pré-rempli avec le login GitHub quand aucun nom n'a encore été choisi.
- *
- * Le champ démarrait vide, et la conséquence n'était pas anodine : au lancement, personne
- * n'aurait de nom tant qu'il n'aurait pas trouvé cet écran — donc un classement vide et des
- * défis anonymes, alors que tout le monde est déjà connu au travail sous ce login-là.
- *
- * Proposé, jamais imposé : c'est la seule donnée qu'un adversaire lira, et la publier reste un
- * geste volontaire. Un clic suffit à confirmer, une frappe à changer.
- */
-const suggere = (nom) => (nom ?? '').replace(/[^a-zA-Z0-9À-ÿ._-]/g, '').slice(0, 20)
-
-const saisie = ref(props.pseudo ?? suggere(props.accountName))
-watch(() => props.pseudo, (p) => { if (p) saisie.value = p })
-
-const valide = () => MOTIF.test(saisie.value.trim())
-const soumettre = () => { if (valide()) emit('set-pseudo', saisie.value.trim()) }
 </script>
 
 <template>
@@ -102,39 +68,6 @@ const soumettre = () => { if (valide()) emit('set-pseudo', saisie.value.trim()) 
           </div>
         </div>
         <div class="sect">
-          <div class="eyebrow sect-h">
-            <span>Ton nom dans l’arène</span>
-            <span v-if="!pseudo" class="chip" style="--tier:var(--gold)">à choisir</span>
-          </div>
-          <p class="muted" style="margin-bottom:12px">
-            C’est la seule chose que les autres verront de toi. Sans lui tu n’apparais ni au
-            classement ni dans les défis, et personne ne peut ouvrir ton profil.
-          </p>
-          <form class="pseudo-form" @submit.prevent="soumettre">
-            <input
-              v-model="saisie" class="pseudo-input" type="text" maxlength="20"
-              placeholder="deux à vingt signes" aria-label="Ton nom dans l’arène"
-              :disabled="saving"
-            >
-            <button
-              class="evo-btn" type="submit"
-              :disabled="saving || !valide() || saisie.trim() === pseudo"
-            >{{ pseudo ? 'Changer' : 'Choisir' }}</button>
-          </form>
-          <p v-if="pseudoError === 'taken'" class="muted pseudo-err">
-            Ce nom est déjà pris. L’unicité ignore la casse et les espaces : <b>Leo</b> et
-            <b>leo</b> comptent pour le même — dans une arène où l’on choisit son adversaire sur
-            la foi d’un nom, deux joueurs qui se ressemblent suffisent à se faire passer l’un
-            pour l’autre.
-          </p>
-          <p v-else-if="pseudoError" class="muted pseudo-err">
-            L’enregistrement a échoué. Réessaie.
-          </p>
-          <p v-else-if="saisie.trim() && !valide()" class="muted pseudo-err">
-            Lettres, chiffres, tiret, point souligné. De deux à vingt signes.
-          </p>
-        </div>
-        <div class="sect">
           <button class="btn-ghost" @click="$emit('disconnect')">Se déconnecter</button>
         </div>
         <div class="sect">
@@ -152,9 +85,9 @@ const soumettre = () => { if (valide()) emit('set-pseudo', saisie.value.trim()) 
           <p class="muted">
             Les badges de saison sont découpés de « Pokemon Badges Kanto Vector », par
             <a href="https://www.vecteezy.com" target="_blank" rel="noopener">Vecteezy</a>.
-            Les sprites viennent de PokéAPI. Pokémon est une marque de Nintendo, Game Freak et
-            Creatures : ce dex est un jouet d'équipe, sans rapport avec eux et sans usage
-            commercial.
+            Les sprites viennent de PokéAPI. Pokémon est une marque de Nintendo, Game
+            Freak et Creatures : ce dex est un jouet d'équipe, sans rapport avec eux et sans
+            usage commercial.
           </p>
         </div>
       </div>

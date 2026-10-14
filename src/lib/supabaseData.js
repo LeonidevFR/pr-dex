@@ -105,7 +105,7 @@ export function createSupabaseClient(userId) {
     return query(() =>
       supabase
         .from('arena_open_challenges')
-        .select('id, challenger_id, pseudo, created_at')
+        .select('id, challenger_id, slug, login, created_at')
         .order('created_at', { ascending: true }),
     )
   }
@@ -153,7 +153,7 @@ export function createSupabaseClient(userId) {
    */
   const readSeasonLeaderboard = (season) =>
     query(() => supabase.from('arena_leaderboard')
-      .select('user_id, pseudo, login, avatar_url, points, rank')
+      .select('user_id, slug, login, avatar_url, points, rank')
       .eq('season', season).order('rank'))
 
   const readSeasons = () =>
@@ -175,35 +175,6 @@ export function createSupabaseClient(userId) {
    */
   const evolve = (fromKey, to, day) =>
     query(() => supabase.rpc('dex_evolve', { p_from_key: fromKey, p_to: to, p_day: day }))
-
-  /**
-   * Le pseudonyme : la seule donnée personnelle qu'un adversaire lira.
-   *
-   * Sans lui, on n'existe pas dans l'arène — les vues publiques écartent les profils anonymes,
-   * si bien qu'on n'apparaît ni au classement, ni dans les défis autrement que « Sans nom », et
-   * qu'aucun profil ne s'ouvre. C'est donc la première chose à faire en entrant.
-   */
-  const readPseudo = async () => {
-    const rows = await query(() => supabase.from('profiles').select('pseudo').eq('user_id', userId).maybeSingle())
-    return rows?.pseudo ?? null
-  }
-
-  /**
-   * L'unicité est vérifiée par la base, sur `lower(trim(pseudo))` : deux joueurs ne peuvent pas
-   * s'appeler `Leo` et `leo` dans une arène où l'on choisit son adversaire sur la foi d'un nom.
-   * Le conflit remonte donc en erreur PostgREST, qu'on traduit ici plutôt que de la laisser
-   * passer pour une panne.
-   */
-  const setPseudo = async (pseudo) => {
-    try {
-      return await query(() => supabase.from('profiles').update({ pseudo }).eq('user_id', userId))
-    } catch (e) {
-      if (String(e?.detail ?? e?.message ?? '').match(/duplicate key|profiles_pseudo_unique/i)) {
-        throw new SupabaseDataError('taken', 'Ce pseudonyme est déjà pris.')
-      }
-      throw e
-    }
-  }
 
   /**
    * Les duels récemment résolus où l'on figurait, le plus frais d'abord.
@@ -231,12 +202,14 @@ export function createSupabaseClient(userId) {
    * oublier de cacher une colonne, une colonne absente de la vue ne peut pas fuir. Le dossier
    * complet du joueur courant se compose donc à côté, avec ses propres lectures.
    */
-  const readPublicProfile = (pseudo) =>
-    query(() => supabase.from('arena_public_profile').select('user_id, pseudo, species, wins, losses')
-      .eq('pseudo', pseudo).maybeSingle())
+  const CHAMPS_PROFIL = 'user_id, slug, login, avatar_url, species, wins, losses'
+
+  const readPublicProfile = (slug) =>
+    query(() => supabase.from('arena_public_profile').select(CHAMPS_PROFIL)
+      .eq('slug', slug).maybeSingle())
 
   const readMyProfile = (uid) =>
-    query(() => supabase.from('arena_public_profile').select('user_id, pseudo, species, wins, losses')
+    query(() => supabase.from('arena_public_profile').select(CHAMPS_PROFIL)
       .eq('user_id', uid).maybeSingle())
 
   /**
@@ -278,7 +251,7 @@ export function createSupabaseClient(userId) {
     checkAccess, readCatches, readState, writeState, triggerCatch, readLeaderboard,
     readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readSeasonLeaderboard,
     readSeasons, engage, accept,
-    readPublicProfile, readMyProfile, readDestroyed, readMyDuels, readPseudo, setPseudo, sell,
+    readPublicProfile, readMyProfile, readDestroyed, readMyDuels, sell,
     readEvolutions, evolve,
   }
 }

@@ -27,7 +27,7 @@ import { DEX } from '../../shared/species.js'
 export const ROUTES = ['collection', 'team', 'stats', 'arena', 'season', 'shop', 'profile']
 
 /** Seuls ces deux lieux désignent quelque chose de précis : une espèce, une personne. */
-const AVEC_PARAM = { collection: 'species', profile: 'pseudo' }
+const AVEC_PARAM = { collection: 'species', profile: 'login' }
 
 const DEFAUT = { name: 'collection', param: null }
 
@@ -45,7 +45,7 @@ export function parseRoute(chemin, base = import.meta.env.BASE_URL) {
   const attendu = AVEC_PARAM[lieu]
   if (!attendu || brut === undefined || brut === '') return { name: lieu, param: null }
 
-  if (attendu === 'pseudo') return { name: lieu, param: decodeURIComponent(brut) }
+  if (attendu === 'login') return { name: lieu, param: decodeURIComponent(brut) }
 
   // Une espèce hors planche vient d'une URL bricolée ou d'un lien périmé : on retombe sur la
   // planche plutôt que d'ouvrir une fiche vide.

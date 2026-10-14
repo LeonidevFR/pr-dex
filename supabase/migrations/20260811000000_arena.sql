@@ -185,44 +185,59 @@ grant select on public.species_stats, public.arena_exemplars, public.arena_duels
                 public.arena_wallet, public.arena_season_points, public.arena_seasons
   to authenticated;
 
--- La seule donnée personnelle qu'un adversaire lira. `unique` parce qu'un pseudo qu'on peut
--- usurper ne sert à rien dans une arène où l'on choisit qui l'on affronte.
-alter table public.profiles add column pseudo text unique;
+-- Qui est qui dans l'arène.
+--
+-- L'arène a d'abord demandé un pseudonyme : une colonne `profiles.pseudo`, un index unique sur
+-- `lower(trim(...))` pour qu'on ne puisse pas se faire passer pour un collègue, un écran pour
+-- le choisir et un état « sans nom » à gérer partout. Tout cela dupliquait une identité que
+-- l'application possédait déjà — et que `public.identities` tient depuis la connexion Slack,
+-- avec la contrainte d'unicité `(source, handle)` que le pseudonyme réinventait à la main.
+--
+-- On s'adresse donc par le compte qu'on a : le login GitHub d'abord, parce que c'est celui que
+-- l'équipe se dit à voix haute et celui que les deux classements affichent. Le compte Slack
+-- sinon, pour qui n'a pas de GitHub — un identifiant de membre, laid dans une URL mais stable
+-- et unique, là où le nom Slack ne l'est ni l'un ni l'autre.
+--
+-- `slug` adresse, `login` affiche. Les deux coïncident pour un dev ; pour un testeur venu de
+-- Slack, l'URL porte son identifiant de membre et l'écran son nom — celui que le classement
+-- d'équipe lui donne déjà. Les séparer évite d'avoir à choisir entre une adresse instable et
+-- un affichage illisible.
+create view public.arena_identities as
+  select i.user_id,
+         coalesce(
+           max(i.handle) filter (where i.source = 'github'),
+           max(i.handle) filter (where i.source = 'slack')
+         ) as slug,
+         coalesce(
+           max(u.raw_user_meta_data ->> 'user_name'),
+           max(u.raw_user_meta_data ->> 'name'),
+           max(u.raw_user_meta_data ->> 'full_name'),
+           max(i.handle) filter (where i.source = 'github'),
+           'inconnu'
+         ) as login,
+         max(u.raw_user_meta_data ->> 'avatar_url') as avatar_url
+  from public.identities i
+  join auth.users u on u.id = i.user_id
+  group by i.user_id;
 
--- Un joueur choisit son pseudonyme, et celui-là seulement. `with check` autant que `using` :
--- sans lui, on pourrait passer la ligne d'autrui sous son propre identifiant.
-create policy "profiles_update_own" on public.profiles
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-grant update (pseudo) on public.profiles to authenticated;
-
--- L'unicité posée à la création de la colonne est sensible à la casse et aux espaces, donc
--- inopérante contre ce qu'elle vise : dans une arène où l'on choisit son adversaire sur la foi
--- d'un nom, `Leo` et `leo` côte à côte suffisent à se faire passer pour l'autre.
--- Un index unique sur expression ne peut pas être promu en contrainte (Postgres l'interdit :
--- « cannot create a unique constraint using such an index » dès que l'index porte sur une
--- expression, ici `lower(trim(...))`) ; il reste donc un index, visible dans `pg_indexes` et
--- non dans `pg_constraint`. Le test du lot 2a qui vérifiait l'unicité via `pg_constraint` est
--- mis à jour en conséquence dans `scripts/arena-visibility.test.js`.
-alter table public.profiles drop constraint profiles_pseudo_key;
-create unique index profiles_pseudo_unique on public.profiles (lower(trim(pseudo)));
+grant select on public.arena_identities to authenticated;
 
 -- Les vues appartiennent au propriétaire du schéma et s'exécutent sous ses droits : elles
 -- traversent donc RLS. C'est voulu, et c'est pour ça qu'elles n'exposent QUE des colonnes
 -- dont la publication a été tranchée dans la spec § 5.
 create view public.arena_players as
-  select user_id, pseudo from public.profiles where pseudo is not null;
+  select user_id, slug, login from public.arena_identities where slug is not null;
 
--- `left join` et non `join` : le pseudonyme est facultatif, le défi ne l'est pas. Une jointure
--- interne ferait disparaître de la liste le défi d'un joueur sans pseudo — ou dont la ligne
--- `profiles` manquerait — alors que ce défi existe bel et bien et que sa mise est déjà
--- immobilisée. Le défi resterait ouvert sans que personne puisse le relever. Un `pseudo` nul
--- est un problème d'affichage, que le front résout par un libellé de repli ; un défi absent
--- est un problème de jeu, que rien ne rattrape.
+-- `left join` et non `join` : l'identité est facultative, le défi ne l'est pas. Une jointure
+-- interne ferait disparaître de la liste le défi d'un joueur dont la ligne `identities`
+-- manquerait — un compte créé avant le trigger, par exemple — alors que ce défi existe bel et
+-- bien et que sa mise est déjà immobilisée. Le défi resterait ouvert sans que personne puisse
+-- le relever. Un nom absent est un problème d'affichage, que le front résout par un libellé de
+-- repli ; un défi absent est un problème de jeu, que rien ne rattrape.
 create view public.arena_open_challenges as
-  select d.id, d.challenger_id, p.pseudo, d.created_at
+  select d.id, d.challenger_id, i.slug, i.login, d.created_at
   from public.arena_duels d
-  left join public.profiles p on p.user_id = d.challenger_id
+  left join public.arena_identities i on i.user_id = d.challenger_id
   where d.status = 'open';
 
 -- Quelles espèces, jamais combien d'exemplaires : le `distinct` n'est pas une optimisation,
@@ -1196,15 +1211,14 @@ revoke execute on function public.arena_resolve_expired(interval) from public;
 grant execute on function public.arena_resolve_expired(interval) to service_role;
 
 
--- Le classement de la saison, pseudonyme compris.
+-- Le classement de la saison, nom compris.
 --
 -- Une vue plutôt qu'une jointure côté client : le front n'a pas à connaître la façon dont on
 -- rattache un score à un nom, et surtout la vue traverse RLS de manière contrôlée — elle
--- n'expose que ce que la spec § 5 autorise à publier, un pseudonyme et des points. Jamais la
+-- n'expose que ce que la spec § 5 autorise à publier, un nom et des points. Jamais la
 -- taille d'une collection, qui serait un compteur de PR mergées.
 -- Le classement porte l'identité GITHUB, comme celui d'équipe : un joueur s'y reconnaît sous
--- le nom qu'il porte partout ailleurs dans l'application. Le pseudonyme reste dans la vue parce
--- qu'il est la clé du profil public — mais il ne s'affiche plus ici.
+-- le nom qu'il porte partout ailleurs dans l'application.
 --
 -- Pas de nouvelle exposition : `leaderboard_players` publie déjà ces deux champs à tout joueur
 -- connecté. La vue les lit dans `auth.users` avec les droits de son propriétaire, comme toute
@@ -1212,14 +1226,13 @@ grant execute on function public.arena_resolve_expired(interval) to service_role
 create or replace view public.arena_leaderboard as
   select p.season,
          p.user_id,
-         pr.pseudo,
-         coalesce(u.raw_user_meta_data ->> 'user_name', 'inconnu') as login,
-         u.raw_user_meta_data ->> 'avatar_url' as avatar_url,
+         i.slug,
+         i.login,
+         i.avatar_url,
          p.points,
          rank() over (partition by p.season order by p.points desc) as rank
   from public.arena_season_points p
-  join public.profiles pr on pr.user_id = p.user_id
-  join auth.users u on u.id = p.user_id;
+  join public.arena_identities i on i.user_id = p.user_id;
 
 grant select on public.arena_leaderboard to authenticated;
 
@@ -1240,7 +1253,9 @@ grant select on public.arena_leaderboard to authenticated;
 -- NULL et la ligne ne serait jamais comptée.
 create or replace view public.arena_public_profile as
   select pr.user_id,
-         pr.pseudo,
+         ai.slug,
+         ai.login,
+         ai.avatar_url,
          (
            select count(distinct c.species) :: int
            from public.catches c
@@ -1251,10 +1266,11 @@ create or replace view public.arena_public_profile as
            where d.status <> 'open' and d.winner_id is distinct from pr.user_id
          ) :: int as losses
   from public.profiles pr
+  join public.arena_identities ai on ai.user_id = pr.user_id
   left join public.arena_duels d
     on d.challenger_id = pr.user_id or d.opponent_id = pr.user_id
-  where pr.pseudo is not null
-  group by pr.user_id, pr.pseudo;
+  where ai.slug is not null
+  group by pr.user_id, ai.slug, ai.login, ai.avatar_url;
 
 grant select on public.arena_public_profile to authenticated;
 

@@ -24,7 +24,7 @@ describe('parseRoute', () => {
   })
 
   // Le seul lien qu'on ait envie d'envoyer à un collègue, avec la fiche d'une espèce.
-  it('lit le pseudo d’un profil, et le laisse en texte', () => {
+  it('lit le login d’une fiche, et le laisse en texte', () => {
     expect(parse('/pr-dex/profile/marion')).toEqual({ name: 'profile', param: 'marion' })
     expect(parse('/pr-dex/profile')).toEqual({ name: 'profile', param: null })
   })

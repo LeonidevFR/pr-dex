@@ -15,18 +15,19 @@ async function scene(fn) {
   return withDb(async (c) => {
     await c.query('begin')
     try {
-      for (const [id, pseudo] of [[MOI, 'moi'], [LUI, 'lui']]) {
+      for (const [id, login] of [[MOI, 'moi'], [LUI, 'lui']]) {
         await c.query(
-          `insert into auth.users (id, instance_id, aud, role, email)
-           values ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2)`,
-          [id, `${pseudo}@example.test`],
+          `insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data)
+           values ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+                   $2, jsonb_build_object('user_name', $3::text))`,
+          [id, `${login}@example.test`, login],
         )
-        // Un déclencheur crée déjà le profil à l'inscription : on complète la ligne existante
-        // plutôt que d'en insérer une seconde, sinon la clé primaire proteste.
+        // On s'adresse par le compte : c'est la ligne `identities` qui rend un joueur visible
+        // dans l'arène, là où une colonne `profiles.pseudo` le faisait avant.
         await c.query(
-          `insert into public.profiles (user_id, pseudo) values ($1, $2)
-           on conflict (user_id) do update set pseudo = excluded.pseudo`,
-          [id, pseudo],
+          `insert into public.identities (user_id, source, handle) values ($1, 'github', $2)
+           on conflict (user_id, source) do update set handle = excluded.handle`,
+          [id, login],
         )
       }
       return await fn(c)
@@ -36,8 +37,8 @@ async function scene(fn) {
   })
 }
 
-const dossier = async (c, pseudo) => (await c.query(
-  'select * from public.arena_public_profile where pseudo = $1', [pseudo],
+const fiche = async (c, slug) => (await c.query(
+  'select * from public.arena_public_profile where slug = $1', [slug],
 )).rows[0]
 
 const capture = (c, uid, species, n) => c.query(
@@ -70,7 +71,7 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
          where table_schema = 'public' and table_name = 'arena_public_profile'`,
       )
       const colonnes = rows.map((r) => r.column_name).sort()
-      expect(colonnes).toEqual(['losses', 'pseudo', 'species', 'user_id', 'wins'])
+      expect(colonnes).toEqual(['avatar_url', 'login', 'losses', 'slug', 'species', 'user_id', 'wins'])
       for (const interdite of ['copies', 'exemplars', 'pokedollars', 'credits', 'destroyed']) {
         expect(colonnes).not.toContain(interdite)
       }
@@ -84,7 +85,7 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
       await capture(c, MOI, 129, 2)
       await capture(c, MOI, 129, 3)
       await capture(c, MOI, 25, 4)
-      expect((await dossier(c, 'moi')).species).toBe(2)
+      expect((await fiche(c, 'moi')).species).toBe(2)
     })
   })
 
@@ -100,7 +101,7 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
          values ($1, 66, 67, 'github:sha-1', '2026-09-01')`,
         [MOI],
       )
-      expect((await dossier(c, 'moi')).species).toBe(2) // Machoc vu, Machopeur obtenu
+      expect((await fiche(c, 'moi')).species).toBe(2) // Machoc vu, Machopeur obtenu
     })
   })
 
@@ -114,7 +115,7 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
          values ($1, 66, 67, 'github:sha-1', '2026-09-01')`,
         [MOI],
       )
-      expect((await dossier(c, 'moi')).species).toBe(2)
+      expect((await fiche(c, 'moi')).species).toBe(2)
     })
   })
 
@@ -122,8 +123,8 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
     await scene(async (c) => {
       await duel(c, { challenger: MOI, opponent: LUI, status: 'resolved', winner: MOI })
       await duel(c, { challenger: LUI, opponent: MOI, status: 'resolved', winner: MOI })
-      expect((await dossier(c, 'moi')).wins).toBe(2)
-      expect((await dossier(c, 'lui')).losses).toBe(2)
+      expect((await fiche(c, 'moi')).wins).toBe(2)
+      expect((await fiche(c, 'lui')).losses).toBe(2)
     })
   })
 
@@ -136,7 +137,7 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
   it('compte la défaite contre l’ordinateur, qui n’a pas de vainqueur', async () => {
     await scene(async (c) => {
       await duel(c, { challenger: MOI, opponent: null, status: 'computer', winner: null })
-      const d = await dossier(c, 'moi')
+      const d = await fiche(c, 'moi')
       expect(d.losses).toBe(1)
       expect(d.wins).toBe(0)
     })
@@ -146,24 +147,24 @@ describe.skipIf(!disponible)('arena_public_profile', () => {
   it('ne compte pas les défis ouverts', async () => {
     await scene(async (c) => {
       await duel(c, { challenger: MOI, opponent: null, status: 'open', winner: null })
-      const d = await dossier(c, 'moi')
+      const d = await fiche(c, 'moi')
       expect(d.wins + d.losses).toBe(0)
     })
   })
 
-  // Sans pseudonyme, on n'est pas dans l'arène : rien à publier.
-  it('n’expose que les joueurs qui se sont nommés', async () => {
+  // Sans compte reconnu, on ne s'adresse pas : rien à publier.
+  it('n’expose que les joueurs qu’une identité désigne', async () => {
     await scene(async (c) => {
-      await c.query('update public.profiles set pseudo = null where user_id = $1', [LUI])
-      expect(await dossier(c, 'lui')).toBeUndefined()
-      expect(await dossier(c, 'moi')).toBeDefined()
+      await c.query('delete from public.identities where user_id = $1', [LUI])
+      expect(await fiche(c, 'lui')).toBeUndefined()
+      expect(await fiche(c, 'moi')).toBeDefined()
     })
   })
 
-  it('rend un dossier vide, et non aucune ligne, pour qui n’a rien joué', async () => {
+  it('rend une fiche vide, et non aucune ligne, pour qui n’a rien joué', async () => {
     await scene(async (c) => {
-      const d = await dossier(c, 'moi')
-      expect(d).toMatchObject({ pseudo: 'moi', species: 0, wins: 0, losses: 0 })
+      const d = await fiche(c, 'moi')
+      expect(d).toMatchObject({ slug: 'moi', login: 'moi', species: 0, wins: 0, losses: 0 })
     })
   })
 

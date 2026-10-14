@@ -47,10 +47,16 @@ beforeAll(async () => {
   await withDb(async (c) => {
     await c.query(`
       insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
-                              email_confirmed_at, created_at, updated_at)
+                              email_confirmed_at, created_at, updated_at, raw_user_meta_data)
       values ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-              'fumee@test.local', '', now(), now(), now())
-      on conflict (id) do nothing
+              'fumee@test.local', '', now(), now(), now(), '{"user_name":"fumee"}'::jsonb)
+      on conflict (id) do update set raw_user_meta_data = excluded.raw_user_meta_data
+    `, [JOUEUR])
+
+    // L'arène s'adresse par le compte : sans ligne d'identité, le joueur n'a pas de fiche.
+    await c.query(`
+      insert into public.identities (user_id, source, handle) values ($1, 'github', 'fumee')
+      on conflict (user_id, source) do update set handle = excluded.handle
     `, [JOUEUR])
 
     // On repart d'une ardoise propre : ces lignes survivent au test, et une deuxième exécution
@@ -82,7 +88,6 @@ beforeAll(async () => {
       on conflict (user_id) do update set pokedollars = 5000
     `, [JOUEUR])
 
-    await c.query('update public.profiles set pseudo = null where user_id = $1', [JOUEUR])
   })
 
   // Le vrai client, monté sur la pile locale. La clé anonyme étant un JWT, celui du joueur
@@ -123,16 +128,15 @@ describe.skipIf(!disponible)('le front parle à PostgREST', () => {
     expect(Array.isArray(await client.readSeasons())).toBe(true)
   })
 
-  // Le pseudonyme est la seule écriture directe du front : tout le reste passe par une RPC.
-  it('pose un pseudonyme, et le relit', async () => {
-    await client.setPseudo('fumee')
-    expect(await client.readPseudo()).toBe('fumee')
+  it('lit sa propre fiche publique', async () => {
+    const fiche = await client.readMyProfile(JOUEUR)
+    expect(fiche).toMatchObject({ slug: 'fumee', login: 'fumee' })
+    expect(typeof fiche.species).toBe('number')
   })
 
-  it('lit son dossier public une fois nommé', async () => {
-    const dossier = await client.readMyProfile(JOUEUR)
-    expect(dossier).toMatchObject({ pseudo: 'fumee' })
-    expect(typeof dossier.species).toBe('number')
+  // La fiche s'adresse par le login : c'est l'URL que les collègues s'échangent.
+  it('lit la fiche d’un joueur par son login', async () => {
+    expect(await client.readPublicProfile('fumee')).toMatchObject({ user_id: JOUEUR })
   })
 
   /**
@@ -200,9 +204,9 @@ describe.skipIf(!disponible)('le front parle à PostgREST', () => {
     expect(Array.isArray(await client.readDestroyed())).toBe(true)
   })
 
-  // Le profil d'un inconnu doit rendre « rien », pas une erreur : c'est ce que l'écran attend
+  // La fiche d'un inconnu doit rendre « rien », pas une erreur : c'est ce que l'écran attend
   // pour afficher « personne ne joue sous ce nom ».
-  it('rend un profil vide pour un pseudonyme inconnu', async () => {
+  it('rend une fiche vide pour un login inconnu', async () => {
     expect(await client.readPublicProfile('personne-sous-ce-nom')).toBeNull()
   })
 })

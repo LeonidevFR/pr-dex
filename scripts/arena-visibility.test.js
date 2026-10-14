@@ -9,22 +9,24 @@ const colonnes = (c, vue) => c.query(`
 `, [vue]).then((r) => r.rows.map((x) => x.column_name))
 
 describe.skipIf(!disponible)('ce qu’un adversaire a le droit de voir', () => {
-  it('donne un pseudonyme aux profils', async () => {
+  /**
+   * L'arène n'ajoute plus rien à `profiles` : elle s'adresse par le compte. La colonne `pseudo`
+   * et son index d'expression ont disparu avec l'écran qui les remplissait — ce test interdit
+   * qu'ils reviennent par distraction, car deux identités concurrentes se contrediraient.
+   */
+  it('n’ajoute aucune identité propre à l’arène', async () => {
     const cols = await withDb((c) => colonnes(c, 'profiles'))
-    expect(cols).toContain('pseudo')
+    expect(cols).not.toContain('pseudo')
   })
 
-  // L'unicité vit dans un index d'expression (`lower(trim(pseudo))`), pas dans une contrainte :
-  // Postgres refuse de promouvoir un index sur expression en contrainte `unique`. `pg_indexes`
-  // est donc la bonne table catalogue à interroger, pas `pg_constraint`.
-  it('refuse deux pseudonymes identiques, même à la casse ou aux espaces près', async () => {
-    await withDb(async (c) => {
-      const { rows } = await c.query(`
-        select indexname from pg_indexes
-        where schemaname = 'public' and tablename = 'profiles' and indexdef ilike '%unique%'
-      `)
-      expect(rows.length).toBeGreaterThan(0)
-    })
+  // L'unicité d'un nom est tenue par la table des identités, pour toute l'application, et non
+  // par l'arène : `(source, handle)` y est unique depuis la connexion Slack.
+  it('tient l’unicité des noms dans la table des identités', async () => {
+    const { rows } = await withDb((c) => c.query(`
+      select conname from pg_constraint
+      where conrelid = 'public.identities' :: regclass and contype = 'u'
+    `))
+    expect(rows.map((r) => r.conname)).toContain('identities_source_handle_key')
   })
 
   // La mise d'un défi ouvert n'est pas seulement masquée à l'écran : elle ne doit pas figurer
@@ -33,7 +35,7 @@ describe.skipIf(!disponible)('ce qu’un adversaire a le droit de voir', () => {
     const cols = await withDb((c) => colonnes(c, 'arena_open_challenges'))
     expect(cols).not.toContain('challenger_key')
     expect(cols).not.toContain('opponent_key')
-    expect(cols).toEqual(['challenger_id', 'created_at', 'id', 'pseudo'])
+    expect(cols).toEqual(['challenger_id', 'created_at', 'id', 'login', 'slug'])
   })
 
   // Le nombre d'espèces plafonne à 151 et sature vite ; le nombre d'exemplaires, lui, ne
@@ -50,10 +52,11 @@ describe.skipIf(!disponible)('ce qu’un adversaire a le droit de voir', () => {
     expect(rows[0].def.toLowerCase()).toContain('distinct')
   })
 
-  // Un défi sans pseudonyme reste un défi : il doit rester relevable. La jointure externe est
-  // la seule qui le garantisse — une jointure interne ferait disparaître de la liste un défi
-  // pourtant bien ouvert, et sa mise resterait immobilisée sans que personne puisse la relever.
-  it('garde un défi ouvert dans la liste même sans pseudonyme', async () => {
+  // Un défi dont on ne sait pas nommer l'auteur reste un défi : il doit rester relevable. La
+  // jointure externe est la seule qui le garantisse — une jointure interne ferait disparaître
+  // de la liste un défi pourtant bien ouvert, et sa mise resterait immobilisée sans que
+  // personne puisse la relever.
+  it('garde un défi ouvert dans la liste même sans identité connue', async () => {
     const def = await withDb((c) => c.query(`
       select pg_get_viewdef('public.arena_open_challenges' :: regclass) as def
     `)).then((r) => r.rows[0].def.toLowerCase())
