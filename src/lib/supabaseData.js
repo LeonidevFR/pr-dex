@@ -98,13 +98,15 @@ export function createSupabaseClient(userId) {
 
   /**
    * `on conflict do nothing` : deux onglets qui débloquent le même succès n'écrivent qu'une
-   * ligne, et le second n'échoue pas.
+   * ligne, et le second n'échoue pas. Renvoie les seules lignes vraiment insérées : un succès
+   * déjà en base ne doit pas être annoncé une seconde fois.
    */
   async function insertAchievements(rows) {
     return query(() =>
       supabase
         .from('achievements')
-        .upsert(rows.map((r) => ({ ...r, user_id: userId })), { onConflict: 'user_id,code', ignoreDuplicates: true }),
+        .upsert(rows.map((r) => ({ ...r, user_id: userId })), { onConflict: 'user_id,code', ignoreDuplicates: true })
+        .select('code'),
     )
   }
 

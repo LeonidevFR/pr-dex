@@ -6,7 +6,8 @@ const client = (over = {}) => ({
   readAchievements: vi.fn().mockResolvedValue([]),
   readAchievementCounts: vi.fn().mockResolvedValue([]),
   readLeaderboard: vi.fn().mockResolvedValue([]),
-  insertAchievements: vi.fn().mockResolvedValue(),
+  // Comme PostgREST avec `.select('code')` : ne renvoie que les lignes vraiment insérées.
+  insertAchievements: vi.fn(async (rows) => rows.map((r) => ({ code: r.code }))),
   markAnnounced: vi.fn().mockResolvedValue(),
   ...over,
 })
@@ -120,5 +121,51 @@ describe('useAchievements', () => {
     await a.check('2026-10-14')
     a.dismissToast(a.toasts.value[0].id)
     expect(a.toasts.value).toEqual([])
+  })
+
+  it('un rattrapage raté au chargement ne s’annonce pas au retournement suivant', async () => {
+    const insert = vi.fn(async (rows) => rows.map((r) => ({ code: r.code })))
+      .mockRejectedValueOnce(new Error('offline'))
+    const c = client({ insertAchievements: insert })
+    // Un légendaire en 3e carte : « Chance du débutant », et rien d'autre.
+    const cards = [...PAIR, gh('c', 144, '2026-06-03')]
+    const state = stateWith(['github:a', 'github:b'])
+    const a = useAchievements()
+    await a.load(c, () => ({ catches: cards, state }))
+    state.claimed.push('github:c')
+    await a.check('2026-10-14')
+    expect(a.toasts.value.map((t) => t.code)).toEqual(['beginner-luck'])
+    expect(insert).toHaveBeenLastCalledWith([
+      { code: 'deja-vu', unlocked_at: '2026-06-02', trigger_key: 'github:b', announced: false },
+      { code: 'beginner-luck', unlocked_at: '2026-10-14', trigger_key: 'github:c', announced: true },
+    ])
+    expect(a.unannounced.value.map((r) => r.code)).toEqual(['deja-vu'])
+  })
+
+  it('un succès déjà inscrit par un autre onglet n’est ni réannoncé ni recompté', async () => {
+    const c = client({ readAchievementCounts: vi.fn().mockResolvedValue([{ code: 'deja-vu', players: 2 }]) })
+    const state = stateWith(['github:a'])
+    const a = useAchievements()
+    await a.load(c, () => ({ catches: PAIR, state }))
+    c.insertAchievements.mockResolvedValueOnce([])
+    state.claimed.push('github:b')
+    await a.check('2026-10-14')
+    expect(a.toasts.value).toEqual([])
+    expect(a.counts.value['deja-vu']).toBe(2)
+    expect(a.owned.value['deja-vu']).toBeDefined()
+    expect(a.unannounced.value).toEqual([])
+  })
+
+  it('au lancement, le récap reste « premier » même après un retournement annoncé', async () => {
+    const c = client()
+    const cards = [...PAIR, { ...gh('c', 25, '2026-06-03'), shiny: true }]
+    const state = stateWith(['github:a', 'github:b'])
+    const a = useAchievements()
+    await a.load(c, () => ({ catches: cards, state }))
+    state.claimed.push('github:c')
+    await a.check('2026-10-14')
+    expect(a.isFirstRecap.value).toBe(true)
+    await a.acknowledge()
+    expect(a.isFirstRecap.value).toBe(false)
   })
 })

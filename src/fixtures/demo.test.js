@@ -93,8 +93,8 @@ describe('succès de la démo', () => {
     const client = loadDemoClient()
     expect(await client.readAchievements()).toEqual([])
     const row = { code: 'deja-vu', unlocked_at: '2026-07-01', trigger_key: 'github:x', announced: false }
-    await client.insertAchievements([row])
-    await client.insertAchievements([{ ...row, unlocked_at: '2026-08-01' }])
+    expect(await client.insertAchievements([row])).toEqual([{ code: 'deja-vu' }])
+    expect(await client.insertAchievements([{ ...row, unlocked_at: '2026-08-01' }])).toEqual([])
     expect(await client.readAchievements()).toEqual([row])
     await client.markAnnounced(['deja-vu'])
     expect((await client.readAchievements())[0].announced).toBe(true)

@@ -20,6 +20,13 @@ export function useAchievements() {
   let read = null
   let others = []
   let toastSeq = 0
+  // Les codes remplis à l'évaluation précédente. Seul ce qui manquait la fois d'avant vient
+  // d'être débloqué par le geste : le reste est un arriéré (écriture ratée, autre onglet), qui
+  // s'inscrit en silence, à sa date, et passe par le récap.
+  let lastUnlocked = new Set()
+  // Lu au chargement : aucun succès n'avait encore été montré. Un retournement annoncé avant
+  // la visite de l'onglet ne fait pas du récap de lancement un « retour après absence ».
+  const firstVisit = ref(false)
 
   // Deux cartes retournées coup sur coup lancent deux vérifications. Sans file, la seconde
   // évalue avant que la première ait inscrit son succès, et l'annonce partirait deux fois.
@@ -31,25 +38,32 @@ export function useAchievements() {
     const { catches, state } = read()
     const result = evaluate({ catches, claimed: state.claimed, evolutions: state.evolutions, others })
     progress.value = result.progress
-    const live = today !== null
+    const before = lastUnlocked
+    lastUnlocked = new Set(Object.keys(result.unlocked))
     const fresh = Object.entries(result.unlocked)
       .filter(([code]) => !owned.value[code])
-      .map(([code, u]) => ({ code, unlocked_at: live ? today : u.date, trigger_key: u.triggerKey, announced: live }))
+      .map(([code, u]) => {
+        const now = today !== null && !before.has(code)
+        return { code, unlocked_at: now ? today : u.date, trigger_key: u.triggerKey, announced: now }
+      })
     if (!fresh.length) return
+    let inserted
     try {
-      await client.insertAchievements(fresh)
+      inserted = new Set((await client.insertAchievements(fresh)).map((r) => r.code))
     } catch {
       return
     }
     const nextOwned = { ...owned.value }
     const nextCounts = { ...counts.value }
     for (const r of fresh) {
-      nextOwned[r.code] = r
-      nextCounts[r.code] = (nextCounts[r.code] ?? 0) + 1
+      // Déjà en base sans que cet onglet le sache : un autre l'a inscrit, et montré.
+      nextOwned[r.code] = inserted.has(r.code) ? r : { ...r, announced: true }
+      if (inserted.has(r.code)) nextCounts[r.code] = (nextCounts[r.code] ?? 0) + 1
     }
     owned.value = nextOwned
     counts.value = nextCounts
-    if (live) toasts.value = [...toasts.value, ...fresh.map((r) => ({ id: ++toastSeq, code: r.code }))]
+    const shown = fresh.filter((r) => r.announced && inserted.has(r.code))
+    toasts.value = [...toasts.value, ...shown.map((r) => ({ id: ++toastSeq, code: r.code }))]
   }
 
   /**
@@ -66,6 +80,7 @@ export function useAchievements() {
       ])
       // Un code inconnu vient d'un succès retiré du catalogue : il ne s'affiche plus.
       owned.value = Object.fromEntries(rows.filter((r) => BY_CODE[r.code]).map((r) => [r.code, r]))
+      firstVisit.value = !rows.some((r) => r.announced)
       counts.value = Object.fromEntries(cnt.map((c) => [c.code, c.players]))
       others = board.filter((r) => !r.is_me).flatMap((r) => r.catches ?? [])
     } catch (e) {
@@ -83,8 +98,7 @@ export function useAchievements() {
   }
 
   const unannounced = computed(() => Object.values(owned.value).filter((r) => !r.announced))
-  // Aucun succès encore montré : c'est le lancement, pas un retour après absence.
-  const isFirstRecap = computed(() => !Object.values(owned.value).some((r) => r.announced))
+  const isFirstRecap = computed(() => firstVisit.value)
 
   /**
    * Le récap a été vu. Marqué tout de suite en mémoire : si l'écriture échoue, il reviendra au
@@ -93,6 +107,7 @@ export function useAchievements() {
   async function acknowledge() {
     const codes = unannounced.value.map((r) => r.code)
     if (!codes.length) return
+    firstVisit.value = false
     owned.value = Object.fromEntries(
       Object.entries(owned.value).map(([code, r]) => [code, codes.includes(code) ? { ...r, announced: true } : r]),
     )

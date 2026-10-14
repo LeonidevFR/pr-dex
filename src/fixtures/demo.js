@@ -269,9 +269,12 @@ export function loadDemoClient() {
       ]
     },
     readAchievements: async () => JSON.parse(JSON.stringify(achievements)),
-    // Même effet que `on conflict do nothing` : un code déjà là n'est pas réécrit.
+    // Même effet que `on conflict do nothing` : un code déjà là n'est pas réécrit. Renvoie,
+    // comme la base, les seules lignes insérées.
     insertAchievements: async (rows) => {
-      for (const r of rows) if (!achievements.some((a) => a.code === r.code)) achievements.push({ ...r })
+      const fresh = rows.filter((r) => !achievements.some((a) => a.code === r.code))
+      achievements.push(...fresh.map((r) => ({ ...r })))
+      return fresh.map((r) => ({ code: r.code }))
     },
     markAnnounced: async (codes) => {
       achievements = achievements.map((a) => (codes.includes(a.code) ? { ...a, announced: true } : a))
