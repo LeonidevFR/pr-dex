@@ -74,9 +74,9 @@ const jours = computed(() =>
 
     <div class="sect">
       <p class="muted">
-        D’ici là, rien ne change : les Pokémon continuent d’arriver à chaque PR mergée. Ceux que
-        tu accumules maintenant seront ceux que tu engageras — un exemplaire de plus, c’est un
-        duel de plus que tu pourras te permettre de perdre.
+        D’ici là, rien ne change : les Pokémon continuent d’arriver, une PR mergée ou un
+        monkey-testing à la fois. Ceux que tu accumules maintenant seront ceux que tu engageras
+        — un exemplaire de plus, c’est un duel de plus que tu pourras te permettre de perdre.
       </p>
     </div>
   </section>

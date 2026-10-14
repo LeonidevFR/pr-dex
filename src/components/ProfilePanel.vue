@@ -115,8 +115,8 @@ const palmares = computed(() => {
       <p v-if="cestMoi" class="muted">
         <b>Ce tableau n’est visible que par toi.</b> Les collègues voient tes espèces, tes
         victoires et tes défaites — jamais tes exemplaires, ta caisse ni tes crédits. Le
-        nombre d’exemplaires est un compteur brut de PR mergées, et l’afficher reviendrait à
-        publier un classement de productivité. La règle est tenue en base : l’agrégat public
+        nombre d’exemplaires compte les PR mergées et les monkey-testings un par un, et
+        l’afficher reviendrait à publier un classement de productivité. La règle est tenue en base : l’agrégat public
         est une vue qui ne contient pas ces colonnes.
       </p>
       <p v-else class="muted">
