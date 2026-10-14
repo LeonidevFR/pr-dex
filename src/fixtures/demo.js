@@ -572,8 +572,20 @@ export function demoArena(catches, ouvertes = []) {
       { user_id: 'demo-ada', slug: 'ada-lov', login: 'ada-lov', points: 90 },
     ].sort((a, b) => b.points - a.points)
       .map((l, i) => ({ ...l, avatar_url: svgAvatar(l.login), rank: i + 1 })),
+    /**
+     * Trois saisons closes plutôt qu'une : l'étagère des podiums ne se comprend qu'au pluriel.
+     * Avec une seule médaille, on ne voit ni que les huit tournent, ni que le rang se lit sur
+     * une pastille — et c'est précisément ce qu'on vient vérifier ici.
+     *
+     * Les trois rangs y sont, dans les trois couleurs de pastille, et les trois médailles
+     * diffèrent : Niveau, Forme, Pli. Une quatrième saison est gagnée par quelqu'un d'autre,
+     * pour que l'étagère montre aussi ce qu'on a manqué — un socle vide raconte une histoire.
+     */
     readSeasons: async () => [
+      { season: '2026-S2', first_id: 'demo-ada', second_id: 'demo-bob', third_id: null },
       { season: '2026-S3', first_id: 'demo-ada', second_id: MOI, third_id: 'demo-bob' },
+      { season: '2026-S4', first_id: 'demo-bob', second_id: 'demo-ada', third_id: MOI },
+      { season: '2026-S5', first_id: MOI, second_id: 'demo-bob', third_id: 'demo-ada' },
     ],
     readShop: async () => SHOP.map(({ slug, gen, tier, fresh, price }) => ({ slug, gen, tier, fresh, price })),
     /**
