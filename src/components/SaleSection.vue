@@ -179,9 +179,11 @@ function vendre() {
 
       <div class="sect">
         <p class="muted" style="margin:0">
-          Le prix suit le palier et le <b>niveau</b> : un exemplaire qui a gagné des duels se
-          revend plus cher. Vendre rapporte toujours bien moins que jouer — au mieux le quart
-          d’une victoire du même palier.
+          Le prix suit le palier, le <b>niveau</b> et le <b>chromatique</b> : un exemplaire qui a
+          gagné des duels se revend plus cher, un shiny quatre fois plus. Un commun ordinaire part
+          pour le dixième d’une victoire de son palier ; un shiny au niveau maximum vaut la
+          victoire entière. Mais la victoire se rejoue et garde le Pokémon — la vente se fait une
+          fois.
         </p>
       </div>
     </template>

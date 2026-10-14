@@ -121,8 +121,9 @@ const palmares = computed(() => {
       </p>
       <p v-else class="muted">
         <b>Les cases barrées ne se publient pas</b>, et personne ne les voit — pas plus toi
-        chez les autres qu’eux chez toi. Les espèces, elles, plafonnent à 151 et saturent
-        vite : elles ne disent rien du volume de travail de personne.
+        chez les autres qu’eux chez toi. Ce sont l’économie d’arène et le stock : la caisse, les
+        crédits, les pertes et les ventes. Les espèces, les victoires et les défaites, elles, se
+        lisent partout — le classement d’équipe en publie davantage encore.
       </p>
     </div>
 
