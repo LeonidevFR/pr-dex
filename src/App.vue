@@ -9,21 +9,23 @@ import SettingsPanel from './components/SettingsPanel.vue'
 import TeamView from './components/TeamView.vue'
 import StatsView from './components/StatsView.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
+import SlackInvite from './components/SlackInvite.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { useTheme } from './composables/useTheme.js'
+import { useSlackInvite } from './composables/useSlackInvite.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
-import { accountName as nameOf, providersOf, SLACK } from './lib/account.js'
+import { accountName as nameOf, identitiesOf, shouldInviteSlack, SLACK } from './lib/account.js'
 
 const collection = useCollection()
-const { session, ready, authError, signIn, linkSlack, freshUser, signOut } = useAuth()
+const { session, ready, authError, signIn, link, unlink, freshUser, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
 const connecting = ref(false)
 const accountName = ref('')
-const providers = ref([])
+const identities = ref([])
 const isDemo = new URLSearchParams(location.search).has('demo')
 // Tant qu'on ne sait pas s'il faut se connecter, on n'affiche pas l'accueil : la démo ou une
 // session déjà ouverte le faisaient clignoter au rechargement, avant la planche.
@@ -37,8 +39,9 @@ const evoAnim = ref(null)
 // Une liaison Slack refusée revient sur la page avec l'erreur : on rouvre les Réglages, où
 // elle s'explique.
 const settingsOpen = ref(Boolean(authError.value))
-// En démo, aucune session à laquelle lier un compte.
-const canLinkSlack = computed(() => !isDemo && !providers.value.includes(SLACK))
+const invite = useSlackInvite()
+const showSlackInvite = computed(() =>
+  shouldInviteSlack({ demo: isDemo, providers: identities.value.map((i) => i.provider), dismissed: invite.dismissed.value }))
 // Une vue est une page, pas un overlay : elle ne bloque pas le clavier et Échap ne la ferme
 // pas. Rien n'est mémorisé d'un chargement à l'autre, on revient toujours à la planche.
 const view = ref('collection')
@@ -67,10 +70,10 @@ async function connectSession(s) {
   connecting.value = true
   connectError.value = null
   accountName.value = nameOf(s.user)
-  providers.value = providersOf(s.user)
+  identities.value = identitiesOf(s.user)
   // La session en mémoire peut dater d'avant une liaison Slack : on relit le compte auprès de
   // Supabase, sans bloquer le chargement de la collection.
-  freshUser().then((u) => { if (u) providers.value = providersOf(u) })
+  refreshIdentities()
   const client = createSupabaseClient(s.user.id)
   dataClient.value = client
   try {
@@ -84,6 +87,15 @@ async function connectSession(s) {
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
+}
+
+async function refreshIdentities() {
+  const u = await freshUser()
+  if (u) identities.value = identitiesOf(u)
+}
+
+async function onUnlink(provider) {
+  if (await unlink(provider)) await refreshIdentities()
 }
 
 function disconnect() {
@@ -205,6 +217,7 @@ useKeyboardNav({
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
       @navigate="(v) => (view = v)" @toggle-theme="toggleTheme"
     />
+    <SlackInvite v-if="view === 'collection' && showSlackInvite" @link="link(SLACK)" @dismiss="invite.dismiss" />
     <TheTray
       v-if="view === 'collection'"
       :by-species="collection.dex.bySpecies.value" :copies="copiesById" :evolvable="collection.dex.evolvableIds.value"
@@ -250,9 +263,9 @@ useKeyboardNav({
 
     <transition name="fade">
       <SettingsPanel
-        v-if="settingsOpen" :account-name="accountName" :providers="providers"
-        :can-link-slack="canLinkSlack" :link-error="authError"
-        @close="settingsOpen = false" @disconnect="disconnect" @link-slack="linkSlack"
+        v-if="settingsOpen" :account-name="accountName" :identities="identities"
+        :manageable="!isDemo" :account-error="authError"
+        @close="settingsOpen = false" @disconnect="disconnect" @link="link" @unlink="onUnlink"
       />
     </transition>
   </template>

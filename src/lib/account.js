@@ -15,6 +15,27 @@ export function providersOf(user) {
   return [...new Set((user?.identities ?? []).map((i) => i.provider))]
 }
 
+const ORDER = [GITHUB, SLACK]
+
+/** Comptes liés et leur nom chez chaque fournisseur, GitHub d'abord. */
+export function identitiesOf(user) {
+  const out = new Map()
+  for (const i of user?.identities ?? []) {
+    if (out.has(i.provider)) continue
+    const d = i.identity_data ?? {}
+    out.set(i.provider, { provider: i.provider, name: d.user_name ?? d.name ?? d.full_name ?? '' })
+  }
+  return [...out.values()].sort((a, b) => ORDER.indexOf(a.provider) - ORDER.indexOf(b.provider))
+}
+
+/**
+ * Le bandeau qui invite à lier Slack ne vise que les devs : un compte GitHub sans Slack, hors
+ * démo, tant qu'on ne l'a pas fermé.
+ */
+export function shouldInviteSlack({ demo, providers, dismissed }) {
+  return !demo && !dismissed && providers.includes(GITHUB) && !providers.includes(SLACK)
+}
+
 const ERROR_KEYS = ['error', 'error_code', 'error_description']
 
 /**

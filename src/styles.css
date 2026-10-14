@@ -764,6 +764,30 @@
   .banner.err{border-color:rgba(224,122,108,.5);background:rgba(224,122,108,.08);color:var(--fg)}
   .banner .bt{font-weight:700;color:var(--danger)}
   .banner .bico{flex:none;color:var(--danger);margin-top:1px}
+  /* Invitation à lier Slack : même gabarit que l'erreur, en or. Elle tient sur une ligne au-dessus
+     de la planche, le bouton et la croix poussés à droite. */
+  .banner.invite{border-color:var(--line-gold);background:rgba(212,176,106,.07);color:var(--fg);align-items:center;margin:0 0 22px}
+  .banner.invite .bt{color:var(--gold)}
+  .banner.invite .bico{color:var(--gold);margin-top:0}
+  .invite-copy{flex:1;min-width:0}
+  .invite-btn{padding:9px 16px;font-size:11px;flex:none}
+  .invite-x{flex:none;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--fg-2);cursor:pointer;display:grid;place-items:center}
+  .invite-x:hover{color:var(--fg);background:rgba(212,176,106,.1)}
+  .invite-x:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  @media (max-width:640px){
+    .banner.invite{flex-wrap:wrap}
+    .invite-copy{flex-basis:calc(100% - 60px)}
+  }
+  /* Réglages : une ligne par compte, libellé, nom, action. */
+  .acct-row{display:grid;grid-template-columns:72px 1fr auto;align-items:center;gap:12px;min-height:44px}
+  .acct-row + .acct-row{border-top:1px solid var(--line)}
+  .acct-label{font-family:var(--f-ui);font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--fg-2)}
+  .acct-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acct-link{grid-column:2 / 4;justify-self:start;padding:9px 16px;font-size:11px}
+  .acct-btn{border:0;background:transparent;color:var(--fg-2);font-family:var(--f-ui);font-size:12px;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:6px}
+  .acct-btn:hover{color:var(--danger)}
+  .acct-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .acct-hint{margin-top:10px}
   .settings{width:min(480px,100%)}
   .settings-body{padding:36px 32px 24px}
   .settings-title{font-size:32px;margin-bottom:6px}

@@ -20,7 +20,7 @@ const fmtPct = (n) => `${n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })
     <div class="view-head">
       <div>
         <div class="eyebrow">Statistiques</div>
-        <h1 class="view-title">Ce que <i>tes PR</i> ont tiré</h1>
+        <h1 class="view-title">Ce que <i>tu as</i> tiré</h1>
       </div>
     </div>
 

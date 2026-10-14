@@ -9,7 +9,7 @@ import App from './App.vue'
 vi.mock('./composables/useAuth.js', () => ({
   useAuth: () => ({
     session: ref(null), ready: ref(true), authError: ref(null),
-    signIn: () => {}, linkSlack: () => {}, freshUser: async () => null, signOut: () => {},
+    signIn: () => {}, link: () => {}, unlink: async () => false, freshUser: async () => null, signOut: () => {},
   }),
 }))
 
@@ -197,5 +197,10 @@ describe('réglages du compte', () => {
     expect(w.find('.settings').exists()).toBe(true)
     expect(w.find('.link-slack').exists()).toBe(false)
     expect(w.find('.settings').text()).toContain('démo')
+  })
+
+  it('n’invite pas à lier Slack en démo', async () => {
+    const w = await mountApp()
+    expect(w.find('.slack-invite').exists()).toBe(false)
   })
 })

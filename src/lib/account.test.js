@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { accountName, providersOf, readAuthError, withoutAuthError } from './account.js'
+import { accountName, providersOf, identitiesOf, shouldInviteSlack, readAuthError, withoutAuthError } from './account.js'
 
 describe('accountName', () => {
   it('préfère le login GitHub', () => {
@@ -44,5 +44,36 @@ describe('withoutAuthError', () => {
     expect(withoutAuthError('https://x.io/pr-dex/?demo&error=e&error_code=c&error_description=d'))
       .toBe('https://x.io/pr-dex/?demo=')
     expect(withoutAuthError('https://x.io/pr-dex/#error=e&error_description=d')).toBe('https://x.io/pr-dex/')
+  })
+})
+
+describe('identitiesOf', () => {
+  it('liste les comptes liés avec leur nom, GitHub d’abord', () => {
+    const user = { identities: [
+      { provider: 'slack_oidc', identity_data: { name: 'Léonard Ploton' } },
+      { provider: 'github', identity_data: { user_name: 'LeonidevFR', name: 'Léonard' } },
+    ] }
+    expect(identitiesOf(user)).toEqual([
+      { provider: 'github', name: 'LeonidevFR' },
+      { provider: 'slack_oidc', name: 'Léonard Ploton' },
+    ])
+  })
+  it('rend une liste vide sans identités', () => {
+    expect(identitiesOf(null)).toEqual([])
+  })
+})
+
+describe('shouldInviteSlack', () => {
+  const base = { demo: false, providers: ['github'], dismissed: false }
+  it('invite un compte GitHub sans Slack', () => {
+    expect(shouldInviteSlack(base)).toBe(true)
+  })
+  it.each([
+    ['en démo', { demo: true }],
+    ['une fois Slack lié', { providers: ['github', 'slack_oidc'] }],
+    ['pour un compte arrivé par Slack', { providers: ['slack_oidc'] }],
+    ['une fois le bandeau fermé', { dismissed: true }],
+  ])('n’invite pas %s', (_, over) => {
+    expect(shouldInviteSlack({ ...base, ...over })).toBe(false)
   })
 })

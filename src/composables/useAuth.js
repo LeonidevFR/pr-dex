@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabaseClient.js'
-import { SLACK, readAuthError, withoutAuthError } from '../lib/account.js'
+import { readAuthError, withoutAuthError } from '../lib/account.js'
 
 /** Session portée par Supabase Auth (cookies/localStorage internes à supabase-js) — plus de jeton à saisir. */
 export function useAuth() {
@@ -26,12 +26,27 @@ export function useAuth() {
   // liste blanche "Redirect URLs" du dashboard.
   const signIn = (provider) =>
     supabase.auth.signInWithOAuth({ provider, options: { redirectTo: location.href } })
-  // Ajoute Slack au compte déjà connecté, au lieu d'en créer un second : un dev qui participe
-  // au monkey-testing garde une seule collection. Demande « Manual linking » côté dashboard.
-  // Un refus peut arriver avant toute redirection : il s'affiche alors dans les Réglages.
-  async function linkSlack() {
-    const { error } = await supabase.auth.linkIdentity({ provider: SLACK, options: { redirectTo: location.href } })
-    if (error) authError.value = { code: error.code ?? 'link_failed', description: error.message ?? '' }
+  const fail = (error, fallback) => {
+    authError.value = { code: error.code ?? fallback, description: error.message ?? '' }
+  }
+  // Ajoute un compte (Slack, ou GitHub) au compte déjà connecté, au lieu d'en créer un second :
+  // une seule collection. Demande « Manual linking » côté dashboard. Un refus peut arriver
+  // avant toute redirection : il s'affiche alors dans les Réglages.
+  async function link(provider) {
+    const { error } = await supabase.auth.linkIdentity({ provider, options: { redirectTo: location.href } })
+    if (error) fail(error, 'link_failed')
+  }
+  // Supabase refuse de retirer le dernier compte. La session est rafraîchie pour que la suite
+  // ne lise pas l'ancienne liste.
+  async function unlink(provider) {
+    const { data, error } = await supabase.auth.getUserIdentities()
+    if (error) { fail(error, 'unlink_failed'); return false }
+    const identity = data.identities.find((i) => i.provider === provider)
+    if (!identity) return false
+    const { error: refused } = await supabase.auth.unlinkIdentity(identity)
+    if (refused) { fail(refused, 'unlink_failed'); return false }
+    await supabase.auth.refreshSession()
+    return true
   }
   // La session gardée par supabase-js peut dater d'avant une liaison faite ailleurs : seule une
   // lecture auprès de Supabase dit quels comptes sont réellement liés.
@@ -41,5 +56,5 @@ export function useAuth() {
   }
   const signOut = () => supabase.auth.signOut()
 
-  return { session, ready, authError, signIn, linkSlack, freshUser, signOut }
+  return { session, ready, authError, signIn, link, unlink, freshUser, signOut }
 }
