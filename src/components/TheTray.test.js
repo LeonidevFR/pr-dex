@@ -386,4 +386,21 @@ describe('générations', () => {
   it('explique que la Gen 2 ne se tire pas au travail', () => {
     expect(surEtagere(2).text()).toContain('s’achète en arène')
   })
+
+  /**
+   * La Gen 2 s'achète en boutique, et la boutique n'ouvre pas avant l'arène. Montrer son onglet
+   * d'ici là reviendrait à annoncer cent cases vides en désignant un magasin fermé.
+   */
+  it('cache la seconde étagère tant que l’arène est fermée', () => {
+    const w = mount(TheTray, { props: { bySpecies: {}, gen2: false } })
+    expect(w.find('.gen-tabs').exists()).toBe(false)
+    expect(w.findAll('.cell')).toHaveLength(151)
+  })
+
+  // La rangée entière, et non le seul second onglet : un onglet seul serait un filtre sans
+  // alternative, qui n'apprend rien et occupe une ligne.
+  it('ne laisse pas un onglet seul', () => {
+    expect(mount(TheTray, { props: { bySpecies: {}, gen2: false } }).findAll('.filter-chip')
+      .filter((c) => c.text().includes('Génération'))).toHaveLength(0)
+  })
 })

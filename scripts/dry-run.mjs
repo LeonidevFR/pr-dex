@@ -209,3 +209,9 @@ if (ko.length) {
 }
 dire('Répétition réussie. Les cinq fichiers passent sur une copie de la production,')
 dire('la reprise des évolutions est exacte et rien de l’existant n’a bougé.')
+dire('')
+// La base locale porte maintenant une copie de la production, et neuf tests de reprise
+// exigent une table d'évolutions vierge — c'est leur nature, la reprise est unique. Sans ce
+// rappel, la suite rougit juste après une répétition réussie et l'on cherche la panne ailleurs.
+dire('La base locale porte désormais la copie de la production : `supabase db reset` avant')
+dire('de relancer la suite de tests, dont la reprise exige une base vierge d’évolutions.')

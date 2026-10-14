@@ -14,6 +14,8 @@ const props = defineProps({
   activeTiers: { type: Set, default: () => new Set(['c', 'u', 'r', 'l']) },
   statusFilter: { type: String, default: 'all' }, // 'all' | 'caught' | 'uncaught' | 'evolvable'
   gen: { type: Number, default: 1 },
+  /** Vrai quand la seconde étagère existe, c'est-à-dire quand l'arène est ouverte. */
+  gen2: { type: Boolean, default: true },
   query: { type: String, default: '' },
 })
 const emit = defineEmits([
@@ -109,7 +111,13 @@ const tierOf = (id) => DEX[id].tier
     Elle vient AVANT la barre d'outils : l'étagère dit de quelle grille on parle, la barre
     cherche à l'intérieur. L'inverse se lirait comme un filtre parmi les autres.
   -->
-  <div class="gen-tabs">
+  <!--
+    Une seule étagère tant que l'arène est fermée : la Gen 2 ne se tire jamais au travail, elle
+    s'achète. Montrer son onglet avant l'ouverture reviendrait à annoncer cent cases vides en
+    désignant un magasin fermé pour six semaines. La rangée entière disparaît plutôt que de
+    laisser un onglet seul, qui serait un filtre sans alternative.
+  -->
+  <div v-if="gen2" class="gen-tabs">
     <button
       class="filter-chip" :class="{ active: gen === 1 }" @click="emit('set-gen', 1)"
     >Génération 1 · {{ comptePar[1] }}/151</button>

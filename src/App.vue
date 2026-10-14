@@ -182,7 +182,16 @@ const today = new Date().toISOString().slice(0, 10)
 
 const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
+/**
+ * L'étagère regardée. La Gen 2 ne se tire jamais au travail : elle s'achète en boutique, donc
+ * elle n'existe pas avant que l'arène ouvre. Annoncer une étagère vide en désignant un magasin
+ * fermé pour six semaines, c'est promettre ce qu'on ne sert pas.
+ *
+ * Le repli n'est pas décoratif : un joueur resté sur la seconde étagère au moment de la
+ * fermeture s'y retrouverait enfermé, devant cent cases grises et sans onglet pour en sortir.
+ */
 const gen = ref(1)
+watch(areneOuverte, (ouverte) => { if (!ouverte) gen.value = 1 }, { immediate: true })
 const duelShown = ref(null)
 
 /**
@@ -592,7 +601,7 @@ useKeyboardNav({
       v-if="route.name === 'collection'"
       :by-species="collection.dex.bySpecies.value" :available="availableById" :evolvable="collection.dex.evolvableIds.value"
       :active-tiers="filters.activeTiers.value" :status-filter="filters.statusFilter.value"
-      :query="filters.query.value" :gen="gen"
+      :query="filters.query.value" :gen="gen" :gen2="areneOuverte"
       @select="(id) => router.go('collection', id)"
       @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter"
       @set-query="filters.setQuery" @reset-filters="filters.reset"

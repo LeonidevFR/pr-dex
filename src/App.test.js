@@ -554,6 +554,21 @@ describe('l’annonce de l’arène', () => {
     }
   })
 
+  /**
+   * La Gen 2 ne se tire jamais au travail : elle s'achète, et la boutique est derrière la même
+   * date. Son étagère n'a donc rien à annoncer avant le 1er décembre.
+   */
+  it('ferme la seconde étagère de la collection', async () => {
+    window.history.replaceState({}, '', '/?demo&teaser')
+    const w = await mountApp()
+    expect(w.find('.gen-tabs').exists()).toBe(false)
+  })
+
+  it('la rouvre dès que l’arène est ouverte', async () => {
+    const w = await mountApp()
+    expect(w.find('.gen-tabs').exists()).toBe(true)
+  })
+
   // Le profil existait avant l'arène et n'en dépend pas : il reste ouvert.
   it('laisse le profil accessible', async () => {
     window.history.replaceState({}, '', '/?demo&teaser')
