@@ -16,10 +16,12 @@ describe('AchievementRecap', () => {
     expect(w.find('.ach-recap-title').text()).toBe('Nouveau depuis ta dernière visite')
   })
 
-  it('se ferme au bouton et hors de la feuille', async () => {
+  it('se ferme au bouton, à la croix et hors de la feuille', async () => {
     const w = mount(AchievementRecap, { props: { items: ITEMS, first: true } })
     await w.find('.ach-recap-close').trigger('click')
+    await w.find('.ach-recap .x').trigger('click')
     await w.find('.scrim').trigger('click')
-    expect(w.emitted('close')).toHaveLength(2)
+    expect(w.emitted('close')).toHaveLength(3)
+    expect(w.find('.ach-recap .x').attributes('aria-label')).toBe('Fermer')
   })
 })

@@ -69,6 +69,15 @@ describe('feuille de style', () => {
   })
 
   /**
+   * Centrer la boîte de texte ne centre pas le chiffre : la boîte suit l'ascendante et la
+   * descendante de la police, pas le dessin. On la rogne à la hauteur des capitales.
+   */
+  it('centre le chiffre de la pastille sur son dessin, pas sur sa boîte de texte', () => {
+    const digit = regles.find((r) => r.selecteur === '.rail-tab-pip span')
+    expect(digit.corps).toMatch(/text-box\s*:\s*trim-both cap alphabetic/)
+  })
+
+  /**
    * L'en-tête colle en haut sur la largeur de la colonne seulement : ce qui défile dessous
    * (l'ombre d'une feuille, une carte) restait visible de part et d'autre, en gouttières.
    */

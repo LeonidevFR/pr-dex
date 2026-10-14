@@ -117,10 +117,14 @@
   .rail-tab:hover{color:var(--fg)}
   .rail-tab.active{background:var(--cream);color:var(--on-gold);font-weight:700}
   /* La pastille prend la couleur du texte de l'onglet, le chiffre celle de son fond : elle
-     contraste pareil sur l'onglet actif et sur les autres, dans les deux thèmes. */
-  .rail-tab-pip{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;margin-left:7px;padding:0 5px;
+     contraste pareil sur l'onglet actif et sur les autres, dans les deux thèmes.
+     Le padding est décalé de 0,4 px vers la droite : les chiffres de Manrope ont plus
+     d'approche à droite qu'à gauche, et sans ça le « 8 » penchait d'un demi-pixel à gauche. */
+  .rail-tab-pip{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;margin-left:7px;padding:0 4.6px 0 5.4px;
     border-radius:999px;background:currentColor}
-  .rail-tab-pip span{color:var(--bg);font-size:10px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  /* `text-box` rogne la boîte du chiffre à la hauteur des capitales : le centrage porte sur le
+     dessin, pas sur l'ascendante et la descendante de la police, qui l'abaissaient. */
+  .rail-tab-pip span{color:var(--bg);font-size:10px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:0;text-box:trim-both cap alphabetic}
   .rail-tab.active .rail-tab-pip span{color:var(--cream)}
   .rail-tab:focus-visible,.gear:focus-visible,.claim-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .progress{flex:1;min-width:110px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
@@ -382,6 +386,10 @@
      tient dans l'écran, titre et bouton restent visibles, et seule la grille défile. */
   .ach-recap{width:min(640px,100%);max-height:calc(100dvh - 40px);display:flex;flex-direction:column;padding:30px 34px 26px;text-align:center}
   .ach-recap-kicker{color:var(--ink-2)}
+  /* La croix des panneaux, à l'encre du papier : l'or du décor sombre s'y lirait mal. */
+  .ach-recap .x{right:16px;top:16px;width:36px;height:36px;color:var(--ink-2);border-color:rgba(70,60,50,.3)}
+  .ach-recap .x:hover{color:var(--ink);background:rgba(120,90,40,.08)}
+  .ach-recap .x:focus-visible{outline-color:var(--ink)}
   .ach-recap-title{font-family:var(--f-title);font-weight:300;font-size:32px;letter-spacing:-.02em;margin:8px 0 22px;color:var(--ink)}
   .ach-recap-grid{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:18px 10px;margin-bottom:24px;
     overflow-y:auto;min-height:0;padding:4px 2px;overscroll-behavior:contain}
