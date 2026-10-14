@@ -139,6 +139,41 @@ describe('organisateurs', () => {
   })
 })
 
+// Une relance renvoie vers le lancement d'une session encore en cours : ses réponses comptent
+// pour cette session, un seul booster par personne, un seul récap. Une fois la session jugée,
+// un message qui renvoie vers elle est un nouveau test.
+describe('relances', () => {
+  const link = (ts, extra = '') => `<https://guestsuite.slack.com/archives/C1/p${ts.replace('.', '')}${extra}>`
+  const reminder = msg(20 * H, 'U0LEO', `On compte sur vos retours ${link(root.ts)}`, { reply_count: 2 })
+  const replies = {
+    [root.ts]: thread,
+    [reminder.ts]: [reminder, msg(20 * H + 60, 'U0CHLOE', 'bug sur l’écran Y'), msg(20 * H + 120, 'U0DAN', 'testé Z, ok')],
+  }
+
+  it('range une relance commentée, et ses réponses, dans la session vers laquelle elle renvoie', () => {
+    const sessions = build([root, reminder], replies)
+    expect(sessions).toHaveLength(1)
+    const fromReminder = sessions[0].messages.filter((m) => m.thread === reminder.ts)
+    expect(fromReminder.map((m) => m.user)).toEqual(['U0CHLOE', 'U0DAN'])
+    expect(sessions[0].lastTs).toBe(ts(20 * H + 120))
+  })
+
+  it('reconnaît un lien vers une réponse du thread de la session', () => {
+    const viaReply = { ...reminder, text: `Relance ${link(ts(60), `?thread_ts=${root.ts}&cid=C1`)}` }
+    expect(build([root, viaReply], { ...replies, [viaReply.ts]: replies[reminder.ts] })).toHaveLength(1)
+  })
+
+  it('fait un nouveau test d’un message qui renvoie vers une session déjà jugée', () => {
+    const sessions = build([root, reminder], replies, { judged: new Set([root.ts]) })
+    expect(sessions.map((x) => x.id)).toEqual([root.ts, reminder.ts])
+  })
+
+  it('ignore un lien vers une autre room', () => {
+    const elsewhere = { ...reminder, text: `Voir <https://guestsuite.slack.com/archives/C9/p${root.ts.replace('.', '')}>` }
+    expect(build([root, elsewhere], { ...replies, [elsewhere.ts]: replies[reminder.ts] })).toHaveLength(2)
+  })
+})
+
 describe('isClosed', () => {
   const s = { lastTs: `${T0}.000000` }
   it('attend 24 h sans activité', () => {
