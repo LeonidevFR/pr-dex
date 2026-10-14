@@ -41,7 +41,10 @@ export function createSupabaseClient(userId) {
         .from('catches')
         .select('source, external_id, label, ref, url, date, species, shiny')
         .eq('user_id', userId)
-        .order('date', { ascending: true }),
+        .order('date', { ascending: true })
+        // À date égale, l'ordre d'insertion : c'est celui de `leaderboard_players()`, et les
+        // succès « d'affilée » doivent lire la même suite partout.
+        .order('id', { ascending: true }),
     )
   }
 
@@ -87,5 +90,37 @@ export function createSupabaseClient(userId) {
     return query(() => supabase.rpc('leaderboard_players'))
   }
 
-  return { checkAccess, readCatches, readState, writeState, triggerCatch, readLeaderboard }
+  async function readAchievements() {
+    return query(() =>
+      supabase.from('achievements').select('code, unlocked_at, trigger_key, announced').eq('user_id', userId),
+    )
+  }
+
+  /**
+   * `on conflict do nothing` : deux onglets qui débloquent le même succès n'écrivent qu'une
+   * ligne, et le second n'échoue pas.
+   */
+  async function insertAchievements(rows) {
+    return query(() =>
+      supabase
+        .from('achievements')
+        .upsert(rows.map((r) => ({ ...r, user_id: userId })), { onConflict: 'user_id,code', ignoreDuplicates: true }),
+    )
+  }
+
+  async function markAnnounced(codes) {
+    return query(() =>
+      supabase.from('achievements').update({ announced: true }).eq('user_id', userId).in('code', codes),
+    )
+  }
+
+  /** Le nombre de joueurs par succès : seule lecture des succès des autres (cf. la migration). */
+  async function readAchievementCounts() {
+    return query(() => supabase.rpc('achievement_counts'))
+  }
+
+  return {
+    checkAccess, readCatches, readState, writeState, triggerCatch, readLeaderboard,
+    readAchievements, insertAchievements, markAnnounced, readAchievementCounts,
+  }
 }
