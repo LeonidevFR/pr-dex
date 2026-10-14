@@ -17,6 +17,7 @@ import DuelOverlay from './components/DuelOverlay.vue'
 import TeamView from './components/TeamView.vue'
 import StatsView from './components/StatsView.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
+import SlackInvite from './components/SlackInvite.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
@@ -29,10 +30,12 @@ import { parisDay } from '../shared/battle.js'
 import { arenaIsOpen, FIRST_SEASON } from '../shared/arena-economy.js'
 import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { useTheme } from './composables/useTheme.js'
+import { useSlackInvite } from './composables/useSlackInvite.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
+import { accountName as nameOf, identitiesOf, shouldInviteSlack, SLACK } from './lib/account.js'
 
 const collection = useCollection()
-const { session, ready, signInWithGithub, signOut } = useAuth()
+const { session, ready, authError, signIn, link, unlink, freshUser, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
 
@@ -53,7 +56,8 @@ const avisBon = ref(false)
 
 const signaler = (e) => { avis.value = messageDErreur(e); avisBon.value = false }
 const connecting = ref(false)
-const githubLogin = ref('')
+const accountName = ref('')
+const identities = ref([])
 const isDemo = new URLSearchParams(location.search).has('demo')
 // Tant qu'on ne sait pas s'il faut se connecter, on n'affiche pas l'accueil : la démo ou une
 // session déjà ouverte le faisaient clignoter au rechargement, avant la planche.
@@ -140,7 +144,12 @@ const ritualEntry = ref(null)
 const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
 const evoAnim = ref(null)
-const settingsOpen = ref(false)
+// Une liaison Slack refusée revient sur la page avec l'erreur : on rouvre les Réglages, où
+// elle s'explique.
+const settingsOpen = ref(Boolean(authError.value))
+const invite = useSlackInvite()
+const showSlackInvite = computed(() =>
+  shouldInviteSlack({ demo: isDemo, providers: identities.value.map((i) => i.provider), dismissed: invite.dismissed.value }))
 // Une vue est une page, pas un overlay : elle ne bloque pas le clavier et Échap ne la ferme
 // pas. Rien n'est mémorisé d'un chargement à l'autre, on revient toujours à la planche.
 /**
@@ -281,7 +290,11 @@ const caughtIds = computed(() => new Set(Object.keys(collection.dex.bySpecies.va
 async function connectSession(s) {
   connecting.value = true
   connectError.value = null
-  githubLogin.value = s.user.user_metadata?.user_name ?? ''
+  accountName.value = nameOf(s.user)
+  identities.value = identitiesOf(s.user)
+  // La session en mémoire peut dater d'avant une liaison Slack : on relit le compte auprès de
+  // Supabase, sans bloquer le chargement de la collection.
+  refreshIdentities()
   client = createSupabaseClient(s.user.id)
   dataClient.value = client
   userId.value = s.user.id
@@ -442,6 +455,15 @@ async function onSell(keys) {
   }
 }
 
+async function refreshIdentities() {
+  const u = await freshUser()
+  if (u) identities.value = identitiesOf(u)
+}
+
+async function onUnlink(provider) {
+  if (await unlink(provider)) await refreshIdentities()
+}
+
 function disconnect() {
   signOut()
   settingsOpen.value = false
@@ -452,7 +474,7 @@ function disconnect() {
 onMounted(async () => {
   if (isDemo) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
-    githubLogin.value = 'démo'
+    accountName.value = 'démo'
     client = loadDemoClient()
     dataClient.value = client
     demo.value = true
@@ -561,7 +583,7 @@ useKeyboardNav({
   <ConnectScreen
     v-else-if="!connected"
     :error="connectError" :busy="connecting"
-    @connect="signInWithGithub"
+    @connect="signIn"
   />
 
   <template v-else>
@@ -585,6 +607,7 @@ useKeyboardNav({
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
       @navigate="(v) => router.go(v)" @toggle-theme="toggleTheme"
     />
+    <SlackInvite v-if="view === 'collection' && showSlackInvite" @link="link(SLACK)" @dismiss="invite.dismiss" />
     <TheTray
       v-if="route.name === 'collection'"
       :by-species="collection.dex.bySpecies.value" :available="availableById" :evolvable="collection.dex.evolvableIds.value"
@@ -695,9 +718,11 @@ useKeyboardNav({
 
     <transition name="fade">
       <SettingsPanel
-        v-if="settingsOpen" :github-login="githubLogin"
+        v-if="settingsOpen" :account-name="accountName" :identities="identities"
+        :manageable="!isDemo" :account-error="authError"
         :pseudo="pseudo" :saving="pseudoBusy" :pseudo-error="pseudoError"
-        @close="settingsOpen = false" @disconnect="disconnect" @set-pseudo="onSetPseudo"
+        @close="settingsOpen = false" @disconnect="disconnect" @link="link" @unlink="onUnlink"
+        @set-pseudo="onSetPseudo"
       />
     </transition>
   </template>

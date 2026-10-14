@@ -17,10 +17,10 @@ const FAN = [[16, 'c'], [37, 'u'], [4, 'r'], [146, 'l']]
   <div class="front">
     <div class="front-copy">
       <div class="front-mark"><i>PR</i>·DEX</div>
-      <div class="eyebrow">Une PR mergée, un Pokémon</div>
+      <div class="eyebrow">Une PR mergée ou un monkey-testing, un Pokémon</div>
       <p class="front-sub">
-        Le dex se remplit depuis tes PR mergées sur GitHub. Connecte-toi une fois : rien d'autre à
-        configurer, ta collection est liée à ton compte.
+        Le dex se remplit depuis tes PR mergées sur GitHub et tes retours de monkey-testing sur
+        Slack. Connecte-toi une fois : rien d'autre à configurer, ta collection est liée à ton compte.
       </p>
 
       <div v-if="error" class="banner err">
@@ -38,10 +38,13 @@ const FAN = [[16, 'c'], [37, 'u'], [4, 'r'], [146, 'l']]
       </div>
 
       <div class="front-actions">
-        <button class="btn-solid" :disabled="busy" @click="emit('connect')">
+        <button class="btn-solid" :disabled="busy" @click="emit('connect', 'github')">
           {{ busy ? 'Connexion…' : 'Se connecter avec GitHub' }}
         </button>
-        <span class="muted">Aucune donnée de jeu n'est stockée ailleurs que sur ton compte.</span>
+        <button class="btn-ghost btn-slack" :disabled="busy" @click="emit('connect', 'slack_oidc')">
+          Se connecter avec Slack
+        </button>
+        <span class="muted">Pas de compte GitHub ? Slack suffit pour le monkey-testing.</span>
       </div>
     </div>
 

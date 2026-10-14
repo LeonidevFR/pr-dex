@@ -2,7 +2,7 @@
 
 Un pokédex personnel qui se remplit tout seul depuis les actes qu'on pose au travail.
 Chaque événement d'une **source** déclarée — aujourd'hui les pull requests mergées sur
-GitHub — tire, de façon déterministe, un Pokémon à partir de son identifiant chez cette
+GitHub et les participations au monkey-testing — tire, de façon déterministe, un Pokémon à partir de son identifiant chez cette
 source. L'ouverture se joue comme un booster, dans l'application.
 
 Une source choisit **quel acte vaut un tirage** ; elle ne choisit pas ce que vaut un
@@ -124,7 +124,7 @@ Quatre tables Supabase (schéma complet dans `supabase/schema.sql`), RLS activé
 | Table | Écrite par | Contenu |
 |---|---|---|
 | `profiles` | auto-créée par un trigger à la première connexion OAuth | la personne, rien de spécifique à une source |
-| `identities` | le trigger pour GitHub, à la main pour les autres sources | comment chaque source la reconnaît : `(source, handle, config)` |
+| `identities` | le trigger `on_auth_identity_created` pour GitHub et Slack, à la main pour les autres sources | comment chaque source la reconnaît : `(source, handle, config)` |
 | `catches` | uniquement l'Action `catch.yml`, via `service_role` | l'historique des captures, par `user_id` et par source |
 | `state` | uniquement le navigateur du joueur concerné (RLS : `auth.uid() = user_id`) | ce qu'il a réclamé, dépensé, fait évoluer |
 
@@ -132,9 +132,12 @@ Chaque joueur ne lit/écrit que ses propres lignes (RLS), sans repo ni jeton à 
 connecter une fois suffit, le profil se crée tout seul.
 
 `identities` existe parce que **la façon dont on se connecte n'est pas la façon dont une
-source nous reconnaît**. La connexion se fait aujourd'hui en OAuth GitHub, qui prouve du
-même geste le handle de la source `github` — mais quelqu'un hors de l'équipe technique n'a
-pas de compte GitHub, et une même personne peut relever de plusieurs sources. La contrainte
+source nous reconnaît**. Une même personne peut relever de plusieurs sources. La connexion
+se fait en OAuth GitHub ou Slack, et chacune prouve du même geste le handle de sa source :
+le login pour `github`, l'identifiant de membre pour `slack`. Seul le workspace Slack de
+Guest Suite crée une identité. Un dev déjà connecté avec GitHub lie son compte Slack depuis
+les Réglages (« Manual linking » doit être activé dans Supabase), et garde une seule
+collection. La contrainte
 `unique (source, handle)` empêche de réclamer le handle de quelqu'un d'autre pour recevoir
 ses captures, et la table est en lecture seule pour les joueurs : personne ne peut changer
 son propre handle ni ses dépôts surveillés depuis le navigateur.
@@ -170,9 +173,44 @@ connecteur dans `CONNECTORS` et à ajouter son secret dans `pr-dex-data`.
 Le critère auquel ce découpage se juge : **ajouter un pôle ne doit toucher ni le front, ni
 le schéma, ni la logique de jeu.**
 
+### La source `slack` : des attributions plutôt qu'une API
+
+Certaines activités n'ont pas d'API à interroger : c'est un agent qui décide qui a participé.
+Il écrit un fichier par session dans `pr-dex-data/attributions/<activité>/`, et le
+connecteur `slack` (`scripts/connectors/slack.mjs`) le lit au passage suivant de `catch.yml`.
+Une personne y est reconnue par son identifiant Slack.
+
+Ajouter une activité de ce genre ne demande aucun code ici : un dossier et un agent.
+Le connecteur plafonne `draws` à 10 et ignore la fenêtre de sept jours — une attribution
+n'expire pas. Un fichier mal formé fait finir le run en rouge, avec son chemin.
+
 `state.version` remplace le SHA de blob git de l'ancienne version comme jeton de
 concurrence optimiste (un appareil qui écrit sur une version périmée reçoit un conflit,
 rejoué une fois sur l'état frais — même logique qu'avant, autre mécanisme de stockage).
+
+## L'agent du monkey-testing
+
+`pr-dex-data/.github/workflows/monkey-testing.yml` tourne chaque jour ouvré, ou à la main
+avec le lien d'un thread. Il clone `main` d'ici et enchaîne quatre scripts de
+`scripts/agents/monkey-testing/` :
+
+1. `collect.mjs` lit #monkey-testing et prépare une entrée par session terminée (24 h sans
+   message). Une session est un message dont le thread a des réponses d'au moins deux
+   personnes autres que son auteur. Un retour posté dans la room rejoint la session ouverte.
+2. `judge.mjs` fait juger chaque entrée par Claude Code, **sans aucun outil**, selon
+   `agents/monkey-testing.md`. Il tourne sur un abonnement (`CLAUDE_CODE_OAUTH_TOKEN`).
+3. `apply.mjs` contrôle chaque verdict — ni l'organisateur, ni quelqu'un d'absent, ni une
+   preuve qui n'est pas un message de la personne — puis écrit
+   `attributions/monkey-testing/<date>-<ts>.json`. On ajoute, on ne retire jamais.
+4. Après le push, `announce.mjs` poste le récap dans le thread, et le workflow lance
+   `catch.yml`.
+
+Les messages Slack sont écrits par n'importe qui, et Claude les lit : c'est pour ça qu'il n'a
+aucun outil et que ses verdicts sont contrôlés. Une consigne glissée dans un message ne peut
+changer que la liste des gagnants d'une session, dans les limites de ces contrôles.
+
+Un mode « à blanc » (`dry_run`) juge sans commiter ni poster ; le résultat est dans
+l'artefact du run.
 
 ## Le bouton de sync
 
@@ -193,6 +231,8 @@ n'apparaissent qu'après, à un refresh suivant.
     l'organisation si aucune identité ne restreint `config.repos`. Aucun droit d'écriture
     nulle part. Chaque source ajoutée apporte son propre secret, déclaré par son connecteur
     (`secretEnv`) et posé dans `pr-dex-data`.
+  - **`ATTRIBUTIONS_DIR`** (pas un secret) : chemin du dossier `attributions/` du checkout
+    de `pr-dex-data`, posé par `catch.yml`. Requis dès qu'une identité `slack` existe.
   - **`SUPABASE_SERVICE_ROLE_KEY`** : contourne RLS — c'est le seul moyen d'écrire dans
     `catches` pour n'importe quel `user_id`, puisque les utilisateurs n'ont eux-mêmes
     aucune permission d'écriture sur cette table.
@@ -250,7 +290,8 @@ supabase/migrations/              l'histoire complète du schéma, horodatée �
                                   TEST locale (`supabase db reset`) et sert de référence pour ce qui
                                   reste à passer à la main sur la base en service.
                                   Déjà appliquées en production : `20260720000000_schema_initial`,
-                                  `20260930000000_leaderboard`, `20261001000000_identities_lecture_seule`.
+                                  `20260930000000_leaderboard`, `20261001000000_identities_lecture_seule`,
+                                  `20261013000000_connexion_slack`.
                                   Restent à coller, dans cet ordre : `20260811000000_arena`,
                                   `20260814000000_evolutions`, `20260924000000_revente`,
                                   `20261008000000_leaderboard_evolutions`, puis `seed.sql`
@@ -263,7 +304,9 @@ shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasE
 shared/draw.js            fnv1a + drawFrom, partagé front ↔ Action
 shared/entry.js           entryKey(source, externalId) — clé d'exemplaire et seed du tirage
 scripts/catch.mjs         Action : registre des sources, boucle sur les identités, tirage, insertion
-scripts/connectors/       une source par fichier ; github.mjs est la seule pour l'instant
+scripts/connectors/       une source par fichier ; github.mjs, slack.mjs
+scripts/agents/monkey-testing/  l'agent du monkey-testing : collecte, jugement, écriture, récap
+agents/monkey-testing.md  le prompt du jugement, et son schéma de sortie
 src/lib/                  supabaseClient.js, supabaseData.js (seul module réseau du jeu), sprites.js
 src/composables/          useAuth.js (session OAuth), useDex.js (dérivation pure), useCollection.js (effets)
 src/components/           TheRail, TheTray, SpeciesSheet, RitualOverlay, EvolutionOverlay,

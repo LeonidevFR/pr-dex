@@ -51,9 +51,11 @@ async function avec(fn) {
 }
 
 /**
- * Remet la base locale dans l'état de la production : la migration de juillet, et rien d'autre.
- * Les quatre nouvelles migrations et le seed sont écartés le temps de la remise à zéro, sinon
- * `supabase db reset` les appliquerait et l'on testerait un déploiement déjà fait.
+ * Remet la base locale dans l'état de la production : le schéma initial, le classement, les
+ * identités en lecture seule et la connexion Slack — les quatre fichiers déjà collés sur la
+ * base en service. Les quatre migrations de l'arène et le seed sont écartés le temps de la
+ * remise à zéro, sinon `supabase db reset` les appliquerait et l'on testerait un déploiement
+ * déjà fait.
  */
 function etatDeLaProduction() {
   const ecartes = [

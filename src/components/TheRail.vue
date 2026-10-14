@@ -87,7 +87,8 @@ onUnmounted(() => clearTimeout(cooldownTimer))
   <header class="rail">
     <div class="rail-brand">
       <div class="wordmark"><i>PR</i>·DEX</div>
-      <div class="eyebrow rail-sub">Une PR mergée, un Pokémon</div>
+      <!-- Court à dessein : plus long, il fait passer les outils à la ligne dès 1 280 px. -->
+      <div class="eyebrow rail-sub">PR ou test : un Pokémon</div>
     </div>
     <!-- Les vues sont des pages, pas des onglets d'une modale : une vraie navigation, avec
          l'onglet courant annoncé — c'était le défaut relevé sur le panneau de classement. -->

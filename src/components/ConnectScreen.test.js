@@ -11,10 +11,19 @@ describe('ConnectScreen', () => {
     expect(w.text()).not.toContain('Aperçu maquette')
   })
 
-  it('émet connect au clic, sans payload à saisir', async () => {
+  it('émet connect avec le fournisseur choisi', async () => {
     const w = mountConnect()
     await w.find('.btn-solid').trigger('click')
-    expect(w.emitted('connect')).toBeTruthy()
+    await w.find('.btn-slack').trigger('click')
+    expect(w.emitted('connect')).toEqual([['github'], ['slack_oidc']])
+  })
+
+  it('désactive aussi le bouton Slack pendant la connexion', () => {
+    expect(mountConnect({ busy: true }).find('.btn-slack').attributes('disabled')).toBeDefined()
+  })
+
+  it('dit que Slack sert à ceux qui n’ont pas GitHub', () => {
+    expect(mountConnect().text()).toContain('monkey-testing')
   })
 
   it.each([

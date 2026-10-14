@@ -7,7 +7,10 @@ import App from './App.vue'
 // l'appel : monter App.vue pour de vrai suppose de le remplacer. La session reste nulle —
 // c'est le mode démo, plus bas, qui fait entrer l'application dans son état connecté.
 vi.mock('./composables/useAuth.js', () => ({
-  useAuth: () => ({ session: ref(null), ready: ref(true), signInWithGithub: () => {}, signOut: () => {} }),
+  useAuth: () => ({
+    session: ref(null), ready: ref(true), authError: ref(null),
+    signIn: () => {}, link: () => {}, unlink: async () => false, freshUser: async () => null, signOut: () => {},
+  }),
 }))
 
 let wrapper = null
@@ -509,5 +512,20 @@ describe('démarrage', () => {
       await flushPromises()
     }
     expect(wrapper.findAll('.cell').length).toBeGreaterThan(0)
+  })
+})
+
+describe('réglages du compte', () => {
+  it('ne propose pas de lier Slack en démo, faute de session', async () => {
+    const w = await mountApp()
+    await w.find('[aria-label="Réglages"]').trigger('click')
+    expect(w.find('.settings').exists()).toBe(true)
+    expect(w.find('.link-slack').exists()).toBe(false)
+    expect(w.find('.settings').text()).toContain('démo')
+  })
+
+  it('n’invite pas à lier Slack en démo', async () => {
+    const w = await mountApp()
+    expect(w.find('.slack-invite').exists()).toBe(false)
   })
 })
