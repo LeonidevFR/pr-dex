@@ -15,9 +15,9 @@ const codes = (r) => Object.keys(r.unlocked).sort()
 const evo = (species, from, fromKey, date = D) => ({ species, from, fromKey, date })
 
 describe('catalogue', () => {
-  it('compte 28 succès aux codes uniques, chacun avec un palier de carte', () => {
-    expect(ACHIEVEMENTS).toHaveLength(28)
-    expect(Object.keys(BY_CODE)).toHaveLength(28)
+  it('compte 29 succès aux codes uniques, chacun avec un palier de carte', () => {
+    expect(ACHIEVEMENTS).toHaveLength(29)
+    expect(Object.keys(BY_CODE)).toHaveLength(29)
     for (const a of ACHIEVEMENTS) expect(['c', 'u', 'r', 'l']).toContain(a.tier)
   })
 
@@ -140,6 +140,14 @@ describe('evaluate — coups de dés', () => {
     const gap = (n) => [gh('s1', 19, { shiny: true }), ...Array.from({ length: n - 1 }, (_, i) => gh(`g${i}`, 25)), gh('s2', 16, { shiny: true })]
     expect(run(gap(10)).unlocked['shiny-double']).toBeDefined()
     expect(run(gap(11)).unlocked['shiny-double']).toBeUndefined()
+  })
+
+  it('gros veinard : un légendaire chromatique, ouvert', () => {
+    expect(run([gh('a', 19), gh('m', 150, { shiny: true, date: '2026-06-04' })]).unlocked['shiny-legendary'])
+      .toEqual({ date: '2026-06-04', triggerKey: 'github:m' })
+    expect(run([gh('m', 150)]).unlocked['shiny-legendary']).toBeUndefined()
+    expect(run([gh('a', 25, { shiny: true })]).unlocked['shiny-legendary']).toBeUndefined()
+    expect(run([gh('m', 150, { shiny: true })], { sealed: ['m'] }).unlocked['shiny-legendary']).toBeUndefined()
   })
 
   it('doublé chromatique : la description dit la même règle que le code, écart de 10 compris', () => {

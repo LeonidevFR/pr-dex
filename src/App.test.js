@@ -214,7 +214,7 @@ describe('succès', () => {
       await new Promise((r) => setTimeout(r, 5))
       await flushPromises()
     }
-    expect(w.find('.rail-tab-pip').text()).toBe('8')
+    expect(w.find('.rail-tab-pip').text()).toBe('9')
   }
 
   it('ouvre le récap des succès déjà acquis à l’arrivée sur l’onglet, une seule fois', async () => {
@@ -222,12 +222,12 @@ describe('succès', () => {
     await untilBadge(w)
     await tabOf(w, 'Succès').trigger('click')
     await flushPromises()
-    expect(w.find('.ach-recap-title').text()).toBe('Tu avais déjà 8 succès')
+    expect(w.find('.ach-recap-title').text()).toBe('Tu avais déjà 9 succès')
     await w.find('.ach-recap-close').trigger('click')
     await flushPromises()
     expect(w.find('.ach-recap').exists()).toBe(false)
     expect(w.find('.rail-tab-pip').exists()).toBe(false)
-    expect(w.findAll('.ach-row.is-owned')).toHaveLength(8)
+    expect(w.findAll('.ach-row.is-owned')).toHaveLength(9)
   })
 
   it('Échap ferme le récap', async () => {
