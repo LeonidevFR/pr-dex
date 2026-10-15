@@ -18,7 +18,7 @@ const row = (w, code) => w.find(`[data-code="${code}"]`)
 
 describe('AchievementsView', () => {
   it('compte les succès obtenus sur le total', () => {
-    expect(mountView().find('.ach-total').text()).toBe('2 / 28')
+    expect(mountView().find('.ach-total').text()).toBe('2 / 29')
   })
 
   it('un succès obtenu montre son nom, sa date, son palier et qui l’a', () => {

@@ -78,7 +78,7 @@ describe('succès de la démo', () => {
       .map((c) => entryKey(c.source, c.external_id))
     const gained = []
     let before = await unlockedAfter(client, claimed)
-    expect(before).toHaveLength(8)
+    expect(before).toHaveLength(9)
     for (const key of pending) {
       claimed = [...claimed, key]
       const after = await unlockedAfter(client, claimed)

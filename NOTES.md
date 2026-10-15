@@ -231,7 +231,7 @@ venaient les données.
 
 ## Succès, octobre 2026
 
-28 succès, dans un 4e onglet. Ce qui ne se déduit pas du code :
+29 succès, dans un 4e onglet. Ce qui ne se déduit pas du code :
 
 - **Rien ne récompense le travail.** Pas de « 100 PR », pas d'heure, pas de série de jours :
   les succès portent sur la collection, la chance et les gestes de jeu. Seule exception, les

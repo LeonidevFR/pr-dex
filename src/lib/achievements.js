@@ -32,6 +32,7 @@ export const ACHIEVEMENTS = [
   { code: 'golden-booster', group: 'dice', name: 'Booster doré', desc: '3 cartes rares ou mieux dans un même booster.', tier: 'u', hidden: true, icon: { sprite: 52 } },
   { code: 'shiny-booster', group: 'dice', name: 'Booster chromatique', desc: 'Un chromatique dans un booster de monkey-testing.', tier: 'r', hidden: true, icon: { glyph: '✦' } },
   { code: 'twins', group: 'dice', name: 'Jumeaux', desc: 'Tirer la même espèce qu’un coéquipier, le même jour.', tier: 'r', hidden: true, icon: { sprite: 102 } },
+  { code: 'shiny-legendary', group: 'dice', name: 'Gros veinard', desc: 'Tirer un légendaire chromatique.', tier: 'l', hidden: true, icon: { sprite: 151 } },
   { code: 'shiny-double', group: 'dice', name: 'Doublé chromatique', desc: 'Tirer 2 chromatiques à 10 cartes d’écart au plus.', tier: 'l', hidden: true, icon: { glyph: '★★' } },
   { code: 'too-late', group: 'actions', name: 'Trop tard', desc: 'Tirer une espèce que tu avais déjà obtenue par évolution.', tier: 'c', hidden: true, icon: { sprite: 79 } },
   { code: 'right-away', group: 'actions', name: 'Sitôt dit', desc: 'Faire évoluer une carte le jour où elle a été tirée.', tier: 'c', hidden: true, icon: { sprite: 63 } },
@@ -139,6 +140,8 @@ export function evaluate({ catches, claimed, evolutions, others = [] }) {
     if (prev?.open && evosOf(prev.species).includes(c.species)) hit('on-top', c.date, c.key)
     if (prev?.open && prev2?.open && [prev2, prev, c].every((x) => RARE_OR_BETTER.has(x.tier))) hit('hot-hand', c.date, c.key)
     if (i < 10 && (c.shiny || c.tier === 'l')) hit('beginner-luck', c.date, c.key)
+    // 1 carte sur 25 600 (0,5 % × 1/128). Un légendaire n'évolue d'aucune espèce : seul le tirage compte.
+    if (c.shiny && c.tier === 'l') hit('shiny-legendary', c.date, c.key)
     if (c.shiny && seq.slice(Math.max(0, i - 10), i).some((x) => x.open && x.shiny)) hit('shiny-double', c.date, c.key)
     if (c.source === 'github' && prNumber(c) !== null && prNumber(c) % 1000 === c.species) hit('lucky-number', c.date, c.key)
   }
