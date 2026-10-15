@@ -12,7 +12,7 @@ const props = defineProps({
   copies: { type: Object, default: () => ({}) },
   evolvable: { type: Set, default: () => new Set() },
   activeTiers: { type: Set, default: () => new Set(['c', 'u', 'r', 'l']) },
-  statusFilter: { type: String, default: 'all' }, // 'all' | 'caught' | 'uncaught' | 'evolvable'
+  statusFilter: { type: String, default: 'all' }, // 'all' | 'caught' | 'uncaught' | 'evolvable' | 'shiny'
   query: { type: String, default: '' },
 })
 const emit = defineEmits(['select', 'toggle-tier', 'set-status-filter', 'set-query', 'reset-filters'])
@@ -41,25 +41,29 @@ const visibleIds = computed(() =>
     if (props.statusFilter === 'caught' && !caught) return false
     if (props.statusFilter === 'uncaught' && caught) return false
     if (props.statusFilter === 'evolvable' && !props.evolvable.has(id)) return false
+    if (props.statusFilter === 'shiny' && !isShiny(props.bySpecies[id])) return false
     return true
   }),
 )
 
 // Une grille vide est un état normal ici — on n'a pas toujours de quoi faire évoluer
 // quelqu'un — mais elle ne doit pas rester muette : sans un mot, elle se lit comme un bug.
-// La raison n'est nommée que si « Évoluables » est bien seul en cause : un palier décoché
-// en même temps rendrait l'explication fausse.
+// La raison n'est nommée que si « Évoluables » ou « Shiny » est bien seul en cause : un
+// palier décoché en même temps rendrait l'explication fausse.
 const emptyLabel = computed(() => {
   if (visibleIds.value.length > 0) return null
   if (props.query.trim()) return 'Aucun Pokémon ne correspond'
-  const seulementEvolvable = props.statusFilter === 'evolvable'
-    && props.activeTiers.size === TIERS.length
-  return seulementEvolvable
-    ? 'Rien à faire évoluer pour l’instant. Il faut une carte libre, assez de bonbons, et une évolution que tu n’as pas encore.'
-    : 'Aucune espèce ne répond à ces filtres.'
+  const tousPaliers = props.activeTiers.size === TIERS.length
+  if (tousPaliers && props.statusFilter === 'evolvable') {
+    return 'Rien à faire évoluer pour l’instant. Il faut une carte libre, assez de bonbons, et une évolution que tu n’as pas encore.'
+  }
+  if (tousPaliers && props.statusFilter === 'shiny') return 'Aucun shiny pour l’instant.'
+  return 'Aucune espèce ne répond à ces filtres.'
 })
 
 const evolvableCount = computed(() => props.evolvable.size)
+// Le même compte que les étoiles de la grille : une espèce par case, évolutions comprises.
+const shinyCount = computed(() => ids.filter((id) => isShiny(props.bySpecies[id])).length)
 const tierOf = (id) => DEX[id].tier
 </script>
 
@@ -93,6 +97,11 @@ const tierOf = (id) => DEX[id].tier
       title="Espèces qui ont de quoi évoluer maintenant vers une forme qui manque encore"
       @click="emit('set-status-filter', 'evolvable')"
     >Évoluables · {{ evolvableCount }}</button>
+    <button
+      class="filter-chip chip-shiny" :class="{ active: statusFilter === 'shiny' }"
+      title="Espèces dont tu tiens un exemplaire shiny"
+      @click="emit('set-status-filter', 'shiny')"
+    >Shiny · {{ shinyCount }}</button>
   </div>
 
   <div class="tray">

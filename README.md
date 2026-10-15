@@ -61,8 +61,13 @@ non « chromatique » ; « Pokédex » pour les espèces déjà vues, « collect
 ## Le tableau des scores
 
 L'onglet Leaderboard ouvre le seul écran où l'on regarde les autres : un classement par espèces
-distinctes (puis shiny, puis légendaires), et ses propres stats — cartes retournées, tirages par
-palier, espèces shiny sur 151, évolutions.
+distinctes (puis espèces shiny, puis légendaires), et ses propres stats — cartes retournées, tirages par
+palier, espèces shiny sur 151, évolutions. Sous le classement, la liste des espèces que personne
+dans l'équipe n'a encore vues.
+
+Le shiny se compte par espèce, évolutions comprises, comme l'étoile de la grille : un Chenipan
+shiny qui évolue en Chrysacier fait deux espèces shiny pour une seule carte. Seul l'onglet
+Statistiques donne en plus le nombre de cartes shiny tirées.
 
 Seules les cartes **retournées** comptent, comme dans le dex : le classement ne dévoile pas
 un légendaire avant que son propriétaire l'ait vu. Ni le titre ni le lien des PR ne sortent

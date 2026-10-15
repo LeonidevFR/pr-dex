@@ -211,6 +211,36 @@ describe('TheTray', () => {
       expect(w.emitted('set-status-filter')[0]).toEqual(['evolvable'])
     })
 
+    // Le filtre lit le même signe que l'étoile de la case : une espèce obtenue en faisant
+    // évoluer un shiny est shiny, même si la carte d'origine a été consommée.
+    it('ne garde que les espèces shiny, évolutions comprises', () => {
+      const w = mountFiltered({
+        bySpecies: {
+          1: [entry('a', 1)],
+          10: [entry('b', 10, { shiny: true })],
+          11: [{ species: 11, from: 10, via: 'evo', date: '2026-07-14', shiny: true, key: 'evo:0' }],
+        },
+        statusFilter: 'shiny',
+      })
+      expect(w.findAll('.cell .cell-no').map((n) => n.text())).toEqual(['010', '011'])
+    })
+
+    it('compte les espèces shiny dans le chip', () => {
+      const w = mountFiltered({ bySpecies: { 1: [entry('a', 1)], 25: [entry('b', 25), entry('c', 25, { shiny: true })] } })
+      expect(w.find('.chip-shiny').text()).toBe('Shiny · 1')
+    })
+
+    it('émet set-status-filter au clic sur le chip Shiny', async () => {
+      const w = mountFiltered()
+      await w.find('.chip-shiny').trigger('click')
+      expect(w.emitted('set-status-filter')[0]).toEqual(['shiny'])
+    })
+
+    it('explique une grille shiny vide', () => {
+      const w = mountFiltered({ bySpecies: { 1: [entry('a', 1)] }, statusFilter: 'shiny' })
+      expect(w.find('.tray-empty').text()).toContain('Aucun shiny')
+    })
+
     it('explique la grille vide plutôt que de la laisser muette', () => {
       const w = mountFiltered({ statusFilter: 'evolvable', evolvable: new Set() })
       expect(w.findAll('.cell')).toHaveLength(0)

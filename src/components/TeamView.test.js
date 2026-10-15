@@ -31,6 +31,34 @@ describe('TeamView', () => {
     expect(w.find('[data-total="shiny"]').text()).toContain('1')
   })
 
+  it('affiche dans la colonne Shiny les espèces shiny, évolutions comprises', async () => {
+    const w = mountView(vi.fn().mockResolvedValue([
+      { login: 'moi', avatar_url: null, is_me: true, catches: [c('a', 10, true)], evolutions: [{ species: 11, from: 10, date: '2026-09-02', fromKey: 'github:a' }] },
+    ]))
+    await flushPromises()
+    const shinyCol = w.findAll('thead th').findIndex((th) => th.text() === 'Shiny')
+    expect(w.findAll('tbody tr')[0].findAll('td')[shinyCol].text()).toBe('2')
+    expect(w.find('[data-total="shiny"]').text()).toContain('2')
+  })
+
+  it('liste les espèces qui manquent à l’équipe', async () => {
+    const w = mountView(vi.fn().mockResolvedValue(ROWS))
+    await flushPromises()
+    const missing = w.find('[data-section="missing"]')
+    expect(missing.text()).toContain('148')
+    expect(missing.findAll('.missing-item')).toHaveLength(148)
+    expect(missing.findAll('.missing-item')[0].text()).toContain('002')
+    expect(missing.text()).not.toContain('Bulbizarre')
+  })
+
+  it('dit quand l’équipe a vu les 151', async () => {
+    const all = Array.from({ length: 151 }, (_, i) => c(`x${i}`, i + 1))
+    const w = mountView(vi.fn().mockResolvedValue([{ login: 'moi', avatar_url: null, is_me: true, catches: all, evolutions: [] }]))
+    await flushPromises()
+    expect(w.findAll('.missing-item')).toHaveLength(0)
+    expect(w.find('[data-section="missing"]').text()).toContain('151')
+  })
+
   it('marque la ligne du joueur courant', async () => {
     const w = mountView(vi.fn().mockResolvedValue(ROWS))
     await flushPromises()
