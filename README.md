@@ -187,7 +187,9 @@ Une personne y est reconnue par son identifiant Slack.
 
 Ajouter une activité de ce genre ne demande aucun code ici : un dossier et un agent.
 Le connecteur plafonne `draws` à 10 et ignore la fenêtre de sept jours — une attribution
-n'expire pas. Un fichier mal formé fait finir le run en rouge, avec son chemin.
+n'expire pas. Une participation vaut 10 tirages, mais **3 pour un dev** : quelqu'un qui a une
+identité GitHub, ou des captures GitHub s'il l'a déliée. Un dev gagne déjà ses cartes avec
+ses PR ; le monkey-testing est surtout la porte d'entrée de ceux qui n'en font pas. Un fichier mal formé fait finir le run en rouge, avec son chemin.
 
 `state.version` remplace le SHA de blob git de l'ancienne version comme jeton de
 concurrence optimiste (un appareil qui écrit sur une version périmée reçoit un conflit,

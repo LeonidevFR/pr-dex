@@ -16,6 +16,13 @@ export const secretEnv = 'ATTRIBUTIONS_DIR'
  */
 export const MAX_DRAWS = 10
 
+/**
+ * Tirages d'une participation pour quelqu'un qui a aussi GitHub. Un dev gagne déjà ses cartes
+ * avec ses PR, une centaine par mois : le monkey-testing est surtout la porte d'entrée de ceux
+ * qui n'en font pas. Les devs gardent un geste, pour avoir encore envie de tester.
+ */
+export const DEV_DRAWS = 3
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const SLACK_ID = /^[UW][A-Z0-9]+$/
 
@@ -69,9 +76,13 @@ async function listFiles(dir) {
  *
  * La clé contient la personne : elle sert de graine au tirage, et sans elle tous les
  * participants d'une session tireraient les mêmes Pokémon.
+ *
+ * `sources` : les sources par lesquelles la personne est connue (voir `catch.mjs`). Avec
+ * `github`, une participation vaut `DEV_DRAWS` tirages au lieu de `MAX_DRAWS`.
  */
-export async function collect({ handle, secret, existing = [] }) {
+export async function collect({ handle, secret, existing = [], sources = new Set() }) {
   const known = new Set(existing.map((c) => c.external_id))
+  const cap = sources.has('github') ? DEV_DRAWS : MAX_DRAWS
   const out = []
   for (const file of await listFiles(secret)) {
     let data
@@ -82,7 +93,7 @@ export async function collect({ handle, secret, existing = [] }) {
     }
     const a = parseAttribution(data, file.rel, file.folder)
     if (!a.recipients.some((r) => r.slack_id === handle)) continue
-    for (let n = 1; n <= Math.min(a.draws, MAX_DRAWS); n++) {
+    for (let n = 1; n <= Math.min(a.draws, cap); n++) {
       const externalId = `${a.activity}:${a.id}:${handle}:${n}`
       if (known.has(externalId)) continue
       known.add(externalId)
