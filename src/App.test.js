@@ -269,7 +269,7 @@ describe('les lieux ont une URL', () => {
  */
 describe('le profil', () => {
   const ouvrir = async (w) => {
-    await aller(w, 'Moi')
+    await aller(w, 'Ma fiche')
     await flushPromises()
     return w
   }
@@ -557,7 +557,7 @@ describe('l’annonce de l’arène', () => {
    * une arène qui n'a pas ouvert.
    */
   it('laisse les classements et « Moi » ouverts, réduits à la collection', async () => {
-    for (const [lieu, attendu] of [['Scores', '.board-table'], ['Moi', '[data-stat="species"]']]) {
+    for (const [lieu, attendu] of [['Scores', '.board-table'], ['Ma fiche', '[data-stat="species"]']]) {
       window.history.replaceState({}, '', '/?demo&teaser')
       const w = await mountApp()
       await aller(w, lieu)
@@ -588,7 +588,7 @@ describe('l’annonce de l’arène', () => {
   it('laisse le profil accessible', async () => {
     window.history.replaceState({}, '', '/?demo&teaser')
     const w = await mountApp()
-    await aller(w, 'Moi')
+    await aller(w, 'Ma fiche')
     expect(w.find('.teaser').exists()).toBe(false)
   })
 })

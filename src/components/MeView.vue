@@ -70,7 +70,7 @@ const cases = computed(() => {
   <section class="view">
     <div class="view-head">
       <div>
-        <div class="eyebrow">Moi</div>
+        <div class="eyebrow">Ma fiche</div>
         <!-- « Ce que tu as tiré » était le titre des statistiques seules. La page porte aussi
              la caisse, les duels et les médailles, qui ne se tirent pas. -->
         <h1 class="view-title">Ce qui est <i>à toi</i></h1>

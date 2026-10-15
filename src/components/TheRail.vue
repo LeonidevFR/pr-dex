@@ -22,14 +22,23 @@ const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'
  * le rail avait déjà.
  *
  * Duels et Boutique restent visibles avant le 1er décembre : ils mènent au teaser, qui est fait
- * pour ça. Classements et Moi fonctionnent déjà — ils se réduisent à leur moitié collection.
+ * pour ça. Scores et Ma fiche fonctionnent déjà — ils se réduisent à leur moitié collection.
+ *
+ * Les libellés nomment ce qu'on trouve en arrivant, pas la famille dont l'écran venait : « Arène »
+ * promettrait encore la boutique et les médailles, parties ailleurs. « Ma fiche » reprend le mot
+ * qui désigne déjà la page d'un joueur, au possessif puisque c'est la sienne — « Profil » adresse
+ * ailleurs dans cette application, où /profile/:login est la fiche d'un collègue.
+ *
+ * « Classement » serait plus juste que « Scores », mais les deux libellés longs ne tiennent pas
+ * ensemble : mesuré à 1 280 px, la barre dispose de 437 px avant que les outils passent à la
+ * ligne, et « Classement » + « Ma fiche » en demande 468.
  */
 const TABS = [
   ['collection', 'Collection'],
   ['duels', 'Duels'],
   ['shop', 'Boutique'],
   ['classements', 'Scores'],
-  ['moi', 'Moi'],
+  ['moi', 'Ma fiche'],
 ]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas

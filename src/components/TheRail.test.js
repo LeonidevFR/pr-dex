@@ -60,7 +60,7 @@ describe('TheRail', () => {
       const w = mountRail()
       expect(w.find('nav.rail-nav').exists()).toBe(true)
       expect(w.findAll('.rail-tab').map((t) => t.text()))
-        .toEqual(['Collection', 'Duels', 'Boutique', 'Scores', 'Moi'])
+        .toEqual(['Collection', 'Duels', 'Boutique', 'Scores', 'Ma fiche'])
     })
 
     /**
@@ -87,7 +87,7 @@ describe('TheRail', () => {
 
     it('émet navigate avec la vue cliquée', async () => {
       const w = mountRail()
-      await tab(w, 'Moi').trigger('click')
+      await tab(w, 'Ma fiche').trigger('click')
       expect(w.emitted('navigate')[0]).toEqual(['moi'])
     })
 
