@@ -263,9 +263,10 @@ describe('les lieux ont une URL', () => {
 })
 
 /**
- * La fiche d'un joueur, de bout en bout. Deux fiches pour un seul gabarit : la sienne, complète,
- * et celle d'un collègue, caviardée. C'est la vue SQL qui garantit la règle ; ce qui se vérifie
- * ici est que l'écran sait laquelle des deux il regarde.
+ * La fiche d'un joueur, de bout en bout. Deux écrans distincts : la sienne, complète, et celle
+ * d'un collègue, qui ne porte que ce que la vue publique contient. C'est la vue SQL qui garantit
+ * la règle ; ce qui se vérifie ici est que l'écran sait laquelle des deux il regarde — et qu'un
+ * lien vers sa PROPRE fiche publique mène à la sienne, non à sa version vue de l'extérieur.
  */
 describe('le profil', () => {
   const ouvrir = async (w) => {
@@ -278,23 +279,38 @@ describe('le profil', () => {
     const w = await ouvrir(await mountApp())
     expect(location.pathname).toBe('/moi')
     expect(w.findAll('.prof-case.secret')).toHaveLength(0)
-    expect(w.text()).toContain('Ta collection')
+    expect(w.text()).toContain('Ce que tu as tiré')
   })
 
   it('compte les exemplaires depuis la collection, et non depuis la vue publique', async () => {
     const w = await ouvrir(await mountApp())
     const exemplaires = w.findAll('.prof-case')
-      .find((c) => c.find('span').text() === 'Exemplaires').find('b').text()
+      .find((c) => c.find('span').text() === 'Exemplaires disponibles').find('b').text()
     expect(Number(exemplaires)).toBeGreaterThan(0)
   })
 
-  // Un lien reçu d'un collègue : l'écran doit se reconstituer seul, et caviarder.
-  it('ouvre la fiche d’un collègue depuis l’adresse, caviardée', async () => {
+  // Un lien reçu d'un collègue : l'écran doit se reconstituer seul.
+  it('ouvre la fiche d’un collègue depuis l’adresse', async () => {
     window.history.replaceState({}, '', '/profile/bob-dev?demo')
     const w = await mountApp()
     await flushPromises()
     expect(w.find('.view-title i').text()).toBe('bob-dev')
-    expect(w.findAll('.prof-case.secret')).toHaveLength(5)
+    expect(w.findAll('.prof-case')).toHaveLength(4)
+  })
+
+  /**
+   * Sa propre ligne du classement menait à /profile/soi. En démonstration la fiche publique ne
+   * répondait pas sur son propre login et l'écran annonçait « Personne ne joue sous ce nom » —
+   * sur sa propre fiche. En production elle aurait répondu, et montré ses chiffres tels qu'un
+   * tiers les voit, amputés de ce qu'elle ne publie pas.
+   */
+  it('renvoie à sa propre fiche, pas à sa version vue de l’extérieur', async () => {
+    window.history.replaceState({}, '', '/profile/leonard?demo')
+    const w = await mountApp()
+    await flushPromises()
+    expect(location.pathname).toBe('/moi')
+    expect(w.text()).not.toContain('Personne ne joue sous ce nom')
+    expect(w.text()).toContain('Ce que tu as tiré')
   })
 
   it('explique un login qui ne joue pas, au lieu d’une fiche vide', async () => {
@@ -318,6 +334,18 @@ describe('la saison', () => {
     expect(location.pathname).toBe('/classements')
     // Les deux classements, puisque l'arène est ouverte en démonstration.
     expect(w.findAll('.board-table')).toHaveLength(2)
+  })
+
+  // Sa propre ligne mène chez soi : le même clic, l'autre destination.
+  it('emmène à sa propre fiche depuis sa ligne du classement', async () => {
+    window.history.replaceState({}, '', '/classements?demo')
+    const w = await mountApp()
+    await flushPromises()
+    const moi = w.findAll('.saison-voir').find((r) => r.text().includes('leonard'))
+    await moi.trigger('click')
+    await flushPromises()
+    expect(location.pathname).toBe('/moi')
+    expect(w.text()).toContain('Ce que tu as tiré')
   })
 
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.

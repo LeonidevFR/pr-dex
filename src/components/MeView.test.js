@@ -46,6 +46,38 @@ describe('MeView', () => {
     expect(w.text()).not.toContain('—')
   })
 
+  /**
+   * La phrase a menti : elle promettait que « ton stock » ne figurait dans aucune vue publique,
+   * alors que le classement d'équipe porte une colonne « Cartes » triable, qui est ce nombre.
+   * Ce qui ne sort réellement pas d'ici, c'est la caisse, les crédits, les pertes et les ventes.
+   */
+  /**
+   * « Exemplaires » doublait « Cartes retournées », dans la section juste dessous : deux noms
+   * pour deux nombres qui ne diffèrent que des exemplaires perdus et vendus.
+   */
+  it('nomme le stock par ce qu’il permet, pour ne pas doubler les cartes retournées', async () => {
+    const w = monter()
+    await flushPromises()
+    const labels = w.findAll('.prof-case span').map((s) => s.text())
+    expect(labels).toContain('Exemplaires disponibles')
+    expect(labels).not.toContain('Exemplaires')
+  })
+
+  it('ne promet le secret que de ce qui est réellement secret', async () => {
+    const w = monter()
+    await flushPromises()
+    expect(w.text()).not.toContain('ton stock')
+    expect(w.text()).toContain('Ta caisse, tes crédits, tes pertes et tes ventes')
+    expect(w.text()).toContain('Cartes')
+  })
+
+  // Le titre de l'écran « Statistiques » dissous, resté sur la section qui porte ses chiffres.
+  it('garde « Ce que tu as tiré » sur les statistiques de collection', async () => {
+    const w = monter()
+    await flushPromises()
+    expect(w.text()).toContain('Ce que tu as tiré')
+  })
+
   it('porte ses points et son rang en tête', async () => {
     const w = monter()
     await flushPromises()

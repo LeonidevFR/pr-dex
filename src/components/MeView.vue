@@ -51,7 +51,10 @@ const cases = computed(() => {
   const d = props.fiche ?? {}
   const p = props.prive ?? {}
   return [
-    { v: p.copies ?? 0, l: 'Exemplaires' },
+    // « Exemplaires » tout court doublait « Cartes retournées », juste en dessous, dont il ne
+    // diffère que par les exemplaires perdus et vendus. Ce chiffre-ci est celui qu'on peut
+    // engager en duel, et c'est à ce titre qu'on le lit.
+    { v: p.copies ?? 0, l: 'Exemplaires disponibles' },
     { v: `${p.pokedollars ?? 0} ₽`, l: 'Pokédollars' },
     // « Crédits » tout court se lisait comme des plis à ouvrir. Ce sont des engagements
     // d'arène : un par jour ouvré, cinq au plus, perdus le dimanche soir.
@@ -71,8 +74,8 @@ const cases = computed(() => {
     <div class="view-head">
       <div>
         <div class="eyebrow">Ma fiche</div>
-        <!-- « Ce que tu as tiré » était le titre des statistiques seules. La page porte aussi
-             la caisse, les duels et les médailles, qui ne se tirent pas. -->
+        <!-- La page porte la caisse, les duels et les médailles, qui ne se tirent pas : le titre
+             des statistiques seules, « Ce que tu as tiré », est resté sur leur section. -->
         <h1 class="view-title">Ce qui est <i>à toi</i></h1>
       </div>
       <div v-if="arenaOpen" class="view-totals">
@@ -104,9 +107,9 @@ const cases = computed(() => {
         </div>
       </div>
       <p class="muted">
-        Ces chiffres ne sortent pas d’ici : ta caisse, tes crédits, ton stock, tes pertes et tes
-        ventes ne figurent dans aucune vue publique. Tes espèces, tes victoires et tes défaites,
-        elles, se lisent au classement.
+        Ta caisse, tes crédits, tes pertes et tes ventes ne figurent dans aucune vue publique.
+        Le reste se lit au classement, le nombre d’exemplaires compris : sa colonne
+        <b>Cartes</b> le publie pour tout le monde.
       </p>
     </div>
 
@@ -118,7 +121,7 @@ const cases = computed(() => {
     <p v-else-if="!stats" class="board-empty">Retourne une carte pour voir tes stats.</p>
 
     <div v-else class="sect">
-      <div class="eyebrow sect-h"><span>Ta collection</span></div>
+      <div class="eyebrow sect-h"><span>Ce que tu as tiré</span></div>
       <dl class="board-stats">
         <div data-stat="opened"><dt>Cartes retournées</dt><dd class="stat-value">{{ stats.opened }}</dd></div>
         <div data-stat="species"><dt>Espèces</dt><dd class="stat-value">{{ stats.species }} / 151</dd></div>

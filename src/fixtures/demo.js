@@ -441,6 +441,30 @@ export function demoArena(catches, ouvertes = []) {
     return enregistrer(id, moi, lui, out, statut, adversaireId)
   }
 
+  /**
+   * Sa propre fiche publique, recalculée depuis les duels réellement joués : une fiche figée
+   * donnerait l'impression que l'écran n'a pas vu ce qui vient de se passer, alors que c'est
+   * précisément ce qu'on essaie en démo.
+   */
+  const maFiche = async () => {
+    const joues = [...duels.values()]
+    return {
+      user_id: MOI,
+      slug: 'leonard',
+      login: 'leonard',
+      // Les cartes OUVERTES et les évolutions, comme la vue `arena_public_profile`. Les cartes
+      // encore en file n'y sont pas : leur compter des espèces divulgâcherait les plis en
+      // attente, et l'écart avec le compteur du Pokédex dirait combien d'inédits y dorment.
+      species: new Set([
+        ...catches.filter((c) => ouvertes.includes(entryKey(c.source, c.external_id)))
+          .map((c) => c.species),
+        ...evolutions.map((e) => e.to_species),
+      ]).size,
+      wins: joues.filter((d) => d.winner_id === MOI).length,
+      losses: joues.filter((d) => d.winner_id !== MOI).length,
+    }
+  }
+
   return {
     readArena: async () => ({
       credits,
@@ -457,29 +481,13 @@ export function demoArena(catches, ouvertes = []) {
     }),
     readOpenChallenges: async () => challenges.map(({ rival, ...c }) => c),
     /**
-     * Les fiches publiques. Celle des autres est fixe ; la sienne se recalcule depuis les duels
-     * réellement joués — une fiche figée donnerait l'impression que l'écran n'a pas vu ce qui
-     * vient de se passer, alors que c'est précisément ce qu'on essaie en démo.
+     * Les fiches publiques. Celle des autres est fixe, la sienne se recalcule — et la vue
+     * `arena_public_profile` contient TOUT LE MONDE, soi compris : c'est ce qui permet à
+     * l'application de reconnaître un lien vers sa propre fiche et de rediriger vers la sienne.
      */
-    readPublicProfile: async (login) => FICHES_RIVAUX[login] ?? null,
-    readMyProfile: async () => {
-      const joues = [...duels.values()]
-      return {
-        user_id: MOI,
-        slug: 'leonard',
-        login: 'leonard',
-        // Les cartes OUVERTES et les évolutions, comme la vue `arena_public_profile`. Les cartes
-        // encore en file n'y sont pas : leur compter des espèces divulgâcherait les plis en
-        // attente, et l'écart avec le compteur du Pokédex dirait combien d'inédits y dorment.
-        species: new Set([
-          ...catches.filter((c) => ouvertes.includes(entryKey(c.source, c.external_id)))
-            .map((c) => c.species),
-          ...evolutions.map((e) => e.to_species),
-        ]).size,
-        wins: joues.filter((d) => d.winner_id === MOI).length,
-        losses: joues.filter((d) => d.winner_id !== MOI).length,
-      }
-    },
+    readPublicProfile: async (login) =>
+      FICHES_RIVAUX[login] ?? (login === 'leonard' ? await maFiche() : null),
+    readMyProfile: maFiche,
     readDestroyed: async () => [...destroyed].map((entry_key) => ({
       entry_key, level: levels.get(entry_key) ?? 1, wins: 0, destroyed_at: JOUR,
     })),

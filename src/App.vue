@@ -142,6 +142,9 @@ watch([() => profileOpen.value || meOpen.value, () => route.value.param, connect
   fiche.value = null
   try {
     fiche.value = login ? await client.readPublicProfile(login) : await client.readMyProfile(userId.value)
+    // Un lien vers sa PROPRE fiche publique — reçu, ou copié depuis un classement d'avant ce
+    // correctif — montrerait ses chiffres tels qu'un tiers les voit. On bascule sur la sienne.
+    if (login && fiche.value?.user_id === userId.value) return router.go('moi')
     detruits.value = login ? [] : await client.readDestroyed()
   } catch (e) {
     connectError.value = e.kind ?? 'server'
@@ -629,7 +632,7 @@ useKeyboardNav({
       :client="dataClient" :today="today" :user-id="userId"
       :leaderboard="arena ? arena.leaderboard.value : []"
       :season="arena ? arena.season.value : ''" :arena-open="areneOuverte && !!arena"
-      @profile="(p) => router.go('profile', p)"
+      @profile="(p) => router.go('profile', p)" @me="router.go('moi')"
     />
 
     <MeView

@@ -19,22 +19,29 @@ const valeurDe = (w, label) => w.findAll('.prof-case')
  * La fiche publique d'un collègue, et rien d'autre.
  *
  * Elle servait aussi à sa propre fiche, avec un caviardage conditionnel sur chaque case : la
- * même case montrait un chiffre chez soi et une barre chez l'autre. « Moi » a repris le cas du
- * propriétaire, qui n'a aucune raison de voir ses propres affaires hachurées.
+ * même case montrait un chiffre chez soi et une barre chez l'autre. « Ma fiche » a repris le cas
+ * du propriétaire, qui n'a aucune raison de voir ses propres affaires hachurées.
  *
  * L'écran applique la règle de visibilité de la spec § 5 sans la porter : c'est la vue SQL qui
  * la garantit, en n'ayant tout simplement pas les colonnes interdites. Ce qui se teste ici est
  * qu'il ne la trahisse pas en sens inverse.
  */
 describe('ProfilePanel', () => {
-  // L'économie d'arène et le stock ne figurent dans aucune vue publique : la case reste en
-  // place, barrée, pour montrer où passe la règle plutôt que de raccourcir la page en silence.
-  it('caviarde ce qui ne se publie pas', () => {
+  /**
+   * Cinq cases hachurées annonçaient chez un collègue ce qu'on ne verrait pas de lui, et un
+   * paragraphe expliquait pourquoi. Deux défauts : on ne vient pas sur la fiche de quelqu'un
+   * pour apprendre ce qui n'y est pas, et « Exemplaires » barré mentait — le classement d'équipe
+   * publie la colonne « Cartes », qui est ce nombre-là.
+   *
+   * Ce qu'on garde chez soi se lit maintenant chez soi, dans « Ma fiche », à côté des chiffres
+   * concernés.
+   */
+  it('ne montre que ce que la vue publique contient', () => {
     const w = monter()
-    for (const l of ['Exemplaires', 'Pokédollars', 'Crédits d’arène', 'Exemplaires perdus']) {
-      expect(valeurDe(w, l).classes()).toContain('secret')
-      expect(valeurDe(w, l).find('b').text()).toBe('—')
-    }
+    expect(w.findAll('.prof-case').map((c) => c.find('span').text()))
+      .toEqual(['Espèces', 'Duels gagnés', 'Perdus', 'Points · 2026-S4'])
+    expect(w.text()).not.toContain('Les cases barrées')
+    expect(w.text()).not.toContain('—')
   })
 
   it('publie en revanche les espèces et le palmarès de duels', () => {
@@ -44,24 +51,9 @@ describe('ProfilePanel', () => {
     expect(valeurDe(w, 'Perdus').find('b').text()).toBe('7')
   })
 
-  // Les cases interdites restent en place, hachurées : une case absente laisserait croire
-  // qu'il n'y avait rien à dire, une case barrée montre où passe la règle.
-  it('garde les cases caviardées à l’écran plutôt que de les retirer', () => {
-    const w = monter({ cherche: 'marion', prive: null })
-    expect(w.findAll('.prof-case')).toHaveLength(9)
-    expect(w.findAll('.prof-case.secret')).toHaveLength(5)
-  })
-
-  // Vendre n'est pas perdre : deux compteurs distincts, barrés tous les deux chez un collègue.
-  it('sépare les exemplaires perdus des exemplaires revendus', () => {
-    const w = monter()
-    expect(valeurDe(w, 'Exemplaires perdus').find('b').text()).toBe('—')
-    expect(valeurDe(w, 'Revendus').find('b').text()).toBe('—')
-  })
-
-  // Le mot « crédits » seul se lisait comme des plis à ouvrir : ce sont des engagements d'arène.
-  it('dit de quels crédits il s’agit', () => {
-    expect(monter().text()).toContain('Crédits d’arène')
+  // Les points de la saison en cours sont publics — ils sont au classement, sous ce nom.
+  it('porte les points de la saison, datés de la saison', () => {
+    expect(valeurDe(monter(), 'Points · 2026-S4').find('b').text()).toBe('240')
   })
 
   it('dresse l’étagère des podiums, et d’eux seuls', () => {

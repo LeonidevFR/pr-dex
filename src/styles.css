@@ -1155,8 +1155,6 @@
   }
   /* Hachurée plutôt que retirée : une case barrée montre où passe la règle, une case absente
      laisse croire qu'il n'y avait rien à dire. */
-  .prof-case.secret{background:repeating-linear-gradient(135deg,var(--surface) 0 7px,var(--surface) 7px 8px)}
-  .prof-case.secret b{color:var(--fg-3)}
 
   .prof-badges{display:flex;gap:20px;flex-wrap:wrap}
   .prof-badge{display:flex;flex-direction:column;align-items:center;gap:6px}

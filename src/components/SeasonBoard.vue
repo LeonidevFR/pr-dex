@@ -7,7 +7,7 @@ const props = defineProps({
   leaderboard: { type: Array, default: () => [] },
   userId: { type: String, default: '' },
 })
-defineEmits(['profile'])
+defineEmits(['profile', 'me'])
 
 /**
  * Le classement de la saison.
@@ -67,12 +67,15 @@ const retard = computed(() => {
               reconnaît sous le nom qu'on porte partout ailleurs. `slug` adresse la fiche, `login`
               la nomme : les deux coïncident pour un dev, et diffèrent pour un testeur venu de
               Slack, dont l'URL porte l'identifiant de membre.
+
+              Sa propre ligne mène à « Ma fiche », pas à /profile/soi : cette page-là est la vue
+              d'un tiers, elle montrerait ses propres chiffres amputés de ce qu'elle ne publie pas.
             -->
             <component
               :is="l.slug ? 'button' : 'span'" class="board-who-in"
               :class="{ 'saison-voir': l.slug }"
-              :title="l.slug ? `Voir la fiche de ${l.login}` : null"
-              @click="l.slug && $emit('profile', l.slug)"
+              :title="l.slug ? (l.user_id === userId ? 'Voir ta fiche' : `Voir la fiche de ${l.login}`) : null"
+              @click="l.slug && $emit(l.user_id === userId ? 'me' : 'profile', l.slug)"
             >
               <img v-if="l.avatar_url" class="board-avatar" :src="l.avatar_url" alt="">
               <span v-else class="board-avatar">{{ (l.login ?? '?')[0].toUpperCase() }}</span>

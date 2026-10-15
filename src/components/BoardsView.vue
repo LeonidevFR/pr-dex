@@ -16,7 +16,7 @@ const props = defineProps({
   /** Faux avant le 1er décembre : il n'y a alors qu'un classement à montrer. */
   arenaOpen: { type: Boolean, default: false },
 })
-defineEmits(['profile'])
+defineEmits(['profile', 'me'])
 
 /**
  * Les classements, sur un écran.
@@ -48,7 +48,8 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
           {{ titre }} <i>{{ arenaOpen ? 'face aux autres' : 'de Pokémon' }}</i>
         </h1>
         <p v-if="arenaOpen" class="muted" style="margin-top:10px">
-          Les mêmes joueurs, deux mesures : ce qu’on a trouvé, et ce qu’on a gagné.
+          Deux tableaux : les espèces trouvées depuis le début, puis les points gagnés en duel
+          pendant la saison en cours.
         </p>
       </div>
       <div v-if="totals" class="view-totals">
@@ -68,7 +69,7 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
     <SeasonBoard
       v-if="arenaOpen"
       :leaderboard="leaderboard" :user-id="userId"
-      @profile="$emit('profile', $event)"
+      @profile="$emit('profile', $event)" @me="$emit('me')"
     />
     <p v-if="arenaOpen && season" class="muted">
       Les points sont ceux de la <b>{{ seasonLabel(season) }}</b>, et d’elle seule : une saison

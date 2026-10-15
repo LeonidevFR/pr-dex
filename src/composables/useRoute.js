@@ -82,7 +82,10 @@ export function createRouter(base = import.meta.env.BASE_URL) {
     // Deux clics sur le même onglet n'ont aucune raison d'empiler deux entrées d'historique :
     // il faudrait sinon appuyer deux fois sur « retour » pour revenir d'où l'on vient.
     if (suivante.name === route.value.name && suivante.param === route.value.param) return
-    history.pushState({}, '', routePath(suivante, base))
+    // La requête suit la navigation : `?demo` et `?teaser` sont des modes de session, lus au
+    // démarrage. Les perdre au premier clic d'onglet renvoyait la démonstration sur l'écran de
+    // connexion au premier rechargement.
+    history.pushState({}, '', routePath(suivante, base) + location.search)
     route.value = suivante
   }
 

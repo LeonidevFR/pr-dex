@@ -47,6 +47,19 @@ describe('SeasonBoard', () => {
     expect(w.emitted('profile')[0]).toEqual(['marion-g'])
   })
 
+  /**
+   * Sa propre ligne menait à /profile/soi, qui est la vue d'un TIERS : en démonstration elle
+   * annonçait « Personne ne joue sous ce nom » sur sa propre fiche, et en production elle
+   * aurait montré ses chiffres amputés de ce qu'elle ne publie pas.
+   */
+  it('renvoie chez soi pour sa propre ligne, et non vers une fiche publique', async () => {
+    const w = monter()
+    await w.find('tr.me .saison-voir').trigger('click')
+    expect(w.emitted('me')).toHaveLength(1)
+    expect(w.emitted('profile')).toBeUndefined()
+    expect(w.find('tr.me .saison-voir').attributes('title')).toBe('Voir ta fiche')
+  })
+
   it('le dit quand personne n’a encore marqué', () => {
     const w = monter({ leaderboard: [] })
     expect(w.text()).toContain('Personne n’a encore marqué')

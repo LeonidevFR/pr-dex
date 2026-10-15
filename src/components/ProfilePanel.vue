@@ -25,25 +25,22 @@ const props = defineProps({
  * est toujours la vue d'un tiers, donc toujours caviardé — une condition de moins par case.
  */
 /**
- * La fiche, dans l'ordre où on la lit. `secret` marque ce qui ne sort jamais de chez soi —
- * la case reste alors en place, hachurée : la retirer ferait une page plus courte dont on ne
- * saurait pas ce qu'elle a perdu. Une case barrée montre où passe la règle.
+ * La fiche, dans l'ordre où on la lit : ce que la vue publique contient, et rien de plus.
+ *
+ * Il y avait cinq cases hachurées de plus — la caisse, les crédits, les pertes, les ventes, le
+ * stock — et un paragraphe pour expliquer pourquoi elles étaient barrées. Chez un collègue, ça
+ * ne renseignait personne : on ne vient pas ici pour apprendre ce qu'on ne verra pas. Et
+ * « Exemplaires » barré mentait, le classement d'équipe publiant la colonne « Cartes ».
+ *
+ * Ce qu'on garde chez soi se lit chez soi : « Ma fiche » le dit, à côté des chiffres concernés.
  */
 const cases = computed(() => {
   const d = props.fiche ?? {}
   return [
     { v: String(d.species ?? 0).padStart(3, '0'), l: 'Espèces' },
-    { secret: true, l: 'Exemplaires' },
-    { secret: true, l: 'Pokédollars' },
-    // « Crédits » tout court se lisait comme des plis à ouvrir. Ce sont des engagements
-    // d'arène : un par jour ouvré, cinq au plus, perdus le dimanche soir.
-    { secret: true, l: 'Crédits d’arène' },
     { v: d.wins ?? 0, l: 'Duels gagnés' },
     { v: d.losses ?? 0, l: 'Perdus' },
     { v: props.points, l: `Points · ${seasonLabel(props.season)}` },
-    { secret: true, l: 'Exemplaires perdus' },
-    // Vendu n'est pas perdu : l'un est une défaite, l'autre une décision.
-    { secret: true, l: 'Revendus' },
   ]
 })
 
@@ -87,22 +84,10 @@ const palmares = computed(() => {
 
   <template v-else>
     <div class="prof-cases">
-      <div
-        v-for="c in cases" :key="c.l"
-        class="prof-case" :class="{ secret: c.secret }"
-      >
-        <b>{{ c.secret ? '—' : c.v }}</b>
+      <div v-for="c in cases" :key="c.l" class="prof-case">
+        <b>{{ c.v }}</b>
         <span>{{ c.l }}</span>
       </div>
-    </div>
-
-    <div class="sect">
-      <p class="muted">
-        <b>Les cases barrées ne se publient pas</b>, et personne ne les voit — pas plus toi
-        chez les autres qu’eux chez toi. Ce sont l’économie d’arène et le stock : la caisse, les
-        crédits, les pertes et les ventes. Les espèces, les victoires et les défaites, elles, se
-        lisent partout — le classement d’équipe en publie davantage encore.
-      </p>
     </div>
 
     <div class="sect">

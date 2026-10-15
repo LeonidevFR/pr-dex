@@ -108,6 +108,17 @@ describe('createRouter', () => {
     expect(r.route.value).toEqual({ name: 'shop', param: null })
   })
 
+  /**
+   * `?demo` et `?teaser` sont lus au démarrage : navigation après navigation, l'URL les perdait,
+   * et un rechargement sortait de la démonstration sans raison visible.
+   */
+  it('garde la requête en naviguant', () => {
+    window.history.replaceState({}, '', '/collection?demo&teaser')
+    const r = monte()
+    r.go('duels')
+    expect(location.pathname + location.search).toBe('/duels?demo&teaser')
+  })
+
   it('emmène le paramètre', () => {
     const r = monte()
     r.go('collection', 25)
