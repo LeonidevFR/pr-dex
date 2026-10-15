@@ -213,3 +213,50 @@ describe('feuille de style', () => {
     for (const r of gemmes) expect(r.corps).toMatch(/width\s*:\s*\d+px/)
   })
 })
+
+/**
+ * La refonte a renommé toute la palette : `--paper` est devenue `--bg`, `--ink` `--fg`, et
+ * onze jetons ont disparu d'un coup. Un `var(--jeton-mort)` ne casse rien de visible au
+ * montage — la propriété retombe sur la valeur héritée, souvent proche, et le défaut passe
+ * inaperçu jusqu'à ce qu'on regarde le bon écran dans le bon thème.
+ *
+ * Quatre avaient survécu au ré-habillage parce qu'ils étaient écrits dans des styles en
+ * ligne, hors de la feuille, là où aucune relecture de CSS ne les cherchait.
+ */
+describe('les jetons employés existent', () => {
+  const definis = new Set(css.match(/--[a-z0-9-]+(?=\s*:)/g) ?? [])
+
+  // `--type-` et consorts sont composés à l'exécution (`--type-${nom}`) : un nom partiel ne
+  // peut pas se vérifier ici, et le composant qui les pose les définit lui-même.
+  const composes = (jeton) => jeton.endsWith('-')
+
+  /**
+   * Les gabarits seulement, et non la feuille : elle appelle des jetons que ses appelants lui
+   * posent en ligne — `--tier`, `--type`, `--taille` — qui n'ont par construction pas de
+   * définition à chercher ici. Le défaut qu'on traque est l'inverse : un gabarit qui demande
+   * une couleur que la palette ne sert plus.
+   */
+  it.each([
+    'src/App.vue', 'src/components',
+  ])('%s n’appelle que des jetons définis', async (cible) => {
+    const { readdirSync, statSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const racine = new URL('../', import.meta.url).pathname
+    const chemin = join(racine, cible)
+    const fichiers = statSync(chemin).isDirectory()
+      ? readdirSync(chemin).filter((f) => f.endsWith('.vue')).map((f) => join(chemin, f))
+      : [chemin]
+
+    const morts = []
+    for (const f of fichiers) {
+      const src = readFileSync(f, 'utf8')
+      for (const appel of src.match(/var\(\s*--[a-z0-9-]+/g) ?? []) {
+        const jeton = appel.replace(/var\(\s*/, '')
+        if (!composes(jeton) && !definis.has(jeton) && !src.includes(`${jeton}:`)) {
+          morts.push(`${f.replace(racine, '')} → ${jeton}`)
+        }
+      }
+    }
+    expect(morts).toEqual([])
+  })
+})

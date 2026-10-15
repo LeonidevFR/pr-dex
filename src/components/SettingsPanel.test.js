@@ -8,12 +8,18 @@ const mountPanel = (props = {}) =>
   mount(SettingsPanel, { props: { accountName: 'LeonidevFR', identities: [GH], manageable: true, ...props } })
 
 describe('SettingsPanel', () => {
-  // Depuis le classement, les autres joueurs voient tes totaux : le texte ne peut plus dire
-  // que ta collection leur est invisible. Et les cartes ne viennent plus seulement des PR.
-  it('dit ce que les autres joueurs voient de toi', () => {
+  /**
+   * Cette phrase a menti deux fois. Elle disait d'abord les collections « isolées des autres
+   * joueurs », avant que le classement n'existe. Elle a ensuite dit que les autres voyaient les
+   * totaux « pas le détail de tes captures » — or `leaderboard_players` rend la liste complète
+   * des captures ouvertes de chaque joueur : l'écran n'affiche que des totaux, la réponse du
+   * serveur porte tout. Une promesse de confidentialité qu'un onglet réseau dément ne vaut rien.
+   */
+  it('dit ce que les autres joueurs voient de toi, sans rien promettre de faux', () => {
     const w = mountPanel()
     expect(w.text()).not.toContain('isolées des autres joueurs')
-    expect(w.text()).toContain('Les autres joueurs voient tes totaux dans le classement, pas le détail de tes captures.')
+    expect(w.text()).not.toContain('pas le détail de tes captures')
+    expect(w.text()).toContain('Considère ta collection comme visible de l’équipe.')
   })
 
   it('liste chaque compte lié avec son nom', () => {

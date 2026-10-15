@@ -1,18 +1,26 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { rankPlayers, teamTotals } from '../lib/leaderboard.js'
+import { ref } from 'vue'
 import { TIER_VAR } from '../../shared/species.js'
-import { useLeaderboardRows } from '../composables/useLeaderboardRows.js'
 
-const props = defineProps({
-  client: { type: Object, required: true },
-  today: { type: String, required: true },
+defineProps({
+  /** Les joueurs déjà classés, rendus par la page. */
+  players: { type: Array, default: () => [] },
+  loading: { type: Boolean, default: false },
+  error: { type: String, default: null },
 })
+defineEmits(['retry'])
 
-const { rows, loading, error, load } = useLeaderboardRows(props.client)
-const players = computed(() => (rows.value ? rankPlayers(rows.value, props.today) : []))
-const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) : null))
-
+/**
+ * Le tableau de la collection d'équipe.
+ *
+ * Il occupait un écran à lui seul, avec son titre et ses totaux. Il est devenu un bloc : les
+ * deux classements — la collection et les points de la saison — tiennent désormais sur la même
+ * page, parce qu'ils classent les mêmes personnes sur deux mesures.
+ *
+ * La lecture des lignes reste à la page : un bloc qui va chercher ses propres données ne peut
+ * pas cohabiter avec un autre qui en dépend, et les totaux de l'en-tête viennent des mêmes
+ * lignes que ce tableau.
+ */
 const COLUMNS = [
   ['species', 'Espèces'], ['shiny', 'Shiny'], ['legendaries', 'Légendaires'], ['rares', 'Rares'],
   ['lineages', 'Lignées'], ['copies', 'Cartes'], ['recent', '30 jours'],
@@ -25,23 +33,15 @@ const expanded = ref(null)
 </script>
 
 <template>
-  <section class="view">
-    <div class="view-head">
-      <div>
-        <div class="eyebrow">Tableau des scores</div>
-        <h1 class="view-title">Qui a le plus <i>de Pokémon</i></h1>
-      </div>
-      <div v-if="totals" class="view-totals">
-        <div data-total="collective"><div class="eyebrow">Pokédex collectif</div><div class="view-num">{{ totals.collective }} <small>/ 151</small></div></div>
-        <div data-total="opened"><div class="eyebrow">Cartes retournées</div><div class="view-num">{{ totals.opened }}</div></div>
-        <div data-total="shiny"><div class="eyebrow">Shiny</div><div class="view-num gold">{{ totals.shiny }}</div></div>
-      </div>
+  <div class="sect">
+    <div class="eyebrow sect-h">
+      <span>La collection</span>
+      <span v-if="players.length" class="mono" style="font-size:11px;color:var(--fg-3)">{{ players.length }} joueurs</span>
     </div>
-
     <div v-if="loading" class="board-loading">Chargement…</div>
     <div v-else-if="error" class="board-error">
       <p>{{ error }}</p>
-      <button class="btn-ghost" @click="load">Réessayer</button>
+      <button class="btn-ghost" @click="$emit('retry')">Réessayer</button>
     </div>
     <p v-else-if="!players.length" class="board-empty">
       Personne n'a encore retourné de carte. Le classement commence à la première.
@@ -84,5 +84,5 @@ const expanded = ref(null)
         </template>
       </tbody>
     </table>
-  </section>
+  </div>
 </template>

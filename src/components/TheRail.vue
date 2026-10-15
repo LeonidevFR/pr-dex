@@ -7,12 +7,39 @@ const props = defineProps({
   pendingCount: { type: Number, required: true },
   syncing: { type: Boolean, default: false },
   syncError: { type: String, default: null }, // 'offline' | 'server' | 'conflict' | 'revoked'
-  view: { type: String, default: 'collection' }, // 'collection' | 'team' | 'stats'
+  view: { type: String, default: 'collection' },
   theme: { type: String, default: 'dark' }, // 'light' | 'dark'
 })
 const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
-const TABS = [['collection', 'Collection'], ['team', 'Leaderboard'], ['stats', 'Statistiques']]
+/**
+ * Cinq onglets et aucun second niveau.
+ *
+ * Il y en a eu quatre, dont un « Arène » qui en cachait quatre autres dans leur propre barre.
+ * Ce second niveau venait d'un classement par famille — la collection d'un côté, l'arène de
+ * l'autre — qui dédoublait les écrans : deux classements des mêmes personnes, deux pages « ce
+ * que j'ai ». Regroupés par fonction, les cinq tiennent au premier niveau, dans la largeur que
+ * le rail avait déjà.
+ *
+ * Duels et Boutique restent visibles avant le 1er décembre : ils mènent au teaser, qui est fait
+ * pour ça. Scores et Ma fiche fonctionnent déjà — ils se réduisent à leur moitié collection.
+ *
+ * Les libellés nomment ce qu'on trouve en arrivant, pas la famille dont l'écran venait : « Arène »
+ * promettrait encore la boutique et les médailles, parties ailleurs. « Ma fiche » reprend le mot
+ * qui désigne déjà la page d'un joueur, au possessif puisque c'est la sienne — « Profil » adresse
+ * ailleurs dans cette application, où /profile/:login est la fiche d'un collègue.
+ *
+ * « Classement » serait plus juste que « Scores », mais les deux libellés longs ne tiennent pas
+ * ensemble : mesuré à 1 280 px, la barre dispose de 437 px avant que les outils passent à la
+ * ligne, et « Classement » + « Ma fiche » en demande 468.
+ */
+const TABS = [
+  ['collection', 'Collection'],
+  ['duels', 'Duels'],
+  ['shop', 'Boutique'],
+  ['classements', 'Scores'],
+  ['moi', 'Ma fiche'],
+]
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps

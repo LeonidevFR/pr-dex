@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { cleanFlavor, pickFlavor } from './gen-species-info.mjs'
+import { cleanFlavor, pickFlavor, seedSql, statTotal } from './gen-species-info.mjs'
+import { DEX } from '../shared/species.js'
 
 describe('cleanFlavor', () => {
   // PokeAPI stocke ces textes avec la mise en page de la boîte de dialogue du jeu.
@@ -44,5 +45,42 @@ describe('pickFlavor', () => {
 
   it('nettoie le texte retenu', () => {
     expect(pickFlavor([entry('fr', 'firered', 'deux\nlignes')])).toBe('deux lignes')
+  })
+})
+
+describe('statTotal', () => {
+  const stat = (name, base_stat) => ({ base_stat, stat: { name } })
+
+  it('additionne les six statistiques de base', () => {
+    expect(statTotal([
+      stat('hp', 45), stat('attack', 49), stat('defense', 49),
+      stat('special-attack', 65), stat('special-defense', 65), stat('speed', 45),
+    ])).toBe(318)
+  })
+
+  it('rend 0 pour une liste vide plutôt que NaN', () => {
+    expect(statTotal([])).toBe(0)
+  })
+})
+
+describe('seedSql', () => {
+  // Le palier ne vient pas de PokéAPI mais de `DEX` : c'est le générateur qui les rapproche,
+  // et c'est donc ici qu'un désalignement entre stats et palier se verrait.
+  it('écrit une ligne par espèce, avec son total et son palier', () => {
+    const sql = seedSql({ 1: 318, 150: 680 })
+    expect(sql).toContain("insert into public.species_stats (species, stats, tier) values")
+    expect(sql).toContain(`  (1, 318, '${DEX[1].tier}'),`)
+    expect(sql).toContain(`  (150, 680, '${DEX[150].tier}')`)
+  })
+
+  it('réécrit les deux colonnes en cas de conflit', () => {
+    expect(seedSql({ 1: 318 })).toContain(
+      'on conflict (species) do update set stats = excluded.stats, tier = excluded.tier;')
+  })
+
+  // Une espèce sans palier ferait échouer l'insertion bien plus loin, sur une contrainte, sans
+  // dire laquelle des 151 lignes est en cause.
+  it('refuse une espèce absente de la planche', () => {
+    expect(() => seedSql({ 999: 400 })).toThrow(/palier manquant/)
   })
 })

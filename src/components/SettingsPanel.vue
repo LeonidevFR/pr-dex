@@ -72,7 +72,24 @@ function onUnlink(provider) {
         </div>
         <div class="sect">
           <p class="muted">
-            Ta collection est liée à ton compte. Les autres joueurs voient tes totaux dans le classement, pas le détail de tes captures.
+            Ta collection est liée à ton compte, et le classement la publie : les autres y lisent
+            tes espèces, tes shiny, tes rares, tes lignées et ton nombre de cartes. Le détail
+            voyage avec — l’écran n’affiche que les totaux, mais la réponse du serveur porte
+            chaque capture. Considère ta collection comme visible de l’équipe.
+          </p>
+        </div>
+        <!--
+          Les illustrations empruntées se citent, et se citent quelque part où l'on peut les
+          trouver. Les réglages sont le seul écran qui parle de l'application elle-même plutôt que
+          du jeu : c'est là que ça a sa place, plutôt qu'en bas d'un écran de duel.
+        -->
+        <div class="sect">
+          <div class="eyebrow sect-h"><span>Illustrations</span></div>
+          <p class="muted">
+            Les badges de saison sont dessinés pour ce dex : huit médailles, une par mécanique
+            du jeu. Les sprites viennent de PokéAPI. Pokémon est une marque de Nintendo, Game
+            Freak et Creatures : ce dex est un jouet d'équipe, sans rapport avec eux et sans
+            usage commercial.
           </p>
         </div>
       </div>
