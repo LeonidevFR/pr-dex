@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { collect, parseAttribution, id, secretEnv, MAX_DRAWS } from './slack.mjs'
+import { collect, parseAttribution, id, secretEnv, MAX_DRAWS, DEV_DRAWS } from './slack.mjs'
 
 const session = (over = {}) => ({
   activity: 'monkey-testing',
@@ -29,6 +29,7 @@ describe('identité du connecteur', () => {
     expect(id).toBe('slack')
     expect(secretEnv).toBe('ATTRIBUTIONS_DIR')
     expect(MAX_DRAWS).toBe(10)
+    expect(DEV_DRAWS).toBe(3)
   })
 })
 
@@ -58,6 +59,19 @@ describe('collect', () => {
   it('ne rend rien pour une session où le handle ne figure pas', async () => {
     await put('monkey-testing', 's.json', session())
     expect(await collect({ handle: 'U0BOB', secret: dir })).toEqual([])
+  })
+
+  // Un dev gagne déjà ses cartes avec ses PR : le monkey-testing est surtout la porte d'entrée
+  // de ceux qui n'en font pas.
+  it('donne 3 tirages par participation à quelqu’un qui a aussi GitHub', async () => {
+    await put('monkey-testing', 's.json', session())
+    const out = await collect({ handle: 'U0ALICE', secret: dir, sources: new Set(['github', 'slack']) })
+    expect(out.map((e) => e.externalId.split(':').pop())).toEqual(['1', '2', '3'])
+  })
+
+  it('donne les 10 tirages à quelqu’un sans GitHub', async () => {
+    await put('monkey-testing', 's.json', session())
+    expect(await collect({ handle: 'U0ALICE', secret: dir, sources: new Set(['slack']) })).toHaveLength(10)
   })
 
   it('plafonne les tirages à 10, quoi qu’écrive le fichier', async () => {

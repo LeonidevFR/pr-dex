@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { sinceDate, bootstrapDate, toRows, planSources, main, CONNECTORS } from './catch.mjs'
 import { drawFrom } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
@@ -387,6 +390,52 @@ describe('main', () => {
     vi.useRealTimers()
 
     expect(fetchMock.mock.calls.filter(([url]) => url.includes('search/issues'))).toHaveLength(4)
+  })
+
+  describe('monkey-testing', () => {
+    let dir
+    const attribution = {
+      activity: 'monkey-testing', id: 's1', label: 'Monkey-testing · X',
+      url: 'https://guestsuite.slack.com/archives/C1/p1', date: '2026-10-12', draws: 10,
+      recipients: [{ slack_id: 'U0ALICE' }],
+    }
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'attr-'))
+      await mkdir(join(dir, 'monkey-testing'))
+      await writeFile(join(dir, 'monkey-testing', 's1.json'), JSON.stringify(attribution))
+      process.env.ATTRIBUTIONS_DIR = dir
+    })
+    afterEach(async () => {
+      delete process.env.ATTRIBUTIONS_DIR
+      await rm(dir, { recursive: true, force: true })
+    })
+    const slackRows = (fetchMock) => fetchMock.inserted.flat().filter((r) => r.source === 'slack')
+    const slackIdentity = (userId) => identity(userId, { source: 'slack', handle: 'U0ALICE', config: {} })
+
+    it('donne 10 cartes par participation à quelqu’un sans GitHub', async () => {
+      const fetchMock = makeFetch({ identities: [slackIdentity('u1')] })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      expect(slackRows(fetchMock)).toHaveLength(10)
+    })
+
+    it('en donne 3 à un dev, reconnu à son identité GitHub', async () => {
+      const fetchMock = makeFetch({ identities: [identity('u1'), slackIdentity('u1')], github: [searchPage([])] })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      expect(slackRows(fetchMock)).toHaveLength(3)
+    })
+
+    // Délier GitHub ne doit pas suffire à toucher les 7 cartes restantes de chaque session.
+    it('en donne 3 à un dev qui a délié GitHub mais garde ses captures GitHub', async () => {
+      const fetchMock = makeFetch({
+        identities: [slackIdentity('u1')],
+        catchesByUser: { u1: [{ source: 'github', external_id: 'sha', url: null, date: '2026-01-02' }] },
+      })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      expect(slackRows(fetchMock)).toHaveLength(3)
+    })
   })
 
   it('n’enregistre que des sources dont le connecteur déclare la même clé', () => {

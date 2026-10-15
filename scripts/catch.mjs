@@ -91,6 +91,16 @@ export async function fetchIdentities(supabaseUrl, serviceKey, fetchFn = fetch) 
   return res.json()
 }
 
+/** Vrai si la personne a déjà au moins une capture de cette source. */
+export async function hasCatches(supabaseUrl, serviceKey, userId, source, fetchFn = fetch) {
+  const res = await fetchFn(
+    `${supabaseUrl}/rest/v1/catches?user_id=eq.${userId}&source=eq.${source}&select=external_id&limit=1`,
+    { headers: sbHeaders(serviceKey) },
+  )
+  if (!res.ok) throw new Error(`catches (lecture) a répondu ${res.status} pour ${userId}/${source}`)
+  return (await res.json()).length > 0
+}
+
 /** Captures déjà connues d'une identité — base de la déduplication et de `sinceDate`. */
 export async function fetchExistingCatches(supabaseUrl, serviceKey, userId, source, fetchFn = fetch) {
   const res = await fetchFn(
@@ -150,12 +160,24 @@ export async function main() {
 
   let total = 0
   const failed = []
+  // Les sources par lesquelles chaque personne est connue : une source peut en tenir compte
+  // (le monkey-testing donne moins de cartes à un dev, qui en gagne déjà avec ses PR).
+  const sourcesByUser = new Map()
+  for (const i of identities) {
+    if (!sourcesByUser.has(i.user_id)) sourcesByUser.set(i.user_id, new Set())
+    sourcesByUser.get(i.user_id).add(i.source)
+  }
 
   for (const identity of identities) {
     const connector = CONNECTORS[identity.source]
     if (!connector) continue
 
     const existing = await fetchExistingCatches(supabaseUrl, serviceKey, identity.user_id, identity.source)
+    // Délier GitHub ne fait pas d'un dev quelqu'un d'autre : ses captures GitHub le désignent
+    // encore. Sans ça, délier puis relier GitHub suffisait à toucher les cartes refusées.
+    const sources = new Set(sourcesByUser.get(identity.user_id))
+    if (identity.source !== 'github' && !sources.has('github')
+      && await hasCatches(supabaseUrl, serviceKey, identity.user_id, 'github')) sources.add('github')
     let events
     try {
       events = await connector.collect({
@@ -164,6 +186,7 @@ export async function main() {
         since: sinceDate(existing, forcedBootstrap ?? bootstrapDate(identity, today)),
         secret: process.env[connector.secretEnv],
         existing,
+        sources,
       })
     } catch (e) {
       // Jeton refusé ou quota épuisé : toutes les identités suivantes échoueraient pareil.
