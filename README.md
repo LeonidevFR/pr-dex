@@ -235,6 +235,14 @@ Supabase habituelle, aucun jeton GitHub capable d'écrire quoi que ce soit. Un
 `workflow_dispatch` accepté ne dit pas que le run est fini : les nouvelles captures
 n'apparaissent qu'après, à un refresh suivant.
 
+## Les passages planifiés
+
+GitHub Actions retarde ou saute les passages planifiés d'un petit repo, parfois de plusieurs
+heures. Supabase lance donc lui-même `catch.yml` (toutes les heures, de 6 h à 17 h UTC) et
+`monkey-testing.yml` (chaque jour ouvré à 8 h UTC), par pg_cron et pg_net, avec un PAT rangé
+dans le Vault (`github_dispatch_token`). Voir `supabase/migrations/2026-10-16-declenchements-planifies.sql`.
+Les crons de GitHub restent en secours : un passage en double ne refait rien.
+
 ## Les trois secrets privilégiés
 
 - **`CATCH_TOKEN`** et **`SUPABASE_SERVICE_ROLE_KEY`** (secrets GitHub Actions), vivent
