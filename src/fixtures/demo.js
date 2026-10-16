@@ -1,5 +1,6 @@
 import { fnv1a, drawFrom } from '../../shared/draw.js'
 import { entryKey } from '../../shared/entry.js'
+import { evaluate } from '../lib/achievements.js'
 
 const FAKE_PRS = [
   ['fix: race condition à l\'upload de fichiers', 'moi/atlas', 142, '2026-02-03'],
@@ -166,7 +167,11 @@ export function demoCatches() {
   // …et la cinquième glissée dans les derniers, donc en attente. Sa date la place en tête de
   // file : le premier pli scellé de la démo vient de l'autre pôle, ce qui est précisément ce
   // qu'on cherche à montrer.
-  drawn.splice(-1, 0, crmCatch(...FAKE_CRM[FAKE_CRM.length - 1]))
+  //
+  // Têtarte forcé : la carte juste avant elle est Ptitard, sa pré-évolution. Retourner ce
+  // premier pli débloque donc « Sur la tête » : la démo montre un toast dès la première carte.
+  // Ptitard passe de 3 à 6 bonbons, sous les 8 de son évolution : rien ne devient évoluable.
+  drawn.splice(-1, 0, { ...crmCatch(...FAKE_CRM[FAKE_CRM.length - 1]), species: 61 })
 
   // Une seconde légendaire, celle-là laissée EN ATTENTE : sans elle, la démo ne permet pas
   // d'ouvrir un pli légendaire, donc pas de juger la seule fanfare qui tape vraiment fort.
@@ -180,7 +185,10 @@ export function demoCatches() {
 
   // Une carte de monkey-testing encore scellée, la cinquième de la file : son dos se voit au
   // rituel, avant de la retourner. `loadDemoClient` laisse donc cinq plis en attente.
-  drawn.push(slackCatch('1784538000.000200', 1, 'Export CSV des avis', '2026-07-20', 131))
+  //
+  // Chromatique, pour que ce dernier pli débloque deux succès d'un coup (« Booster
+  // chromatique » et la 5e espèce chromatique) : la démo montre deux toasts empilés.
+  drawn.push({ ...slackCatch('1784538000.000200', 1, 'Export CSV des avis', '2026-07-20', 131), shiny: true })
 
   return drawn
 }
@@ -238,6 +246,9 @@ export function loadDemoClient() {
     spent: {},
     evolutions: [],
   }
+  // Les succès du joueur de démo, en mémoire : vides au chargement, pour que l'onglet ouvre
+  // le récap comme au lancement réel.
+  let achievements = []
   return {
     checkAccess: async () => true,
     readCatches: async () => catches,
@@ -256,6 +267,30 @@ export function loadDemoClient() {
         ...demoPlayers(),
         { login: 'démo', avatar_url: svgAvatar('démo'), is_me: true, catches: opened, evolutions: state.evolutions },
       ]
+    },
+    readAchievements: async () => JSON.parse(JSON.stringify(achievements)),
+    // Même effet que `on conflict do nothing` : un code déjà là n'est pas réécrit. Renvoie,
+    // comme la base, les seules lignes insérées.
+    insertAchievements: async (rows) => {
+      const fresh = rows.filter((r) => !achievements.some((a) => a.code === r.code))
+      achievements.push(...fresh.map((r) => ({ ...r })))
+      return fresh.map((r) => ({ code: r.code }))
+    },
+    markAnnounced: async (codes) => {
+      achievements = achievements.map((a) => (codes.includes(a.code) ? { ...a, announced: true } : a))
+    },
+    // Les joueurs fictifs n'ont pas de table : leurs succès se déduisent de leurs captures,
+    // par les mêmes règles. Le joueur de démo compte par ce qu'il a inséré, comme en base.
+    readAchievementCounts: async () => {
+      const counts = {}
+      for (const p of demoPlayers()) {
+        const claimed = p.catches.map((c) => entryKey(c.source, c.external_id))
+        for (const code of Object.keys(evaluate({ catches: p.catches, claimed, evolutions: p.evolutions }).unlocked)) {
+          counts[code] = (counts[code] ?? 0) + 1
+        }
+      }
+      for (const a of achievements) counts[a.code] = (counts[a.code] ?? 0) + 1
+      return Object.entries(counts).map(([code, players]) => ({ code, players }))
     },
   }
 }

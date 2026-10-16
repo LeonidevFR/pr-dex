@@ -18,8 +18,15 @@ import { useTheme } from './composables/useTheme.js'
 import { useSlackInvite } from './composables/useSlackInvite.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
 import { accountName as nameOf, identitiesOf, shouldInviteSlack, SLACK } from './lib/account.js'
+import AchievementsView from './components/AchievementsView.vue'
+import AchievementToasts from './components/AchievementToasts.vue'
+import AchievementRecap from './components/AchievementRecap.vue'
+import { useAchievements } from './composables/useAchievements.js'
+import { DEX } from '../shared/species.js'
+import { entryKey } from '../shared/entry.js'
 
 const collection = useCollection()
+const achievements = useAchievements()
 const { session, ready, authError, signIn, link, unlink, freshUser, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
@@ -52,6 +59,49 @@ const dataClient = ref(null)
 // Date du jour figée au chargement, au format des dates de capture : le calcul des
 // « 30 jours » est une fonction pure, elle ne lit jamais l'horloge elle-même.
 const today = new Date().toISOString().slice(0, 10)
+
+// La date d'un déblocage en direct se lit au moment du geste, pas au chargement : une session
+// ouverte la veille ne doit pas antidater un succès.
+const nowDay = () => new Date().toISOString().slice(0, 10)
+const collectionData = () => ({ catches: collection.catches.value, state: collection.state.value })
+
+// Ce qui a déclenché chaque succès, pour son détail dans le registre.
+const achievementTriggers = computed(() => {
+  const map = {}
+  for (const c of collection.catches.value) {
+    map[entryKey(c.source, c.external_id)] = `Grâce à ${DEX[c.species]?.name ?? '?'}, tiré de « ${c.label} »`
+  }
+  collection.state.value.evolutions.forEach((e, i) => {
+    if (e && DEX[e.species]) map[`evo:${i}`] = `Grâce à l’évolution en ${DEX[e.species].name}`
+  })
+  return map
+})
+
+// Le récap se fige à l'ouverture : `acknowledge` vide la liste dès la fermeture, et la feuille
+// qui s'efface afficherait sinon « Tu avais déjà 0 succès ».
+const recap = ref(null)
+watch(
+  () => [view.value, achievements.unannounced.value.length],
+  ([v, n]) => {
+    if (v !== 'achievements' || !n || recap.value) return
+    recap.value = { items: [...achievements.unannounced.value], first: achievements.isFirstRecap.value }
+  },
+)
+// Un clic sur un toast mène au succès. Le rituel se ferme comme à la croix : les plis restants
+// attendent dans la file.
+const achievementFocus = ref(null)
+let focusSeq = 0
+function openAchievement(code) {
+  ritualEntry.value = null
+  selected.value = null
+  view.value = 'achievements'
+  achievementFocus.value = { code, seq: ++focusSeq }
+}
+
+function closeRecap() {
+  recap.value = null
+  achievements.acknowledge()
+}
 
 const filters = useTrayFilters()
 const { theme, toggle: toggleTheme } = useTheme()
@@ -87,6 +137,8 @@ async function connectSession(s) {
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
+  // Sans `await` : les succès ne retardent jamais l'arrivée sur la planche.
+  achievements.load(client, collectionData)
 }
 
 async function refreshIdentities() {
@@ -113,6 +165,7 @@ onMounted(async () => {
     dataClient.value = client
     await collection.load(client)
     connected.value = true
+    achievements.load(client, collectionData)
   }
 })
 
@@ -147,6 +200,13 @@ function showNextPacket() {
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
 
+// Le rituel émet `claim` à la révélation. On attend l'écriture : un succès ne tombe que sur
+// une carte vraiment ouverte.
+async function onClaim(key) {
+  await collection.claim(key)
+  if (!collection.error.value) achievements.check(nowDay())
+}
+
 async function onEvolve({ from, to, key }) {
   const shiny = collection.dex.availableEntries(from).find((e) => e.key === key)?.shiny ?? false
   // Figé avant l'écriture, pour la même raison que `ritualIsNew` plus haut : `evolve`
@@ -165,10 +225,12 @@ async function onEvolve({ from, to, key }) {
 function finishEvo() {
   selected.value = evoAnim.value.to
   evoAnim.value = null
+  // Après la cérémonie, pas pendant : le toast ne doit pas la couvrir.
+  achievements.check(nowDay())
 }
 
 const overlayOpen = computed(() =>
-  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value),
+  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value || recap.value),
 )
 
 // Priorité calquée sur l'empilement visuel donné par les z-index de styles.css :
@@ -178,6 +240,7 @@ function closeTopOverlay() {
   if (evoAnim.value) finishEvo()
   else if (ritualEntry.value) ritualEntry.value = null
   else if (settingsOpen.value) settingsOpen.value = false
+  else if (recap.value) closeRecap()
   else if (selected.value) selected.value = null
   else return
 
@@ -216,6 +279,7 @@ useKeyboardNav({
       :view="view" :theme="theme"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
       @navigate="(v) => (view = v)" @toggle-theme="toggleTheme"
+      :achievements-badge="achievements.unannounced.value.length"
     />
     <SlackInvite v-if="view === 'collection' && showSlackInvite" @link="link(SLACK)" @dismiss="invite.dismiss" />
     <TheTray
@@ -230,6 +294,13 @@ useKeyboardNav({
          un onglet pendant ce temps ne doit pas monter une vue qui planterait sur `null`. -->
     <TeamView v-else-if="view === 'team' && dataClient" :client="dataClient" :today="today" />
     <StatsView v-else-if="view === 'stats' && dataClient" :client="dataClient" :today="today" />
+    <AchievementsView
+      v-else-if="view === 'achievements'"
+      :owned="achievements.owned.value" :counts="achievements.counts.value" :progress="achievements.progress.value"
+      :triggers="achievementTriggers" :ready="achievements.ready.value" :error="achievements.error.value"
+      :focus="achievementFocus"
+      @retry="achievements.load(dataClient, collectionData)"
+    />
 
     <transition name="fade">
       <SpeciesSheet
@@ -249,7 +320,7 @@ useKeyboardNav({
       <RitualOverlay
         v-if="ritualEntry" :key="ritualEntry.key" :entry="ritualEntry"
         :remaining="ritualRemaining" :is-new="ritualIsNew"
-        @claim="collection.claim" @next="nextRitual"
+        @claim="onClaim" @next="nextRitual"
         @close="ritualEntry = null"
       />
     </transition>
@@ -268,5 +339,11 @@ useKeyboardNav({
         @close="settingsOpen = false" @disconnect="disconnect" @link="link" @unlink="onUnlink"
       />
     </transition>
+
+    <transition name="fade">
+      <AchievementRecap v-if="recap" :items="recap.items" :first="recap.first" @close="closeRecap" />
+    </transition>
+
+    <AchievementToasts :toasts="achievements.toasts.value" :counts="achievements.counts.value" @dismiss="achievements.dismissToast" @open="openAchievement" />
   </template>
 </template>
