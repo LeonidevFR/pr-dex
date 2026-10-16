@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [vue()],
   test: {
     environment: 'jsdom',
-    include: ['shared/**/*.test.js', 'src/**/*.test.js', 'scripts/**/*.test.js'],
+    include: ['shared/**/*.test.js', 'src/**/*.test.js', 'scripts/**/*.test.js', 'supabase/functions/**/*.test.js'],
     // supabaseClient.js construit le client au chargement du module : toute chaîne
     // d'imports qui y remonte plante sans ces deux valeurs, même si le test ne s'en sert
     // jamais (cas de useCollection.test.js, qui ne veut que SupabaseDataError). Aucune

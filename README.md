@@ -232,8 +232,14 @@ suite plutôt que d'attendre le prochain passage du cron, puis relire Supabase. 
 déclenchement passe par une fonction Edge Supabase (`supabase/functions/trigger-catch`),
 jamais par un appel direct du front à l'API GitHub — le front n'a que sa session
 Supabase habituelle, aucun jeton GitHub capable d'écrire quoi que ce soit. Un
-`workflow_dispatch` accepté ne dit pas que le run est fini : les nouvelles captures
-n'apparaissent qu'après, à un refresh suivant.
+`workflow_dispatch` accepté ne dit pas que le run est fini : une seconde fonction Edge,
+`supabase/functions/catch-status`, demande à GitHub où en est la capture lancée depuis le
+clic (en attente, en cours, réussie, en échec). Un message en bas de l'écran (`SyncToast`)
+suit cet état et dit qu'il est inutile de recharger la page : on le faisait en boucle, ce qui
+coupait justement l'attente. À la fin, il annonce les cartes trouvées, ou disparaît s'il n'y a
+rien. L'heure du clic est gardée : un rechargement reprend le suivi. Sans `catch-status`
+déployée, le bouton retombe sur l'ancienne méthode, relire les cartes jusqu'à en voir une
+nouvelle.
 
 ## Les passages planifiés
 
@@ -283,6 +289,7 @@ supabase/migrations/              bascules à appliquer sur une base déjà en s
                                   `2026-10-13-connexion-slack.sql` crée les identités GitHub et Slack
                                   par un trigger sur auth.identities ; AVANT de merger le front
 supabase/functions/trigger-catch  fonction Edge : déclenche workflow_dispatch sur catch.yml
+supabase/functions/catch-status   fonction Edge : état de la capture lancée depuis un clic sur ⟳
 shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
 shared/draw.js            fnv1a + drawFrom, partagé front ↔ Action
 shared/entry.js           entryKey(source, externalId) — clé d'exemplaire et seed du tirage

@@ -62,6 +62,12 @@ export function createSupabaseClient(userId) {
     return query(() => supabase.functions.invoke('trigger-catch', { method: 'POST' }))
   }
 
+  /** État des captures lancées depuis `since` : 'waiting' | 'running' | 'success' | 'failure'. */
+  async function catchStatus(since) {
+    const data = await query(() => supabase.functions.invoke('catch-status', { method: 'POST', body: { since } }))
+    return data?.status
+  }
+
   async function writeState(state, blobSha) {
     const version = blobSha ?? 0
     const data = await query(() =>
@@ -87,5 +93,5 @@ export function createSupabaseClient(userId) {
     return query(() => supabase.rpc('leaderboard_players'))
   }
 
-  return { checkAccess, readCatches, readState, writeState, triggerCatch, readLeaderboard }
+  return { checkAccess, readCatches, readState, writeState, triggerCatch, catchStatus, readLeaderboard }
 }

@@ -245,6 +245,8 @@ export function loadDemoClient() {
     writeState: async (next) => { state = JSON.parse(JSON.stringify(next)); return { blobSha: 'demo' } },
     // Rien à déclencher en démo : pas de vraie Action, pas de vrai repo derrière.
     triggerCatch: async () => {},
+    // Pas de vraie capture à suivre : elle est « finie » tout de suite.
+    catchStatus: async () => 'success',
     // La ligne « démo » se construit à chaque appel depuis l'état courant : ouvrir un pli ou
     // faire une évolution, puis rouvrir le panneau, doit faire bouger sa ligne — c'est ce
     // qui rend la démo utile pour juger le panneau.

@@ -10,6 +10,7 @@ import TeamView from './components/TeamView.vue'
 import StatsView from './components/StatsView.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import SlackInvite from './components/SlackInvite.vue'
+import SyncToast from './components/SyncToast.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useAuth } from './composables/useAuth.js'
 import { useTrayFilters } from './composables/useTrayFilters.js'
@@ -17,6 +18,7 @@ import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { useTheme } from './composables/useTheme.js'
 import { useSlackInvite } from './composables/useSlackInvite.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
+import { pendingSync } from './lib/syncMemory.js'
 import { accountName as nameOf, identitiesOf, shouldInviteSlack, SLACK } from './lib/account.js'
 
 const collection = useCollection()
@@ -87,6 +89,9 @@ async function connectSession(s) {
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
+  // Un rechargement pendant une recherche ne la coupe plus : on reprend son suivi.
+  const since = pendingSync()
+  if (since) collection.refresh({ resumeSince: since })
 }
 
 async function refreshIdentities() {
@@ -268,5 +273,7 @@ useKeyboardNav({
         @close="settingsOpen = false" @disconnect="disconnect" @link="link" @unlink="onUnlink"
       />
     </transition>
+
+    <SyncToast :sync="collection.sync.value" @open="collection.dismissSync(); openRitual()" @dismiss="collection.dismissSync" />
   </template>
 </template>

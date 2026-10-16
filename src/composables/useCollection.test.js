@@ -24,6 +24,108 @@ function fakeClient({ catches = [], state = { claimed: [], spent: {}, evolutions
   }
 }
 
+// Le bouton ⟳ suit la vraie capture côté GitHub (fonction `catch-status`) : il sait quand elle
+// est finie, y compris quand elle ne trouve rien.
+describe('refresh, en suivant la capture', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  const withStatus = (statuses, opts) => {
+    const client = fakeClient(opts)
+    client.catchStatus = vi.fn()
+    for (const s of statuses) client.catchStatus.mockResolvedValueOnce(s)
+    return client
+  }
+
+  it('passe par l’attente puis la recherche, et annonce les cartes trouvées', async () => {
+    const client = withStatus(['waiting', 'running', 'success'], { catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    client.readCatches.mockResolvedValue([catchOf('a', 25), catchOf('b', 1), catchOf('c', 4)])
+
+    const p = c.refresh()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(c.sync.value).toEqual({ phase: 'waiting' })
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(c.sync.value).toEqual({ phase: 'running' })
+    await vi.advanceTimersByTimeAsync(4000)
+    await p
+
+    expect(c.sync.value).toEqual({ phase: 'found', count: 2 })
+    expect(c.catches.value).toHaveLength(3)
+    expect(c.loading.value).toBe(false)
+  })
+
+  it('ne dit rien quand la capture se termine sans rien trouver', async () => {
+    const client = withStatus(['success'], { catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    await c.refresh()
+    expect(c.sync.value).toBeNull()
+  })
+
+  it('signale une capture en échec', async () => {
+    const client = withStatus(['failure'], { catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    await c.refresh()
+    expect(c.sync.value).toEqual({ phase: 'failed' })
+  })
+
+  it('renseigne l’heure du clic, avant le déclenchement, à la fonction de suivi', async () => {
+    vi.setSystemTime(new Date('2026-10-16T09:00:00Z'))
+    const client = withStatus(['success'], { catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    await c.refresh()
+    expect(client.catchStatus).toHaveBeenCalledWith('2026-10-16T09:00:00.000Z')
+  })
+
+  it('abandonne en silence au bout de 3 minutes, après une dernière lecture', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    client.catchStatus = vi.fn().mockResolvedValue('running')
+    const c = useCollection()
+    await c.load(client)
+    const p = c.refresh()
+    await vi.advanceTimersByTimeAsync(200000)
+    await p
+    expect(c.sync.value).toBeNull()
+    expect(client.readCatches).toHaveBeenCalledTimes(2)
+  })
+
+  it('reprend le suivi d’une recherche en cours sans relancer de capture', async () => {
+    const client = withStatus(['success'], { catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    await c.refresh({ resumeSince: '2026-10-16T08:59:00.000Z' })
+    expect(client.triggerCatch).not.toHaveBeenCalled()
+    expect(client.catchStatus).toHaveBeenCalledWith('2026-10-16T08:59:00.000Z')
+  })
+
+  // Tant que la fonction de suivi n'est pas déployée, le bouton garde son comportement d'avant :
+  // il relit les cartes jusqu'à en voir une nouvelle.
+  it('retombe sur la relecture des cartes si le suivi est indisponible', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25)] })
+    client.catchStatus = vi.fn().mockRejectedValue(new SupabaseDataError('server', 'absente', 404))
+    const c = useCollection()
+    await c.load(client)
+    client.readCatches.mockResolvedValue([catchOf('a', 25), catchOf('b', 1)])
+    await c.refresh()
+    expect(c.catches.value).toHaveLength(2)
+    expect(c.sync.value).toEqual({ phase: 'found', count: 1 })
+    expect(c.error.value).toBeNull()
+  })
+
+  it('efface le message quand on le ferme', async () => {
+    const client = withStatus(['failure'], { catches: [catchOf('a', 25)] })
+    const c = useCollection()
+    await c.load(client)
+    await c.refresh()
+    c.dismissSync()
+    expect(c.sync.value).toBeNull()
+  })
+})
+
 describe('chargement', () => {
   it('récupère les captures et l’état', async () => {
     const client = fakeClient({ catches: [catchOf('a', 25)] })

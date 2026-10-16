@@ -822,6 +822,23 @@
     .front-card .pkc-art img{width:76px;height:76px}
   }
 
+  /* Message du bouton ⟳ : en bas de l'écran, au-dessus de la planche et sous les panneaux.
+     Il dit que les cartes arrivent seules : sans lui, on rechargeait la page en boucle. */
+  .sync-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:35;width:min(560px,calc(100vw - 32px));
+    display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;border:1px solid var(--line-gold);
+    background:var(--surface-hi);color:var(--fg);font-size:13px;line-height:1.5;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  .sync-toast .bt{font-weight:700;margin-right:4px}
+  .sync-toast .toast-copy{flex:1;min-width:0}
+  .sync-toast .toast-ico{flex:none;color:var(--gold)}
+  .sync-toast.is-failed .toast-ico,.sync-toast.is-failed .bt{color:var(--danger)}
+  .sync-toast .toast-ico.spinning{animation:spin .8s linear infinite}
+  .sync-toast .sync-open{flex:none;padding:10px 18px}
+  .toast-x{flex:none;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--fg-2);cursor:pointer;display:grid;place-items:center}
+  .toast-x:hover{color:var(--fg);background:rgba(212,176,106,.1)}
+  .toast-x:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .toast-enter-active,.toast-leave-active{transition:opacity .25s,transform .25s}
+  .toast-enter-from,.toast-leave-to{opacity:0;transform:translate(-50%,12px)}
+  @media (prefers-reduced-motion:reduce){.sync-toast .toast-ico.spinning{animation:none}}
   .fade-enter-active,.fade-leave-active{transition:opacity .28s}
   .fade-enter-from,.fade-leave-to{opacity:0}
 
@@ -844,6 +861,8 @@
       background:var(--header-bg);backdrop-filter:blur(10px);padding:8px 12px calc(8px + env(safe-area-inset-bottom));
       justify-content:space-around}
     .rail-tab{flex:1;height:48px}
+    /* Au-dessus de la barre d'onglets fixée en bas. */
+    .sync-toast{bottom:calc(84px + env(safe-area-inset-bottom))}
     .claim-btn{padding:11px 16px;letter-spacing:.12em}
     .tray-search-wrap{width:100%}
     .toolbar-grow,.toolbar-sep{display:none}
