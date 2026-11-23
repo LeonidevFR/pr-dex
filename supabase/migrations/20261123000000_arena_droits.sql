@@ -56,6 +56,28 @@ begin
 end
 $$;
 
+-- `arena_credits` reste appelable par le front, qui lui passe son propre identifiant. Un joueur
+-- connecté ne peut plus y lire les crédits d'un autre. Sans session (tâches planifiées, autres
+-- fonctions `security definer`), `auth.uid()` est nul et l'appel reste libre.
+create or replace function public.arena_credits(uid uuid, at timestamptz default now())
+returns int language plpgsql stable security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and uid is distinct from auth.uid() then
+    raise exception 'arene : crédits d''un autre joueur';
+  end if;
+  return greatest(0,
+    least(5, extract(isodow from at at time zone 'Europe/Paris') :: int)
+    - (
+      select count(*) :: int
+      from public.arena_duels d
+      where (d.challenger_id = arena_credits.uid or d.opponent_id = arena_credits.uid)
+        and d.created_at >= (public.arena_week_start(arena_credits.at) :: timestamp
+                             at time zone 'Europe/Paris')
+        and d.created_at <= arena_credits.at
+    ));
+end;
+$$;
+
 -- Les six RPC du front.
 grant execute on function
   public.arena_engage(text, boolean), public.arena_accept(bigint, text), public.arena_buy(text),
