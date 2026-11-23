@@ -13,7 +13,8 @@
     "gen:species-info": "node scripts/gen-species-info.mjs",
     "gen:seed": "node scripts/gen-species-info.mjs --seed-only",
     "simulate:arena": "node scripts/simulate-arena.mjs",
-    "db:check": "node scripts/check-schema-sync.mjs && node scripts/check-local-db.mjs",
+    "db:check": "node scripts/check-local-db.mjs && node scripts/check-schema-sync.mjs",
+    "db:dump": "node scripts/check-local-db.mjs && node scripts/schema-dump.mjs",
     "db:start": "node scripts/check-local-db.mjs && supabase start",
     "db:reset": "node scripts/check-local-db.mjs && supabase db reset",
     "db:stop": "supabase stop"

@@ -124,7 +124,7 @@ Deux repos, volontairement :
   une règle posée dans `shared/species.js` vaut pour le front et pour le run du même
   commit. Rester privé reste utile : ces secrets n'ont aucune raison d'être visibles.
 
-Quatre tables Supabase (schéma complet dans `supabase/schema.sql`), RLS activé partout :
+Tables Supabase (instantané du schéma dans `supabase/schema.sql`, généré depuis les migrations), RLS activé partout :
 
 | Table | Écrite par | Contenu |
 |---|---|---|
@@ -285,7 +285,8 @@ RLS et les fonctions `security definer` avant de les approcher de la production.
 ```bash
 npm run db:start    # démarre la pile locale (premier lancement : plusieurs Go d'images)
 npm run db:reset    # rejoue le schéma sur une base vierge
-npm run db:check    # vérifie que schema.sql et sa copie de migration n'ont pas divergé
+npm run db:check    # vérifie que schema.sql est à jour avec les migrations
+npm run db:dump     # régénère schema.sql depuis la base locale
 npm run db:stop     # arrête la pile
 ```
 
@@ -312,7 +313,7 @@ rejouer puisqu'elle part directement du schéma complet.
 ## Structure du dépôt
 
 ```
-supabase/schema.sql               tables profiles/identities/catches/state, policies RLS, trigger d'auto-création
+supabase/schema.sql               instantané généré du schéma public (npm run db:dump), à ne pas éditer
 supabase/migrations/              l'histoire complète du schéma, horodatée — elle fabrique la base de
                                   TEST locale (`supabase db reset`) et sert de référence pour ce qui
                                   reste à passer à la main sur la base en service.

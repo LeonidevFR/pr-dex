@@ -1,8 +1,8 @@
--- Schéma complet de PR-DEX, tel qu'il est en service.
+-- Schéma de PR-DEX en juillet 2026, point de départ des migrations suivantes.
 --
--- Copie fidèle de `supabase/schema.sql`, renommée pour la CLI Supabase : c'est ce fichier que
--- `supabase db reset` rejoue pour fabriquer la base de test locale. Les deux doivent rester
--- identiques — `npm run db:check` le vérifie.
+-- `supabase db reset` le rejoue en premier pour fabriquer la base locale, puis applique les
+-- migrations dans l'ordre. Le schéma qui en résulte est photographié dans `supabase/schema.sql`
+-- par `npm run db:dump`.
 --
 -- Les bascules déjà appliquées à la main sur la base en service vivent dans
 -- `supabase/migrations-appliquees/` : elles ne doivent JAMAIS être rejouées ici, une base
