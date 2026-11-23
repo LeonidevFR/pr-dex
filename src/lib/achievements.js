@@ -40,6 +40,7 @@ export const ACHIEVEMENTS = [
   { code: 'golden-booster', group: 'dice', name: 'Booster doré', desc: '3 cartes rares ou mieux dans un même booster.', tier: 'r', hidden: true, icon: { sprite: 52 } },
   { code: 'shiny-booster', group: 'dice', name: 'Booster chromatique', desc: 'Un chromatique dans un booster de monkey-testing.', tier: 'r', hidden: true, icon: { glyph: '✦' } },
   { code: 'palindrome', group: 'dice', name: 'Palindrome', desc: 'Tirer une carte d’une PR dont le numéro se lit dans les deux sens (3 chiffres ou plus).', tier: 'c', hidden: true, icon: { glyph: '121' } },
+  { code: 'remi-cries', group: 'dice', name: 'Rémi pleure', desc: 'Tirer 50 Nidoran, mâles et femelles confondus.', tier: 'r', hidden: true, icon: { sprite: 32 } },
   { code: 'twins', group: 'dice', name: 'Jumeaux', desc: 'Tirer la même espèce qu’un coéquipier, le même jour.', tier: 'c', hidden: true, icon: { sprite: 102 } },
   { code: 'shiny-legendary', group: 'dice', name: 'Gros veinard', desc: 'Tirer un légendaire chromatique.', tier: 'l', hidden: true, icon: { sprite: 151 } },
   { code: 'shiny-double', group: 'dice', name: 'Doublé chromatique', desc: 'Tirer 2 chromatiques à 10 cartes d’écart au plus.', tier: 'u', hidden: true, icon: { glyph: '★★' } },
@@ -95,6 +96,7 @@ const GEN2_STEPS = [25, 50, 100]
 const SHOP_STEPS = [10, 20]
 const SELL_STEPS = [10, 100, 1000]
 const BEASTS = [243, 244, 245]
+const NIDORAN = new Set([29, 32])
 const day = (ts) => (ts ? String(ts).slice(0, 10) : null)
 const pad = (n) => String(n).padStart(2, '0')
 /** Le dernier jour d'une saison, en date locale comme `seasonBounds`. */
@@ -267,6 +269,9 @@ export function evaluate({ catches, claimed, evolutions, others = [], arena = nu
     if (c.source === 'github' && prNumber(c) !== null && prNumber(c) % 1000 === c.species) hit('lucky-number', c.date, c.key)
     if (c.source === 'github' && prNumber(c) !== null && isPalindrome(prNumber(c))) hit('palindrome', c.date, c.key)
   }
+  // Une carte sur vingt-quatre environ : 50 demandent quelque 1 200 cartes ouvertes.
+  const nido = open.filter((c) => NIDORAN.has(c.species))
+  if (nido.length >= 50) hit('remi-cries', nido[49].date, nido[49].key)
   const theirs = new Set(others.map((o) => `${o.species}@${o.date}`))
   for (const c of open) if (theirs.has(`${c.species}@${c.date}`)) { hit('twins', c.date, c.key); break }
 

@@ -18,7 +18,7 @@ const row = (w, code) => w.find(`[data-code="${code}"]`)
 
 describe('AchievementsView', () => {
   it('compte les succès obtenus sur le total', () => {
-    expect(mountView().find('.ach-total').text()).toBe('2 / 63')
+    expect(mountView().find('.ach-total').text()).toBe('2 / 64')
   })
 
   it('un succès obtenu montre son nom, sa date, son palier et qui l’a', () => {
@@ -64,7 +64,7 @@ describe('AchievementsView', () => {
       'arena-win-1', 'cards-100', 'deja-vu', 'lineage-1', 'sell-10', 'shiny-1', 'shop-1', 'species-100', 'species-50',
     ])
     await common.trigger('click')
-    expect(w.findAll('.ach-row')).toHaveLength(63)
+    expect(w.findAll('.ach-row')).toHaveLength(64)
   })
 
   it('affiche l’erreur et réessaie', async () => {

@@ -15,9 +15,9 @@ const codes = (r) => Object.keys(r.unlocked).sort()
 const evo = (species, from, fromKey, date = D) => ({ species, from, fromKey, date })
 
 describe('catalogue', () => {
-  it('compte 63 succès aux codes uniques, chacun avec un palier de carte', () => {
-    expect(ACHIEVEMENTS).toHaveLength(63)
-    expect(Object.keys(BY_CODE)).toHaveLength(63)
+  it('compte 64 succès aux codes uniques, chacun avec un palier de carte', () => {
+    expect(ACHIEVEMENTS).toHaveLength(64)
+    expect(Object.keys(BY_CODE)).toHaveLength(64)
     for (const a of ACHIEVEMENTS) expect(['c', 'u', 'r', 'l']).toContain(a.tier)
   })
 
@@ -326,6 +326,14 @@ describe('arène', () => {
 
   it('ne lit rien de l’arène sans joueur identifié', () => {
     expect(play(null).unlocked['arena-win-1']).toBeUndefined()
+  })
+})
+
+describe('Rémi pleure', () => {
+  it('se débloque au 50e Nidoran ouvert, mâles et femelles confondus', () => {
+    const nido = Array.from({ length: 50 }, (_, i) => gh(`n${i}`, i % 2 ? 29 : 32, { date: `2026-0${1 + Math.floor(i / 10)}-15` }))
+    expect(run(nido).unlocked['remi-cries']).toEqual({ date: '2026-05-15', triggerKey: 'github:n49' })
+    expect(run(nido, { sealed: ['n49'] }).unlocked['remi-cries']).toBeUndefined()
   })
 })
 

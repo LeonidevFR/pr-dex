@@ -231,7 +231,7 @@ venaient les données.
 
 ## Succès, octobre 2026
 
-63 succès, dans leur propre lieu (`/succes`). Ce qui ne se déduit pas du code :
+64 succès, dans leur propre lieu (`/succes`). Ce qui ne se déduit pas du code :
 
 - **Le volume est récompensé depuis l'arène.** Les premiers succès écartaient tout ce qui
   récompense le travail (« 100 PR », heures, séries de jours), sauf les paliers de
