@@ -1675,3 +1675,45 @@
 
   /* Le rappel du nom manquant : un filet rouge, pas un bandeau — il informe, il n'interdit rien. */
 
+  /* ───────── édition Noël : cartes équipe ───────── */
+  /* Une photo, pas du pixel art : le rendu `pixelated` global la crénelerait. */
+  .team-photo{width:150px;height:150px;border-radius:50%;object-fit:cover;image-rendering:auto;
+    border:2px solid var(--t-l);box-shadow:0 0 0 4px var(--card-b),0 0 0 5px color-mix(in srgb,var(--t-l) 45%,transparent)}
+  .pkc.scene-night .pkc-art .team-photo{filter:drop-shadow(0 0 var(--pkc-halo,10px) rgba(255,222,160,.45))}
+  .team-photo-none{display:grid;place-items:center;font-family:var(--f-display);font-size:56px;color:var(--t-l);background:var(--card-c)}
+  /* Plus de marge que la PokeCard : une description de deux lignes collait au filet doré. Le
+     voile sous le texte le détache du guilloché, sur lequel il se lisait mal. */
+  .pkc-team .pkc-top{padding:22px 24px 0}
+  .pkc-team .pkc-bot{gap:6px;margin:0 12px 14px;padding:10px 12px 12px;border-radius:5px;
+    background:color-mix(in srgb,var(--card-b) 82%,transparent)}
+  .pkc-team .pkc-rule{margin:0 24px 8px}
+  .team-blurb{font-family:var(--f-display);font-size:12px;line-height:1.35;color:var(--card-ink);
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .reveal .pkc-team .pkc-art .team-photo{width:140px;height:140px}
+  .zoom-card .pkc-team .team-photo{width:180px;height:180px}
+  .zoom-card .pkc-team .team-blurb{font-size:14px;-webkit-line-clamp:5}
+  @media (max-height:790px){ .reveal .pkc-team .pkc-art .team-photo{width:110px;height:110px} }
+  @media (max-height:700px){ .reveal .pkc-team .pkc-art .team-photo{width:84px;height:84px} .reveal .team-blurb{-webkit-line-clamp:2} }
+
+  .team-shelf-note{font-family:var(--f-ui);font-size:13px;color:var(--fg-2);margin:0 0 16px}
+  .team-shelf-note b{color:var(--gold);font-weight:700}
+  .team-cell{flex-direction:column;gap:6px;cursor:pointer}
+  .team-cell:disabled{cursor:default}
+  .cell .team-cell-photo{width:62%;height:62%;border-radius:50%;object-fit:cover;image-rendering:auto;border:1.5px solid var(--t-l)}
+  .team-cell .team-photo-none{font-size:26px}
+  .team-cell-name{font-family:var(--f-ui);font-size:11px;font-weight:600;color:var(--fg);max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .team-cell-q{font-family:var(--f-title);font-size:28px;color:var(--fg-3)}
+
+  /* L'annonce du bonus : un cadeau qui tombe après la révélation, pas en même temps. */
+  .reveal-gift{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:8px;
+    border:1px solid rgba(212,176,106,.55);background:rgba(212,176,106,.12);color:#f3dc9c;
+    font-family:var(--f-ui);font-size:14px;font-weight:600;letter-spacing:.01em;
+    box-shadow:0 0 30px rgba(212,176,106,.25);animation:giftIn .6s cubic-bezier(.18,1.4,.4,1) .7s both}
+  @keyframes giftIn{from{opacity:0;transform:scale(.7) translateY(8px)}to{opacity:1;transform:none}}
+  .next-btn.next-gift{display:inline-flex;align-items:center;gap:8px;animation-delay:.95s}
+  .noel-popup{width:min(460px,100%)}
+  /* Le J de Fraunces plonge sous la ligne avec un crochet, qui se lisait comme une lettre déformée. */
+  .noel-popup .ach-recap-title{font-family:"IBM Plex Serif",Georgia,serif;font-weight:400}
+  .noel-gift{display:grid;place-items:center;color:var(--ink);margin:4px auto 6px}
+  .noel-text{font-family:var(--f-ui);font-size:15px;line-height:1.5;color:var(--ink-2);margin:0 0 24px}
+  .noel-actions{display:flex;flex-direction:column;align-items:center;gap:10px}

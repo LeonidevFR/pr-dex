@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url'
 import { drawFrom, drawFromPool } from '../shared/draw.js'
 import { poolOf } from '../shared/species.js'
 import { entryKey } from '../shared/entry.js'
+import { noelSeasonOf, christmasGift, teamBonus, pickMember } from '../shared/noel.js'
 import * as github from './connectors/github.mjs'
 import * as slack from './connectors/slack.mjs'
 import { slackClient } from './agents/monkey-testing/slack.mjs'
@@ -309,6 +310,58 @@ export async function insertCatches(supabaseUrl, serviceKey, rows, fetchFn = fet
 }
 
 /**
+ * Les cartes équipe que donnent ces captures : une sur `TEAM_ODDS` pendant la saison de Noël, en
+ * plus du Pokémon. Même clé d'exemplaire que la capture, préfixée : le tirage reste rejouable.
+ */
+export function teamRows(rows, members) {
+  if (!members.length) return []
+  return rows
+    .filter((r) => teamBonus(entryKey(r.source, r.external_id), r.date))
+    .map((r) => {
+      const key = `noel:${entryKey(r.source, r.external_id)}`
+      return { user_id: r.user_id, key, member: pickMember(key, members), date: r.date, label: r.label, ref: r.ref }
+    })
+}
+
+/** Le booster du 25 décembre, un par joueur et par saison, à ouvrir quand il veut. */
+export function giftRows(userIds, members, today) {
+  const gift = christmasGift(today)
+  if (!gift || !members.length) return []
+  return userIds.map((userId) => ({
+    user_id: userId,
+    key: gift.key,
+    member: pickMember(`${gift.key}:${userId}`, members),
+    date: gift.date,
+    label: 'Booster de Noël',
+    ref: null,
+  }))
+}
+
+/**
+ * Hors saison, la table n'est pas lue : la capture ne dépend de l'easter egg que trois semaines
+ * par an. Une table absente ou illisible désactive les cartes équipe sans bloquer les captures.
+ */
+export async function fetchTeamMembers(supabaseUrl, serviceKey, fetchFn = fetch) {
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/team_members?select=id`, { headers: sbHeaders(serviceKey) })
+  if (!res.ok) {
+    console.warn(`team_members a répondu ${res.status} : pas de carte équipe à ce passage.`)
+    return []
+  }
+  return res.json()
+}
+
+/** Même idempotence que `insertCatches`, sur la contrainte unique (user_id, key). */
+export async function insertTeamCards(supabaseUrl, serviceKey, rows, fetchFn = fetch) {
+  if (!rows.length) return
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/team_cards?on_conflict=user_id,key`, {
+    method: 'POST',
+    headers: { ...sbHeaders(serviceKey), Prefer: 'resolution=ignore-duplicates,return=minimal' },
+    body: JSON.stringify(rows),
+  })
+  if (!res.ok) throw new Error(`team_cards (écriture) a répondu ${res.status}`)
+}
+
+/**
  * Secrets des seules sources réellement présentes en base, vérifiés avant la première
  * requête : un secret manquant doit arrêter le run tout de suite, pas après quelques
  * insertions. Une source déclarée sans connecteur n'arrête rien — le run continue sur les
@@ -339,6 +392,9 @@ export async function main() {
   const { unknown, missing } = planSources(identities)
   if (missing.length) throw new Error(`Secret(s) de source manquant(s) : ${missing.join(', ')}.`)
   if (unknown.length) console.warn(`Source(s) sans connecteur, ignorée(s) : ${unknown.join(', ')}.`)
+
+  const members = noelSeasonOf(today) === null ? [] : await fetchTeamMembers(supabaseUrl, serviceKey)
+  const teamCards = []
 
   let total = 0
   const failed = []
@@ -393,6 +449,7 @@ export async function main() {
         continue
       }
       total += rows.length
+      teamCards.push(...teamRows(rows, members))
     }
     console.log(`${identity.source}/${identity.handle} : ${rows.length} nouvelle(s) capture(s).`)
   }
@@ -439,6 +496,15 @@ export async function main() {
   }
 
   console.log(`${total} nouvelle(s) capture(s) au total sur ${identities.length} identité(s).`)
+
+  // Après les captures : une carte équipe en échec ne doit priver personne de ses Pokémon.
+  teamCards.push(...giftRows([...sourcesByUser.keys()], members, today))
+  try {
+    await insertTeamCards(supabaseUrl, serviceKey, teamCards)
+    if (teamCards.length) console.log(`${teamCards.length} carte(s) équipe proposée(s).`)
+  } catch (e) {
+    failed.push(e.message)
+  }
   // Les autres ont été servies, mais le run doit finir rouge : un échec silencieux priverait
   // quelqu'un de ses captures sans que personne ne le sache.
   if (failed.length) throw new Error(`Identité(s) en échec — ${failed.join(' ; ')}`)

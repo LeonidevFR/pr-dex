@@ -3,9 +3,10 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  sinceDate, bootstrapDate, toRows, planSources, packRows, main, CONNECTORS,
+  sinceDate, bootstrapDate, toRows, teamRows, giftRows, planSources, packRows, main, CONNECTORS,
   seasonAnnouncement, announceClosedSeasons,
 } from './catch.mjs'
+import { teamBonus } from '../shared/noel.js'
 import { drawFrom, drawInTier } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
 import { DEX, poolOf } from '../shared/species.js'
@@ -125,13 +126,21 @@ describe('main', () => {
    * l'URL. `github` fournit les réponses GitHub dans l'ordre d'appel, communes à toutes les
    * identités traitées par ce run — suffisant tant qu'une seule identité par test a du nouveau.
    */
-  function makeFetch({ identities, catchesByUser = {}, github = [], packs = [], maxRows = Infinity, rejectInsert = {} } = {}) {
+  function makeFetch({ identities, catchesByUser = {}, github = [], packs = [], maxRows = Infinity, rejectInsert = {}, members = [] } = {}) {
     const githubQueue = [...github]
     const inserted = []
     const claimed = []
     const expired = []
     const closed = []
+    const team = []
     const fn = vi.fn(async (url, init = {}) => {
+      if (url.includes('/rest/v1/team_members')) {
+        return { ok: true, status: 200, json: async () => members, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/team_cards')) {
+        team.push(...JSON.parse(init.body))
+        return { ok: true, status: 201, json: async () => [], headers: new Headers() }
+      }
       if (url.includes('/rest/v1/identities')) {
         return { ok: true, status: 200, json: async () => identities, headers: new Headers() }
       }
@@ -182,6 +191,7 @@ describe('main', () => {
     fn.claimed = claimed
     fn.expired = expired
     fn.insertUrls = []
+    fn.team = team
     return fn
   }
 
@@ -525,6 +535,39 @@ describe('main', () => {
     })
   })
 
+  describe('cartes équipe', () => {
+    const members = [{ id: 'alex' }, { id: 'zoe' }]
+    const at = (day) => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(`${day}T10:00:00Z`)) }
+    afterEach(() => vi.useRealTimers())
+
+    it('hors saison, ne lit pas les membres et n’écrit aucune carte équipe', async () => {
+      at('2026-07-01')
+      const fetchMock = makeFetch({ identities: [identity('u1')], github: [searchPage([])], members })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      expect(fetchMock.mock.calls.some(([url]) => url.includes('team_'))).toBe(false)
+    })
+
+    it('à partir du 25 décembre, offre à chaque joueur un booster daté du 25', async () => {
+      at('2026-12-27')
+      const fetchMock = makeFetch({ identities: [identity('u1'), identity('u2', { handle: 'toi' })], github: [searchPage([]), searchPage([])], members })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      expect(fetchMock.team.map((r) => [r.user_id, r.key, r.date])).toEqual([
+        ['u1', 'noel:2026', '2026-12-25'], ['u2', 'noel:2026', '2026-12-25'],
+      ])
+      expect(fetchMock.team.every((r) => ['alex', 'zoe'].includes(r.member))).toBe(true)
+    })
+
+    it('sans membre en base, n’écrit rien et laisse passer les captures', async () => {
+      at('2026-12-27')
+      const fetchMock = makeFetch({ identities: [identity('u1')], github: [searchPage([])] })
+      vi.stubGlobal('fetch', fetchMock)
+      await expect(main()).resolves.toBe(0)
+      expect(fetchMock.team).toEqual([])
+    })
+  })
+
   it('n’enregistre que des sources dont le connecteur déclare la même clé', () => {
     for (const [key, connector] of Object.entries(CONNECTORS)) expect(connector.id).toBe(key)
   })
@@ -772,3 +815,30 @@ describe('annonce de fin de saison', () => {
   })
 })
 
+
+describe('teamRows', () => {
+  const members = [{ id: 'alex' }, { id: 'zoe' }]
+  const row = (id, date) => ({ user_id: 'u1', source: 'github', external_id: id, label: `PR ${id}`, ref: null, date })
+  const ids = Array.from({ length: 300 }, (_, i) => `sha${i}`)
+
+  it('ajoute une carte équipe aux seules captures que le tirage de Noël désigne, en saison', () => {
+    const rows = ids.map((id) => row(id, '2026-12-18'))
+    const team = teamRows(rows, members)
+    const expected = ids.filter((id) => teamBonus(`github:${id}`, '2026-12-18'))
+    expect(expected.length).toBeGreaterThan(0)
+    expect(team.map((t) => t.key)).toEqual(expected.map((id) => `noel:github:${id}`))
+  })
+
+  it('ne donne rien hors saison', () => {
+    expect(teamRows(ids.map((id) => row(id, '2026-12-14')), members)).toEqual([])
+  })
+})
+
+describe('giftRows', () => {
+  it('tire un membre propre à chaque joueur', () => {
+    const members = Array.from({ length: 10 }, (_, i) => ({ id: `m${i}` }))
+    const users = Array.from({ length: 20 }, (_, i) => `u${i}`)
+    const picked = new Set(giftRows(users, members, '2026-12-25').map((r) => r.member))
+    expect(picked.size).toBeGreaterThan(1)
+  })
+})
