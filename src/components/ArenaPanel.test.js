@@ -96,7 +96,7 @@ describe('ArenaPanel', () => {
     await w.find('.defi-btn').trigger('click')
     expect(w.emitted('accept')).toBeUndefined()
     expect(w.find('.defi-rappel').text()).toContain('Tu relèves le défi de bob-dev')
-    expect(w.find('.defi-btn').text()).toBe('Choisis ton Pokémon')
+    expect(w.find('.defi-btn').text()).toBe('Choisi')
   })
 
   it('relève un défi une fois la mise choisie', async () => {

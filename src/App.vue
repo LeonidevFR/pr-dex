@@ -311,9 +311,10 @@ const collectionData = () => ({
 // qui s'efface afficherait sinon « Tu avais déjà 0 succès ».
 const recap = ref(null)
 watch(
-  () => [view.value, achievements.unannounced.value.length],
-  ([v, n]) => {
-    if (v !== 'succes' || !n || recap.value) return
+  // Une fenêtre à la fois : le récap attend que le duel et la fin de saison soient refermés.
+  () => [view.value, achievements.unannounced.value.length, seasonRecap.value, duelShown.value],
+  ([v, n, saison, duel]) => {
+    if (v !== 'succes' || !n || recap.value || saison || duel) return
     recap.value = { items: [...achievements.unannounced.value], first: achievements.isFirstRecap.value }
   },
 )

@@ -308,6 +308,14 @@
   .season-podium .mono{font-size:12px;color:var(--fg-3)}
   .season-recap-moi{font-size:15px;color:var(--fg);margin:0 0 10px}
   .season-recap-go{margin-top:18px}
+  @media (max-width:640px){
+    .season-recap{padding:26px 16px 22px}
+    .season-recap-title{font-size:25px}
+    .season-podium{gap:6px}
+    .season-podium li{flex:1;min-width:0;padding:8px 4px}
+    .season-podium b{font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .season-podium .mono{font-size:11px;text-align:center}
+  }
   .season-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin:0 0 8px;padding:14px 18px;border-radius:10px;
     border:1px solid var(--gold);background:var(--surface);color:var(--fg);font-size:14px}
   .duel-panel > .panel-top{padding:20px 28px 16px}
@@ -500,6 +508,13 @@
   .board-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:2px}
   .board-detail{display:none}
   .board-detail td{text-align:left;padding-top:4px;color:var(--fg-3);font-size:12px;white-space:normal}
+  /* Avec la barre latérale, le tableau complet ne tient plus sous 1 180 px : les colonnes
+     secondaires se replient dans la ligne de détail, comme en mobile. */
+  @media (max-width:1180px){
+    .board-table .secondary{display:none}
+    .board-table tbody tr{cursor:pointer}
+    .board-detail{display:table-row}
+  }
   .board-detail-item{display:inline-block;margin-right:14px}
   .board-detail-item b{color:var(--fg)}
   /* Ce qui manque à l'équipe : des silhouettes éteintes, comme les cases vides de la grille. */
@@ -546,12 +561,13 @@
     scrollbar-width:thin;scrollbar-color:var(--line-strong-hi) transparent}
   .log-row{display:flex;gap:13px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);color:var(--fg)}
   .defis{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-  .defi{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;border-radius:10px;
+  .defi{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 18px;border-radius:10px;
     background:var(--surface);border:1px solid var(--line-gold)}
   .defi.cible{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
   .defi-txt{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:15px;color:var(--fg)}
   .defi-txt .muted{font-size:12px}
-  .defi-btn{flex:none;padding:10px 18px}
+  .defi-btn{flex:none;padding:10px 20px;white-space:nowrap}
+  .defi-login{white-space:nowrap}
   .defi-rappel{margin:0 0 14px;padding:10px 14px;border-radius:8px;border:1px solid var(--gold);color:var(--fg);font-size:13.5px}
   .log-row:last-child{border-bottom:0}
   a.log-row:hover .log-title{color:var(--gold)}
@@ -1201,14 +1217,22 @@
      depuis le contenant plutôt que depuis `.pkc`, dont la transformation porte déjà le
      retournement et l'inclinaison. */
   .duel-slot{position:relative;width:165px;height:231px;perspective:900px}
+  /* En mobile, les deux cartes côte à côte doivent tenir dans la largeur de la scène. */
+  @media (max-width:860px){
+    .duel-camps{gap:14px}
+    .duel-camp,.duel-slot{width:min(140px,38vw)}
+    .duel-slot{height:calc(min(140px,38vw) * 1.4)}
+    .duel-scene{--duel-scale:.5}
+  }
+  @media (max-width:360px){.duel-scene{--duel-scale:.44}}
   .duel-flip{
     position:absolute;top:50%;left:50%;width:266px;height:372px;margin:-186px 0 0 -133px;
-    transform-style:preserve-3d;transform:scale(.62) rotateY(0deg);
+    transform-style:preserve-3d;transform:scale(var(--duel-scale,.62)) rotateY(0deg);
     transition:transform .62s cubic-bezier(.2,.8,.2,1);
   }
   /* Les deux mises se retournent EN MÊME TEMPS : personne n'ajuste la sienne en voyant l'autre,
      et c'est la règle centrale du jeu — une animation simultanée la dit sans une ligne de texte. */
-  .duel-flip.dos{transform:scale(.62) rotateY(180deg)}
+  .duel-flip.dos{transform:scale(var(--duel-scale,.62)) rotateY(180deg)}
   .duel-dos,.duel-front{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
   /* Le `rotateY(0deg)` ne déplace rien : il donne à la face avant le transform propre sans
      lequel Firefox ignore `backface-visibility` et la laisse voir en miroir, carte scellée.

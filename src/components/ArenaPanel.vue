@@ -155,12 +155,13 @@ function take(duelId) {
     <div v-else class="defis">
       <div v-for="d in others" :key="d.id" class="defi" :class="{ cible: target?.id === d.id }">
         <div class="defi-txt">
-          <span><b>{{ d.login ?? 'Un collègue' }}</b> te défie</span>
+          <span><b class="defi-login">{{ d.login ?? 'Un collègue' }}</b> te défie</span>
           <span class="muted">Son Pokémon reste caché jusqu’au combat.</span>
         </div>
-        <button class="btn-solid defi-btn" :disabled="busy || !canPlay" @click="aim(d)">
-          {{ target?.id === d.id ? 'Choisis ton Pokémon' : 'Relever' }}
-        </button>
+        <button
+          class="defi-btn" :class="target?.id === d.id ? 'btn-ghost' : 'btn-solid'"
+          :disabled="busy || !canPlay" :aria-pressed="target?.id === d.id" @click="aim(d)"
+        >{{ target?.id === d.id ? 'Choisi' : 'Relever' }}</button>
       </div>
     </div>
   </div>
