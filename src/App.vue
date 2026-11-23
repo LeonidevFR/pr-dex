@@ -40,9 +40,18 @@ import AchievementsView from './components/AchievementsView.vue'
 import AchievementToasts from './components/AchievementToasts.vue'
 import AchievementRecap from './components/AchievementRecap.vue'
 import { useAchievements } from './composables/useAchievements.js'
+import { useTeamCards } from './composables/useTeamCards.js'
+import { useNoelBanner } from './composables/useNoelBanner.js'
+import TeamRitual from './components/TeamRitual.vue'
+import TeamShelf from './components/TeamShelf.vue'
+import NoelPopup from './components/NoelPopup.vue'
+import NoelBanner from './components/NoelBanner.vue'
 
 const collection = useCollection()
 const achievements = useAchievements()
+const team = useTeamCards()
+const teamRitual = ref(null)
+const noelPopup = ref(false)
 const { session, ready, authError, signIn, link, unlink, freshUser, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
@@ -66,7 +75,10 @@ const signaler = (e) => { avis.value = messageDErreur(e); avisBon.value = false 
 const connecting = ref(false)
 const accountName = ref('')
 const identities = ref([])
-const isDemo = new URLSearchParams(location.search).has('demo')
+const params = new URLSearchParams(location.search)
+const isDemo = params.has('demo')
+// `?demo&noel` joue l'édition Noël hors calendrier, avec une équipe inventée.
+const demoNoel = isDemo && params.has('noel')
 /**
  * `?demo&teaser` montre l'arène fermée alors qu'on est avant son ouverture — c'est le seul
  * moyen de relire l'écran d'annonce, que la démonstration cache par construction puisqu'elle
@@ -180,6 +192,7 @@ const fichePrivee = computed(() => ({
 const ritualEntry = ref(null)
 const ritualRemaining = ref(0)
 const ritualIsNew = ref(false)
+const ritualBonus = ref(false)
 const evoAnim = ref(null)
 // Une liaison Slack refusée revient sur la page avec l'erreur : on rouvre les Réglages, où
 // elle s'explique.
@@ -205,6 +218,11 @@ const dataClient = ref(null)
 // Date du jour figée au chargement, au format des dates de capture : le calcul des
 // « 30 jours » est une fonction pure, elle ne lit jamais l'horloge elle-même.
 const today = new Date().toISOString().slice(0, 10)
+const noelBanner = useNoelBanner({ today, discovered: team.discovered, ...(demoNoel ? { season: 2026 } : {}) })
+// L'étagère Équipe n'existe qu'à partir de la première carte de Noël : c'est un easter egg.
+const teamShelf = computed(() => (team.cards.value.length
+  ? { discovered: team.discovered.value, total: team.members.value.length }
+  : null))
 
 const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
@@ -412,6 +430,14 @@ async function connectSession(s) {
   if (since) collection.refresh({ resumeSince: since })
   // Sans `await` : les succès ne retardent jamais l'arrivée sur la planche.
   achievements.load(client, collectionData)
+  loadTeam(client)
+}
+
+// À chaque connexion tant que le booster du 25 n'est pas ouvert : « plus tard » ne vaut que
+// pour la session.
+async function loadTeam(c) {
+  await team.load(c, { today, force: demoNoel })
+  if (team.gift.value) noelPopup.value = true
 }
 
 /**
@@ -576,7 +602,7 @@ onMounted(async () => {
   if (isDemo) {
     const { loadDemoClient } = await import('./fixtures/demo.js')
     accountName.value = 'démo'
-    client = loadDemoClient()
+    client = loadDemoClient({ noel: demoNoel })
     dataClient.value = client
     demo.value = true
     userId.value = 'demo-moi'
@@ -586,6 +612,7 @@ onMounted(async () => {
     reporterLesPertes()
     connected.value = true
     achievements.load(client, collectionData)
+    loadTeam(client)
     await rattraperLesDuels()
     await annoncerLaSaison()
   }
@@ -613,19 +640,45 @@ watch(
 // même la révélation, donc une liaison directe la dirait déjà rencontrée — le marqueur ne
 // s'allumerait jamais. Il se lit sur l'état d'avant l'ouverture, seul état où la question
 // « jamais rencontrée ? » a un sens.
+//
+// Les cartes équipe de Noël passent après les Pokémon, et `remaining` compte les deux files,
+// pour que « carte suivante » ne mente pas au passage de l'une à l'autre. Exception : le bonus
+// d'une carte passe juste après elle, sinon on ne verrait pas d'où il vient.
+let lastClaimed = null
 function showPacket(entry) {
   const queue = collection.dex.pending.value
+  const teamQueue = team.pending.value
+  const bonus = lastClaimed && teamQueue.find((c) => c.key === `noel:${lastClaimed}`)
+  lastClaimed = null
+  if (bonus) {
+    ritualEntry.value = null
+    teamRitual.value = teamEntry(bonus, queue.length + teamQueue.length)
+    return
+  }
   ritualEntry.value = entry ?? null
-  ritualRemaining.value = queue.length
+  ritualRemaining.value = queue.length + teamQueue.length
   ritualIsNew.value = ritualEntry.value ? collection.dex.isNewSpecies(ritualEntry.value.species) : false
+  ritualBonus.value = Boolean(ritualEntry.value && teamQueue.some((c) => c.key === `noel:${ritualEntry.value.key}`))
+  teamRitual.value = !ritualEntry.value && teamQueue[0] ? teamEntry(teamQueue[0], teamQueue.length) : null
 }
 const showNextPacket = () => showPacket(collection.dex.pending.value[0])
+
+function teamEntry(card, remaining) {
+  return { card, member: team.byId.value[card.member], remaining, isNew: !team.owned.value[card.member] }
+}
+
+function openGift() {
+  noelPopup.value = false
+  const gift = team.gift.value
+  if (gift) teamRitual.value = teamEntry(gift, collection.dex.pending.value.length + team.pending.value.length)
+}
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
 
 // Le rituel émet `claim` à la révélation. On attend l'écriture : un succès ne tombe que sur
 // une carte vraiment ouverte.
 async function onClaim(key) {
+  lastClaimed = key
   await collection.claim(key)
   if (!collection.error.value) achievements.check(nowDay())
 }
@@ -656,8 +709,13 @@ function finishEvo() {
   achievements.check(nowDay())
 }
 
+// Le booster peut aussi s'ouvrir par la file du rituel : la popup se tait dès qu'il est ouvert.
+// Elle passe après les duels à revoir et le récap de saison, qui s'ouvrent aussi à l'arrivée.
+const showNoel = computed(() => noelPopup.value && Boolean(team.gift.value) && !ritualEntry.value
+  && !teamRitual.value && !duelShown.value && !seasonRecap.value)
+
 const overlayOpen = computed(() =>
-  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value || recap.value || seasonRecap.value),
+  Boolean(ritualEntry.value || teamRitual.value || showNoel.value || evoAnim.value || selected.value || settingsOpen.value || recap.value || seasonRecap.value),
 )
 
 // Priorité calquée sur l'empilement visuel donné par les z-index de styles.css :
@@ -666,6 +724,8 @@ const overlayOpen = computed(() =>
 function closeTopOverlay() {
   if (evoAnim.value) finishEvo()
   else if (ritualEntry.value) ritualEntry.value = null
+  else if (teamRitual.value) teamRitual.value = null
+  else if (showNoel.value) noelPopup.value = false
   else if (settingsOpen.value) settingsOpen.value = false
   else if (recap.value) closeRecap()
   else if (seasonRecap.value) closeSeasonRecap()
@@ -703,7 +763,7 @@ useKeyboardNav({
 
     <TheRail
       :caught-count="collection.dex.caughtCount.value"
-      :pending-count="collection.dex.pending.value.length"
+      :pending-count="collection.dex.pending.value.length + team.pending.value.length"
       :syncing="collection.loading.value" :sync-error="collection.error.value"
       :view="view" :theme="theme"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
@@ -711,16 +771,21 @@ useKeyboardNav({
       :achievements-badge="achievements.unannounced.value.length"
     />
     <SlackInvite v-if="view === 'collection' && showSlackInvite" @link="link(SLACK)" @dismiss="invite.dismiss" />
+    <NoelBanner v-if="view === 'collection' && noelBanner.visible.value" @dismiss="noelBanner.dismiss" />
     <TheTray
       v-if="route.name === 'collection'"
       :by-species="collection.dex.bySpecies.value" :available="availableById" :evolvable="collection.dex.evolvableIds.value"
       :active-tiers="filters.activeTiers.value" :status-filter="filters.statusFilter.value"
-      :query="filters.query.value" :gen="gen" :gen2="false"
+      :query="filters.query.value" :gen="gen" :gen2="false" :team="teamShelf"
       @select="(id) => router.go('collection', id)"
       @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter"
       @set-query="filters.setQuery" @reset-filters="filters.reset"
       @set-gen="gen = $event"
-    />
+    >
+      <template #team>
+        <TeamShelf :members="team.members.value" :owned="team.owned.value" />
+      </template>
+    </TheTray>
     <!-- Sans client, rien à lire : la démo se charge d'un `import()` dynamique, et un clic sur
          un onglet pendant ce temps ne doit pas monter une vue qui planterait sur `null`. -->
     <BoardsView
@@ -769,10 +834,22 @@ useKeyboardNav({
     <transition name="fade">
       <RitualOverlay
         v-if="ritualEntry" :key="ritualEntry.key" :entry="ritualEntry"
-        :remaining="ritualRemaining" :is-new="ritualIsNew"
+        :remaining="ritualRemaining" :is-new="ritualIsNew" :bonus="ritualBonus"
         @claim="onClaim" @next="nextRitual"
         @close="ritualEntry = null"
       />
+    </transition>
+
+    <transition name="fade">
+      <TeamRitual
+        v-if="teamRitual" :key="teamRitual.card.key" :card="teamRitual.card" :member="teamRitual.member"
+        :remaining="teamRitual.remaining" :is-new="teamRitual.isNew"
+        @open="team.open" @next="nextRitual" @close="teamRitual = null"
+      />
+    </transition>
+
+    <transition name="fade">
+      <NoelPopup v-if="showNoel" @open="openGift" @later="noelPopup = false" />
     </transition>
 
     <transition name="fade">

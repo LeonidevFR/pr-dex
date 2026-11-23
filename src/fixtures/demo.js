@@ -262,11 +262,36 @@ function demoPlayers() {
 }
 
 /**
+ * Une équipe inventée : la démo ne doit désigner personne, ni par le nom ni par la photo. Un
+ * membre sans photo montre le repli à l'initiale. Le booster du 25 reste à ouvrir, pour que la
+ * popup de Noël s'affiche au chargement, et la première carte de la file porte un bonus, qui
+ * se retourne juste après elle. Seulement avec `?demo&noel` : sans, la démo est celle
+ * d'un joueur hors saison, sans aucune carte équipe.
+ */
+const svgPortrait = (name, bg) =>
+  'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="${bg}"/>` +
+    `<circle cx="60" cy="48" r="22" fill="#f1e3c8"/><path d="M20 120c4-28 22-40 40-40s36 12 40 40z" fill="#f1e3c8"/>` +
+    `<text x="60" y="56" text-anchor="middle" font-family="serif" font-size="22" fill="${bg}">${name[0]}</text></svg>`,
+  )
+const FAKE_TEAM = [
+  { id: 'demo-ada', name: 'Ada', blurb: 'Merge le vendredi à 17 h 58. Ne regrette rien.', photoUrl: svgPortrait('Ada', '#7a3b2e') },
+  { id: 'demo-basile', name: 'Basile', blurb: 'A déjà relu une PR de 4 000 lignes en un seul « LGTM ».', photoUrl: svgPortrait('Basile', '#2e5a4a') },
+  { id: 'demo-chloe', name: 'Chloé', blurb: 'Parle couramment le YAML, le SQL et le sarcasme.', photoUrl: svgPortrait('Chloé', '#3b4a7a') },
+  { id: 'demo-dimitri', name: 'Dimitri', blurb: 'Son café a plus d’uptime que la prod.', photoUrl: null },
+]
+const FAKE_TEAM_CARDS = [
+  { key: 'noel:demo:1', member: 'demo-chloe', date: '2026-12-18', label: 'fix: arrondi des notes moyennes', ref: 'moi/atlas#312', opened_at: '2026-12-18T10:00:00Z' },
+  { key: 'noel:crm:104862', member: 'demo-ada', date: '2026-07-14', label: 'Camping Les Ormes — 9/10', ref: 'enquête valeur · 2026-07-14', opened_at: null },
+  { key: 'noel:2026', member: 'demo-basile', date: '2026-12-25', label: 'Booster de Noël', ref: null, opened_at: null },
+]
+
+/**
  * Client en mémoire respectant l'interface commune des clients de données. Quatre plis restent
  * à ouvrir : un venu de la seconde source, un légendaire, et deux ordinaires. Le classement y
  * compte quatre joueurs fictifs plus le joueur courant.
  */
-export function loadDemoClient() {
+export function loadDemoClient({ noel = false } = {}) {
   const catches = demoCatches()
   let state = {
     claimed: catches.slice(0, -5).map((c) => entryKey(c.source, c.external_id)),
@@ -276,7 +301,13 @@ export function loadDemoClient() {
   // Les succès du joueur de démo, en mémoire : vides au chargement, pour que l'onglet ouvre
   // le récap comme au lancement réel.
   let achievements = []
+  const teamCards = noel ? FAKE_TEAM_CARDS.map((c) => ({ ...c })) : []
   return {
+    readTeam: async () => ({ members: FAKE_TEAM, cards: teamCards.map((c) => ({ ...c })) }),
+    openTeamCard: async (key) => {
+      const card = teamCards.find((c) => c.key === key)
+      if (card) card.opened_at = new Date().toISOString()
+    },
     checkAccess: async () => true,
     // Une copie, jamais le tableau lui-même : `catches.value = c` avec la même référence ne
     // déclenche aucune réactivité, et un pli acheté restait invisible — la file, le compteur du

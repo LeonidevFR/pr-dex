@@ -736,3 +736,80 @@ describe('succès', () => {
     expect(w.find('[data-code="on-top"]').classes()).toContain('focused')
   })
 })
+
+describe('édition Noël', () => {
+  async function mountNoel() {
+    window.history.replaceState({}, '', '/?demo&noel')
+    const w = await mountApp()
+    for (let i = 0; i < 50 && !w.find('.noel-popup').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    return w
+  }
+
+  it('sans carte équipe, ni popup ni étagère Équipe', async () => {
+    const w = await mountApp()
+    await flushPromises()
+    expect(w.find('.noel-popup').exists()).toBe(false)
+    expect(w.findAll('.gen-tabs .filter-chip').some((b) => b.text().startsWith('Équipe'))).toBe(false)
+  })
+
+  it('pas de bandeau pour qui a déjà découvert un lutin : l’onglet Équipe l’explique', async () => {
+    const w = await mountNoel()
+    await w.find('.noel-popup .filter-reset').trigger('click')
+    expect(w.findAll('.gen-tabs .filter-chip').some((b) => b.text().startsWith('Équipe'))).toBe(true)
+    expect(w.find('.noel-banner').exists()).toBe(false)
+  })
+
+  it('la popup ouvre le booster du 25, qui ne se représente plus ensuite', async () => {
+    const w = await mountNoel()
+    expect(w.find('.noel-popup').exists()).toBe(true)
+    await w.find('.noel-popup .ach-recap-close').trigger('click')
+    expect(w.find('.ritual').text()).toContain('Cliquer pour retourner')
+    await w.find('.pkc-team').trigger('click')
+    expect(w.find('.reveal-name').text()).toBe('Basile')
+    await w.find('.ritual-close').trigger('click')
+    expect(w.find('.noel-popup').exists()).toBe(false)
+  })
+
+  it('« plus tard » ferme la popup sans ouvrir la carte', async () => {
+    const w = await mountNoel()
+    await w.find('.noel-popup .filter-reset').trigger('click')
+    expect(w.find('.noel-popup').exists()).toBe(false)
+    expect(w.find('.ritual').exists()).toBe(false)
+  })
+
+  it('l’étagère Équipe montre les cartes ouvertes et laisse les autres en point d’interrogation', async () => {
+    const w = await mountNoel()
+    await w.find('.noel-popup .filter-reset').trigger('click')
+    const onglet = w.findAll('.gen-tabs .filter-chip').find((b) => b.text().startsWith('Équipe'))
+    expect(onglet.text()).toBe('Équipe · Noël · 1/4')
+    await onglet.trigger('click')
+    expect(w.find('.team-shelf-note').text()).toContain('1 sur 4 lutins de Noël découvert.')
+    expect(w.findAll('.team-cell.has').map((c) => c.find('.team-cell-name').text())).toEqual(['Chloé'])
+    expect(w.findAll('.team-cell-q')).toHaveLength(3)
+  })
+
+  it('le compteur du bouton Retourner compte aussi la carte équipe en attente', async () => {
+    const w = await mountNoel()
+    expect(w.find('.claim-btn .pip').text()).toBe('7')
+  })
+
+  it('le bonus de Noël se retourne juste après le Pokémon qui l’a donné', async () => {
+    const w = await mountNoel()
+    await w.find('.noel-popup .filter-reset').trigger('click')
+    press(' ')
+    await flushPromises()
+    w.findComponent(PokeCard).vm.$emit('activate')
+    await flushPromises()
+    expect(w.find('.reveal-gift').text()).toContain('Un bonus de Noël était caché dans cette carte')
+    expect(w.find('.next-btn').text()).toBe('Ouvrir le bonus de Noël')
+    await w.find('.next-btn').trigger('click')
+    await flushPromises()
+    await w.find('.pkc-team').trigger('click')
+    expect(w.find('.reveal-banner').text()).toBe('Bonus de Noël')
+    expect(w.find('.reveal-name').text()).toBe('Ada')
+    expect(w.find('.next-btn').text()).toContain('5 restantes')
+  })
+})

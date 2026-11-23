@@ -76,6 +76,27 @@ de la base pour un autre joueur — la fonction `leaderboard_players()` (voir
 et la date de chaque capture ouverte. Le calcul des colonnes passe par le même `useDex`
 que le dex personnel : un classement ne peut pas contredire le compteur /151 d'un joueur.
 
+## L'édition Noël
+
+Du 15 décembre au 6 janvier, une carte gagnée sur quinze (PR ou monkey-testing) apporte en
+plus de son Pokémon une **carte équipe** : un membre de l'équipe, sa photo et une description.
+Chaque joueur reçoit aussi un booster de Noël daté du 25 décembre, offert à partir de ce jour
+et à ouvrir quand il veut ; une popup le lui rappelle à chaque connexion tant qu'il est fermé.
+Le tirage (`shared/noel.js`) suit la même règle que celui des Pokémon : le seul seed est la clé
+d'exemplaire.
+
+Ces cartes sont décoratives. Elles vivent dans `team_cards`, pas dans `catches` : ni le
+Pokédex, ni le leaderboard, ni les statistiques, ni les bonbons, ni les succès ne les voient.
+On les retrouve dans l'étagère « Équipe · Noël » de la Collection, qui n'apparaît qu'à la
+première carte.
+
+Le repo étant public, rien de l'équipe n'y entre. Les membres sont dans `team_members`, remplie
+à la main (`id`, `name`, `blurb`, `photo`), et les photos dans le bucket privé `equipe` de
+Supabase Storage, où `photo` donne le chemin du fichier. Les deux ne sont lisibles qu'avec une
+session. Sans aucun membre en base, `catch.mjs` ne distribue aucune carte équipe.
+
+Pour l'essayer : `?demo&noel`, avec une équipe inventée.
+
 ## Lancer en local
 
 ```bash
