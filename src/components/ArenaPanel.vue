@@ -1,4 +1,5 @@
 <script setup>
+import RewardTable from './RewardTable.vue'
 import { Sparkle } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
@@ -144,9 +145,7 @@ function take(duelId) {
       Tu as joué tous tes engagements. Il en revient <b>un par jour ouvré</b>, et ils
       s’accumulent jusqu’à cinq. Reviens demain.
     </p>
-  </div>
-
-  <div v-if="rulesOpen" class="sect">
+  <template v-if="rulesOpen">
     <div class="arena-rule">
       <b>Engager</b>
       <span class="muted">
@@ -200,7 +199,10 @@ function take(duelId) {
         légendaire descendu chaque semaine finit toujours par tomber.
       </span>
     </div>
+  </template>
   </div>
+  <!-- Le barème fait partie des règles : il s'ouvre avec elles. -->
+  <RewardTable v-if="rulesOpen" />
 
   <!--
     Ses propres défis, tous. On n'en montrait qu'un, alors qu'on peut en poster autant qu'on a

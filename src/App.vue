@@ -15,7 +15,6 @@ import ArenaTeaser from './components/ArenaTeaser.vue'
 import DuelOverlay from './components/DuelOverlay.vue'
 import BoardsView from './components/BoardsView.vue'
 import MeView from './components/MeView.vue'
-import RewardTable from './components/RewardTable.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import SlackInvite from './components/SlackInvite.vue'
 import SyncToast from './components/SyncToast.vue'
@@ -770,10 +769,6 @@ useKeyboardNav({
       :preselect="arenaPreselect"
       @engage="onEngage" @accept="onAccept"
     />
-
-    <!-- La table des gains tient avec les duels : on la consulte en choisissant quoi engager,
-         pas en lisant un classement. -->
-    <RewardTable v-if="duelsOpen && arena && areneOuverte" />
 
     <ShopPanel
       v-if="shopOpen && arena && areneOuverte"

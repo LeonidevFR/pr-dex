@@ -118,7 +118,7 @@ function vendre() {
     <template v-else>
       <div class="sect">
         <div class="sect-h">
-          <span class="eyebrow">Ce qui part</span>
+          <span>À vendre</span>
           <button
             class="evo-btn vendre-btn" :class="{ confirming: aConfirmer }"
             :disabled="busy || !nombre" @click="vendre"
@@ -129,8 +129,8 @@ function vendre() {
           bon. L’espèce et les bonbons restent acquis.
         </p>
         <p v-else class="muted">
-          Rien n’est coché : c’est à toi de désigner ce qui part. <b>Tous</b> prend le surplus
-          d’une espèce d’un coup, le chevron déplie le détail exemplaire par exemplaire. Il en
+          Coche ce que tu veux vendre. <b>Tous</b> prend le surplus d’une espèce d’un coup, le
+          chevron déplie le détail exemplaire par exemplaire. Il en
           reste toujours un, quoi qu’il arrive.
         </p>
       </div>

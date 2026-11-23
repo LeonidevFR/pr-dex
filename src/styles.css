@@ -1451,7 +1451,7 @@
      qu'il coûte d'obtenir plutôt qu'en vignette au milieu d'un tableau. */
   .saison-prix{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
   .saison-prix .sbadge{flex-shrink:0}
-  .saison-prix > div{flex:1;min-width:210px}
+  .saison-prix > p{flex:1;min-width:210px;margin:0}
 
   /* Un gain nul se lit au premier coup d'œil comme une absence, pas comme un zéro perdu au
      milieu de chiffres qui, eux, comptent. */

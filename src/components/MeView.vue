@@ -139,11 +139,11 @@ const cases = computed(() => {
       la jouer. Sans rang, puisqu'il n'est encore à personne.
     -->
     <template v-if="arenaOpen">
-      <div class="sect saison-prix">
-        <SeasonBadge :season="season" :rank="0" :size="84" />
-        <div>
-          <div class="eyebrow">Badge de la saison</div>
-          <p class="muted" style="margin-top:7px">
+      <div class="sect">
+        <div class="eyebrow sect-h"><span>Badge de la saison</span></div>
+        <div class="saison-prix">
+          <SeasonBadge :season="season" :rank="0" :size="84" />
+          <p class="muted">
             Les trois premiers l’épinglent ici à la clôture. Il change à chaque saison, et une
             saison ne se rejoue pas.
           </p>
