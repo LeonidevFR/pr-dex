@@ -5,6 +5,8 @@ import TeamBoard from './TeamBoard.vue'
 import { rankPlayers, teamTotals } from '../lib/leaderboard.js'
 import { useLeaderboardRows } from '../composables/useLeaderboardRows.js'
 import { seasonLabel } from '../../shared/arena-economy.js'
+import { DEX, TIER_VAR } from '../../shared/species.js'
+import { spriteUrl } from '../lib/sprites.js'
 
 const props = defineProps({
   client: { type: Object, default: null },
@@ -64,7 +66,7 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
       remplit tout seul. Les points de la saison viennent ensuite — ils ne comptent que pour qui
       joue, et ils repartent de zéro tous les deux mois.
     -->
-    <TeamBoard :players="players" :loading="loading" :error="error" :missing="totals?.missing ?? null" @retry="load" />
+    <TeamBoard :players="players" :loading="loading" :error="error" @retry="load" />
 
     <SeasonBoard
       v-if="arenaOpen"
@@ -75,5 +77,23 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
       Les points sont ceux de la <b>{{ seasonLabel(season) }}</b>, et d’elle seule : une saison
       close garde son podium, pas ses points.
     </p>
+
+    <!-- En dernier, après les deux classements : c'est un objectif d'équipe, pas un score.
+         Ce que personne n'a encore vu. Pas de spoiler : la grille de chacun montre déjà les
+         151 silhouettes, celle-ci ne dit que lesquelles restent éteintes chez tout le monde. -->
+    <section v-if="totals" class="team-missing" data-section="missing">
+      <div class="eyebrow">Il manque à l'équipe</div>
+      <h2 v-if="totals.missing.length" class="team-missing-title">
+        {{ totals.missing.length }} espèce{{ totals.missing.length > 1 ? 's' : '' }} que personne n'a encore vue{{ totals.missing.length > 1 ? 's' : '' }}
+      </h2>
+      <h2 v-else class="team-missing-title">Rien. L'équipe a vu les 151.</h2>
+      <ul v-if="totals.missing.length" class="missing-grid">
+        <li v-for="id in totals.missing" :key="id" class="missing-item">
+          <img :src="spriteUrl(id)" alt="" loading="lazy">
+          <span class="missing-no mono">{{ String(id).padStart(3, '0') }}</span>
+          <span class="missing-name"><span class="board-dot" :style="{ background: TIER_VAR[DEX[id].tier] }"></span>{{ DEX[id].name }}</span>
+        </li>
+      </ul>
+    </section>
   </section>
 </template>

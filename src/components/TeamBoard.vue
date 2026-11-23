@@ -1,15 +1,12 @@
 <script setup>
 import { ref } from 'vue'
-import { DEX, TIER_VAR } from '../../shared/species.js'
-import { spriteUrl } from '../lib/sprites.js'
+import { TIER_VAR } from '../../shared/species.js'
 
 defineProps({
   /** Les joueurs déjà classés, rendus par la page. */
   players: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   error: { type: String, default: null },
-  /** Les espèces de la planche que personne n'a encore vues, dans l'ordre du Pokédex. */
-  missing: { type: Array, default: null },
 })
 defineEmits(['retry'])
 
@@ -87,22 +84,5 @@ const expanded = ref(null)
         </template>
       </tbody>
     </table>
-
-    <!-- Ce que personne n'a encore vu. Pas de spoiler : la grille de chacun montre déjà les
-         151 silhouettes, celle-ci ne dit que lesquelles restent éteintes chez tout le monde. -->
-    <section v-if="missing" class="team-missing" data-section="missing">
-      <div class="eyebrow">Il manque à l'équipe</div>
-      <h2 v-if="missing.length" class="team-missing-title">
-        {{ missing.length }} espèce{{ missing.length > 1 ? 's' : '' }} que personne n'a encore vue{{ missing.length > 1 ? 's' : '' }}
-      </h2>
-      <h2 v-else class="team-missing-title">Rien. L'équipe a vu les 151.</h2>
-      <ul v-if="missing.length" class="missing-grid">
-        <li v-for="id in missing" :key="id" class="missing-item">
-          <img :src="spriteUrl(id)" alt="" loading="lazy">
-          <span class="missing-no mono">{{ String(id).padStart(3, '0') }}</span>
-          <span class="missing-name"><span class="board-dot" :style="{ background: TIER_VAR[DEX[id].tier] }"></span>{{ DEX[id].name }}</span>
-        </li>
-      </ul>
-    </section>
   </div>
 </template>

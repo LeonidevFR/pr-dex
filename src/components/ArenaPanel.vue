@@ -342,8 +342,7 @@ function take(duelId) {
   -->
   <div class="sect">
     <p class="muted">
-      Le classement, le badge en jeu et ce qui reste à jouer sont sur l’écran
-      <b>Saison</b>.
+      Le classement, le badge en jeu et ce qui reste à jouer sont sur la page <b>Scores</b>.
     </p>
   </div>
 

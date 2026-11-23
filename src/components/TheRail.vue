@@ -25,7 +25,7 @@ const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'
  * succès, rangés faute de place dans « Ma fiche », s'y perdaient au bas d'une longue page. À la
  * verticale, chaque lieu a sa ligne, son icône et sa pastille, et la liste peut s'allonger.
  *
- * L'en-tête ne garde que ce qu'on regarde en jouant : le compteur et le bouton Retourner.
+ * L'en-tête garde ce qu'on touche en jouant : le compteur, Ouvrir et la synchro.
  */
 const TABS = [
   ['collection', 'Collection', LayoutGrid],
@@ -140,12 +140,6 @@ onUnmounted(() => clearTimeout(cooldownTimer))
       </button>
     </nav>
     <div class="side-tools">
-      <button class="gear sync" :title="syncTitle" :aria-label="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
-        <span class="side-tool-ico" :class="{ spinning: syncing }">
-          <RefreshCw :size="16" :stroke-width="1.75" aria-hidden="true" />
-        </span><span v-if="syncError" class="err-dot"></span>
-        <span class="side-tool-label">Synchroniser</span>
-      </button>
       <button
         class="gear theme-toggle" :aria-label="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'"
         :title="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'" @click="$emit('toggle-theme')"
@@ -172,8 +166,13 @@ onUnmounted(() => clearTimeout(cooldownTimer))
     </div>
     <div class="rail-tools">
       <button class="claim-btn" :class="{ pulsing: pendingCount }" :disabled="!pendingCount" @click="$emit('open')">
-        {{ pendingCount ? 'Retourner' : 'Rien à retourner' }}
+        {{ pendingCount ? 'Ouvrir' : 'Rien à ouvrir' }}
         <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
+      </button>
+      <button class="gear sync" :title="syncTitle" :aria-label="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
+        <span class="side-tool-ico" :class="{ spinning: syncing }">
+          <RefreshCw :size="15" :stroke-width="1.75" aria-hidden="true" />
+        </span><span v-if="syncError" class="err-dot"></span>
       </button>
     </div>
   </header>

@@ -489,6 +489,16 @@
   .sect{padding:22px 0;border-bottom:1px solid rgba(212,176,106,.12)}
   .sect:last-child{border-bottom:0}
   .sect-h{margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline}
+  /* Dans une page, une section se lit comme un chapitre : un vrai titre, de l'air au-dessus et un
+     filet doré entre deux. Le sur-titre minuscule reste aux fiches et aux overlays, où il suffit. */
+  .view > .sect{padding:36px 0 34px;border-bottom:1px solid var(--line-gold)}
+  .view > .sect:last-child{border-bottom:0}
+  .view .sect-h{margin-bottom:18px;font-family:var(--f-title);font-weight:400;font-size:23px;line-height:1.2;
+    letter-spacing:-.01em;text-transform:none;color:var(--fg-title)}
+  .view .sect-h > :first-child{font:inherit;letter-spacing:inherit;text-transform:none;color:inherit}
+  .view .sect-h > :not(:first-child):not(button){font-family:var(--f-ui);font-size:10px;font-weight:700;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--fg-3)}
+  .prof-cases + .muted{margin-top:14px}
   .copies-count{font-family:var(--f-data);font-size:11px;color:var(--gold)}
   .dexnote{font-family:var(--f-title);font-weight:300;font-size:18px;line-height:1.55;color:var(--note);margin:22px 0 0;max-width:52ch}
 

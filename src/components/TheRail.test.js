@@ -159,12 +159,12 @@ describe('TheRail', () => {
   })
 
   describe('vocabulaire', () => {
-    it('invite à retourner les cartes en attente', () => {
-      expect(mountRail({ pendingCount: 4 }).find('.claim-btn').text()).toBe('Retourner 4')
+    it('invite à ouvrir les cartes en attente', () => {
+      expect(mountRail({ pendingCount: 4 }).find('.claim-btn').text()).toBe('Ouvrir 4')
     })
 
-    it('dit qu’il n’y a rien à retourner', () => {
-      expect(mountRail({ pendingCount: 0 }).find('.claim-btn').text()).toBe('Rien à retourner')
+    it('dit qu’il n’y a rien à ouvrir', () => {
+      expect(mountRail({ pendingCount: 0 }).find('.claim-btn').text()).toBe('Rien à ouvrir')
     })
   })
 

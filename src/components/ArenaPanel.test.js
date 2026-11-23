@@ -255,7 +255,7 @@ describe('la saison n’est plus dans l’arène', () => {
   // On y renvoie plutôt que de la résumer : sans ce renvoi, un joueur qui cherche son rang
   // depuis l'arène ne saurait pas où aller.
   it('renvoie vers l’écran qui la porte', async () => {
-    expect((await monter()).text()).toContain('Saison')
+    expect((await monter()).text()).toContain('page Scores')
   })
 })
 
