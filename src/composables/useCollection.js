@@ -224,6 +224,15 @@ export function useCollection() {
     }, `duel vu ${id}`)
   }
 
+  /** Les saisons closes dont le récap a été montré : il ne revient pas à la visite suivante. */
+  async function markSeasonsSeen(seasons) {
+    await persist((s) => {
+      const vues = s.seenSeasons ?? []
+      const neuves = seasons.filter((x) => !vues.includes(x))
+      return neuves.length ? { ...s, seenSeasons: [...vues, ...neuves] } : null
+    }, 'saisons vues')
+  }
+
   /**
    * Fait évoluer un exemplaire précis. Toute la validation appartient au serveur — propriété,
    * disponibilité, lignée, bonbons — et il n'y a plus rien à revalider ici : la course entre
@@ -256,6 +265,6 @@ export function useCollection() {
 
   return {
     catches, state, error, loading, sync, dex, partis, evolutions,
-    load, refresh, dismissSync, claim, evolve, markDuelSeen,
+    load, refresh, dismissSync, claim, evolve, markDuelSeen, markSeasonsSeen,
   }
 }

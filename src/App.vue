@@ -14,6 +14,7 @@ import ProfilePanel from './components/ProfilePanel.vue'
 import ArenaTeaser from './components/ArenaTeaser.vue'
 import DuelOverlay from './components/DuelOverlay.vue'
 import BoardsView from './components/BoardsView.vue'
+import SeasonRecap from './components/SeasonRecap.vue'
 import MeView from './components/MeView.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import SlackInvite from './components/SlackInvite.vue'
@@ -252,6 +253,27 @@ async function montrerSuivant() {
  * Au retour, on rejoue les duels manqués. Les plus anciens d'abord : on les a vécus dans cet
  * ordre-là, même sans les avoir regardés.
  */
+/**
+ * La dernière saison close, avec son classement : le récap l'annonce une fois, et Scores la
+ * rappelle quelques jours. Le classement est celui de la saison close, lu à part : celui du
+ * moment repart de zéro et ne porte plus les noms du podium.
+ */
+const lastSeason = ref(null)
+const seasonRecap = ref(null)
+async function annoncerLaSaison() {
+  if (!arena) return
+  const closes = [...arena.seasons.value].sort((a, b) => (a.season < b.season ? 1 : -1))
+  if (!closes.length) return
+  let board = []
+  try { board = (await client.readSeasonLeaderboard(closes[0].season)) ?? [] } catch { /* noms par défaut */ }
+  lastSeason.value = { ...closes[0], board }
+  if (!(collection.state.value.seenSeasons ?? []).includes(closes[0].season)) seasonRecap.value = lastSeason.value
+}
+function closeSeasonRecap() {
+  collection.markSeasonsSeen(arena.seasons.value.map((s) => s.season))
+  seasonRecap.value = null
+}
+
 async function rattraperLesDuels() {
   const manques = duelsNonVus()
   if (!manques.length) return
@@ -375,6 +397,9 @@ async function connectSession(s) {
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
+  // Les duels résolus pendant l'absence, puis la saison close s'il y en a une : sans attendre,
+  // pour ne pas retarder l'arrivée sur la planche.
+  rattraperLesDuels().then(annoncerLaSaison)
   // Un rechargement pendant une recherche ne la coupe plus : on reprend son suivi.
   const since = pendingSync()
   if (since) collection.refresh({ resumeSince: since })
@@ -555,6 +580,7 @@ onMounted(async () => {
     connected.value = true
     achievements.load(client, collectionData)
     await rattraperLesDuels()
+    await annoncerLaSaison()
   }
 })
 
@@ -624,7 +650,7 @@ function finishEvo() {
 }
 
 const overlayOpen = computed(() =>
-  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value || recap.value),
+  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value || recap.value || seasonRecap.value),
 )
 
 // Priorité calquée sur l'empilement visuel donné par les z-index de styles.css :
@@ -635,6 +661,7 @@ function closeTopOverlay() {
   else if (ritualEntry.value) ritualEntry.value = null
   else if (settingsOpen.value) settingsOpen.value = false
   else if (recap.value) closeRecap()
+  else if (seasonRecap.value) closeSeasonRecap()
   else if (selected.value) router.go('collection')
   else return
 
@@ -705,6 +732,7 @@ useKeyboardNav({
       :client="dataClient" :today="today" :user-id="userId"
       :leaderboard="arena ? arena.leaderboard.value : []"
       :season="arena ? arena.season.value : ''" :arena-open="areneOuverte && !!arena"
+      :last-season="lastSeason"
       @profile="(p) => router.go('profile', p)" @me="router.go('moi')"
     />
 
@@ -805,6 +833,13 @@ useKeyboardNav({
       />
     </transition>
 
+    <!-- Après les duels manqués : on découvre d'abord ce qu'on a perdu ou gagné, puis la saison. -->
+    <transition name="fade">
+      <SeasonRecap
+        v-if="seasonRecap && !duelShown" :recap="seasonRecap" :user-id="userId"
+        :current="arena ? arena.season.value : ''" @close="closeSeasonRecap"
+      />
+    </transition>
     <SyncToast :sync="collection.sync.value" @open="collection.dismissSync(); openRitual()" @dismiss="collection.dismissSync" />
 
     <transition name="fade">

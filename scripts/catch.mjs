@@ -4,6 +4,8 @@ import { poolOf } from '../shared/species.js'
 import { entryKey } from '../shared/entry.js'
 import * as github from './connectors/github.mjs'
 import * as slack from './connectors/slack.mjs'
+import { slackClient } from './agents/monkey-testing/slack.mjs'
+import { SEASON_PODIUM, seasonLabel, seasonOf } from '../shared/arena-economy.js'
 
 /**
  * Registre des sources : ajouter un pôle, c'est écrire un connecteur et l'inscrire ici.
@@ -120,6 +122,41 @@ export function packRows(packs, ownedByUser = {}) {
       shiny,
     }
   })
+}
+
+const MEDALS = ['🥇', '🥈', '🥉']
+const formatDollars = (n) => n.toLocaleString('fr-FR').replace(/\u202f/g, ' ')
+
+/** Le message Slack d'une saison close : son podium, puis la saison qui commence. */
+export function seasonAnnouncement({ season, podium, current, url }) {
+  const lignes = podium.length
+    ? podium.map((p, i) => `${MEDALS[i]} *${p.login}* · ${p.points} pts · +${formatDollars(SEASON_PODIUM[i])} ₽`)
+    : ['Personne n’a marqué de point cette saison.']
+  return [
+    `:trophy: *${seasonLabel(season)} terminée !*`,
+    '',
+    ...lignes,
+    '',
+    `La ${seasonLabel(current)} commence : les points repartent de zéro.${url ? ` <${url}|Ouvrir pr-dex>` : ''}`,
+  ].join('\n')
+}
+
+/**
+ * Annonce sur Slack les saisons que la clôture vient de fermer, les plus anciennes d'abord.
+ * Le podium est relu dans `arena_leaderboard`, qui porte le login et les points de la saison.
+ */
+export async function announceClosedSeasons(supabaseUrl, serviceKey, n, { post, channel, url, now = new Date() }, fetchFn = fetch) {
+  const get = async (path) => {
+    const res = await fetchFn(`${supabaseUrl}/rest/v1/${path}`, { headers: sbHeaders(serviceKey) })
+    if (!res.ok) throw new Error(`${path.split('?')[0]} a répondu ${res.status}`)
+    return res.json()
+  }
+  const closes = (await get(`arena_seasons?select=season&order=season.desc&limit=${n}`)).reverse()
+  for (const { season } of closes) {
+    const podium = await get(`arena_leaderboard?select=login,points,rank&season=eq.${season}&order=rank&limit=3`)
+    await post(channel, undefined, seasonAnnouncement({ season, podium, current: seasonOf(now), url }))
+  }
+  return closes.length
 }
 
 /**
@@ -335,6 +372,18 @@ export async function main() {
   // qu'ils soient en caisse quand le joueur revient voir.
   const closes = await closeFinishedSeasons(supabaseUrl, serviceKey)
   if (closes) console.log(`arène : ${closes} saison(s) close(s), podium consigné.`)
+  // L'annonce ne doit jamais faire échouer la collecte : le podium est déjà consigné.
+  if (closes && process.env.SLACK_BOT_TOKEN && process.env.PRDEX_SLACK_CHANNEL_ID) {
+    try {
+      await announceClosedSeasons(supabaseUrl, serviceKey, closes, {
+        post: slackClient(process.env.SLACK_BOT_TOKEN).post,
+        channel: process.env.PRDEX_SLACK_CHANNEL_ID,
+        url: process.env.PRDEX_URL,
+      })
+    } catch (e) {
+      console.error(`arène : annonce Slack de la clôture impossible (${e.message}).`)
+    }
+  }
 
   // Les plis d'arène après les captures de travail, et dans le même run : l'arène n'a pas
   // besoin de son propre déclencheur, elle profite de celui qui existe déjà — y compris du

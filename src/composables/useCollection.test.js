@@ -505,6 +505,13 @@ describe('duels déjà vus', () => {
     await c.markDuelSeen(7)
     expect(c.state.value.seenDuels).toEqual([7])
   })
+
+  it('retient les saisons dont le récap a été montré, sans doublon', async () => {
+    const c = await chargee({ claimed: [], spent: {}, evolutions: [] })
+    await c.markSeasonsSeen(['2026-S6'])
+    await c.markSeasonsSeen(['2026-S6', '2027-S1'])
+    expect(c.state.value.seenSeasons).toEqual(['2026-S6', '2027-S1'])
+  })
 })
 
 /**

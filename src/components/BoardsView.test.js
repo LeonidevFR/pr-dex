@@ -111,4 +111,19 @@ describe('BoardsView', () => {
     expect(w.findAll('.missing-item')).toHaveLength(0)
     expect(w.find('[data-section="missing"]').text()).toContain('151')
   })
+
+  it('rappelle la saison close pendant une semaine', async () => {
+    const lastSeason = {
+      season: '2026-S3', first_id: 'u-a', second_id: 'u-b', third_id: null,
+      board: [{ user_id: 'u-a', login: 'alice' }, { user_id: 'u-b', login: 'bob' }],
+    }
+    // 2026-S3 couvre juin et juillet : elle finit le 31 juillet.
+    const w = monter({ lastSeason, today: '2026-08-03' })
+    await flushPromises()
+    expect(w.find('.season-banner').text()).toBe('2026-S3 terminée🥇 alice🥈 bob')
+    const tard = monter({ lastSeason, today: '2026-08-12' })
+    await flushPromises()
+    expect(tard.find('.season-banner').exists()).toBe(false)
+  })
 })
+

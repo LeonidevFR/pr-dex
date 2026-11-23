@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   sinceDate, bootstrapDate, toRows, planSources, packRows, main, CONNECTORS,
+  seasonAnnouncement, announceClosedSeasons,
 } from './catch.mjs'
 import { drawFrom, drawInTier } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
@@ -653,3 +654,40 @@ describe('plis de boutique', () => {
     expect(packRows([achat()])).toEqual(packRows([achat()]))
   })
 })
+
+describe('annonce de fin de saison', () => {
+  it('donne le podium, les gains, puis la saison qui commence', () => {
+    const texte = seasonAnnouncement({
+      season: '2026-S6',
+      podium: [{ login: 'alice', points: 310 }, { login: 'bob', points: 200 }, { login: 'carol', points: 90 }],
+      current: '2027-S1',
+      url: 'https://exemple.test/pr-dex/',
+    })
+    expect(texte).toContain('*Saison 1 terminée !*')
+    expect(texte).toContain('🥇 *alice* · 310 pts · +1 000 ₽')
+    expect(texte).toContain('🥉 *carol* · 90 pts · +250 ₽')
+    expect(texte).toContain('La Saison 2 commence : les points repartent de zéro. <https://exemple.test/pr-dex/|Ouvrir pr-dex>')
+  })
+
+  it('dit quand personne n’a joué', () => {
+    expect(seasonAnnouncement({ season: '2026-S6', podium: [], current: '2027-S1' })).toContain('Personne n’a marqué')
+  })
+
+  it('poste une annonce par saison close, la plus ancienne d’abord', async () => {
+    const posts = []
+    const fetchFn = async (url) => ({
+      ok: true,
+      json: async () => (url.includes('arena_seasons')
+        ? [{ season: '2027-S1' }, { season: '2026-S6' }]
+        : [{ login: url.includes('2026-S6') ? 'alice' : 'bob', points: 10, rank: 1 }]),
+    })
+    const n = await announceClosedSeasons('https://sb.test', 'cle', 2, {
+      post: async (channel, thread, text) => posts.push({ channel, text }), channel: 'C1', now: new Date('2027-03-02'),
+    }, fetchFn)
+    expect(n).toBe(2)
+    expect(posts.map((p) => p.text.split('\n')[0])).toEqual([':trophy: *Saison 1 terminée !*', ':trophy: *Saison 2 terminée !*'])
+    expect(posts[0].text).toContain('alice')
+    expect(posts[0].channel).toBe('C1')
+  })
+})
+

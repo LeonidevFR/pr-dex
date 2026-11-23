@@ -4,7 +4,7 @@ import SeasonBoard from './SeasonBoard.vue'
 import TeamBoard from './TeamBoard.vue'
 import { rankPlayers, teamTotals } from '../lib/leaderboard.js'
 import { useLeaderboardRows } from '../composables/useLeaderboardRows.js'
-import { seasonLabel } from '../../shared/arena-economy.js'
+import { seasonBounds, seasonLabel } from '../../shared/arena-economy.js'
 import { DEX, TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
 
@@ -12,6 +12,8 @@ const props = defineProps({
   client: { type: Object, default: null },
   today: { type: String, required: true },
   userId: { type: String, default: '' },
+  /** La dernière saison close et son classement, rappelée une semaine après sa clôture. */
+  lastSeason: { type: Object, default: null },
   /** Le classement de la saison en cours. Vide tant que l'arène n'a pas ouvert. */
   leaderboard: { type: Array, default: () => [] },
   season: { type: String, default: '' },
@@ -36,6 +38,20 @@ defineEmits(['profile', 'me'])
  * que lui, et deux blocs qui liraient chacun pour soi feraient deux requêtes pour une réponse.
  */
 const { rows, loading, error, load } = useLeaderboardRows(props.client)
+const MEDALS = ['🥇', '🥈', '🥉']
+const RAPPEL_JOURS = 7
+const bandeau = computed(() => {
+  const s = props.lastSeason
+  if (!s) return null
+  const fin = seasonBounds(s.season).end
+  const depuis = (new Date(`${props.today}T12:00:00`) - fin) / 86_400_000
+  if (depuis < 0 || depuis > RAPPEL_JOURS) return null
+  const nom = (id) => s.board?.find((r) => r.user_id === id)?.login ?? 'un joueur'
+  const podium = [s.first_id, s.second_id, s.third_id]
+    .map((id, i) => (id ? `${MEDALS[i]} ${nom(id)}` : null)).filter(Boolean)
+  return { titre: `${seasonLabel(s.season)} terminée`, podium }
+})
+
 const players = computed(() => (rows.value ? rankPlayers(rows.value, props.today) : []))
 const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) : null))
 </script>
@@ -55,6 +71,11 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
         <div data-total="opened"><div class="eyebrow">Cartes retournées</div><div class="view-num">{{ totals.opened }}</div></div>
         <div data-total="shiny"><div class="eyebrow">Shiny</div><div class="view-num gold">{{ totals.shiny }} <small>/ 151</small></div></div>
       </div>
+    </div>
+
+    <div v-if="bandeau" class="season-banner" role="status">
+      <b>{{ bandeau.titre }}</b>
+      <span v-for="p in bandeau.podium" :key="p">{{ p }}</span>
     </div>
 
     <!--
