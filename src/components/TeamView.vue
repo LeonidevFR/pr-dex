@@ -16,8 +16,9 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
 
 const COLUMNS = [
   ['species', 'Espèces'], ['shinySpecies', 'Shiny'], ['legendaries', 'Légendaires'], ['rares', 'Rares'],
-  ['lineages', 'Lignées'], ['copies', 'Cartes'], ['recent', '30 jours'],
+  ['lineages', 'Lignées'], ['achievements', 'Succès'], ['copies', 'Cartes'], ['recent', '30 jours'],
 ]
+const cell = (p, key) => p[key] ?? '—'
 // Sur un écran étroit, seules ces colonnes restent visibles ; les autres se déplient au toucher.
 const PRIMARY = new Set(['species', 'shinySpecies'])
 // Repéré par le rang, pas par le login : deux comptes sans `user_name` s'appellent tous deux
@@ -71,7 +72,7 @@ const expanded = ref(null)
               <td v-for="[key] in COLUMNS" :key="key" class="mono" :class="{ secondary: !PRIMARY.has(key), lead: key === 'species' }">
                 <span v-if="key === 'legendaries'" class="board-dot" :style="{ background: TIER_VAR.l }"></span>
                 <span v-else-if="key === 'rares'" class="board-dot" :style="{ background: TIER_VAR.r }"></span>
-                {{ p[key] }}
+                {{ cell(p, key) }}
               </td>
             </tr>
             <!-- Les colonnes masquées en étroit, avec leur libellé : des nombres seuls, sans
@@ -79,7 +80,7 @@ const expanded = ref(null)
             <tr v-if="expanded === p.rank" class="board-detail" :class="{ me: p.isMe }">
               <td :colspan="2 + COLUMNS.length">
                 <span v-for="[key, label] in COLUMNS.filter(([k]) => !PRIMARY.has(k))" :key="key" class="board-detail-item">
-                  <span class="board-detail-label">{{ label }}</span> <b class="mono">{{ p[key] }}</b>
+                  <span class="board-detail-label">{{ label }}</span> <b class="mono">{{ cell(p, key) }}</b>
                 </span>
               </td>
             </tr>

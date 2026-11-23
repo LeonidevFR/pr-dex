@@ -153,58 +153,6 @@ create trigger on_auth_identity_deleted
   after delete on auth.identities
   for each row execute procedure public.handle_removed_identity();
 
--- leaderboard_players : voir supabase/migrations/2026-09-30-leaderboard.sql pour le pourquoi.
-create function public.leaderboard_players()
-returns table (
-  login text,
-  avatar_url text,
-  is_me boolean,
-  catches jsonb,
-  evolutions jsonb
-)
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select
-    coalesce(
-      u.raw_user_meta_data ->> 'user_name',
-      u.raw_user_meta_data ->> 'name',
-      u.raw_user_meta_data ->> 'full_name',
-      'inconnu'
-    ) as login,
-    coalesce(u.raw_user_meta_data ->> 'avatar_url', u.raw_user_meta_data ->> 'picture') as avatar_url,
-    u.id = auth.uid() as is_me,
-    opened.catches,
-    s.evolutions
-  from auth.users u
-  join public.state s on s.user_id = u.id
-  join lateral (
-    select jsonb_agg(
-      jsonb_build_object(
-        'source', c.source,
-        'external_id', c.external_id,
-        'species', c.species,
-        'shiny', c.shiny,
-        'date', c.date
-      )
-      order by c.date, c.id
-    ) as catches
-    from public.catches c
-    where c.user_id = u.id
-      and s.claimed ? (c.source || ':' || c.external_id)
-  ) opened on true
-  where opened.catches is not null;
-$$;
-
--- `anon` est nommé explicitement : les privilèges par défaut de Supabase accordent EXECUTE
--- sur toute nouvelle fonction à anon/authenticated/service_role, et un `revoke ... from
--- public` ne retire pas un droit accordé nommément. Sans cette ligne, la clé anon — publique
--- par construction — suffirait à appeler la fonction sans compte.
-revoke execute on function public.leaderboard_players() from public, anon;
-grant execute on function public.leaderboard_players() to authenticated;
-
 -- achievements : les succès débloqués. Écrite par le front, en insertion seule ; seule
 -- `announced` se met à jour. Voir supabase/migrations/2026-10-14-succes.sql pour le pourquoi.
 create table public.achievements (
@@ -244,3 +192,58 @@ $$;
 
 revoke execute on function public.achievement_counts() from public, anon;
 grant execute on function public.achievement_counts() to authenticated;
+
+-- leaderboard_players : voir supabase/migrations/2026-09-30-leaderboard.sql pour le pourquoi.
+-- Défini après `achievements`, dont il compte les lignes (2026-11-23-succes-classement.sql).
+create function public.leaderboard_players()
+returns table (
+  login text,
+  avatar_url text,
+  is_me boolean,
+  catches jsonb,
+  evolutions jsonb,
+  achievements integer
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    coalesce(
+      u.raw_user_meta_data ->> 'user_name',
+      u.raw_user_meta_data ->> 'name',
+      u.raw_user_meta_data ->> 'full_name',
+      'inconnu'
+    ) as login,
+    coalesce(u.raw_user_meta_data ->> 'avatar_url', u.raw_user_meta_data ->> 'picture') as avatar_url,
+    u.id = auth.uid() as is_me,
+    opened.catches,
+    s.evolutions,
+    (select count(*)::integer from public.achievements a where a.user_id = u.id) as achievements
+  from auth.users u
+  join public.state s on s.user_id = u.id
+  join lateral (
+    select jsonb_agg(
+      jsonb_build_object(
+        'source', c.source,
+        'external_id', c.external_id,
+        'species', c.species,
+        'shiny', c.shiny,
+        'date', c.date
+      )
+      order by c.date, c.id
+    ) as catches
+    from public.catches c
+    where c.user_id = u.id
+      and s.claimed ? (c.source || ':' || c.external_id)
+  ) opened on true
+  where opened.catches is not null;
+$$;
+
+-- `anon` est nommé explicitement : les privilèges par défaut de Supabase accordent EXECUTE
+-- sur toute nouvelle fonction à anon/authenticated/service_role, et un `revoke ... from
+-- public` ne retire pas un droit accordé nommément. Sans cette ligne, la clé anon — publique
+-- par construction — suffirait à appeler la fonction sans compte.
+revoke execute on function public.leaderboard_players() from public, anon;
+grant execute on function public.leaderboard_players() to authenticated;
