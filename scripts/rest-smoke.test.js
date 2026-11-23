@@ -157,6 +157,12 @@ describe.skipIf(!disponible)('le front parle à PostgREST', () => {
   })
 
   it('affronte l’ordinateur et relit le duel résolu', async () => {
+    // Un crédit par jour ouvré : le lundi il n'y en a qu'un, et le défi posté plus haut l'a pris.
+    // Le reculer d'une semaine rend ce crédit, quel que soit le jour où la suite tourne.
+    await withDb((c) => c.query(
+      "update public.arena_duels set created_at = created_at - interval '7 days' where challenger_id = $1",
+      [JOUEUR],
+    ))
     const id = await client.engage('github:fumee-1', true)
     const duel = await client.readDuel(id)
     expect(duel).toMatchObject({ id, status: 'computer' })
