@@ -14,8 +14,6 @@ const props = defineProps({
   // `{ code, seq }` : le succès à montrer, demandé depuis un toast. `seq` change à chaque
   // demande, pour qu'un second clic sur le même succès le remontre.
   focus: { type: Object, default: null },
-  // Rangé dans « Ma fiche », le registre n'est qu'une section de la page : pas de titre d'écran.
-  embedded: { type: Boolean, default: false },
 })
 defineEmits(['retry'])
 
@@ -71,9 +69,8 @@ watch(
 </script>
 
 <template>
-  <component :is="embedded ? 'div' : 'section'" :class="embedded ? 'sect' : 'view'">
-    <div v-if="embedded" class="eyebrow sect-h"><span>Tes succès</span></div>
-    <div v-else class="view-head">
+  <section class="view">
+    <div class="view-head">
       <div>
         <div class="eyebrow">Succès</div>
         <h1 class="view-title">Tes <i>succès</i></h1>
@@ -142,5 +139,5 @@ watch(
         </ul>
       </template>
     </div>
-  </component>
+  </section>
 </template>

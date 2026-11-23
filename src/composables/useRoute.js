@@ -28,7 +28,7 @@ import { DEX } from '../../shared/species.js'
  * l'autre — qui dédoublait les écrans : deux classements des mêmes personnes, deux pages « ce
  * que j'ai ». Regroupés par fonction, ils tiennent en cinq sans second niveau.
  */
-export const ROUTES = ['collection', 'duels', 'shop', 'classements', 'moi', 'profile']
+export const ROUTES = ['collection', 'duels', 'shop', 'classements', 'succes', 'moi', 'profile']
 
 /** Seuls ces deux lieux désignent quelque chose de précis : une espèce, une personne. */
 const AVEC_PARAM = { collection: 'species', profile: 'login' }

@@ -640,10 +640,10 @@ describe('succès', () => {
     expect(w.find('.rail-tab-pip').text()).toBe('11')
   }
 
-  it('ouvre le récap des succès déjà acquis à l’arrivée sur « Ma fiche », une seule fois', async () => {
+  it('ouvre le récap des succès déjà acquis à l’arrivée sur « Succès », une seule fois', async () => {
     const w = await mountApp()
     await untilBadge(w)
-    await tabOf(w, 'Ma fiche').trigger('click')
+    await tabOf(w, 'Succès').trigger('click')
     await flushPromises()
     expect(w.find('.ach-recap-title').text()).toBe('Tu avais déjà 11 succès')
     await w.find('.ach-recap-close').trigger('click')
@@ -656,7 +656,7 @@ describe('succès', () => {
   it('Échap ferme le récap', async () => {
     const w = await mountApp()
     await untilBadge(w)
-    await tabOf(w, 'Ma fiche').trigger('click')
+    await tabOf(w, 'Succès').trigger('click')
     await flushPromises()
     press('Escape')
     await flushPromises()
@@ -676,7 +676,7 @@ describe('succès', () => {
     expect(w.find('.ach-toast-name').text()).toBe('Sur la tête')
   })
 
-  it('un clic sur le toast ferme le rituel et ouvre le succès dans « Ma fiche »', async () => {
+  it('un clic sur le toast ferme le rituel et ouvre le succès dans le registre', async () => {
     const w = await mountApp()
     await untilBadge(w)
     press(' ')
@@ -689,7 +689,7 @@ describe('succès', () => {
     await w.find('.ach-toast-open').trigger('click')
     await flushPromises()
     expect(w.find('.ritual').exists()).toBe(false)
-    expect(tabOf(w, 'Ma fiche').classes()).toContain('active')
+    expect(tabOf(w, 'Succès').classes()).toContain('active')
     await w.find('.ach-recap-close').trigger('click')
     await flushPromises()
     expect(w.find('[data-code="on-top"]').classes()).toContain('focused')

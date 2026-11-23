@@ -56,11 +56,11 @@ describe('TheRail', () => {
   describe('onglets', () => {
     const tab = (w, label) => w.findAll('.rail-tab').find((t) => t.text() === label)
 
-    it('propose les cinq vues dans une navigation', () => {
+    it('propose les six lieux dans une navigation', () => {
       const w = mountRail()
       expect(w.find('nav.rail-nav').exists()).toBe(true)
       expect(w.findAll('.rail-tab').map((t) => t.text()))
-        .toEqual(['Collection', 'Duels', 'Boutique', 'Scores', 'Ma fiche'])
+        .toEqual(['Collection', 'Duels', 'Boutique', 'Scores', 'Succès', 'Ma fiche'])
     })
 
     /**
@@ -188,9 +188,29 @@ describe('TheRail', () => {
     expect(mountRail({ caughtCount: 41 }).find('.progress').text()).toContain('Pokédex')
   })
 
-  it('pastille l’onglet Ma fiche des succès pas encore montrés', () => {
+  it('se replie en icônes et s’en souvient', async () => {
+    localStorage.removeItem('pr-dex-sidebar-collapsed')
+    const w = mountRail()
+    expect(w.find('.side').classes()).not.toContain('collapsed')
+    await w.find('.side-collapse').trigger('click')
+    expect(w.find('.side').classes()).toContain('collapsed')
+    expect(document.documentElement.dataset.sidebar).toBe('collapsed')
+    expect(mountRail().find('.side').classes()).toContain('collapsed')
+    localStorage.removeItem('pr-dex-sidebar-collapsed')
+  })
+
+  it('referme le tiroir mobile une fois le lieu choisi', async () => {
+    const w = mountRail()
+    await w.find('.side-burger').trigger('click')
+    expect(w.find('.side').classes()).toContain('open')
+    await w.findAll('.rail-tab').find((t) => t.text() === 'Duels').trigger('click')
+    expect(w.find('.side').classes()).not.toContain('open')
+    expect(w.emitted('navigate').at(-1)).toEqual(['duels'])
+  })
+
+  it('pastille l’entrée Succès des succès pas encore montrés', () => {
     expect(mountRail({ achievementsBadge: 8 }).find('.rail-tab-pip').text()).toBe('8')
-    expect(mountRail({ achievementsBadge: 8 }).find('.rail-tab-pip').element.parentElement.textContent).toMatch(/^Ma fiche/)
+    expect(mountRail({ achievementsBadge: 8 }).find('.rail-tab-pip').element.parentElement.textContent).toMatch(/^Succès/)
     expect(mountRail({ achievementsBadge: 0 }).find('.rail-tab-pip').exists()).toBe(false)
   })
 })

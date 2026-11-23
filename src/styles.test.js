@@ -27,14 +27,14 @@ describe('feuille de style', () => {
    * déplace rien, suffit à ce que les deux navigateurs racontent la même chose.
    */
   /**
-   * La barre d'onglets du bas, en mobile, partage la largeur entre ses onglets. À quatre, le
-   * padding de 16 px du desktop fait sortir « Succès » de l'écran à 390 px.
+   * En mobile, la barre latérale sort de l'écran et revient en tiroir, posée sur un voile qui
+   * la referme au toucher.
    */
-  it('resserre les onglets de la barre mobile pour que les quatre tiennent', () => {
-    const mobile = regles.find((r) => r.selecteur === '.rail-tab' && declare('flex')(r))
-    expect(mobile).toBeDefined()
-    expect(mobile.corps).toMatch(/padding\s*:\s*0 4px/)
-    expect(mobile.corps).toMatch(/min-width\s*:\s*0/)
+  it('range la barre latérale en tiroir sous 640 px', () => {
+    const tiroir = regles.find((r) => r.selecteur.includes('.side.collapsed') && /translateX\(-100%\)/.test(r.corps))
+    expect(tiroir).toBeDefined()
+    const voile = regles.find((r) => r.selecteur === '.side-scrim' && /display\s*:\s*block/.test(r.corps))
+    expect(voile).toBeDefined()
   })
 
   it('donne à la pastille de l’onglet Succès la couleur du texte, le chiffre dans celle du fond', () => {

@@ -95,6 +95,39 @@
   .mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
 
   /* ───────── en-tête ───────── */
+  /* ───────── barre latérale ───────── */
+  :root{--side-w:232px}
+  :root[data-sidebar="collapsed"]{--side-w:72px}
+  #app{padding-left:calc(var(--side-w) + 48px);max-width:calc(1280px + var(--side-w))}
+  .side{position:fixed;top:0;left:0;bottom:0;z-index:35;width:var(--side-w);display:flex;flex-direction:column;
+    padding:22px 14px 18px;background:var(--header-bg);border-right:1px solid var(--line-gold);
+    transition:width .18s ease}
+  .side-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:0 6px 26px}
+  .side-brand{min-width:0}
+  .side.collapsed .side-full{display:none}
+  .side.collapsed .side-head{flex-direction:column;align-items:center;padding-inline:0}
+  .side-collapse,.side-close,.side-burger{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
+    border-radius:8px;border:0;background:none;color:var(--fg-3);cursor:pointer;position:relative}
+  .side-collapse:hover,.side-close:hover,.side-burger:hover{color:var(--fg);background:rgba(239,230,207,.06)}
+  .side-close,.side-burger{display:none}
+  .side .rail-nav{display:flex;flex-direction:column;gap:2px;padding:0;border:0;background:none;border-radius:0}
+  .side .rail-tab{justify-content:flex-start;gap:12px;width:100%;padding:10px 12px;border-radius:10px;font-size:13px;letter-spacing:.02em;text-align:left}
+  .side .rail-tab.active{background:var(--cream);color:var(--on-gold)}
+  .rail-tab-ico{flex:none}
+  .rail-tab-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side .rail-tab-pip{margin-left:0}
+  .side.collapsed .rail-tab{justify-content:center;padding:10px 0;position:relative}
+  .side.collapsed .rail-tab-label{display:none}
+  .side.collapsed .rail-tab-pip{position:absolute;top:4px;right:8px;min-width:15px;height:15px}
+  .side-tools{margin-top:auto;display:flex;flex-direction:column;gap:2px;padding-top:14px;border-top:1px solid var(--line)}
+  .side .gear{width:100%;height:auto;justify-content:flex-start;gap:12px;padding:9px 12px;border-radius:10px;border:0;background:none;font-size:13px}
+  .side.collapsed .gear{justify-content:center;padding:9px 0}
+  .side.collapsed .side-tool-label{display:none}
+  .side-tool-ico{display:inline-flex}
+  .side-burger-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+  .side-scrim{display:none}
+
+  /* ───────── en-tête ───────── */
   .rail{
     position:sticky;top:0;z-index:20;
     background:var(--header-bg);
@@ -104,9 +137,8 @@
     box-shadow:0 0 0 100vmax var(--header-bg);clip-path:inset(0 -100vmax);
     backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line-gold);
-    padding:22px 0 18px;margin-bottom:22px;
-    /* 24 et non 32 : avec l'onglet Succès, l'en-tête passait sur deux lignes sous 1 280 px. */
-    display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+    padding:18px 0 16px;margin-bottom:22px;
+    display:flex;align-items:center;justify-content:flex-end;gap:24px;
   }
   .wordmark{font-family:var(--f-title);font-weight:300;font-size:30px;letter-spacing:-.02em;line-height:1;color:var(--fg-title)}
   .wordmark i{font-weight:600;color:var(--gold)}
@@ -151,7 +183,7 @@
   /* La rotation est sur le glyphe (span), pas sur le bouton entier : sinon la pastille
      d'erreur, positionnée dans un coin du bouton, tournait avec tout le bloc. Le SVG est
      carré et symétrique, donc le pivot tombe au centre de l'anneau. */
-  .gear.sync span:not(.err-dot){display:inline-flex;line-height:0}
+  .gear.sync .side-tool-ico{display:inline-flex;line-height:0}
   .gear.sync span.spinning{color:var(--fg);animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .err-dot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px var(--bg)}
@@ -977,26 +1009,27 @@
     .tray{grid-template-columns:repeat(6,minmax(0,1fr))}
     .view-totals{margin-left:0}
   }
-  /* Étroit : les onglets descendent en barre fixe en bas d'écran, là où le pouce les trouve.
-     L'en-tête garde le logo, le compteur, Ouvrir, la sync et les réglages. */
+  /* Étroit : la barre latérale devient un tiroir, ouvert depuis l'en-tête. L'en-tête garde le
+     menu, le compteur et Retourner. */
   @media (max-width:640px){
-    #app{padding:0 16px calc(90px + env(safe-area-inset-bottom))}
+    #app{padding:0 16px calc(40px + env(safe-area-inset-bottom));max-width:none}
+    .side,.side.collapsed{width:264px;transform:translateX(-100%);transition:transform .2s ease}
+    .side.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.4)}
+    .side.collapsed .side-full,.side.collapsed .rail-tab-label,.side.collapsed .side-tool-label{display:revert}
+    .side.collapsed .side-head{flex-direction:row;align-items:flex-start;padding:0 6px 26px}
+    .side.collapsed .rail-tab,.side.collapsed .gear{justify-content:flex-start;padding:10px 12px}
+    .side.collapsed .rail-tab-pip{position:static}
+    .side-collapse{display:none}
+    .side-close,.side-burger{display:inline-flex}
+    .side-scrim{display:block;position:fixed;inset:0;z-index:34;background:var(--scrim)}
     /* Pas de `backdrop-filter` ici : il fait de l'en-tête le bloc conteneur de ses enfants
        `position:fixed`, et la barre d'onglets se calait alors sur lui au lieu du bas d'écran. */
-    .rail{gap:12px;padding:14px 0 12px;backdrop-filter:none;background:var(--bg)}
-    .rail-sub{display:none}
-    .wordmark{font-size:24px}
+    .rail{gap:12px;padding:12px 0;backdrop-filter:none;background:var(--bg);justify-content:space-between}
     .progress{min-width:0;flex:1}
     .bar{width:100%}
-    .rail-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;border-radius:0;border:0;border-top:1px solid var(--line-gold);
-      background:var(--header-bg);backdrop-filter:blur(10px);padding:8px 12px calc(8px + env(safe-area-inset-bottom));
-      justify-content:space-around;padding-left:6px;padding-right:6px}
-    /* Quatre onglets depuis les succès : sans padding resserré, « Succès » sort de l'écran à 390 px. */
-    .rail-tab{flex:1;height:48px;padding:0 4px;min-width:0;letter-spacing:.02em}
-    /* Au-dessus de la barre d'onglets fixée en bas. */
-    .sync-toast{bottom:calc(84px + env(safe-area-inset-bottom))}
     .claim-btn{padding:11px 16px;letter-spacing:.12em}
     .ach-sheet{padding:22px 18px 16px}
+    .ach-filters{gap:8px 18px}
     .ach-row{grid-template-columns:48px 1fr;gap:12px}
     .ach-when,.ach-rarity{grid-column:2;align-items:flex-start;text-align:left}
     .tray-search-wrap{width:100%}

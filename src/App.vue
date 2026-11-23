@@ -274,17 +274,17 @@ const recap = ref(null)
 watch(
   () => [view.value, achievements.unannounced.value.length],
   ([v, n]) => {
-    if (v !== 'moi' || !n || recap.value) return
+    if (v !== 'succes' || !n || recap.value) return
     recap.value = { items: [...achievements.unannounced.value], first: achievements.isFirstRecap.value }
   },
 )
-// Un clic sur un toast mène au succès, dans « Ma fiche ». Le rituel se ferme comme à la
-// croix : les plis restants attendent dans la file.
+// Un clic sur un toast mène au succès. Le rituel se ferme comme à la croix : les plis restants
+// attendent dans la file.
 const achievementFocus = ref(null)
 let focusSeq = 0
 function openAchievement(code) {
   ritualEntry.value = null
-  router.go('moi')
+  router.go('succes')
   achievementFocus.value = { code, seq: ++focusSeq }
 }
 
@@ -695,15 +695,15 @@ useKeyboardNav({
       :prive="fichePrivee" :fiche="fiche" :seasons="arena ? arena.seasons.value : []"
       :points="monRang.points" :rank="monRang.rang"
       :season="arena ? arena.season.value : ''" :arena-open="areneOuverte && !!arena"
-    >
-      <AchievementsView
-        embedded
-        :owned="achievements.owned.value" :counts="achievements.counts.value" :progress="achievements.progress.value"
-        :ready="achievements.ready.value" :error="achievements.error.value"
-        :focus="achievementFocus"
-        @retry="achievements.load(dataClient, collectionData)"
-      />
-    </MeView>
+    />
+
+    <AchievementsView
+      v-if="view === 'succes'"
+      :owned="achievements.owned.value" :counts="achievements.counts.value" :progress="achievements.progress.value"
+      :ready="achievements.ready.value" :error="achievements.error.value"
+      :focus="achievementFocus"
+      @retry="achievements.load(dataClient, collectionData)"
+    />
 
     <transition name="fade">
       <SpeciesSheet

@@ -1,6 +1,9 @@
 <script setup>
-import { Moon, RefreshCw, SlidersHorizontal, Sun } from '@lucide/vue'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import {
+  Award, LayoutGrid, Menu, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, SlidersHorizontal, Store, Sun,
+  Swords, Trophy, User, X,
+} from '@lucide/vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   caughtCount: { type: Number, required: true },
@@ -16,33 +19,39 @@ const props = defineProps({
 const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
 /**
- * Cinq onglets et aucun second niveau.
+ * Six lieux, dans une barre latérale.
  *
- * Il y en a eu quatre, dont un « Arène » qui en cachait quatre autres dans leur propre barre.
- * Ce second niveau venait d'un classement par famille — la collection d'un côté, l'arène de
- * l'autre — qui dédoublait les écrans : deux classements des mêmes personnes, deux pages « ce
- * que j'ai ». Regroupés par fonction, les cinq tiennent au premier niveau, dans la largeur que
- * le rail avait déjà.
+ * La barre du haut en tenait cinq, et à 1 280 px les outils y passaient déjà à la ligne : les
+ * succès, rangés faute de place dans « Ma fiche », s'y perdaient au bas d'une longue page. À la
+ * verticale, chaque lieu a sa ligne, son icône et sa pastille, et la liste peut s'allonger.
  *
- * Duels et Boutique restent visibles avant le 1er décembre : ils mènent au teaser, qui est fait
- * pour ça. Scores et Ma fiche fonctionnent déjà — ils se réduisent à leur moitié collection.
- *
- * Les libellés nomment ce qu'on trouve en arrivant, pas la famille dont l'écran venait : « Arène »
- * promettrait encore la boutique et les médailles, parties ailleurs. « Ma fiche » reprend le mot
- * qui désigne déjà la page d'un joueur, au possessif puisque c'est la sienne — « Profil » adresse
- * ailleurs dans cette application, où /profile/:login est la fiche d'un collègue.
- *
- * « Classement » serait plus juste que « Scores », mais les deux libellés longs ne tiennent pas
- * ensemble : mesuré à 1 280 px, la barre dispose de 437 px avant que les outils passent à la
- * ligne, et « Classement » + « Ma fiche » en demande 468.
+ * L'en-tête ne garde que ce qu'on regarde en jouant : le compteur et le bouton Retourner.
  */
 const TABS = [
-  ['collection', 'Collection'],
-  ['duels', 'Duels'],
-  ['shop', 'Boutique'],
-  ['classements', 'Scores'],
-  ['moi', 'Ma fiche'],
+  ['collection', 'Collection', LayoutGrid],
+  ['duels', 'Duels', Swords],
+  ['shop', 'Boutique', Store],
+  ['classements', 'Scores', Trophy],
+  ['succes', 'Succès', Award],
+  ['moi', 'Ma fiche', User],
 ]
+
+// Repliée en icônes, mémorisée d'une visite à l'autre : c'est un réglage d'écran, pas d'état.
+const COLLAPSED_KEY = 'pr-dex-sidebar-collapsed'
+const readCollapsed = () => { try { return localStorage.getItem(COLLAPSED_KEY) === '1' } catch { return false } }
+const collapsed = ref(readCollapsed())
+// La barre est fixe : la page se décale de sa largeur, lue sur la racine par la feuille de style.
+watch(collapsed, (c) => { document.documentElement.dataset.sidebar = c ? 'collapsed' : 'open' }, { immediate: true })
+function toggleCollapsed() {
+  collapsed.value = !collapsed.value
+  try { localStorage.setItem(COLLAPSED_KEY, collapsed.value ? '1' : '0') } catch { /* navigation privée */ }
+}
+// Sur mobile, la barre est un tiroir : il se referme dès qu'on a choisi où aller.
+const drawerOpen = ref(false)
+function go(key) {
+  drawerOpen.value = false
+  emit('navigate', key)
+}
 
 // Une sync qui échoue doit se voir : un bouton qui tourne puis ne change rien n'est pas
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
@@ -100,20 +109,63 @@ onUnmounted(() => clearTimeout(cooldownTimer))
 </script>
 
 <template>
-  <header class="rail">
-    <div class="rail-brand">
-      <div class="wordmark"><i>PR</i>·DEX</div>
-      <!-- Court à dessein : plus long, il fait passer les outils à la ligne dès 1 280 px. -->
-      <div class="eyebrow rail-sub">PR ou test : un Pokémon</div>
+  <div v-if="drawerOpen" class="side-scrim" @click="drawerOpen = false"></div>
+  <aside class="side" :class="{ collapsed, open: drawerOpen }">
+    <div class="side-head">
+      <div class="side-brand">
+        <div class="wordmark"><i>PR</i><span class="side-full">·DEX</span></div>
+        <div class="eyebrow rail-sub side-full">PR ou test : un Pokémon</div>
+      </div>
+      <button
+        class="side-collapse" :aria-label="collapsed ? 'Déplier la barre' : 'Replier la barre'"
+        :title="collapsed ? 'Déplier la barre' : 'Replier la barre'" @click="toggleCollapsed"
+      >
+        <PanelLeftOpen v-if="collapsed" :size="16" :stroke-width="1.75" aria-hidden="true" />
+        <PanelLeftClose v-else :size="16" :stroke-width="1.75" aria-hidden="true" />
+      </button>
+      <button class="side-close" aria-label="Fermer le menu" @click="drawerOpen = false">
+        <X :size="16" :stroke-width="1.75" aria-hidden="true" />
+      </button>
     </div>
     <!-- Les vues sont des pages, pas des onglets d'une modale : une vraie navigation, avec
-         l'onglet courant annoncé — c'était le défaut relevé sur le panneau de classement. -->
+         le lieu courant annoncé. -->
     <nav class="rail-nav" aria-label="Vues">
       <button
-        v-for="[key, label] in TABS" :key="key" class="rail-tab" :class="{ active: view === key }"
-        :aria-current="view === key ? 'page' : undefined" @click="emit('navigate', key)"
-      >{{ label }}<span v-if="key === 'moi' && achievementsBadge" class="rail-tab-pip"><span>{{ achievementsBadge }}</span></span></button>
+        v-for="[key, label, icon] in TABS" :key="key" class="rail-tab" :class="{ active: view === key }"
+        :aria-current="view === key ? 'page' : undefined" :title="collapsed ? label : undefined" @click="go(key)"
+      >
+        <component :is="icon" class="rail-tab-ico" :size="17" :stroke-width="1.75" aria-hidden="true" />
+        <span class="rail-tab-label">{{ label }}</span>
+        <span v-if="key === 'succes' && achievementsBadge" class="rail-tab-pip"><span>{{ achievementsBadge }}</span></span>
+      </button>
     </nav>
+    <div class="side-tools">
+      <button class="gear sync" :title="syncTitle" :aria-label="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
+        <span class="side-tool-ico" :class="{ spinning: syncing }">
+          <RefreshCw :size="16" :stroke-width="1.75" aria-hidden="true" />
+        </span><span v-if="syncError" class="err-dot"></span>
+        <span class="side-tool-label">Synchroniser</span>
+      </button>
+      <button
+        class="gear theme-toggle" :aria-label="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'"
+        :title="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'" @click="$emit('toggle-theme')"
+      >
+        <Moon v-if="theme === 'light'" :size="16" :stroke-width="1.75" aria-hidden="true" />
+        <Sun v-else :size="16" :stroke-width="1.75" aria-hidden="true" />
+        <span class="side-tool-label">{{ theme === 'light' ? 'Thème sombre' : 'Thème clair' }}</span>
+      </button>
+      <button class="gear" title="Réglages" aria-label="Réglages" @click="$emit('settings')">
+        <SlidersHorizontal :size="16" :stroke-width="1.75" aria-hidden="true" />
+        <span class="side-tool-label">Réglages</span>
+      </button>
+    </div>
+  </aside>
+
+  <header class="rail">
+    <button class="side-burger" aria-label="Ouvrir le menu" @click="drawerOpen = true">
+      <Menu :size="18" :stroke-width="1.75" aria-hidden="true" />
+      <span v-if="achievementsBadge" class="side-burger-dot"></span>
+    </button>
     <div class="progress">
       <span class="progress-count"><span class="eyebrow progress-label">Pokédex</span> <b>{{ caughtCount }}</b><i> / 151</i></span>
       <div class="bar"><div class="bar-fill" :style="{ width: (caughtCount / 151 * 100) + '%' }"></div></div>
@@ -122,21 +174,6 @@ onUnmounted(() => clearTimeout(cooldownTimer))
       <button class="claim-btn" :class="{ pulsing: pendingCount }" :disabled="!pendingCount" @click="$emit('open')">
         {{ pendingCount ? 'Retourner' : 'Rien à retourner' }}
         <span v-if="pendingCount" class="pip">{{ pendingCount }}</span>
-      </button>
-      <button class="gear sync" :title="syncTitle" :aria-label="syncTitle" :disabled="syncing || cooling" @click="triggerSync">
-        <span :class="{ spinning: syncing }">
-          <RefreshCw :size="15" :stroke-width="1.75" aria-hidden="true" />
-        </span><span v-if="syncError" class="err-dot"></span>
-      </button>
-      <button
-        class="gear theme-toggle" :aria-label="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'"
-        :title="theme === 'light' ? 'Passer au thème sombre' : 'Passer au thème clair'" @click="$emit('toggle-theme')"
-      >
-        <Moon v-if="theme === 'light'" :size="15" :stroke-width="1.75" aria-hidden="true" />
-        <Sun v-else :size="15" :stroke-width="1.75" aria-hidden="true" />
-      </button>
-      <button class="gear" title="Réglages" aria-label="Réglages" @click="$emit('settings')">
-        <SlidersHorizontal :size="15" :stroke-width="1.75" aria-hidden="true" />
       </button>
     </div>
   </header>
