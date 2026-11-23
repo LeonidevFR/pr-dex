@@ -65,14 +65,17 @@ describe('feuille de style', () => {
    * mesure la plus longue des deux et attend 1,25 s au lieu des 0,25 s du fondu.
    */
   /**
-   * La feuille et les toasts gardent un papier fixe dans les deux thèmes. Le texte d'un
-   * palier (compteur de l'en-tête, libellé de rareté, 12 px) s'écrit dans son encre : elle
-   * doit passer le contraste AA de 4,5:1 sur ce papier, le légendaire compris, et aucun
+   * La feuille et les toasts suivent le thème. Le texte d'un palier (compteur de l'en-tête,
+   * libellé de rareté, 12 px) s'écrit dans son encre : elle doit passer le contraste AA de
+   * 4,5:1 sur le fond de la feuille, dans les deux thèmes, le légendaire compris, et aucun
    * libellé ne se peint avec la dorure, dont les arrêts clairs tombent sous 2:1.
    */
-  it('écrit chaque palier dans une encre lisible sur le papier, sans dorure sur le texte', () => {
-    const papier = regles.find((r) => r.selecteur === '.ach-sheet,.ach-toast')
-    const couleur = (nom) => papier.corps.match(new RegExp(`--${nom}\\s*:\\s*(#[0-9a-f]{6})`, 'i'))[1]
+  it.each([
+    ['sombre', '.ach-sheet,.ach-toast'],
+    ['clair', ':root[data-theme="light"] .ach-sheet,:root[data-theme="light"] .ach-toast'],
+  ])('écrit chaque palier dans une encre lisible sur la feuille en thème %s', (_, selecteur) => {
+    const feuille = regles.find((r) => r.selecteur === selecteur)
+    const couleur = (nom) => feuille.corps.match(new RegExp(`--${nom}\\s*:\\s*(#[0-9a-f]{6})`, 'i'))[1]
     const luminance = (hex) => {
       const [r, g, b] = [1, 3, 5].map((i) => {
         const c = parseInt(hex.slice(i, i + 2), 16) / 255
@@ -82,9 +85,13 @@ describe('feuille de style', () => {
     }
     const fond = luminance(couleur('paper'))
     for (const palier of ['ach-c', 'ach-u', 'ach-r', 'ach-l']) {
-      const ratio = (fond + 0.05) / (luminance(couleur(palier)) + 0.05)
+      const encre = luminance(couleur(palier))
+      const ratio = (Math.max(fond, encre) + 0.05) / (Math.min(fond, encre) + 0.05)
       expect(ratio, palier).toBeGreaterThanOrEqual(4.5)
     }
+  })
+
+  it('ne peint aucun libellé de palier avec la dorure', () => {
     const texteDore = regles.filter(
       (r) => /\.ach-(rarity|tier-count)/.test(r.selecteur) && /color\s*:\s*transparent/.test(r.corps),
     )

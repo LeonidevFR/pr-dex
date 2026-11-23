@@ -256,9 +256,10 @@ venaient les données.
 - **« D'affilée » se lit sur toutes les captures, scellées comprises.** Laisser une carte
   fermée au milieu ne fabrique pas une suite. D'où le tri par `id` après la date dans
   `readCatches`, le même que celui de `leaderboard_players()`.
-- **La feuille reste en papier dans les deux thèmes.** Posée sur le velours, elle se lit
-  comme un objet, à la manière des cartes. Le badge est un cercle d'encre net : le tampon
-  encré des maquettes a été écarté, trop coûteux à animer pour ce qu'il ajoutait.
+- **La feuille suit le thème.** D'abord papier dans les deux thèmes, pour se lire comme un
+  objet posé sur le velours ; elle passe en surface sombre avec le thème depuis novembre 2026. Les encres de palier passent 4,5:1 dans les deux
+  thèmes. Le badge est un cercle d'encre net : le tampon encré des maquettes a été écarté,
+  trop coûteux à animer pour ce qu'il ajoutait.
 
 ## Hors périmètre, non touché
 
