@@ -72,8 +72,7 @@ watch(
   <section class="view">
     <div class="view-head">
       <div>
-        <div class="eyebrow">Succès</div>
-        <h1 class="view-title">Tes <i>succès</i></h1>
+        <h1 class="view-title">Succès</h1>
       </div>
     </div>
 

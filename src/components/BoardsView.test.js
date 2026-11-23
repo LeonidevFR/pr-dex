@@ -30,8 +30,8 @@ describe('BoardsView', () => {
     const w = monter({ leaderboard: POINTS, season: '2026-S6', arenaOpen: true })
     await flushPromises()
     expect(w.findAll('.board-table')).toHaveLength(2)
-    expect(w.text()).toContain('La collection')
-    expect(w.text()).toContain('Les points de la saison')
+    expect(w.findAll('.sect-h').some((h) => h.text().startsWith('Collection'))).toBe(true)
+    expect(w.findAll('.sect-h').some((h) => h.text().startsWith('Saison en cours'))).toBe(true)
   })
 
   /**
@@ -42,7 +42,7 @@ describe('BoardsView', () => {
     const w = monter({ arenaOpen: false })
     await flushPromises()
     expect(w.findAll('.board-table')).toHaveLength(1)
-    expect(w.text()).toContain('La collection')
+    expect(w.findAll('.sect-h').some((h) => h.text().startsWith('Collection'))).toBe(true)
     expect(w.text()).not.toContain('Les points de la saison')
   })
 

@@ -71,11 +71,10 @@ describe('MeView', () => {
     expect(w.text()).toContain('Cartes')
   })
 
-  // Le titre de l'écran « Statistiques » dissous, resté sur la section qui porte ses chiffres.
-  it('garde « Ce que tu as tiré » sur les statistiques de collection', async () => {
+  it('titre « Collection » la section des statistiques de collection', async () => {
     const w = monter()
     await flushPromises()
-    expect(w.text()).toContain('Ce que tu as tiré')
+    expect(w.findAll('.sect-h').map((h) => h.text())).toContain('Collection')
   })
 
   it('porte ses points et son rang en tête', async () => {

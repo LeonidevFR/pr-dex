@@ -259,7 +259,7 @@ describe('les lieux ont une URL', () => {
   it('ouvre directement le bon écran depuis l’adresse', async () => {
     window.history.replaceState({}, '', '/shop?demo')
     const w = await mountApp()
-    expect(w.findAll('.view-head .eyebrow').some((p) => p.text() === 'Boutique')).toBe(true)
+    expect(w.find('.view-title').text()).toBe('Boutique')
   })
 })
 
@@ -280,7 +280,7 @@ describe('le profil', () => {
     const w = await ouvrir(await mountApp())
     expect(location.pathname).toBe('/moi')
     expect(w.findAll('.prof-case.secret')).toHaveLength(0)
-    expect(w.text()).toContain('Ce que tu as tiré')
+    expect(w.find('.view-title').text()).toBe('Ma fiche')
   })
 
   it('compte les exemplaires depuis la collection, et non depuis la vue publique', async () => {
@@ -311,7 +311,7 @@ describe('le profil', () => {
     await flushPromises()
     expect(location.pathname).toBe('/moi')
     expect(w.text()).not.toContain('Personne ne joue sous ce nom')
-    expect(w.text()).toContain('Ce que tu as tiré')
+    expect(w.find('.view-title').text()).toBe('Ma fiche')
   })
 
   it('explique un login qui ne joue pas, au lieu d’une fiche vide', async () => {
@@ -346,7 +346,7 @@ describe('la saison', () => {
     await moi.trigger('click')
     await flushPromises()
     expect(location.pathname).toBe('/moi')
-    expect(w.text()).toContain('Ce que tu as tiré')
+    expect(w.find('.view-title').text()).toBe('Ma fiche')
   })
 
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
@@ -498,7 +498,7 @@ describe('vues', () => {
     await tab(w, 'Scores').trigger('click')
     await flushPromises()
     expect(w.find('.tray').exists()).toBe(false)
-    expect(w.find('.view-head .eyebrow').text()).toBe('Scores')
+    expect(w.find('.view-title').text()).toBe('Classements')
   })
 
   it('Échap ne change pas de vue', async () => {

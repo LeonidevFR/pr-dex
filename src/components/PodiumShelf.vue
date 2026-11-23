@@ -30,7 +30,7 @@ const gagnes = computed(() => palmares.value.filter((p) => p.rank).length)
 <template>
   <div class="sect">
     <div class="eyebrow sect-h">
-      <span>Ton étagère</span>
+      <span>Badges gagnés</span>
       <span class="mono" style="font-size:11px;color:var(--fg-3)">
         {{ gagnes }} sur {{ palmares.length }} saison{{ palmares.length > 1 ? 's' : '' }} close{{ palmares.length > 1 ? 's' : '' }}
       </span>

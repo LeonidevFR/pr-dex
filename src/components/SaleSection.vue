@@ -96,7 +96,7 @@ function vendre() {
     <div class="view-head">
       <div>
         <div class="eyebrow">Revente</div>
-        <h1 class="view-title">Ce qui <i>s’entasse</i></h1>
+        <h1 class="view-title">Revendre tes doublons</h1>
       </div>
       <div v-if="groups.length" class="view-totals">
         <div>

@@ -18,7 +18,7 @@ const bareme = computed(() => TIER_ORDER.map((t) => ({ tier: t, ...REWARD[t] }))
 
 <template>
   <div class="sect">
-    <div class="eyebrow sect-h"><span>Ce qui rapporte</span></div>
+    <div class="eyebrow sect-h"><span>Gains par enjeu</span></div>
     <div class="saison-bareme">
       <div v-for="b in bareme" :key="b.tier" class="saison-ligne">
         <span class="pastille" :style="{ background: TIER_VAR[b.tier] }"></span>

@@ -30,7 +30,6 @@ defineEmits(['profile', 'me'])
  *
  * Tant que l'arène est fermée il n'y a qu'une mesure, et la page n'annonce donc qu'elle.
  */
-const titre = computed(() => (props.arenaOpen ? 'Où tu en es' : 'Qui a le plus'))
 
 /**
  * La lecture vit ici et non dans le tableau : les totaux de l'en-tête sortent des mêmes lignes
@@ -45,10 +44,7 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
   <section class="view">
     <div class="view-head">
       <div>
-        <div class="eyebrow">Scores</div>
-        <h1 class="view-title">
-          {{ titre }} <i>{{ arenaOpen ? 'face aux autres' : 'de Pokémon' }}</i>
-        </h1>
+        <h1 class="view-title">Classements</h1>
         <p v-if="arenaOpen" class="muted" style="margin-top:10px">
           Deux tableaux : les espèces trouvées depuis le début, puis les points gagnés en duel
           pendant la saison en cours.
@@ -82,7 +78,7 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
          Ce que personne n'a encore vu. Pas de spoiler : la grille de chacun montre déjà les
          151 silhouettes, celle-ci ne dit que lesquelles restent éteintes chez tout le monde. -->
     <section v-if="totals" class="team-missing" data-section="missing">
-      <div class="eyebrow">Il manque à l'équipe</div>
+      <div class="eyebrow">Jamais vues par l'équipe</div>
       <h2 v-if="totals.missing.length" class="team-missing-title">
         {{ totals.missing.length }} espèce{{ totals.missing.length > 1 ? 's' : '' }} que personne n'a encore vue{{ totals.missing.length > 1 ? 's' : '' }}
       </h2>

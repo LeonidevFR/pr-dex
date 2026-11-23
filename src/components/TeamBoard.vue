@@ -35,7 +35,7 @@ const expanded = ref(null)
 <template>
   <div class="sect">
     <div class="eyebrow sect-h">
-      <span>La collection</span>
+      <span>Collection</span>
       <span v-if="players.length" class="mono" style="font-size:11px;color:var(--fg-3)">{{ players.length }} joueurs</span>
     </div>
     <div v-if="loading" class="board-loading">Chargement…</div>

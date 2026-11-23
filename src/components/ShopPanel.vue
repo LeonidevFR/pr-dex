@@ -32,8 +32,7 @@ function cliquer(a) {
   <section class="view" @click="aConfirmer = null">
     <div class="view-head">
       <div>
-        <div class="eyebrow">Boutique</div>
-        <h1 class="view-title">Ce que les <i>pokédollars</i> achètent</h1>
+        <h1 class="view-title">Boutique</h1>
       </div>
       <div class="view-totals">
         <div>
@@ -44,7 +43,7 @@ function cliquer(a) {
     </div>
 
   <div class="sect">
-    <div class="eyebrow sect-h"><span>Le catalogue</span></div>
+    <div class="eyebrow sect-h"><span>Articles</span></div>
     <p class="muted" style="margin-bottom:12px">
       Une carte achetée se découvre comme les autres, aux mêmes cotes — seul l’ensemble dans lequel
       il pioche est décidé d’avance. La <b>Gen 2</b> ne s’obtient que par ici ; l’<b>inédit

@@ -35,7 +35,7 @@ const retard = computed(() => {
 <template>
   <div class="sect">
     <div class="eyebrow sect-h">
-      <span>Les points de la saison</span>
+      <span>Saison en cours</span>
       <span class="mono" style="font-size:11px;color:var(--fg-3)">{{ leaderboard.length }} joueurs</span>
     </div>
 

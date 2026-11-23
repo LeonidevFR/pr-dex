@@ -119,7 +119,7 @@ function take(duelId) {
     <div class="view-head">
       <div>
         <div class="eyebrow">Arène</div>
-        <h1 class="view-title">Ce que tu <i>mets en jeu</i></h1>
+        <h1 class="view-title">Duels</h1>
       </div>
       <div class="view-totals">
         <div>
@@ -135,7 +135,7 @@ function take(duelId) {
 
   <div class="sect">
     <div class="sect-h">
-      <span class="eyebrow">La règle du jeu</span>
+      <span>Règles</span>
       <button class="btn-ghost" @click="rulesOpen = !rulesOpen">
         {{ rulesOpen ? 'Masquer les règles' : 'Comment ça marche' }}
       </button>
@@ -227,7 +227,7 @@ function take(duelId) {
 
   <div class="sect">
     <div class="eyebrow sect-h">
-      <span>Ce que tu engages</span>
+      <span>Choisis ton Pokémon</span>
       <span class="mono muted">{{ engageable.length }} exemplaire{{ engageable.length > 1 ? 's' : '' }}</span>
     </div>
     <p v-if="!engageable.length" class="muted">
@@ -311,7 +311,7 @@ function take(duelId) {
   </div>
 
   <div class="sect">
-    <div class="eyebrow sect-h"><span>Défis ouverts</span></div>
+    <div class="eyebrow sect-h"><span>Défis à relever</span></div>
     <p v-if="!others.length" class="muted">
       Personne n’attend de preneur. Poste le tien — s’il reste seul, l’ordinateur le relèvera
       demain.

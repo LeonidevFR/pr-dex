@@ -73,10 +73,7 @@ const cases = computed(() => {
   <section class="view">
     <div class="view-head">
       <div>
-        <div class="eyebrow">Ma fiche</div>
-        <!-- La page porte la caisse, les duels et les médailles, qui ne se tirent pas : le titre
-             des statistiques seules, « Ce que tu as tiré », est resté sur leur section. -->
-        <h1 class="view-title">Ce qui est <i>à toi</i></h1>
+        <h1 class="view-title">Ma fiche</h1>
       </div>
       <div v-if="arenaOpen" class="view-totals">
         <div>
@@ -99,7 +96,7 @@ const cases = computed(() => {
       Les statistiques de collection, elles, se consultent de temps en temps.
     -->
     <div v-if="arenaOpen" class="sect">
-      <div class="eyebrow sect-h"><span>Ton arène</span></div>
+      <div class="eyebrow sect-h"><span>Arène</span></div>
       <div class="prof-cases">
         <div v-for="c in cases" :key="c.l" class="prof-case">
           <b>{{ c.v }}</b>
@@ -121,7 +118,7 @@ const cases = computed(() => {
     <p v-else-if="!stats" class="board-empty">Retourne une carte pour voir tes stats.</p>
 
     <div v-else class="sect">
-      <div class="eyebrow sect-h"><span>Ce que tu as tiré</span></div>
+      <div class="eyebrow sect-h"><span>Collection</span></div>
       <dl class="board-stats">
         <div data-stat="opened"><dt>Cartes retournées</dt><dd class="stat-value">{{ stats.opened }}</dd></div>
         <div data-stat="species"><dt>Espèces</dt><dd class="stat-value">{{ stats.species }} / 151</dd></div>
@@ -145,7 +142,7 @@ const cases = computed(() => {
       <div class="sect saison-prix">
         <SeasonBadge :season="season" :rank="0" :size="84" />
         <div>
-          <div class="eyebrow">Le badge en jeu</div>
+          <div class="eyebrow">Badge de la saison</div>
           <p class="muted" style="margin-top:7px">
             Les trois premiers l’épinglent ici à la clôture. Il change à chaque saison, et une
             saison ne se rejoue pas.
