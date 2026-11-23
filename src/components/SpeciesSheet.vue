@@ -268,7 +268,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             class="evo-btn vendre-tout" :class="{ confirming: aVendre === 'lot' }"
             @click="vendreLeLot"
           >{{ aVendre === 'lot'
-            ? `Confirmer — ${lotPrix} ₽`
+            ? `Confirmer · ${lotPrix} ₽`
             : `Vendre les ${lot.preselected.length} en trop · ${lotPrix} ₽` }}</button>
           <span class="muted vendre-lot-note">
             Garde ton meilleur exemplaire, les chromatiques et ceux qui ont gagné des niveaux.
@@ -297,7 +297,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             <button
               v-if="available.length > 1" class="evo-btn vendre-un"
               :class="{ confirming: aVendre === e.key }" @click="vendre(e)"
-            >{{ aVendre === e.key ? `Confirmer — ${prixDe(e)} ₽` : `Vendre · ${prixDe(e)} ₽` }}</button>
+            >{{ aVendre === e.key ? `Confirmer · ${prixDe(e)} ₽` : `Vendre · ${prixDe(e)} ₽` }}</button>
           </div>
         </div>
         <!--
@@ -319,7 +319,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
             d’affronter l’ordinateur ou de relever celui d’un autre.
           </template>
           <template v-else>
-            Aucun engagement disponible — il en revient un par jour ouvré.
+            Aucun engagement disponible. Il en revient un par jour ouvré.
           </template>
         </p>
       </div>

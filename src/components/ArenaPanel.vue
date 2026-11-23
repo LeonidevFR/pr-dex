@@ -142,7 +142,7 @@ function take(duelId) {
     </div>
     <p v-if="!credits" class="muted">
       Tu as joué tous tes engagements. Il en revient <b>un par jour ouvré</b>, et ils
-      s’accumulent jusqu’à cinq — reviens demain.
+      s’accumulent jusqu’à cinq. Reviens demain.
     </p>
   </div>
 
@@ -151,8 +151,7 @@ function take(duelId) {
       <b>Engager</b>
       <span class="muted">
         Tu mets un Pokémon en jeu sans savoir ce que l’autre engagera : vous découvrez vos
-        deux choix en même temps. C’est tout l’intérêt — sinon le second ajusterait toujours
-        juste ce qu’il faut pour gagner.
+        deux choix en même temps. Sans ça, le second ajusterait toujours sa mise pour gagner.
       </span>
     </div>
     <!--
@@ -187,10 +186,10 @@ function take(duelId) {
       <b>Combien</b>
       <span class="muted">
         Tu ne peux pas gagner plus que ce que l’adversaire a risqué. S’il engage un commun
-        et toi un rare, le duel vaut un commun pour vous deux — comme au poker, on ne
-        remporte que la mise que l’autre a couverte. Battre un rare ne vaut
-        {{ REWARD.r.dollars }} ₽ que si vous en avez engagé un chacun — un légendaire des
-        deux côtés en vaut {{ REWARD.l.dollars }}.
+        et toi un rare, le duel vaut un commun pour vous deux. Comme au poker, on ne remporte
+        que la mise que l’autre a couverte. Battre un rare ne vaut {{ REWARD.r.dollars }} ₽ que
+        si vous en avez engagé un chacun. Un légendaire des deux côtés en vaut
+        {{ REWARD.l.dollars }}.
       </span>
     </div>
     <div class="arena-rule">
@@ -221,7 +220,7 @@ function take(duelId) {
     </div>
     <p class="muted">
       Personne ne voit ce que tu as engagé. Un défi sans preneur au bout de vingt-quatre heures
-      est relevé par l’ordinateur, et ton exemplaire redevient libre — gagnant ou perdant.
+      est relevé par l’ordinateur. Gagnant ou perdant, ton exemplaire redevient libre.
     </p>
   </div>
 
@@ -313,7 +312,7 @@ function take(duelId) {
   <div class="sect">
     <div class="eyebrow sect-h"><span>Défis à relever</span></div>
     <p v-if="!others.length" class="muted">
-      Personne n’attend de preneur. Poste le tien — s’il reste seul, l’ordinateur le relèvera
+      Personne n’attend de preneur. Poste le tien : s’il reste seul, l’ordinateur le relèvera
       demain.
     </p>
     <!--

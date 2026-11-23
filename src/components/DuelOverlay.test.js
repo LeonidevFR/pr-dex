@@ -82,7 +82,7 @@ describe('DuelOverlay', () => {
   // L'espèce reste acquise : c'est l'exemplaire qui disparaît, pas ce qu'on a vu.
   it('dit ce qu’on perd exactement en cas de défaite', async () => {
     const w = await revele(monter({ winner_id: LUI }))
-    expect(w.text()).toContain('L’espèce reste à la collection')
+    expect(w.text()).toContain('L’espèce reste dans ta collection')
   })
 
   it('dit ce qu’on gagne en cas de victoire', async () => {

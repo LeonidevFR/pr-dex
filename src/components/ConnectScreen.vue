@@ -32,7 +32,7 @@ const FAN = [[16, 'c'], [37, 'u'], [4, 'r'], [146, 'l']]
           </template>
           <template v-else>
             <span class="bt">Service indisponible.</span>
-            Ce n'est pas ton compte — réessaie dans un moment.
+            Ce n'est pas ton compte. Réessaie dans un moment.
           </template>
         </div>
       </div>

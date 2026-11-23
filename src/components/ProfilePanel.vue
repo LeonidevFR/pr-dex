@@ -106,7 +106,7 @@ const palmares = computed(() => {
       </div>
       <p v-else class="muted">
         Aucune saison sur le podium pour l’instant. Les trois premiers d’une saison gardent
-        son badge — une saison ne se rejoue pas.
+        son badge, et une saison ne se rejoue pas.
       </p>
     </div>
   </template>

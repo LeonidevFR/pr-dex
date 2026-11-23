@@ -57,10 +57,10 @@ function go(key) {
 // distinguable d'« à jour » sans ce badge — c'est ce silence qui a fait perdre du temps
 // en debug avant qu'on le remarque.
 const SYNC_ERROR_LABEL = {
-  offline: 'Hors ligne — la dernière synchronisation a échoué.',
-  server: 'La synchronisation a échoué — réessaie.',
-  conflict: 'Conflit de synchronisation — réessaie.',
-  revoked: 'Session expirée — reconnecte-toi.',
+  offline: 'Hors ligne : la dernière synchronisation a échoué.',
+  server: 'La synchronisation a échoué. Réessaie.',
+  conflict: 'Conflit de synchronisation. Réessaie.',
+  revoked: 'Session expirée. Reconnecte-toi.',
 }
 // Le clic déclenche un vrai run GitHub Action, pas une lecture instantanée : sans ce message,
 // le bouton semble juste tourner dans le vide pendant que le run travaille en coulisses.

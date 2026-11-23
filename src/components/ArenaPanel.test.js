@@ -127,9 +127,9 @@ describe('ArenaPanel', () => {
   // n'a pas conçu le mode.
   it('explique les règles à la demande, sans les imposer', async () => {
     const w = monter()
-    expect(w.text()).not.toContain('comme au poker')
+    expect(w.text()).not.toContain('Comme au poker')
     await w.findAll('.btn-ghost').find((b) => b.text().includes('Comment ça marche')).trigger('click')
-    expect(w.text()).toContain('comme au poker')
+    expect(w.text()).toContain('Comme au poker')
     expect(w.text()).toContain('une chance sur vingt')
   })
 

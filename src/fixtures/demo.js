@@ -81,7 +81,7 @@ const crmCatch = (id, client, note, date) => {
   return {
     source: 'crm',
     external_id: id,
-    label: `${client} — ${note}/10`,
+    label: `${client} · ${note}/10`,
     ref: `enquête valeur · ${date}`,
     url: null,
     date,

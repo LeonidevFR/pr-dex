@@ -90,7 +90,7 @@ const retard = computed(() => {
     <!-- Ce qu'il reste à faire, et non seulement où l'on est. -->
     <p v-if="retard" class="muted" style="margin-top:12px">
       Il te manque <b>{{ retard }} point{{ retard > 1 ? 's' : '' }}</b> pour la troisième
-      marche — un duel gagné sur un enjeu rare en rapporte {{ REWARD.r.points }}.
+      marche. Un duel gagné sur un enjeu rare en rapporte {{ REWARD.r.points }}.
     </p>
     <p v-else-if="moi && moi.rank <= 3" class="muted" style="margin-top:12px">
       Tu es sur le podium. Rien n’est acquis avant la clôture : les points continuent de

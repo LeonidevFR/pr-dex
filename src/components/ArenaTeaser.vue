@@ -37,8 +37,8 @@ const jours = computed(() =>
         <div class="eyebrow">Bientôt</div>
         <h1 class="view-title">L’arène ouvre <i>le {{ quand }}</i></h1>
         <p class="muted" style="margin-top:8px">
-          On y engage un de ses Pokémon contre celui d’un collègue. Le perdant est détruit — le
-          vainqueur garde le sien, gagne des niveaux, des pokédollars et une carte.
+          On y engage un de ses Pokémon contre celui d’un collègue. Le perdant est détruit. Le
+          vainqueur garde le sien et gagne des niveaux, des pokédollars et une carte.
         </p>
       </div>
     </div>
@@ -75,8 +75,8 @@ const jours = computed(() =>
     <div class="sect">
       <p class="muted">
         D’ici là, rien ne change : les Pokémon continuent d’arriver, une PR mergée ou un
-        monkey-testing à la fois. Ceux que tu accumules maintenant seront ceux que tu engageras
-        — un exemplaire de plus, c’est un duel de plus que tu pourras te permettre de perdre.
+        monkey-testing à la fois. Ceux que tu accumules maintenant seront ceux que tu engageras :
+        un exemplaire de plus, c’est un duel de plus que tu peux te permettre de perdre.
       </p>
     </div>
   </section>

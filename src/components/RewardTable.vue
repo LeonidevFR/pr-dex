@@ -30,7 +30,7 @@ const bareme = computed(() => TIER_ORDER.map((t) => ({ tier: t, ...REWARD[t] }))
     <p class="muted" style="margin-top:12px">
       L’enjeu est toujours <b>le plus petit des deux engagements</b> : miser gros contre un
       petit ne rapporte pas gros. À la clôture, le podium touche
-      {{ SEASON_PODIUM.join(', ') }} ₽ — de quoi fêter, pas de quoi dominer la suivante.
+      {{ SEASON_PODIUM.join(', ') }} ₽ : de quoi fêter, pas de quoi dominer la saison suivante.
     </p>
   </div>
 </template>

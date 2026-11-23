@@ -122,7 +122,7 @@ function vendre() {
           <button
             class="evo-btn vendre-btn" :class="{ confirming: aConfirmer }"
             :disabled="busy || !nombre" @click="vendre"
-          >{{ aConfirmer ? `Confirmer — ${total} ₽` : 'Vendre la sélection' }}</button>
+          >{{ aConfirmer ? `Confirmer · ${total} ₽` : 'Vendre la sélection' }}</button>
         </div>
         <p v-if="aConfirmer" class="muted">
           {{ nombre }} exemplaire{{ nombre > 1 ? 's quittent' : ' quitte' }} ta collection pour de
@@ -170,8 +170,8 @@ function vendre() {
               <span class="vendre-prix mono">{{ i.price }} ₽</span>
             </button>
             <p v-if="restants(g) <= 1" class="muted vendre-note">
-              Il faut en garder un : sans exemplaire, l’espèce n’est plus jouable — ni arène, ni
-              évolution. Son entrée au Pokédex, elle, reste acquise.
+              Il faut en garder un : sans exemplaire, l’espèce ne peut plus aller en arène ni
+              évoluer. Son entrée au Pokédex, elle, reste acquise.
             </p>
           </div>
         </div>
@@ -182,8 +182,8 @@ function vendre() {
           Le prix suit le palier, le <b>niveau</b> et le <b>chromatique</b> : un exemplaire qui a
           gagné des duels se revend plus cher, un shiny quatre fois plus. Un commun ordinaire part
           pour le dixième d’une victoire de son palier ; un shiny au niveau maximum vaut la
-          victoire entière. Mais la victoire se rejoue et garde le Pokémon — la vente se fait une
-          fois.
+          victoire entière. Mais une victoire se rejoue et garde le Pokémon, alors qu’une vente
+          ne se fait qu’une fois.
         </p>
       </div>
     </template>

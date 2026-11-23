@@ -74,7 +74,7 @@ function onUnlink(provider) {
           <p class="muted">
             Ta collection est liée à ton compte, et le classement la publie : les autres y lisent
             tes espèces, tes shiny, tes rares, tes lignées et ton nombre de cartes. Le détail
-            voyage avec — l’écran n’affiche que les totaux, mais la réponse du serveur porte
+            voyage avec : l’écran n’affiche que les totaux, mais la réponse du serveur contient
             chaque capture. Considère ta collection comme visible de l’équipe.
           </p>
         </div>

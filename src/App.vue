@@ -516,7 +516,7 @@ async function onSell(keys) {
     collection.partis.value = arena.gone.value
     achievements.check(nowDay())
     const n = out?.sold ?? keys.length
-    avis.value = `${n} exemplaire${n > 1 ? 's vendus' : ' vendu'} — ${out?.total ?? 0} ₽ en caisse.`
+    avis.value = `${n} exemplaire${n > 1 ? 's vendus' : ' vendu'}, ${out?.total ?? 0} ₽ en caisse.`
     avisBon.value = true
   } catch (e) {
     signaler(e)

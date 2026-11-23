@@ -238,16 +238,16 @@ const breakdown = (s) => [
           >{{ iWon ? 'Victoire' : 'Défaite' }}</div>
           <p class="muted" style="margin-top:8px">
             <template v-if="versusComputer">
-              L’ordinateur ne possède rien : personne ne perd de Pokémon, et il n’y a pas de carte
-              à gagner — seulement des pokédollars, au cinquième du tarif.
+              L’ordinateur ne possède rien : personne ne perd de Pokémon et il n’y a pas de carte à
+              gagner. Seulement des pokédollars, au cinquième du tarif.
             </template>
             <template v-else-if="iWon">
               Son exemplaire est détruit. Tu gardes le tien, et une carte
               {{ TIER_LABEL[duel.stake_tier].toLowerCase() }} t’attend au prochain passage.
             </template>
             <template v-else>
-              Ton exemplaire est détruit. L’espèce reste à la collection — c’est l’exemplaire qui
-              disparaît, pas ce que tu as vu.
+              Ton exemplaire est détruit. L’espèce reste dans ta collection : seul l’exemplaire
+              disparaît.
             </template>
           </p>
         </div>
@@ -297,7 +297,7 @@ const breakdown = (s) => [
         <div v-else-if="iWon && auPlafond" class="sect">
           <p class="muted">
             <b>Niveau {{ LEVEL_MAX }} atteint</b>, le maximum. Cet exemplaire ne gagnera plus de
-            niveaux — il reste au sommet de sa puissance.
+            niveaux.
           </p>
         </div>
 
@@ -351,7 +351,7 @@ const breakdown = (s) => [
           </div>
           <p class="muted" style="margin-top:8px">
             Le tirage décide : sous {{ myOdds }} %, tu l’emportais. Aucun duel n’est joué
-            d’avance — même face au pire écart possible, le plus faible garde une chance sur vingt.
+            d’avance. Même face au pire écart, le plus faible garde une chance sur vingt.
           </p>
         </div>
 

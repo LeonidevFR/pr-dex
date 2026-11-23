@@ -45,8 +45,8 @@ function cliquer(a) {
   <div class="sect">
     <div class="eyebrow sect-h"><span>Articles</span></div>
     <p class="muted" style="margin-bottom:12px">
-      Une carte achetée se découvre comme les autres, aux mêmes cotes — seul l’ensemble dans lequel
-      il pioche est décidé d’avance. La <b>Gen 2</b> ne s’obtient que par ici ; l’<b>inédit
+      Une carte achetée se découvre comme les autres, aux mêmes cotes. Seul l’ensemble dans lequel
+      elle est tirée est fixé d’avance. La <b>Gen 2</b> ne s’obtient que par ici ; l’<b>inédit
       garanti</b> ne tire que parmi les espèces qui te manquent encore.
     </p>
     <div class="board-stats shop-list">
@@ -59,7 +59,7 @@ function cliquer(a) {
             :disabled="busy || pokedollars < a.price" @click.stop="cliquer(a)"
           >{{
             pokedollars < a.price ? `il manque ${a.price - pokedollars} ₽`
-            : aConfirmer === a.slug ? `Confirmer — ${a.price} ₽` : 'Acheter'
+            : aConfirmer === a.slug ? `Confirmer · ${a.price} ₽` : 'Acheter'
           }}</button>
         </dd>
       </div>
@@ -68,7 +68,7 @@ function cliquer(a) {
       La dépense est définitive. Clique ailleurs pour renoncer.
     </p>
     <p class="muted" style="margin-top:10px">
-      La carte s’ouvre dès que la collecte la rapporte — dans la minute, en général. S’il
+      La carte s’ouvre dès que la collecte la rapporte, en général dans la minute. Si elle
       tarde, elle t’est due : elle rejoindra ta file d’ouverture au prochain passage.
     </p>
   </div>
