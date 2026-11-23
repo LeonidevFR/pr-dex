@@ -305,11 +305,12 @@
   .board-error p{margin:0 0 14px}
   /* ───────── succès ───────── */
   /* La feuille et les toasts restent en papier dans les deux thèmes : leurs encres sont donc
-     fixes. Ce sont les paliers des cartes, dans leur version pour fond clair ; le légendaire
-     passe en dorure. */
+     fixes. Ce sont les paliers des cartes, dans leur version pour fond clair, toutes au-dessus
+     de 4,5:1 sur le papier. La dorure du légendaire ne sert qu'au décor (badge, liseré du
+     toast) : ses arrêts clairs effaceraient un texte, écrit donc dans l'encre pleine --ach-l. */
   .ach-sheet,.ach-toast{
     --paper:#efe6d0; --ink:#2a2622; --ink-2:#6f6350; --ink-3:#8a7f6e;
-    --ach-c:#665d53; --ach-u:#4a6a42; --ach-r:#9e3b2e; --ach-l:#9a7a2c;
+    --ach-c:#665d53; --ach-u:#4a6a42; --ach-r:#9e3b2e; --ach-l:#6e5418;
     --ach-foil:linear-gradient(120deg,#7a581a,#d9b66a 30%,#8a6a2c 50%,#f0d58f 70%,#7a581a);
     background-color:var(--paper);color:var(--ink);
     background-image:radial-gradient(rgba(120,90,40,.07) 1px,transparent 1px);background-size:7px 7px;
@@ -347,7 +348,6 @@
   .ach-bar i{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(45deg,#5d564c 0 2px,transparent 2px 4px)}
   .ach-rarity{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
   .ach-rarity b{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ach-ink)}
-  .ach-rarity b.ach-t-l{background:var(--ach-foil);-webkit-background-clip:text;background-clip:text;color:transparent}
   .ach-rarity small{font-family:var(--f-data);font-size:11px;color:var(--ink-2)}
 
   /* Le badge : un cercle d'encre net, le sprite en aplat de la même encre. */

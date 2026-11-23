@@ -64,6 +64,33 @@ describe('feuille de style', () => {
    * Le toast entre par une animation retardée de 0,9 s. Laissée en place à la sortie, Vue
    * mesure la plus longue des deux et attend 1,25 s au lieu des 0,25 s du fondu.
    */
+  /**
+   * La feuille et les toasts gardent un papier fixe dans les deux thèmes. Le texte d'un
+   * palier (compteur de l'en-tête, libellé de rareté, 12 px) s'écrit dans son encre : elle
+   * doit passer le contraste AA de 4,5:1 sur ce papier, le légendaire compris, et aucun
+   * libellé ne se peint avec la dorure, dont les arrêts clairs tombent sous 2:1.
+   */
+  it('écrit chaque palier dans une encre lisible sur le papier, sans dorure sur le texte', () => {
+    const papier = regles.find((r) => r.selecteur === '.ach-sheet,.ach-toast')
+    const couleur = (nom) => papier.corps.match(new RegExp(`--${nom}\\s*:\\s*(#[0-9a-f]{6})`, 'i'))[1]
+    const luminance = (hex) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const c = parseInt(hex.slice(i, i + 2), 16) / 255
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+      })
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+    const fond = luminance(couleur('paper'))
+    for (const palier of ['ach-c', 'ach-u', 'ach-r', 'ach-l']) {
+      const ratio = (fond + 0.05) / (luminance(couleur(palier)) + 0.05)
+      expect(ratio, palier).toBeGreaterThanOrEqual(4.5)
+    }
+    const texteDore = regles.filter(
+      (r) => /\.ach-(rarity|tier-count)/.test(r.selecteur) && /color\s*:\s*transparent/.test(r.corps),
+    )
+    expect(texteDore).toEqual([])
+  })
+
   it('coupe l’animation d’entrée d’un toast qui sort', () => {
     const leave = regles.find((r) => r.selecteur === '.ach-toast-leave-active')
     expect(leave.corps).toMatch(/animation\s*:\s*none/)
