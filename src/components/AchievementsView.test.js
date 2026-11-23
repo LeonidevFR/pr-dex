@@ -18,7 +18,7 @@ const row = (w, code) => w.find(`[data-code="${code}"]`)
 
 describe('AchievementsView', () => {
   it('compte les succès obtenus sur le total', () => {
-    expect(mountView().find('.ach-total').text()).toBe('2 / 37')
+    expect(mountView().find('.ach-total').text()).toBe('2 / 63')
   })
 
   it('un succès obtenu montre son nom, sa date, son palier et qui l’a', () => {
@@ -58,12 +58,13 @@ describe('AchievementsView', () => {
   it('le filtre par rareté ne compte ni ne montre les succès cachés non obtenus', async () => {
     const w = mountView()
     const common = w.findAll('.ach-filters-tier .ach-filter').find((b) => b.text().startsWith('Commun'))
-    expect(common.find('em').text()).toBe('5')
+    expect(common.find('em').text()).toBe('9')
     await common.trigger('click')
-    expect(w.findAll('.ach-row').map((r) => r.attributes('data-code')).sort())
-      .toEqual(['deja-vu', 'lineage-1', 'shiny-1', 'species-100', 'species-50'])
+    expect(w.findAll('.ach-row').map((r) => r.attributes('data-code')).sort()).toEqual([
+      'arena-win-1', 'cards-100', 'deja-vu', 'lineage-1', 'sell-10', 'shiny-1', 'shop-1', 'species-100', 'species-50',
+    ])
     await common.trigger('click')
-    expect(w.findAll('.ach-row')).toHaveLength(37)
+    expect(w.findAll('.ach-row')).toHaveLength(63)
   })
 
   it('affiche l’erreur et réessaie', async () => {

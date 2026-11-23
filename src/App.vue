@@ -266,7 +266,25 @@ let client = null
 // La date d'un déblocage en direct se lit au moment du geste, pas au chargement : une session
 // ouverte la veille ne doit pas antidater un succès.
 const nowDay = () => new Date().toISOString().slice(0, 10)
-const collectionData = () => ({ catches: collection.catches.value, state: collection.state.value })
+// Un duel se découvre par sa cérémonie : les succès qu'il débloque attendent qu'on l'ait
+// refermée, sinon le toast annoncerait la victoire avant l'issue du combat.
+watch(duelShown, (shown, before) => { if (!shown && before) achievements.check(nowDay()) })
+/**
+ * Ce que lisent les succès. Les évolutions sont celles du serveur, nommées `evo:<id>` comme les
+ * exemplaires qu'elles produisent : `state.evolutions` n'est plus écrit depuis la bascule.
+ */
+const collectionData = () => ({
+  catches: collection.catches.value,
+  state: {
+    ...collection.state.value,
+    evolutions: collection.evolutions.value.map((e) => ({
+      species: e.to_species, from: e.from_species, fromKey: e.from_key, date: e.day, key: `evo:${e.id}`,
+    })),
+  },
+  arena: arena
+    ? { userId: userId.value, duels: arena.recentDuels.value, exemplars: arena.exemplars.value, seasons: arena.seasons.value }
+    : null,
+})
 
 // Le récap se fige à l'ouverture : `acknowledge` vide la liste dès la fermeture, et la feuille
 // qui s'efface afficherait sinon « Tu avais déjà 0 succès ».
@@ -472,6 +490,7 @@ async function onBuy(slug) {
     const id = await arena.buy(slug)
     await collection.refresh()
     const achete = collection.dex.pending.value.find((e) => e.key === entryKey('boutique', id))
+    achievements.check(nowDay())
     if (achete) { router.go('collection'); showPacket(achete) }
   } catch (e) {
     signaler(e)
@@ -495,6 +514,7 @@ async function onSell(keys) {
     // relire. Rappeler la collecte ferait attendre trente secondes pour rien, exactement comme
     // au premier engagement.
     collection.partis.value = arena.gone.value
+    achievements.check(nowDay())
     const n = out?.sold ?? keys.length
     avis.value = `${n} exemplaire${n > 1 ? 's vendus' : ' vendu'} — ${out?.total ?? 0} ₽ en caisse.`
     avisBon.value = true

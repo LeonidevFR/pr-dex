@@ -1,5 +1,6 @@
 import { DEX, familyOf, familyLine, hasEvoInFamily } from '../../shared/species.js'
 import { entryKey } from '../../shared/entry.js'
+import { seasonBounds } from '../../shared/arena-economy.js'
 
 /**
  * Le catalogue des succès. L'ordre est celui de l'affichage, groupe par groupe.
@@ -48,6 +49,32 @@ export const ACHIEVEMENTS = [
   { code: 'worth-it', group: 'actions', name: 'Ça valait le coup', desc: 'Faire évoluer une carte chromatique.', tier: 'c', hidden: true, icon: { sprite: 133 } },
   { code: 'patient-fisher', group: 'actions', name: 'Pêcheur patient', desc: 'Avoir 10 Magicarpe sans en avoir jamais fait évoluer.', tier: 'u', hidden: true, icon: { sprite: 129 } },
   { code: 'gyarados', group: 'actions', name: 'Patience récompensée', desc: 'Faire évoluer Magicarpe en Léviator.', tier: 'u', hidden: true, icon: { sprite: 130 } },
+  { code: 'cards-100', group: 'volume', name: '100 cartes', desc: 'Ouvrir 100 cartes.', tier: 'c', hidden: false, icon: { glyph: '100' }, target: 100 },
+  { code: 'cards-500', group: 'volume', name: '500 cartes', desc: 'Ouvrir 500 cartes.', tier: 'u', hidden: false, icon: { glyph: '500' }, target: 500 },
+  { code: 'cards-1000', group: 'volume', name: '1 000 cartes', desc: 'Ouvrir 1 000 cartes.', tier: 'u', hidden: false, icon: { glyph: '1k' }, target: 1000 },
+  { code: 'cards-2500', group: 'volume', name: '2 500 cartes', desc: 'Ouvrir 2 500 cartes.', tier: 'l', hidden: false, icon: { glyph: '2,5k' }, target: 2500 },
+  { code: 'cards-5000', group: 'volume', name: '5 000 cartes', desc: 'Ouvrir 5 000 cartes.', tier: 'l', hidden: false, icon: { glyph: '5k' }, target: 5000 },
+  { code: 'gen2-1', group: 'gen2', name: 'Nouvelle région', desc: 'Avoir une espèce de la 2e génération.', tier: 'u', hidden: false, icon: { sprite: 152 } },
+  { code: 'gen2-25', group: 'gen2', name: 'Johto 25', desc: 'Avoir 25 espèces de la 2e génération.', tier: 'r', hidden: false, icon: { glyph: '25' }, target: 25 },
+  { code: 'gen2-50', group: 'gen2', name: 'Johto 50', desc: 'Avoir 50 espèces de la 2e génération.', tier: 'l', hidden: false, icon: { glyph: '50' }, target: 50 },
+  { code: 'gen2-100', group: 'gen2', name: 'Johto complet', desc: 'Avoir les 100 espèces de la 2e génération.', tier: 'l', hidden: false, icon: { glyph: '100' }, target: 100 },
+  { code: 'gen2-legendary', group: 'gen2', name: 'Légende de Johto', desc: 'Avoir un légendaire de la 2e génération.', tier: 'l', hidden: false, icon: { sprite: 250 } },
+  { code: 'beasts', group: 'gen2', name: 'Les trois bêtes', desc: 'Avoir Raikou, Entei et Suicune.', tier: 'l', hidden: true, icon: { sprite: 245 } },
+  { code: 'arena-win-1', group: 'arena', name: 'Première victoire', desc: 'Gagner un duel contre un collègue.', tier: 'c', hidden: false, icon: { sprite: 66 } },
+  { code: 'arena-streak-3', group: 'arena', name: 'Trois à la suite', desc: 'Gagner 3 duels d’affilée.', tier: 'u', hidden: false, icon: { glyph: '×3' } },
+  { code: 'arena-streak-5', group: 'arena', name: 'Cinq à la suite', desc: 'Gagner 5 duels d’affilée.', tier: 'r', hidden: false, icon: { glyph: '×5' } },
+  { code: 'underdog', group: 'arena', name: 'David contre Goliath', desc: 'Gagner un duel avec moins de 30 % de chances.', tier: 'u', hidden: true, icon: { sprite: 129 } },
+  { code: 'giant-slayer', group: 'arena', name: 'Tombeur de légende', desc: 'Battre un légendaire en duel.', tier: 'r', hidden: true, icon: { sprite: 150 } },
+  { code: 'level-10', group: 'arena', name: 'Vétéran', desc: 'Mener un exemplaire au niveau 10.', tier: 'r', hidden: false, icon: { glyph: 'N10' } },
+  { code: 'podium', group: 'arena', name: 'Sur le podium', desc: 'Finir une saison dans les trois premiers.', tier: 'r', hidden: false, icon: { glyph: '3e' } },
+  { code: 'champion', group: 'arena', name: 'Champion de saison', desc: 'Finir une saison à la première place.', tier: 'l', hidden: false, icon: { glyph: '1er' } },
+  { code: 'shop-1', group: 'arena', name: 'Premier achat', desc: 'Acheter un pli en boutique.', tier: 'c', hidden: false, icon: { glyph: '₽' } },
+  { code: 'shop-10', group: 'arena', name: 'Habitué de la boutique', desc: 'Acheter 10 plis en boutique.', tier: 'u', hidden: false, icon: { glyph: '×10' }, target: 10 },
+  { code: 'shop-20', group: 'arena', name: 'Client fidèle', desc: 'Acheter 20 plis en boutique.', tier: 'r', hidden: false, icon: { glyph: '×20' }, target: 20 },
+  { code: 'shop-legendary', group: 'arena', name: 'Achat légendaire', desc: 'Obtenir un légendaire en boutique.', tier: 'r', hidden: false, icon: { sprite: 151 } },
+  { code: 'sell-10', group: 'arena', name: 'Revendeur', desc: 'Revendre 10 cartes.', tier: 'c', hidden: false, icon: { glyph: '10₽' }, target: 10 },
+  { code: 'sell-100', group: 'arena', name: 'Brocanteur', desc: 'Revendre 100 cartes.', tier: 'u', hidden: false, icon: { glyph: '100₽' }, target: 100 },
+  { code: 'sell-1000', group: 'arena', name: 'Grossiste', desc: 'Revendre 1 000 cartes.', tier: 'l', hidden: false, icon: { glyph: '1k₽' }, target: 1000 },
 ]
 
 export const BY_CODE = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.code, a]))
@@ -62,6 +89,18 @@ const TRIOS = {
   fossils: [138, 140, 142],
   'team-rocket': [23, 109, 52],
   eeveelutions: [134, 135, 136],
+}
+const CARD_STEPS = [100, 500, 1000, 2500, 5000]
+const GEN2_STEPS = [25, 50, 100]
+const SHOP_STEPS = [10, 20]
+const SELL_STEPS = [10, 100, 1000]
+const BEASTS = [243, 244, 245]
+const day = (ts) => (ts ? String(ts).slice(0, 10) : null)
+const pad = (n) => String(n).padStart(2, '0')
+/** Le dernier jour d'une saison, en date locale comme `seasonBounds`. */
+const seasonEndDay = (season) => {
+  const { end } = seasonBounds(season)
+  return `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`
 }
 const isPalindrome = (n) => n >= 100 && String(n) === [...String(n)].reverse().join('')
 const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
@@ -83,7 +122,7 @@ const prNumber = (c) => { const m = /#(\d+)/.exec(c.ref ?? ''); return m ? Numbe
  * Renvoie `unlocked` (code → { date, triggerKey }, la date de l'événement qui l'a rempli) et
  * `progress` (code → { current, target }) pour les paliers visibles.
  */
-export function evaluate({ catches, claimed, evolutions, others = [] }) {
+export function evaluate({ catches, claimed, evolutions, others = [], arena = null }) {
   const unlocked = {}
   const hit = (code, date, triggerKey) => { if (!unlocked[code]) unlocked[code] = { date, triggerKey } }
 
@@ -103,7 +142,9 @@ export function evaluate({ catches, claimed, evolutions, others = [] }) {
     if (!e || !DEX[e.species]) return
     const fromKey = e.fromKey ?? e.fromSha
     const src = fromKey ? pool.find((c) => c.key === fromKey) : pool.find((c) => c.species === e.from)
-    const evo = { ...e, fromKey, key: `evo:${i}`, shiny: src?.shiny ?? false, src }
+    // L'arène tient les évolutions côté serveur et les nomme `evo:<id>` : la clé vient alors
+    // avec l'entrée. Sans elle, c'est le rang dans `state.evolutions`.
+    const evo = { ...e, fromKey, key: e.key ?? `evo:${i}`, shiny: src?.shiny ?? false, src }
     evos.push(evo)
     pool.push(evo)
   })
@@ -126,6 +167,68 @@ export function evaluate({ catches, claimed, evolutions, others = [] }) {
     for (const n of SHINY_STEPS) if (shinyOwned.size >= n) hit(`shiny-species-${n}`, ev.date, ev.key)
     for (const [code, trio] of Object.entries(TRIOS)) if (trio.every((s) => owned.has(s))) hit(code, ev.date, ev.key)
     if (lineageDone(ev.species)) hit('lineage-1', ev.date, ev.key)
+  }
+
+  // ── Volume et 2e génération ──
+  const byDay = [...open].sort(byDate)
+  for (const n of CARD_STEPS) if (byDay.length >= n) hit(`cards-${n}`, byDay[n - 1].date, byDay[n - 1].key)
+  const gen2 = new Set()
+  for (const ev of events) {
+    if (DEX[ev.species]?.gen !== 2) continue
+    gen2.add(ev.species)
+    hit('gen2-1', ev.date, ev.key)
+    for (const n of GEN2_STEPS) if (gen2.size >= n) hit(`gen2-${n}`, ev.date, ev.key)
+    if (DEX[ev.species].tier === 'l') hit('gen2-legendary', ev.date, ev.key)
+    if (BEASTS.every((s) => gen2.has(s))) hit('beasts', ev.date, ev.key)
+  }
+
+  // ── Boutique : un pli acheté devient une capture de source `boutique`. ──
+  const bought = [...catches].filter((c) => c.source === 'boutique').sort(byDate)
+  if (bought.length) hit('shop-1', bought[0].date, entryKey(bought[0].source, bought[0].external_id))
+  for (const n of SHOP_STEPS) {
+    if (bought.length >= n) hit(`shop-${n}`, bought[n - 1].date, entryKey(bought[n - 1].source, bought[n - 1].external_id))
+  }
+  const legendBuy = bought.find((c) => DEX[c.species]?.tier === 'l')
+  if (legendBuy) hit('shop-legendary', legendBuy.date, entryKey(legendBuy.source, legendBuy.external_id))
+
+  // ── Arène : seuls les duels contre un collègue comptent, pas l'entraînement contre l'ordinateur. ──
+  if (arena?.userId) {
+    const me = arena.userId
+    const duels = (arena.duels ?? [])
+      .filter((d) => d.status === 'resolved' && (d.challenger_id === me || d.opponent_id === me))
+      .sort((a, b) => (a.resolved_at < b.resolved_at ? -1 : a.resolved_at > b.resolved_at ? 1 : a.id - b.id))
+    let streak = 0
+    for (const d of duels) {
+      const mine = d.challenger_id === me
+      const won = d.winner_id === me
+      const date = day(d.resolved_at)
+      const key = `duel:${d.id}`
+      streak = won ? streak + 1 : 0
+      if (!won) continue
+      hit('arena-win-1', date, key)
+      if (streak >= 3) hit('arena-streak-3', date, key)
+      if (streak >= 5) hit('arena-streak-5', date, key)
+      // `probability` est la chance du challengeur : celle de qui relève en est le complément.
+      const chance = mine ? d.probability : 1 - d.probability
+      if (chance != null && chance < 0.3) hit('underdog', date, key)
+      const foe = mine ? d.opponent_species : d.challenger_species
+      if (DEX[foe]?.tier === 'l') hit('giant-slayer', date, key)
+    }
+    // Un niveau ne monte qu'en gagnant : la date est celle de la dernière victoire de l'exemplaire.
+    for (const ex of arena.exemplars ?? []) {
+      if (ex.level < 10) continue
+      const last = [...duels].reverse().find((d) => d.winner_id === me
+        && (d.challenger_key === ex.entry_key || d.opponent_key === ex.entry_key))
+      if (last) { hit('level-10', day(last.resolved_at), ex.entry_key); break }
+    }
+    const podiums = (arena.seasons ?? [])
+      .filter((s) => [s.first_id, s.second_id, s.third_id].includes(me))
+      .sort((a, b) => (a.season < b.season ? -1 : 1))
+    if (podiums.length) hit('podium', seasonEndDay(podiums[0].season), `saison:${podiums[0].season}`)
+    const won = podiums.find((s) => s.first_id === me)
+    if (won) hit('champion', seasonEndDay(won.season), `saison:${won.season}`)
+    const sold = (arena.exemplars ?? []).filter((e) => e.sold_at).sort((a, b) => (a.sold_at < b.sold_at ? -1 : 1))
+    for (const n of SELL_STEPS) if (sold.length >= n) hit(`sell-${n}`, day(sold[n - 1].sold_at), sold[n - 1].entry_key)
   }
 
   // ── Monkey-testing : une session compte dès qu'une de ses cartes est ouverte. ──
@@ -185,6 +288,11 @@ export function evaluate({ catches, claimed, evolutions, others = [] }) {
   for (const n of [50, 100, 140, 151]) progress[`species-${n}`] = { current: owned.size, target: n }
   for (const n of SHINY_STEPS) progress[`shiny-species-${n}`] = { current: shinyOwned.size, target: n }
   for (const n of [5, 10]) progress[`mt-${n}`] = { current: sessions.size, target: n }
+  for (const n of CARD_STEPS) progress[`cards-${n}`] = { current: open.length, target: n }
+  for (const n of GEN2_STEPS) progress[`gen2-${n}`] = { current: gen2.size, target: n }
+  for (const n of SHOP_STEPS) progress[`shop-${n}`] = { current: bought.length, target: n }
+  const soldCount = (arena?.exemplars ?? []).filter((e) => e.sold_at).length
+  for (const n of SELL_STEPS) progress[`sell-${n}`] = { current: soldCount, target: n }
 
   return { unlocked, progress }
 }

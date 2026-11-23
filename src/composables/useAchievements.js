@@ -35,8 +35,8 @@ export function useAchievements() {
 
   /** `today` à null : rattrapage silencieux, daté de l'événement. Sinon : déblocage annoncé. */
   async function record(today) {
-    const { catches, state } = read()
-    const result = evaluate({ catches, claimed: state.claimed, evolutions: state.evolutions, others })
+    const { catches, state, arena = null } = read()
+    const result = evaluate({ catches, claimed: state.claimed, evolutions: state.evolutions, others, arena })
     progress.value = result.progress
     const before = lastUnlocked
     lastUnlocked = new Set(Object.keys(result.unlocked))

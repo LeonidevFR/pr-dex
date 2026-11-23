@@ -15,15 +15,15 @@ const codes = (r) => Object.keys(r.unlocked).sort()
 const evo = (species, from, fromKey, date = D) => ({ species, from, fromKey, date })
 
 describe('catalogue', () => {
-  it('compte 37 succès aux codes uniques, chacun avec un palier de carte', () => {
-    expect(ACHIEVEMENTS).toHaveLength(37)
-    expect(Object.keys(BY_CODE)).toHaveLength(37)
+  it('compte 63 succès aux codes uniques, chacun avec un palier de carte', () => {
+    expect(ACHIEVEMENTS).toHaveLength(63)
+    expect(Object.keys(BY_CODE)).toHaveLength(63)
     for (const a of ACHIEVEMENTS) expect(['c', 'u', 'r', 'l']).toContain(a.tier)
   })
 
-  it('ne cache que les coups de dés, les actions et les trios de collection', () => {
-    const trios = ['starters', 'birds', 'fossils', 'team-rocket', 'eeveelutions']
-    for (const a of ACHIEVEMENTS) expect(a.hidden).toBe(a.group === 'dice' || a.group === 'actions' || trios.includes(a.code))
+  it('ne cache que les coups de dés, les actions, les trios et les exploits', () => {
+    const autres = ['starters', 'birds', 'fossils', 'team-rocket', 'eeveelutions', 'beasts', 'underdog', 'giant-slayer']
+    for (const a of ACHIEVEMENTS) expect(a.hidden).toBe(a.group === 'dice' || a.group === 'actions' || autres.includes(a.code))
   })
 })
 
@@ -228,3 +228,104 @@ describe('evaluate — actions', () => {
     expect(run([gh('m', 129)], { evolutions: [evo(130, 129, 'github:m')] }).unlocked.gyarados).toBeDefined()
   })
 })
+
+describe('volume, 2e génération et boutique', () => {
+  it('compte les cartes ouvertes, pas celles encore scellées', () => {
+    const cards = Array.from({ length: 100 }, (_, i) => gh(`v${i}`, 19, { date: `2026-0${1 + Math.floor(i / 30)}-01` }))
+    expect(run(cards).unlocked['cards-100']).toBeDefined()
+    expect(run(cards, { sealed: ['v99'] }).unlocked['cards-100']).toBeUndefined()
+    expect(run(cards).progress['cards-500']).toEqual({ current: 100, target: 500 })
+  })
+
+  it('compte les espèces de la 2e génération, évolutions comprises', () => {
+    const r = run([gh('a', 152), gh('b', 155)], { evolutions: [evo(156, 155, 'github:b', '2026-06-03')] })
+    expect(r.unlocked['gen2-1']).toBeDefined()
+    expect(r.progress['gen2-25']).toEqual({ current: 3, target: 25 })
+    expect(run([gh('a', 1)]).unlocked['gen2-1']).toBeUndefined()
+  })
+
+  it('les trois bêtes et le légendaire de Johto', () => {
+    const r = run([gh('a', 243), gh('b', 244, { date: '2026-06-02' }), gh('c', 245, { date: '2026-06-05' })])
+    expect(r.unlocked.beasts).toEqual({ date: '2026-06-05', triggerKey: 'github:c' })
+    expect(r.unlocked['gen2-legendary']).toBeDefined()
+  })
+
+  it('compte les plis achetés en boutique, ouverts ou non', () => {
+    const buy = (i, species = 19) => ({ source: 'boutique', external_id: String(i), species, shiny: false, date: `2026-12-${String(i + 1).padStart(2, '0')}` })
+    const bought = Array.from({ length: 10 }, (_, i) => buy(i))
+    const r = run(bought, { sealed: ['3'] })
+    expect(r.unlocked['shop-1'].triggerKey).toBe('boutique:0')
+    expect(r.unlocked['shop-10'].date).toBe('2026-12-10')
+    expect(r.unlocked['shop-legendary']).toBeUndefined()
+    expect(run([buy(0, 150)]).unlocked['shop-legendary']).toBeDefined()
+  })
+})
+
+describe('arène', () => {
+  const ME = 'u-moi'
+  let id = 0
+  const duel = (won, { me = 'challenger', p = 0.5, foe = 19, status = 'resolved', at = '2026-12-02T10:00:00Z', key = 'github:x' } = {}) => {
+    const mine = me === 'challenger'
+    return {
+      id: ++id, status, resolved_at: at, probability: p,
+      challenger_id: mine ? ME : 'u-autre', opponent_id: mine ? 'u-autre' : ME,
+      challenger_key: mine ? key : 'autre:1', opponent_key: mine ? 'autre:1' : key,
+      challenger_species: mine ? 25 : foe, opponent_species: mine ? foe : 25,
+      winner_id: won ? ME : 'u-autre',
+    }
+  }
+  const arena = (duels, extra = {}) => ({ userId: ME, duels, exemplars: [], seasons: [], ...extra })
+  const play = (a) => evaluate({ catches: [], claimed: [], evolutions: [], arena: a })
+
+  it('ne compte que les duels contre un collègue', () => {
+    expect(play(arena([duel(true, { status: 'computer' })])).unlocked['arena-win-1']).toBeUndefined()
+    expect(play(arena([duel(true)])).unlocked['arena-win-1'].date).toBe('2026-12-02')
+  })
+
+  it('une défaite coupe la série', () => {
+    const t = (d) => `2026-12-0${d}T10:00:00Z`
+    const coupee = [duel(true, { at: t(1) }), duel(true, { at: t(2) }), duel(false, { at: t(3) }), duel(true, { at: t(4) })]
+    expect(play(arena(coupee)).unlocked['arena-streak-3']).toBeUndefined()
+    const suite = [duel(true, { at: t(1) }), duel(true, { at: t(2) }), duel(true, { at: t(3) })]
+    expect(play(arena(suite)).unlocked['arena-streak-3'].date).toBe('2026-12-03')
+  })
+
+  it('lit la chance du côté du joueur, qu’il ait posté ou relevé le défi', () => {
+    expect(play(arena([duel(true, { p: 0.2 })])).unlocked.underdog).toBeDefined()
+    expect(play(arena([duel(true, { me: 'opponent', p: 0.2 })])).unlocked.underdog).toBeUndefined()
+    expect(play(arena([duel(true, { me: 'opponent', p: 0.8 })])).unlocked.underdog).toBeDefined()
+  })
+
+  it('bat un légendaire, de quelque côté qu’il soit', () => {
+    expect(play(arena([duel(true, { foe: 150 })])).unlocked['giant-slayer']).toBeDefined()
+    expect(play(arena([duel(true, { me: 'opponent', foe: 150 })])).unlocked['giant-slayer']).toBeDefined()
+    expect(play(arena([duel(false, { foe: 150 })])).unlocked['giant-slayer']).toBeUndefined()
+  })
+
+  it('date le niveau 10 de la dernière victoire de l’exemplaire', () => {
+    const a = arena([duel(true, { at: '2026-12-05T09:00:00Z' })], { exemplars: [{ entry_key: 'github:x', level: 10 }] })
+    expect(play(a).unlocked['level-10']).toEqual({ date: '2026-12-05', triggerKey: 'github:x' })
+  })
+
+  it('podium et titre de champion, datés du dernier jour de la saison', () => {
+    const seasons = [
+      { season: '2026-S6', first_id: 'u-autre', second_id: ME, third_id: null },
+      { season: '2027-S1', first_id: ME, second_id: null, third_id: null },
+    ]
+    const r = play(arena([], { seasons }))
+    expect(r.unlocked.podium).toEqual({ date: '2027-01-31', triggerKey: 'saison:2026-S6' })
+    expect(r.unlocked.champion).toEqual({ date: '2027-03-31', triggerKey: 'saison:2027-S1' })
+  })
+
+  it('compte les cartes revendues', () => {
+    const exemplars = Array.from({ length: 10 }, (_, i) => ({ entry_key: `github:s${i}`, level: 1, sold_at: `2026-12-${String(i + 1).padStart(2, '0')}T08:00:00Z` }))
+    const r = play(arena([], { exemplars }))
+    expect(r.unlocked['sell-10']).toEqual({ date: '2026-12-10', triggerKey: 'github:s9' })
+    expect(r.progress['sell-100']).toEqual({ current: 10, target: 100 })
+  })
+
+  it('ne lit rien de l’arène sans joueur identifié', () => {
+    expect(play(null).unlocked['arena-win-1']).toBeUndefined()
+  })
+})
+

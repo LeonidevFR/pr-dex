@@ -3,6 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import App from './App.vue'
 import PokeCard from './components/PokeCard.vue'
+import ArenaPanel from './components/ArenaPanel.vue'
+import DuelOverlay from './components/DuelOverlay.vue'
 
 // `useAuth` construit un client Supabase au chargement du module et interroge le réseau dès
 // l'appel : monter App.vue pour de vrai suppose de le remplacer. La session reste nulle —
@@ -637,7 +639,7 @@ describe('succès', () => {
       await new Promise((r) => setTimeout(r, 5))
       await flushPromises()
     }
-    expect(w.find('.rail-tab-pip').text()).toBe('11')
+    expect(w.find('.rail-tab-pip').text()).toBe('13')
   }
 
   it('ouvre le récap des succès déjà acquis à l’arrivée sur « Succès », une seule fois', async () => {
@@ -645,12 +647,12 @@ describe('succès', () => {
     await untilBadge(w)
     await tabOf(w, 'Succès').trigger('click')
     await flushPromises()
-    expect(w.find('.ach-recap-title').text()).toBe('Tu avais déjà 11 succès')
+    expect(w.find('.ach-recap-title').text()).toBe('Tu avais déjà 13 succès')
     await w.find('.ach-recap-close').trigger('click')
     await flushPromises()
     expect(w.find('.ach-recap').exists()).toBe(false)
     expect(w.find('.rail-tab-pip').exists()).toBe(false)
-    expect(w.findAll('.ach-row.is-owned')).toHaveLength(11)
+    expect(w.findAll('.ach-row.is-owned')).toHaveLength(13)
   })
 
   it('Échap ferme le récap', async () => {
@@ -674,6 +676,31 @@ describe('succès', () => {
       await flushPromises()
     }
     expect(w.find('.ach-toast-name').text()).toBe('Sur la tête')
+  })
+
+  it('n’annonce une victoire en duel qu’une fois la cérémonie refermée', async () => {
+    const w = await mountApp()
+    await untilBadge(w)
+    await aller(w, 'Duels')
+    const panel = w.findComponent(ArenaPanel)
+    const mewtwo = panel.props('engageable').find((e) => e.species === 150)
+    panel.vm.$emit('accept', 1, mewtwo.key)
+    for (let i = 0; i < 50 && !w.findComponent(DuelOverlay).exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    const duel = w.findComponent(DuelOverlay).props('duel')
+    await new Promise((r) => setTimeout(r, 30))
+    await flushPromises()
+    expect(w.find('.ach-toast').exists()).toBe(false)
+    w.findComponent(DuelOverlay).vm.$emit('close')
+    for (let i = 0; i < 50 && !w.find('.ach-toast').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    // Mewtwo contre le défi de bob-dev : la démo est tirée sur une graine fixe, et il gagne.
+    expect(duel.winner_id).toBe('demo-moi')
+    expect(w.findAll('.ach-toast-name').map((t) => t.text())).toContain('Première victoire')
   })
 
   it('un clic sur le toast ferme le rituel et ouvre le succès dans le registre', async () => {

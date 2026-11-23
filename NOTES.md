@@ -231,11 +231,17 @@ venaient les données.
 
 ## Succès, octobre 2026
 
-37 succès, dans un 4e onglet. Ce qui ne se déduit pas du code :
+63 succès, dans leur propre lieu (`/succes`). Ce qui ne se déduit pas du code :
 
-- **Rien ne récompense le travail.** Pas de « 100 PR », pas d'heure, pas de série de jours :
-  les succès portent sur la collection, la chance et les gestes de jeu. Seule exception, les
-  paliers de sessions de monkey-testing, dont le but est justement de relancer la participation.
+- **Le volume est récompensé depuis l'arène.** Les premiers succès écartaient tout ce qui
+  récompense le travail (« 100 PR », heures, séries de jours), sauf les paliers de
+  monkey-testing. En novembre 2026, cinq paliers de cartes ouvertes (100 à 5 000) ont été
+  ajoutés à la demande du propriétaire du projet. Toujours rien sur l'heure ou le jour.
+- **Seuls les duels contre un collègue comptent.** Les duels contre l'ordinateur sont un
+  entraînement : ils ne débloquent aucun succès d'arène.
+- **Les raretés de l'arène et de la Gen 2 sont provisoires.** Faute de données (l'arène ouvre
+  le 1er décembre 2026), elles ont été posées à la main. Elles seront recalées par la
+  simulation après la première saison, comme l'ont été les autres sur les volumes réels.
 - **La rareté est fixe et vient de la difficulté**, pas du nombre de joueurs qui l'ont. Elle
   reprend les paliers des cartes : commun si 70 % des joueurs l'ont en un an, peu commun de
   30 à 70 %, rare de 10 à 30 %, légendaire en dessous. Le nombre de joueurs reste affiché, à
