@@ -125,5 +125,14 @@ describe('BoardsView', () => {
     await flushPromises()
     expect(tard.find('.season-banner').exists()).toBe(false)
   })
+
+  it('affiche le nombre de succès de chaque joueur, « — » si la base ne le donne pas', async () => {
+    const w = monter({}, vi.fn().mockResolvedValue([{ ...ROWS[0], achievements: 12 }, ROWS[1]]))
+    await flushPromises()
+    const col = w.findAll('.board-table').at(0).findAll('thead th').findIndex((th) => th.text() === 'Succès')
+    expect(col).toBeGreaterThan(-1)
+    expect(w.findAll('.board-table').at(0).findAll('tbody tr').filter((r) => !r.classes('board-detail'))
+      .map((r) => r.findAll('td')[col].text())).toEqual(['12', '—'])
+  })
 })
 

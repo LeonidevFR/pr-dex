@@ -48,7 +48,7 @@ export const ACHIEVEMENTS = [
   { code: 'right-away', group: 'actions', name: 'Sitôt dit', desc: 'Faire évoluer une carte le jour où elle a été tirée.', tier: 'c', hidden: true, icon: { sprite: 63 } },
   { code: 'big-leap', group: 'actions', name: 'Le grand saut', desc: 'Mener un même exemplaire du 1er au 3e stade.', tier: 'u', hidden: true, icon: { sprite: 3 } },
   { code: 'worth-it', group: 'actions', name: 'Ça valait le coup', desc: 'Faire évoluer une carte chromatique.', tier: 'c', hidden: true, icon: { sprite: 133 } },
-  { code: 'patient-fisher', group: 'actions', name: 'Pêcheur patient', desc: 'Avoir 10 Magicarpe sans en avoir jamais fait évoluer.', tier: 'u', hidden: true, icon: { sprite: 129 } },
+  { code: 'patient-fisher', group: 'actions', name: 'Pêcheur patient', desc: 'Attraper 10 Magicarpe. 30 bonbons : toujours pas de quoi en faire évoluer un.', tier: 'u', hidden: true, icon: { sprite: 129 } },
   { code: 'gyarados', group: 'actions', name: 'Patience récompensée', desc: 'Faire évoluer Magicarpe en Léviator.', tier: 'u', hidden: true, icon: { sprite: 130 } },
   { code: 'cards-100', group: 'volume', name: '100 cartes', desc: 'Ouvrir 100 cartes.', tier: 'c', hidden: false, icon: { glyph: '100' }, target: 100 },
   { code: 'cards-500', group: 'volume', name: '500 cartes', desc: 'Ouvrir 500 cartes.', tier: 'u', hidden: false, icon: { glyph: '500' }, target: 500 },

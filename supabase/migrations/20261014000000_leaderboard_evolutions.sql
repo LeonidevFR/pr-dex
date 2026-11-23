@@ -15,7 +15,14 @@
 -- écrasée en silence : la fonction est entière à chaque fois, la dernière écrite gagne. On
 -- reprend donc le nommage de la connexion Slack à l'identique, et on n'en change que la source
 -- des évolutions.
-create or replace function public.leaderboard_players()
+-- `drop` puis `create` : depuis la migration 20261123100000_succes_classement, la fonction rend
+-- une colonne de plus en production, et `create or replace` refuse de changer le type de retour.
+-- 20261123120000_leaderboard_arene_succes la recrée ensuite avec les deux.
+begin;
+
+drop function if exists public.leaderboard_players();
+
+create function public.leaderboard_players()
 returns table (
   login text,
   avatar_url text,
@@ -71,3 +78,8 @@ as $$
   ) evos on true
   where opened.catches is not null;
 $$;
+
+revoke execute on function public.leaderboard_players() from public, anon;
+grant execute on function public.leaderboard_players() to authenticated;
+
+commit;

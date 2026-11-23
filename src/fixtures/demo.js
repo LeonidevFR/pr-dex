@@ -292,11 +292,15 @@ export function loadDemoClient() {
       const opened = catches
         .filter((c) => state.claimed.includes(entryKey(c.source, c.external_id)))
         .map(({ source, external_id, species, shiny, date }) => ({ source, external_id, species, shiny, date }))
+      // Comme `readAchievementCounts` : les fictifs par les règles, le joueur de démo par sa table.
+      const unlocked = (p) => Object.keys(evaluate({
+        catches: p.catches, claimed: p.catches.map((c) => entryKey(c.source, c.external_id)), evolutions: p.evolutions,
+      }).unlocked).length
       return [
-        ...demoPlayers(),
+        ...demoPlayers().map((p) => ({ ...p, achievements: unlocked(p) })),
         // Le même nom que dans le classement de saison : les deux tableaux se touchent désormais
         // sur un seul écran, et deux identités pour la même personne s'y lisaient comme un bug.
-        { login: 'leonard', avatar_url: svgAvatar('leonard'), is_me: true, catches: opened, evolutions: state.evolutions },
+        { login: 'leonard', avatar_url: svgAvatar('leonard'), is_me: true, catches: opened, evolutions: state.evolutions, achievements: achievements.length },
       ]
     },
     readAchievements: async () => JSON.parse(JSON.stringify(achievements)),

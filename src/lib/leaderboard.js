@@ -92,7 +92,15 @@ const byRank = (a, b) =>
 /** Les lignes de `leaderboard_players()` → le classement affiché, rang compris. */
 export function rankPlayers(rows, today) {
   return rows
-    .map((r) => ({ login: r.login, avatarUrl: r.avatar_url ?? null, isMe: Boolean(r.is_me), ...playerStats(r.catches, r.evolutions, today) }))
+    .map((r) => ({
+      login: r.login,
+      avatarUrl: r.avatar_url ?? null,
+      isMe: Boolean(r.is_me),
+      // Compté par la base : RLS ne laisse lire à chacun que ses propres succès. Absent tant que
+      // la migration 2026-11-23 n'est pas passée — `null`, affiché « — », pas un faux zéro.
+      achievements: r.achievements ?? null,
+      ...playerStats(r.catches, r.evolutions, today),
+    }))
     .sort(byRank)
     .map((p, i) => ({ rank: i + 1, ...p }))
 }

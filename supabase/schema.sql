@@ -1377,7 +1377,7 @@ $$;
 ALTER FUNCTION "public"."handle_removed_identity"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."leaderboard_players"() RETURNS TABLE("login" "text", "avatar_url" "text", "is_me" boolean, "catches" "jsonb", "evolutions" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."leaderboard_players"() RETURNS TABLE("login" "text", "avatar_url" "text", "is_me" boolean, "catches" "jsonb", "evolutions" "jsonb", "achievements" integer)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
@@ -1391,7 +1391,8 @@ CREATE OR REPLACE FUNCTION "public"."leaderboard_players"() RETURNS TABLE("login
     coalesce(u.raw_user_meta_data ->> 'avatar_url', u.raw_user_meta_data ->> 'picture') as avatar_url,
     u.id = auth.uid() as is_me,
     opened.catches,
-    coalesce(evos.evolutions, '[]'::jsonb) as evolutions
+    coalesce(evos.evolutions, '[]'::jsonb) as evolutions,
+    (select count(*)::integer from public.achievements a where a.user_id = u.id) as achievements
   from auth.users u
   join public.state s on s.user_id = u.id
   join lateral (
