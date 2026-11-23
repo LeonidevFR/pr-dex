@@ -100,7 +100,7 @@ describe('DuelOverlay', () => {
 
   it('nomme l’enjeu et l’explique par les deux paliers réellement engagés', async () => {
     const w = await revele(monter())
-    expect(w.text()).toContain('Enjeu du duel')
+    expect(w.text()).toContain('Enjeu')
     expect(w.text()).toContain('comme au poker'.replace('c', 'C'))
     expect(w.text()).toContain('le plus modeste des deux')
   })
@@ -140,7 +140,7 @@ describe('DuelOverlay', () => {
   // Un gain qu'on ne voit pas est un gain qui n'existe pas pour le joueur.
   it('affiche ce qu’on remporte, en toutes lettres', async () => {
     const w = await revele(monter())
-    expect(w.text()).toContain('Ce que tu remportes')
+    expect(w.text()).toContain('Gains')
     expect(w.text()).toContain('250')
     expect(w.text()).toContain('points de saison')
     expect(w.text()).toContain('carte rare')
@@ -155,7 +155,7 @@ describe('DuelOverlay', () => {
 
   it('n’annonce aucune récompense en cas de défaite', async () => {
     const w = await revele(monter({ winner_id: LUI }))
-    expect(w.text()).not.toContain('Ce que tu remportes')
+    expect(w.text()).not.toContain('Gains')
   })
 
   it('rappelle qu’aucun duel n’est gagné d’avance', async () => {

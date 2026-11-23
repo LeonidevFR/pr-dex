@@ -139,18 +139,17 @@ const breakdown = (s) => [
 
 <template>
   <div class="scrim" @click.self="$emit('close')">
-    <div class="panel" style="width:min(560px,100%)">
+    <div class="panel duel-panel">
       <div class="panel-top" style="align-items:flex-start;padding-bottom:16px">
         <button class="x" aria-label="Fermer" @click="$emit('close')">
           <X :size="14" aria-hidden="true" />
         </button>
-        <div>
-          <span class="panel-plate mono">DUEL</span>
-          <h2 class="panel-name" style="font-size:23px;margin-bottom:0">
-            {{ versusComputer ? 'Contre l’ordinateur' : 'Contre un dresseur' }}
-          </h2>
-        </div>
+        <h2 class="panel-name" style="font-size:23px;margin-bottom:0">
+          {{ versusComputer ? 'Entraînement contre l’ordinateur' : 'Duel' }}
+        </h2>
       </div>
+
+      <div class="duel-layout">
 
       <!--
         La scène. Elle occupe la largeur du panneau et bascule dans la nuit : une cérémonie
@@ -223,13 +222,14 @@ const breakdown = (s) => [
           <template v-if="stage === 'scelle'">Les deux mises sont scellées</template>
           <template v-else-if="stage === 'revele'">Révélation simultanée</template>
           <template v-else-if="stage === 'mesure'">On mesure</template>
-          <template v-else>{{ iWon ? 'Tu l’emportes' : 'Tu perds' }}</template>
+          <template v-else>{{ iWon ? 'Tu gagnes' : 'Tu perds' }}</template>
         </p>
 
         <!-- Discret, et seulement tant qu'il reste quelque chose à sauter. -->
-        <p v-if="stage !== 'verdict'" class="duel-passer">clique pour avancer</p>
+        <p v-if="stage !== 'verdict'" class="duel-passer">Clique pour passer</p>
       </div>
 
+      <div class="duel-body">
       <template v-if="stage === 'verdict'">
         <div class="sect">
           <div
@@ -253,7 +253,7 @@ const breakdown = (s) => [
         </div>
 
         <div v-if="iWon" class="sect">
-          <div class="eyebrow sect-h"><span>Ce que tu remportes</span></div>
+          <div class="eyebrow sect-h"><span>Gains</span></div>
           <div class="arena-reward">
             <div>
               <span class="v" :class="{ nul: !niveauxGagnes }">
@@ -303,7 +303,7 @@ const breakdown = (s) => [
 
         <div class="sect">
           <div class="eyebrow sect-h">
-            <span>Enjeu du duel</span>
+            <span>Enjeu</span>
             <span class="chip" :style="{ '--t': TIER_VAR[duel.stake_tier] }">
               {{ TIER_LABEL[duel.stake_tier] }}
             </span>
@@ -315,8 +315,8 @@ const breakdown = (s) => [
           </p>
         </div>
 
-        <div class="sect">
-          <div class="eyebrow sect-h"><span>Comment ça s’est joué</span></div>
+        <details class="sect duel-detail">
+          <summary class="eyebrow sect-h"><span>Détail du combat</span></summary>
 
           <!--
             Trois tailles, trois rôles : ce qui a décidé du duel se lit d'un coup d'œil, ce qui
@@ -331,7 +331,7 @@ const breakdown = (s) => [
             </div>
             <div>
               <span class="v">{{ Math.round(theirs.power) }}</span>
-              <span class="arena-unit">la sienne</span>
+              <span class="arena-unit">sa puissance</span>
             </div>
             <div>
               <span class="v" :class="{ win: iWon }">{{ myOdds }} %</span>
@@ -353,7 +353,7 @@ const breakdown = (s) => [
             Le tirage décide : sous {{ myOdds }} %, tu l’emportais. Aucun duel n’est joué
             d’avance. Même face au pire écart, le plus faible garde une chance sur vingt.
           </p>
-        </div>
+        </details>
 
         <div class="sect">
           <div class="front-actions">
@@ -364,6 +364,8 @@ const breakdown = (s) => [
       <div v-else class="sect">
         <div class="arena-wait"><span></span><span></span><span></span></div>
         <p class="muted" style="text-align:center">Le combat se joue…</p>
+      </div>
+      </div>
       </div>
     </div>
   </div>

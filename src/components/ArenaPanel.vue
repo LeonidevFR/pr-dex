@@ -22,6 +22,13 @@ const props = defineProps({
 const emit = defineEmits(['engage', 'accept'])
 
 const chosen = ref(null)
+/** Le défi qu'on a choisi de relever : on choisit ensuite le Pokémon qu'on lui oppose. */
+const target = ref(null)
+const pickSection = ref(null)
+function aim(defi) {
+  target.value = defi
+  pickSection.value?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+}
 const rulesOpen = ref(false)
 
 /**
@@ -107,6 +114,7 @@ function take(duelId) {
   emit('accept', duelId, chosen.value)
   chosen.value = null
   picking.value = null
+  target.value = null
 }
 </script>
 
@@ -133,6 +141,29 @@ function take(duelId) {
         </div>
       </div>
     </div>
+
+  <!-- Les défis des collègues d'abord : c'est ce qui attend une réponse, et ce qui expire. -->
+  <div class="sect">
+    <div class="eyebrow sect-h">
+      <span>Défis à relever</span>
+      <span v-if="others.length" class="mono">{{ others.length }} en attente</span>
+    </div>
+    <p v-if="!others.length" class="muted">
+      Personne n’attend de preneur. Poste le tien : s’il reste seul, l’ordinateur le relèvera
+      demain.
+    </p>
+    <div v-else class="defis">
+      <div v-for="d in others" :key="d.id" class="defi" :class="{ cible: target?.id === d.id }">
+        <div class="defi-txt">
+          <span><b>{{ d.login ?? 'Un collègue' }}</b> te défie</span>
+          <span class="muted">Son Pokémon reste caché jusqu’au combat.</span>
+        </div>
+        <button class="btn-solid defi-btn" :disabled="busy || !canPlay" @click="aim(d)">
+          {{ target?.id === d.id ? 'Choisis ton Pokémon' : 'Relever' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div class="sect">
     <div class="sect-h">
@@ -226,11 +257,16 @@ function take(duelId) {
     </p>
   </div>
 
-  <div class="sect">
+  <div ref="pickSection" class="sect">
     <div class="eyebrow sect-h">
       <span>Choisis ton Pokémon</span>
       <span class="mono muted">{{ engageable.length }} exemplaire{{ engageable.length > 1 ? 's' : '' }}</span>
     </div>
+    <p v-if="target" class="defi-rappel">
+      Tu relèves le défi de <b>{{ target.login ?? 'un collègue' }}</b> : choisis le Pokémon que tu
+      lui opposes.
+      <button class="cancel-btn" style="margin-left:8px;padding:4px 10px" @click="target = null">Annuler</button>
+    </p>
     <p v-if="!engageable.length" class="muted">
       Aucun exemplaire à engager pour l’instant.
     </p>
@@ -305,35 +341,18 @@ function take(duelId) {
       </div>
       <div class="muted" style="font-size:11.5px">S’il perd, il est détruit.</div>
     </div>
-    <div class="arena-bar-actions">
+    <div v-if="target" class="arena-bar-actions">
+      <button class="btn-solid" :disabled="busy" @click="take(target.id)">
+        Relever le défi de {{ target.login ?? 'ce collègue' }}
+      </button>
+      <button class="btn-ghost" :disabled="busy" @click="target = null">Annuler</button>
+    </div>
+    <div v-else class="arena-bar-actions">
       <button class="btn-solid" :disabled="busy" @click="play(false)">Poster un défi</button>
       <button class="btn-ghost" :disabled="busy" @click="play(true)">Affronter l’ordinateur</button>
     </div>
   </div>
 
-  <div class="sect">
-    <div class="eyebrow sect-h"><span>Défis à relever</span></div>
-    <p v-if="!others.length" class="muted">
-      Personne n’attend de preneur. Poste le tien : s’il reste seul, l’ordinateur le relèvera
-      demain.
-    </p>
-    <!--
-      L'explication passe AVANT la liste, et le bouton porte lui-même son état : posée
-      dessous, elle arrivait après le clic sur un bouton muet — on croyait le bouton cassé
-      alors qu'il attendait qu'on choisisse sa propre mise.
-    -->
-    <p v-if="others.length && !chosen" class="muted" style="margin-bottom:10px">
-      Choisis d’abord le Pokémon que <b>tu</b> engages, plus haut : vous révélerez vos deux
-      choix en même temps.
-    </p>
-    <div v-for="d in others" :key="d.id" class="log-row">
-      <span class="log-title">{{ d.login ?? 'Un collègue' }}</span>
-      <span class="log-sha mono">Pokémon caché</span>
-      <button class="evo-btn" :disabled="busy || !chosen" @click="take(d.id)">
-        {{ chosen ? 'Relever' : 'Choisis ta mise' }}
-      </button>
-    </div>
-  </div>
   <!--
     Le classement et les badges vivaient ici, en onglet. Ils montraient un sous-ensemble de ce
     que la page Saison montre désormais — sans le compte à rebours, le badge en jeu, le barème

@@ -87,23 +87,25 @@ describe('ArenaPanel', () => {
   // et jamais après avoir vu celle d'en face.
   it('n’affiche jamais la mise d’un défi ouvert', () => {
     const w = monter({ challenges: [{ id: 7, login: 'bob-dev', created_at: 'x' }] })
-    expect(w.text()).toContain('bob')
-    expect(w.text()).toContain('Pokémon caché')
+    expect(w.find('.defi').text()).toContain('bob-dev te défie')
+    expect(w.find('.defi').text()).toContain('reste caché')
   })
 
-  it('refuse de relever tant qu’on n’a rien engagé', async () => {
+  it('relever un défi demande d’abord le Pokémon qu’on lui oppose', async () => {
     const w = monter({ challenges: [{ id: 7, login: 'bob-dev', created_at: 'x' }] })
-    // Le bouton porte lui-même son état : muet, il se lisait comme cassé.
-    expect(w.find('.evo-btn').attributes('disabled')).toBeDefined()
-    expect(w.find('.evo-btn').text()).toBe('Choisis ta mise')
-    expect(w.text()).toContain('le Pokémon que')
+    await w.find('.defi-btn').trigger('click')
+    expect(w.emitted('accept')).toBeUndefined()
+    expect(w.find('.defi-rappel').text()).toContain('Tu relèves le défi de bob-dev')
+    expect(w.find('.defi-btn').text()).toBe('Choisis ton Pokémon')
   })
 
   it('relève un défi une fois la mise choisie', async () => {
     const w = monter({ challenges: [{ id: 7, login: 'bob-dev', created_at: 'x' }] })
+    await w.find('.defi-btn').trigger('click')
     await w.findAll('.especes .specimen')[0].trigger('click')
-    await w.find('.evo-btn').trigger('click')
+    await w.findAll('.arena-bar button').find((b) => b.text() === 'Relever le défi de bob-dev').trigger('click')
     expect(w.emitted('accept')[0]).toEqual([7, 'github:a'])
+    expect(w.find('.defi-rappel').exists()).toBe(false)
   })
 
   // On ne peut pas se battre contre soi-même : son propre défi est rappelé à part, avec sa mise,
@@ -113,7 +115,7 @@ describe('ArenaPanel', () => {
       challenges: [{ id: 7, login: 'leonard', created_at: 'x' }],
       myOpen: [{ id: 7, challenger_key: 'github:a', species: 6 }],
     })
-    expect(w.findAll('.evo-btn')).toHaveLength(0)
+    expect(w.findAll('.defi')).toHaveLength(0)
     expect(w.text()).toContain('Dracaufeu est sur la table')
   })
 
@@ -228,9 +230,9 @@ describe('arrivée depuis la fiche d’une espèce', () => {
       preselect: 'github:b',
       challenges: [{ id: 7, login: 'bob-dev', created_at: 'x' }],
     })
-    expect(w.find('.btn-solid').text()).toContain('Poster un défi')
-    expect(w.findAll('.btn-ghost').some((b) => b.text().includes('ordinateur'))).toBe(true)
-    expect(w.find('.evo-btn').attributes('disabled')).toBeUndefined()
+    expect(w.find('.arena-bar .btn-solid').text()).toContain('Poster un défi')
+    expect(w.findAll('.arena-bar .btn-ghost').some((b) => b.text().includes('ordinateur'))).toBe(true)
+    expect(w.find('.defi-btn').attributes('disabled')).toBeUndefined()
   })
 })
 
@@ -303,8 +305,9 @@ describe('retour à la grille après un engagement', () => {
       engageable: deuxMemes,
       challenges: [{ id: 7, challenger_id: 'u-x', login: 'bob-dev', created_at: '2026-09-02' }],
     })
+    await w.find('.defi-btn').trigger('click')
     await ouvrirLaListe(w)
-    await w.findAll('button').find((b) => b.text() === 'Relever').trigger('click')
+    await w.findAll('.arena-bar button').find((b) => b.text().startsWith('Relever le défi')).trigger('click')
     expect(w.emitted('accept')).toHaveLength(1)
     expect(w.findAll('.especes .specimen').length).toBeGreaterThan(0)
   })

@@ -296,6 +296,23 @@
     background:radial-gradient(ellipse 70% 60% at 50% 40%,rgba(212,176,106,.2),transparent 72%);border-right:1px solid rgba(212,176,106,.12)}
   .sheet-main{padding:40px 44px 32px 36px;min-width:0}
   .panel-top{padding:0 0 22px;border-bottom:1px solid rgba(212,176,106,.14)}
+  /* Le duel : la scène à gauche, le résultat à droite, pour que tout tienne sans défiler. */
+  .duel-panel{width:min(1000px,100%)}
+  .duel-panel > .panel-top{padding:20px 28px 16px}
+  .duel-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .duel-layout > .duel-scene{border-bottom:0;border-right:1.5px solid var(--line);display:flex;flex-direction:column;justify-content:center}
+  .duel-body{padding:4px 28px 18px;min-width:0}
+  .duel-body .sect{padding:16px 0}
+  .duel-detail summary{cursor:pointer;list-style:none;margin-bottom:0}
+  .duel-detail summary::-webkit-details-marker{display:none}
+  .duel-detail summary::after{content:"Afficher";font-family:var(--f-ui);font-size:10px;letter-spacing:.2em;color:var(--fg-3)}
+  .duel-detail[open] summary{margin-bottom:14px}
+  .duel-detail[open] summary::after{content:"Masquer"}
+  @media (max-width:860px){
+    .duel-layout{grid-template-columns:1fr}
+    .duel-layout > .duel-scene{border-right:0;border-bottom:1.5px solid var(--line)}
+    .duel-body{padding:4px 20px 16px}
+  }
   .panel-art{width:180px;height:180px;display:grid;place-items:center;border-radius:10px;background:var(--surface)}
   .panel-art img{width:80%;height:80%;object-fit:contain}
   .panel-art img[data-broken]{opacity:.18;filter:grayscale(1)}
@@ -516,6 +533,14 @@
   .log{display:flex;flex-direction:column;max-height:232px;overflow-y:auto;overscroll-behavior:contain;
     scrollbar-width:thin;scrollbar-color:var(--line-strong-hi) transparent}
   .log-row{display:flex;gap:13px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);color:var(--fg)}
+  .defis{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .defi{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;border-radius:10px;
+    background:var(--surface);border:1px solid var(--line-gold)}
+  .defi.cible{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+  .defi-txt{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:15px;color:var(--fg)}
+  .defi-txt .muted{font-size:12px}
+  .defi-btn{flex:none;padding:10px 18px}
+  .defi-rappel{margin:0 0 14px;padding:10px 14px;border-radius:8px;border:1px solid var(--gold);color:var(--fg);font-size:13.5px}
   .log-row:last-child{border-bottom:0}
   a.log-row:hover .log-title{color:var(--gold)}
   .log-title{font-size:13.5px;line-height:1.4;flex:1;transition:color .15s}
@@ -1230,7 +1255,7 @@
      jeu. À 95 contre 5, gagner n'est pas un exploit et perdre en est un rare — sans elle, un
      joueur battu ne peut pas savoir s'il a joué ou subi. */
   .duel-balance{
-    position:relative;margin:18px auto 0;max-width:330px;opacity:0;transform:translateY(8px);
+    position:relative;margin:18px auto 0;max-width:400px;opacity:0;transform:translateY(8px);
     transition:opacity .5s ease,transform .5s ease;
   }
   .duel-balance.vu{opacity:1;transform:none}
@@ -1238,7 +1263,7 @@
   .duel-piste i{display:block;transition:width .9s cubic-bezier(.2,.8,.2,1)}
   .duel-piste .moi{background:var(--gold)}
   .duel-piste .lui{background:#6d6250}
-  .duel-cotes{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;font-size:12px;color:#a99a7f}
+  .duel-cotes{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-top:8px;font-size:12px;color:#a99a7f}
   .duel-chances{font-size:10.5px;letter-spacing:.06em;color:#f0e7d4}
 
   .duel-eclat{
