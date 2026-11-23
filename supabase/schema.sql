@@ -204,3 +204,43 @@ $$;
 -- par construction — suffirait à appeler la fonction sans compte.
 revoke execute on function public.leaderboard_players() from public, anon;
 grant execute on function public.leaderboard_players() to authenticated;
+
+-- achievements : les succès débloqués. Écrite par le front, en insertion seule ; seule
+-- `announced` se met à jour. Voir supabase/migrations/2026-10-14-succes.sql pour le pourquoi.
+create table public.achievements (
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  code text not null,
+  unlocked_at date not null,
+  trigger_key text,
+  announced boolean not null default false,
+  created_at timestamptz not null default now(),
+  primary key (user_id, code)
+);
+
+alter table public.achievements enable row level security;
+
+create policy "achievements_select_own" on public.achievements
+  for select using (auth.uid() = user_id);
+
+create policy "achievements_insert_own" on public.achievements
+  for insert with check (auth.uid() = user_id);
+
+create policy "achievements_update_own" on public.achievements
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+revoke all on public.achievements from anon, authenticated;
+grant select, insert on public.achievements to authenticated;
+grant update (announced) on public.achievements to authenticated;
+
+create function public.achievement_counts()
+returns table (code text, players integer)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select a.code, count(*)::integer from public.achievements a group by a.code;
+$$;
+
+revoke execute on function public.achievement_counts() from public, anon;
+grant execute on function public.achievement_counts() to authenticated;

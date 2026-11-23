@@ -229,6 +229,37 @@ qui devient utile dès qu'il y en a deux.
 et `shared/species.js`. Comme à la bascule Supabase, le cœur du jeu ignorait déjà d'où
 venaient les données.
 
+## Succès, octobre 2026
+
+37 succès, dans un 4e onglet. Ce qui ne se déduit pas du code :
+
+- **Rien ne récompense le travail.** Pas de « 100 PR », pas d'heure, pas de série de jours :
+  les succès portent sur la collection, la chance et les gestes de jeu. Seule exception, les
+  paliers de sessions de monkey-testing, dont le but est justement de relancer la participation.
+- **La rareté est fixe et vient de la difficulté**, pas du nombre de joueurs qui l'ont. Elle
+  reprend les paliers des cartes : commun si 70 % des joueurs l'ont en un an, peu commun de
+  30 à 70 %, rare de 10 à 30 %, légendaire en dessous. Le nombre de joueurs reste affiché, à
+  titre d'info.
+- **Les seuils viennent d'une simulation calée sur la production** (novembre 2026) : les 13
+  joueurs, de ~20 à ~3 900 cartes par an, avec l'évolution faite dès que les bonbons le
+  permettent. Une première simulation à 300 cartes par an sous-estimait le volume d'un
+  facteur 3 à 13. Les numéros de PR y sont tirés au hasard : la rareté de « Numéro gagnant »
+  et de « Palindrome » en dépend.
+- **Le front écrit la table `achievements`, en insertion seule.** Les règles vivent côté
+  client parce que le déblocage tombe au retournement, que l'Action ne voit pas. Un joueur
+  peut donc s'insérer un succès depuis la console, comme il peut déjà écrire
+  `state.evolutions`. Seule `announced` se met à jour.
+- **Pas d'annonce au chargement.** Le toast ne tombe que sur un geste : retourner une carte,
+  faire évoluer. Ce qui se remplit sans geste (le lancement, « Jumeaux » débloqué par un
+  coéquipier) s'inscrit en silence, à la date de l'événement, et passe par un récap unique à
+  l'arrivée sur l'onglet.
+- **« D'affilée » se lit sur toutes les captures, scellées comprises.** Laisser une carte
+  fermée au milieu ne fabrique pas une suite. D'où le tri par `id` après la date dans
+  `readCatches`, le même que celui de `leaderboard_players()`.
+- **La feuille reste en papier dans les deux thèmes.** Posée sur le velours, elle se lit
+  comme un objet, à la manière des cartes. Le badge est un cercle d'encre net : le tampon
+  encré des maquettes a été écarté, trop coûteux à animer pour ce qu'il ajoutait.
+
 ## Hors périmètre, non touché
 
 Comptes, OAuth, partage, classements, échanges, combats, génération 2 et suivantes,
