@@ -26,6 +26,103 @@ describe('feuille de style', () => {
    * transform accumulé du parent en `preserve-3d` et la masque. Un `rotateY(0deg)`, qui ne
    * déplace rien, suffit à ce que les deux navigateurs racontent la même chose.
    */
+  /**
+   * La barre d'onglets du bas, en mobile, partage la largeur entre ses onglets. À quatre, le
+   * padding de 16 px du desktop fait sortir « Succès » de l'écran à 390 px.
+   */
+  it('resserre les onglets de la barre mobile pour que les quatre tiennent', () => {
+    const mobile = regles.find((r) => r.selecteur === '.rail-tab' && declare('flex')(r))
+    expect(mobile).toBeDefined()
+    expect(mobile.corps).toMatch(/padding\s*:\s*0 4px/)
+    expect(mobile.corps).toMatch(/min-width\s*:\s*0/)
+  })
+
+  it('donne à la pastille de l’onglet Succès la couleur du texte, le chiffre dans celle du fond', () => {
+    const pip = regles.find((r) => r.selecteur === '.rail-tab-pip')
+    expect(pip.corps).toMatch(/background\s*:\s*currentColor/)
+    expect(pip.corps).toMatch(/display\s*:\s*inline-flex/)
+  })
+
+  /**
+   * Alignée sur la ligne de base, la pastille tirait le texte « Succès » vers le haut et
+   * tombait elle-même plus bas que les autres libellés. L'onglet centre donc son contenu.
+   */
+  /**
+   * Au lancement, un joueur ancien peut recevoir une vingtaine de succès d'un coup : la
+   * feuille doit tenir dans l'écran, titre et bouton visibles, la grille seule défilant.
+   */
+  it('borne le récap à la hauteur de l’écran et fait défiler la seule grille', () => {
+    const recap = regles.find((r) => r.selecteur === '.ach-recap')
+    expect(recap.corps).toMatch(/max-height\s*:\s*calc\(100dvh - 40px\)/)
+    expect(recap.corps).toMatch(/flex-direction\s*:\s*column/)
+    const grid = regles.find((r) => r.selecteur === '.ach-recap-grid')
+    expect(grid.corps).toMatch(/overflow-y\s*:\s*auto/)
+    expect(grid.corps).toMatch(/min-height\s*:\s*0/)
+  })
+
+  /**
+   * Le toast entre par une animation retardée de 0,9 s. Laissée en place à la sortie, Vue
+   * mesure la plus longue des deux et attend 1,25 s au lieu des 0,25 s du fondu.
+   */
+  /**
+   * La feuille et les toasts gardent un papier fixe dans les deux thèmes. Le texte d'un
+   * palier (compteur de l'en-tête, libellé de rareté, 12 px) s'écrit dans son encre : elle
+   * doit passer le contraste AA de 4,5:1 sur ce papier, le légendaire compris, et aucun
+   * libellé ne se peint avec la dorure, dont les arrêts clairs tombent sous 2:1.
+   */
+  it('écrit chaque palier dans une encre lisible sur le papier, sans dorure sur le texte', () => {
+    const papier = regles.find((r) => r.selecteur === '.ach-sheet,.ach-toast')
+    const couleur = (nom) => papier.corps.match(new RegExp(`--${nom}\\s*:\\s*(#[0-9a-f]{6})`, 'i'))[1]
+    const luminance = (hex) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const c = parseInt(hex.slice(i, i + 2), 16) / 255
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+      })
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+    const fond = luminance(couleur('paper'))
+    for (const palier of ['ach-c', 'ach-u', 'ach-r', 'ach-l']) {
+      const ratio = (fond + 0.05) / (luminance(couleur(palier)) + 0.05)
+      expect(ratio, palier).toBeGreaterThanOrEqual(4.5)
+    }
+    const texteDore = regles.filter(
+      (r) => /\.ach-(rarity|tier-count)/.test(r.selecteur) && /color\s*:\s*transparent/.test(r.corps),
+    )
+    expect(texteDore).toEqual([])
+  })
+
+  it('coupe l’animation d’entrée d’un toast qui sort', () => {
+    const leave = regles.find((r) => r.selecteur === '.ach-toast-leave-active')
+    expect(leave.corps).toMatch(/animation\s*:\s*none/)
+  })
+
+  it('centre verticalement le libellé et la pastille d’un onglet', () => {
+    const tab = regles.find((r) => r.selecteur === '.rail-tab' && /font-family/.test(r.corps))
+    expect(tab.corps).toMatch(/display\s*:\s*inline-flex/)
+    expect(tab.corps).toMatch(/align-items\s*:\s*center/)
+    const pip = regles.find((r) => r.selecteur === '.rail-tab-pip')
+    expect(pip.corps).not.toMatch(/vertical-align/)
+  })
+
+  /**
+   * Centrer la boîte de texte ne centre pas le chiffre : la boîte suit l'ascendante et la
+   * descendante de la police, pas le dessin. On la rogne à la hauteur des capitales.
+   */
+  it('centre le chiffre de la pastille sur son dessin, pas sur sa boîte de texte', () => {
+    const digit = regles.find((r) => r.selecteur === '.rail-tab-pip span')
+    expect(digit.corps).toMatch(/text-box\s*:\s*trim-both cap alphabetic/)
+  })
+
+  /**
+   * L'en-tête colle en haut sur la largeur de la colonne seulement : ce qui défile dessous
+   * (l'ombre d'une feuille, une carte) restait visible de part et d'autre, en gouttières.
+   */
+  it('étend le fond de l’en-tête collant à toute la largeur de la fenêtre', () => {
+    const rail = regles.find((r) => r.selecteur === '.rail' && /position\s*:\s*sticky/.test(r.corps))
+    expect(rail.corps).toMatch(/box-shadow\s*:\s*0 0 0 100vmax var\(--header-bg\)/)
+    expect(rail.corps).toMatch(/clip-path\s*:\s*inset\(0 -100vmax\)/)
+  })
+
   it('donne un transform propre à toute face qui compte sur backface-visibility', () => {
     const faces = regles.filter((r) => /backface-visibility\s*:\s*hidden/.test(r.corps))
     expect(faces.length).toBeGreaterThan(0)

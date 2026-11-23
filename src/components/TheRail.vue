@@ -9,6 +9,9 @@ const props = defineProps({
   syncError: { type: String, default: null }, // 'offline' | 'server' | 'conflict' | 'revoked'
   view: { type: String, default: 'collection' },
   theme: { type: String, default: 'dark' }, // 'light' | 'dark'
+  // Succès débloqués pas encore montrés, rangés dans « Ma fiche » : sans pastille sur son
+  // onglet, le récap attendrait une visite que rien ne suggère.
+  achievementsBadge: { type: Number, default: 0 },
 })
 const emit = defineEmits(['open', 'settings', 'sync', 'navigate', 'toggle-theme'])
 
@@ -53,7 +56,7 @@ const SYNC_ERROR_LABEL = {
 // Le clic déclenche un vrai run GitHub Action, pas une lecture instantanée : sans ce message,
 // le bouton semble juste tourner dans le vide pendant que le run travaille en coulisses.
 const syncTitle = computed(() => {
-  if (props.syncing) return 'Recherche en cours côté GitHub (jusqu’à 2 min)…'
+  if (props.syncing) return 'Recherche en cours : tes cartes s’afficheront toutes seules'
   if (props.syncError) return SYNC_ERROR_LABEL[props.syncError] ?? 'La synchronisation a échoué.'
   return 'Vérifier les nouvelles captures'
 })
@@ -109,7 +112,7 @@ onUnmounted(() => clearTimeout(cooldownTimer))
       <button
         v-for="[key, label] in TABS" :key="key" class="rail-tab" :class="{ active: view === key }"
         :aria-current="view === key ? 'page' : undefined" @click="emit('navigate', key)"
-      >{{ label }}</button>
+      >{{ label }}<span v-if="key === 'moi' && achievementsBadge" class="rail-tab-pip"><span>{{ achievementsBadge }}</span></span></button>
     </nav>
     <div class="progress">
       <span class="progress-count"><span class="eyebrow progress-label">Pokédex</span> <b>{{ caughtCount }}</b><i> / 151</i></span>

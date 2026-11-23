@@ -17,7 +17,7 @@ export default defineConfig({
      * méfier de la suite, et c'est ainsi qu'on cesse de la lancer.
      */
     testTimeout: 30_000,
-    include: ['shared/**/*.test.js', 'src/**/*.test.js', 'scripts/**/*.test.js'],
+    include: ['shared/**/*.test.js', 'src/**/*.test.js', 'scripts/**/*.test.js', 'supabase/functions/**/*.test.js'],
     /**
      * Les fichiers de `scripts/` parlent tous à la MÊME base locale, et vitest les exécutait en
      * parallèle. Certains ont besoin d'un état global — la reprise des évolutions ne vaut que

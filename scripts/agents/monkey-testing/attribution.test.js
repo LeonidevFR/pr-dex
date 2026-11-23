@@ -160,7 +160,10 @@ describe('recapText', () => {
   it('annonce les gagnants d’une session nouvellement jugée', () => {
     const text = recapText({ created: true, added: ['U0ALICE', 'U0CHLOE'], prdexUrl: url })
     expect(text).toContain('<@U0ALICE>, <@U0CHLOE>')
-    expect(text).toContain('10 cartes')
+    // Le nombre de cartes dépend du compte de chacun (3 pour un dev, 10 sinon) : le récap
+    // n'en annonce aucun.
+    expect(text).not.toMatch(/\d+ cartes/)
+    expect(text).toContain('Booster pr-dex pour')
     expect(text).toContain(url)
     expect(text).toContain('Slack')
   })

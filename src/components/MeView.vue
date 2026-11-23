@@ -137,6 +137,8 @@ const cases = computed(() => {
       </dl>
     </div>
 
+    <slot />
+
     <!--
       Le badge en jeu : c'est ce que la saison met sur la table, et le savoir change la façon de
       la jouer. Sans rang, puisqu'il n'est encore à personne.

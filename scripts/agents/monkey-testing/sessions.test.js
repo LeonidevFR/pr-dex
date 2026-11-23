@@ -10,7 +10,7 @@ const msg = (s, user, text = 'retour', extra = {}) => ({ ts: ts(s), user, text, 
 const root = msg(0, 'U0LEO', 'Monkey-testing : la création de campagne', { reply_count: 3 })
 const thread = [root, msg(60, 'U0ALICE'), msg(120, 'U0BOB'), msg(180, 'U0LEO', 'merci')]
 const build = (history, replies = { [root.ts]: thread }, extra = {}) =>
-  buildSessions({ channel: 'C1', history, repliesByRoot: replies, ...extra })
+  buildSessions({ channel: 'C1', history, repliesByRoot: replies, organizers: ['U0LEO', 'U0ZOE'], ...extra })
 
 describe('isHuman', () => {
   it('écarte les bots et les messages système', () => {
@@ -65,6 +65,24 @@ describe('buildSessions', () => {
     expect(sessions[0].lastTs).toBe(ts(2 * H + 120))
   })
 
+  // Deux sessions lancées le même jour sont deux sessions : un testeur qui répond aux deux
+  // gagne deux boosters, et chacune a son récap et son sujet.
+  it('ouvre une nouvelle session pour un organisateur pendant qu’une autre est ouverte', () => {
+    const next = msg(H, 'U0ZOE', 'Nouveau monkey-testing : l’export', { reply_count: 2 })
+    const replies = { [root.ts]: thread, [next.ts]: [next, msg(H + 60, 'U0ALICE', 'bug export'), msg(H + 120, 'U0BOB', 'export ok sur 2 établissements')] }
+    const sessions = build([root, next], replies)
+    expect(sessions.map((x) => x.organizer)).toEqual(['U0LEO', 'U0ZOE'])
+    expect(sessions[0].messages.some((m) => m.ts === next.ts)).toBe(false)
+    expect(sessions[1].messages.map((m) => m.user)).toEqual(['U0ALICE', 'U0BOB'])
+  })
+
+  it('range dans la session ouverte la relance d’un organisateur que personne n’a commentée', () => {
+    const reminder = msg(H, 'U0LEO', 'On compte sur vos retours aujourd’hui, en thread au-dessus')
+    const sessions = build([root, reminder])
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].messages.some((m) => m.ts === reminder.ts)).toBe(true)
+  })
+
   it('ouvre une nouvelle session une fois la précédente terminée', () => {
     const next = msg(180 + QUIET_SECONDS + 1, 'U0ZOE', 'Nouvelle session : l’export', { reply_count: 2 })
     const replies = { [root.ts]: thread, [next.ts]: [next, msg(180 + QUIET_SECONDS + 60, 'U0ALICE'), msg(180 + QUIET_SECONDS + 90, 'U0BOB')] }
@@ -97,6 +115,62 @@ describe('buildSessions', () => {
     const lone = msg(0, 'U0LEO', 'x', { reply_count: 1 })
     const out = build([lone], { [lone.ts]: [lone, msg(60, 'U0ALICE')] }, { forcedRoot: lone.ts })
     expect(out).toHaveLength(1)
+  })
+})
+
+// Sans liste, n'importe qui lance une session : un message et deux complices qui répondent
+// suffisent à se distribuer des boosters, à tour de rôle.
+describe('organisateurs', () => {
+  it('ne fait pas une session d’un message posté par quelqu’un hors de la liste', () => {
+    const fake = msg(0, 'U0MALLORY', 'Test de la page X', { reply_count: 2 })
+    const replies = { [fake.ts]: [fake, msg(60, 'U0ALICE', 'bug sur X'), msg(120, 'U0BOB', 'testé l’écran X, ok')] }
+    expect(build([fake], replies)).toEqual([])
+  })
+
+  it('garde les retours de n’importe qui pendant une vraie session', () => {
+    const [s] = build([root, msg(2 * H, 'U0MALLORY', 'le bouton ne répond pas')])
+    expect(s.messages.some((m) => m.user === 'U0MALLORY' && m.where === 'room')).toBe(true)
+  })
+
+  it('accepte un thread passé à la main, quel que soit son auteur', () => {
+    const fake = msg(0, 'U0MALLORY', 'x', { reply_count: 2 })
+    const replies = { [fake.ts]: [fake, msg(60, 'U0ALICE'), msg(120, 'U0BOB')] }
+    expect(build([fake], replies, { forcedRoot: fake.ts })).toHaveLength(1)
+  })
+})
+
+// Une relance renvoie vers le lancement d'une session encore en cours : ses réponses comptent
+// pour cette session, un seul booster par personne, un seul récap. Une fois la session jugée,
+// un message qui renvoie vers elle est un nouveau test.
+describe('relances', () => {
+  const link = (ts, extra = '') => `<https://guestsuite.slack.com/archives/C1/p${ts.replace('.', '')}${extra}>`
+  const reminder = msg(20 * H, 'U0LEO', `On compte sur vos retours ${link(root.ts)}`, { reply_count: 2 })
+  const replies = {
+    [root.ts]: thread,
+    [reminder.ts]: [reminder, msg(20 * H + 60, 'U0CHLOE', 'bug sur l’écran Y'), msg(20 * H + 120, 'U0DAN', 'testé Z, ok')],
+  }
+
+  it('range une relance commentée, et ses réponses, dans la session vers laquelle elle renvoie', () => {
+    const sessions = build([root, reminder], replies)
+    expect(sessions).toHaveLength(1)
+    const fromReminder = sessions[0].messages.filter((m) => m.thread === reminder.ts)
+    expect(fromReminder.map((m) => m.user)).toEqual(['U0CHLOE', 'U0DAN'])
+    expect(sessions[0].lastTs).toBe(ts(20 * H + 120))
+  })
+
+  it('reconnaît un lien vers une réponse du thread de la session', () => {
+    const viaReply = { ...reminder, text: `Relance ${link(ts(60), `?thread_ts=${root.ts}&cid=C1`)}` }
+    expect(build([root, viaReply], { ...replies, [viaReply.ts]: replies[reminder.ts] })).toHaveLength(1)
+  })
+
+  it('fait un nouveau test d’un message qui renvoie vers une session déjà jugée', () => {
+    const sessions = build([root, reminder], replies, { judged: new Set([root.ts]) })
+    expect(sessions.map((x) => x.id)).toEqual([root.ts, reminder.ts])
+  })
+
+  it('ignore un lien vers une autre room', () => {
+    const elsewhere = { ...reminder, text: `Voir <https://guestsuite.slack.com/archives/C9/p${root.ts.replace('.', '')}>` }
+    expect(build([root, elsewhere], { ...replies, [elsewhere.ts]: replies[reminder.ts] })).toHaveLength(2)
   })
 })
 

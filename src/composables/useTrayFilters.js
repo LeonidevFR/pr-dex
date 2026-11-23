@@ -26,7 +26,7 @@ export function matchesQuery(id, query) {
 /** État des filtres de la planche (paliers, statut, recherche). Pure UI, aucun effet de bord. */
 export function useTrayFilters() {
   const activeTiers = ref(new Set(TIERS))
-  const statusFilter = ref('all') // 'all' | 'caught' | 'uncaught' | 'evolvable'
+  const statusFilter = ref('all') // 'all' | 'caught' | 'uncaught' | 'evolvable' | 'shiny'
   const query = ref('')
 
   const active = computed(

@@ -187,6 +187,12 @@ describe('TheRail', () => {
   it('nomme le compteur « Pokédex »', () => {
     expect(mountRail({ caughtCount: 41 }).find('.progress').text()).toContain('Pokédex')
   })
+
+  it('pastille l’onglet Ma fiche des succès pas encore montrés', () => {
+    expect(mountRail({ achievementsBadge: 8 }).find('.rail-tab-pip').text()).toBe('8')
+    expect(mountRail({ achievementsBadge: 8 }).find('.rail-tab-pip').element.parentElement.textContent).toMatch(/^Ma fiche/)
+    expect(mountRail({ achievementsBadge: 0 }).find('.rail-tab-pip').exists()).toBe(false)
+  })
 })
 
 /**

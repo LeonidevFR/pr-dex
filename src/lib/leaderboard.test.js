@@ -89,6 +89,18 @@ describe('rankPlayers', () => {
     ])
   })
 
+  // Le classement lit les shiny comme la grille : par espèce, évolutions comprises.
+  it('départage sur les espèces shiny, pas sur les cartes shiny', () => {
+    const rows = [
+      // Deux cartes shiny de la même espèce : une seule espèce shiny.
+      row('anna', [c('a', 1, { shiny: true }), c('b', 1, { shiny: true }), c('x', 4)]),
+      // Une carte shiny évoluée : deux espèces shiny.
+      row('bob', [c('c', 10, { shiny: true })], [{ species: 11, from: 10, date: '2026-06-02', fromKey: 'github:c' }]),
+    ]
+    const [first] = rankPlayers(rows, TODAY)
+    expect(first).toMatchObject({ login: 'bob', shinySpecies: 2, shiny: 1 })
+  })
+
   it('porte login, avatar et is_me', () => {
     const [p] = rankPlayers([{ ...row('lea', [c('a', 1)], [], true), avatar_url: 'x.png' }], TODAY)
     expect(p).toMatchObject({ login: 'lea', avatarUrl: 'x.png', isMe: true })
@@ -131,10 +143,28 @@ describe('teamTotals', () => {
       row('a', [c('1', 1), c('2', 4, { shiny: true })]),
       row('b', [c('3', 4), c('4', 7)], [], true),
     ], TODAY)
-    expect(t).toEqual({ collective: 3, opened: 4, shiny: 1 })
+    expect(t).toMatchObject({ collective: 3, opened: 4, shiny: 1 })
+  })
+
+  it('compte les espèces shiny de l’équipe une fois chacune, évolutions comprises', () => {
+    const t = teamTotals([
+      row('a', [c('1', 10, { shiny: true })], [{ species: 11, from: 10, date: '2026-06-02', fromKey: 'github:1' }]),
+      row('b', [c('2', 10, { shiny: true }), c('3', 10, { shiny: true })], [], true),
+    ], TODAY)
+    expect(t.shiny).toBe(2)
+  })
+
+  it('liste les espèces que personne n’a encore vues, dans l’ordre du Pokédex', () => {
+    const t = teamTotals([
+      row('a', [c('1', 1), c('2', 4)], [{ species: 2, from: 1, date: '2026-06-02', fromKey: 'github:1' }]),
+      row('b', [c('3', 150)], [], true),
+    ], TODAY)
+    expect(t.missing).toHaveLength(151 - 4)
+    expect(t.missing.slice(0, 3)).toEqual([3, 5, 6])
+    expect(t.missing).not.toContain(150)
   })
 
   it('vaut zéro partout sans joueur', () => {
-    expect(teamTotals([], TODAY)).toEqual({ collective: 0, opened: 0, shiny: 0 })
+    expect(teamTotals([], TODAY)).toMatchObject({ collective: 0, opened: 0, shiny: 0 })
   })
 })

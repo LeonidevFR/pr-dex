@@ -124,11 +124,15 @@ export function mergeAttribution({ existing, session, accepted, names, base }) {
   return { data, added, created: !existing }
 }
 
-/** Le récap public est la carotte : les autres voient qui a gagné. */
+/**
+ * Le récap public est la carotte : les autres voient qui a gagné. Il n'annonce pas de nombre de
+ * cartes : il dépend du compte de chacun, et se décide au tirage (`DEV_DRAWS` dans le
+ * connecteur `slack`).
+ */
 export function recapText({ created, added, prdexUrl }) {
   if (!added.length) return null
   const who = added.map((id) => `<@${id}>`).join(', ')
   return created
-    ? `🎴 Merci pour vos retours ! Booster pr-dex de ${DRAWS} cartes pour ${who}. Ouvrez-le sur ${prdexUrl}, avec Slack si vous n'avez pas de compte GitHub.`
-    : `🎴 En plus : booster pr-dex de ${DRAWS} cartes pour ${who}. À ouvrir sur ${prdexUrl}.`
+    ? `🎴 Merci pour vos retours ! Booster pr-dex pour ${who}. Ouvrez-le sur ${prdexUrl}, avec Slack si vous n'avez pas de compte GitHub.`
+    : `🎴 En plus : booster pr-dex pour ${who}. À ouvrir sur ${prdexUrl}.`
 }

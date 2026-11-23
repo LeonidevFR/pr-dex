@@ -18,6 +18,7 @@ import MeView from './components/MeView.vue'
 import RewardTable from './components/RewardTable.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import SlackInvite from './components/SlackInvite.vue'
+import SyncToast from './components/SyncToast.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
@@ -32,9 +33,15 @@ import { useKeyboardNav } from './composables/useKeyboardNav.js'
 import { useTheme } from './composables/useTheme.js'
 import { useSlackInvite } from './composables/useSlackInvite.js'
 import { createSupabaseClient } from './lib/supabaseData.js'
+import { pendingSync } from './lib/syncMemory.js'
 import { accountName as nameOf, identitiesOf, shouldInviteSlack, SLACK } from './lib/account.js'
+import AchievementsView from './components/AchievementsView.vue'
+import AchievementToasts from './components/AchievementToasts.vue'
+import AchievementRecap from './components/AchievementRecap.vue'
+import { useAchievements } from './composables/useAchievements.js'
 
 const collection = useCollection()
+const achievements = useAchievements()
 const { session, ready, authError, signIn, link, unlink, freshUser, signOut } = useAuth()
 const connected = ref(false)
 const connectError = ref(null)
@@ -256,6 +263,36 @@ const userId = ref('')
 let arena = null
 let client = null
 
+// La date d'un déblocage en direct se lit au moment du geste, pas au chargement : une session
+// ouverte la veille ne doit pas antidater un succès.
+const nowDay = () => new Date().toISOString().slice(0, 10)
+const collectionData = () => ({ catches: collection.catches.value, state: collection.state.value })
+
+// Le récap se fige à l'ouverture : `acknowledge` vide la liste dès la fermeture, et la feuille
+// qui s'efface afficherait sinon « Tu avais déjà 0 succès ».
+const recap = ref(null)
+watch(
+  () => [view.value, achievements.unannounced.value.length],
+  ([v, n]) => {
+    if (v !== 'moi' || !n || recap.value) return
+    recap.value = { items: [...achievements.unannounced.value], first: achievements.isFirstRecap.value }
+  },
+)
+// Un clic sur un toast mène au succès, dans « Ma fiche ». Le rituel se ferme comme à la
+// croix : les plis restants attendent dans la file.
+const achievementFocus = ref(null)
+let focusSeq = 0
+function openAchievement(code) {
+  ritualEntry.value = null
+  router.go('moi')
+  achievementFocus.value = { code, seq: ++focusSeq }
+}
+
+function closeRecap() {
+  recap.value = null
+  achievements.acknowledge()
+}
+
 const filters = useTrayFilters()
 const { theme, toggle: toggleTheme } = useTheme()
 
@@ -321,6 +358,11 @@ async function connectSession(s) {
   connecting.value = false
   if (collection.error.value) { connectError.value = collection.error.value; return }
   connected.value = true
+  // Un rechargement pendant une recherche ne la coupe plus : on reprend son suivi.
+  const since = pendingSync()
+  if (since) collection.refresh({ resumeSince: since })
+  // Sans `await` : les succès ne retardent jamais l'arrivée sur la planche.
+  achievements.load(client, collectionData)
 }
 
 /**
@@ -492,6 +534,7 @@ onMounted(async () => {
     await arena.load()
     reporterLesPertes()
     connected.value = true
+    achievements.load(client, collectionData)
     await rattraperLesDuels()
   }
 })
@@ -528,6 +571,13 @@ const showNextPacket = () => showPacket(collection.dex.pending.value[0])
 const openRitual = showNextPacket
 const nextRitual = showNextPacket
 
+// Le rituel émet `claim` à la révélation. On attend l'écriture : un succès ne tombe que sur
+// une carte vraiment ouverte.
+async function onClaim(key) {
+  await collection.claim(key)
+  if (!collection.error.value) achievements.check(nowDay())
+}
+
 async function onEvolve({ from, to, key }) {
   const shiny = collection.dex.availableEntries(from).find((e) => e.key === key)?.shiny ?? false
   // Figé avant l'écriture, pour la même raison que `ritualIsNew` plus haut : `evolve`
@@ -550,10 +600,12 @@ function finishEvo() {
   // et l'URL doit la désigner pour que le retour navigateur ramène à la planche.
   router.go('collection', evoAnim.value.to)
   evoAnim.value = null
+  // Après la cérémonie, pas pendant : le toast ne doit pas la couvrir.
+  achievements.check(nowDay())
 }
 
 const overlayOpen = computed(() =>
-  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value),
+  Boolean(ritualEntry.value || evoAnim.value || selected.value || settingsOpen.value || recap.value),
 )
 
 // Priorité calquée sur l'empilement visuel donné par les z-index de styles.css :
@@ -563,6 +615,7 @@ function closeTopOverlay() {
   if (evoAnim.value) finishEvo()
   else if (ritualEntry.value) ritualEntry.value = null
   else if (settingsOpen.value) settingsOpen.value = false
+  else if (recap.value) closeRecap()
   else if (selected.value) router.go('collection')
   else return
 
@@ -613,6 +666,7 @@ useKeyboardNav({
       :view="view" :theme="theme"
       @open="openRitual" @settings="settingsOpen = true" @sync="collection.refresh"
       @navigate="(v) => router.go(v)" @toggle-theme="toggleTheme"
+      :achievements-badge="achievements.unannounced.value.length"
     />
     <SlackInvite v-if="view === 'collection' && showSlackInvite" @link="link(SLACK)" @dismiss="invite.dismiss" />
     <TheTray
@@ -641,7 +695,15 @@ useKeyboardNav({
       :prive="fichePrivee" :fiche="fiche" :seasons="arena ? arena.seasons.value : []"
       :points="monRang.points" :rank="monRang.rang"
       :season="arena ? arena.season.value : ''" :arena-open="areneOuverte && !!arena"
-    />
+    >
+      <AchievementsView
+        embedded
+        :owned="achievements.owned.value" :counts="achievements.counts.value" :progress="achievements.progress.value"
+        :ready="achievements.ready.value" :error="achievements.error.value"
+        :focus="achievementFocus"
+        @retry="achievements.load(dataClient, collectionData)"
+      />
+    </MeView>
 
     <transition name="fade">
       <SpeciesSheet
@@ -665,7 +727,7 @@ useKeyboardNav({
       <RitualOverlay
         v-if="ritualEntry" :key="ritualEntry.key" :entry="ritualEntry"
         :remaining="ritualRemaining" :is-new="ritualIsNew"
-        @claim="collection.claim" @next="nextRitual"
+        @claim="onClaim" @next="nextRitual"
         @close="ritualEntry = null"
       />
     </transition>
@@ -727,5 +789,13 @@ useKeyboardNav({
         @close="settingsOpen = false" @disconnect="disconnect" @link="link" @unlink="onUnlink"
       />
     </transition>
+
+    <SyncToast :sync="collection.sync.value" @open="collection.dismissSync(); openRitual()" @dismiss="collection.dismissSync" />
+
+    <transition name="fade">
+      <AchievementRecap v-if="recap" :items="recap.items" :first="recap.first" @close="closeRecap" />
+    </transition>
+
+    <AchievementToasts :toasts="achievements.toasts.value" :counts="achievements.counts.value" @dismiss="achievements.dismissToast" @open="openAchievement" />
   </template>
 </template>

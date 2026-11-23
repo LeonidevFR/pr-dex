@@ -1,9 +1,10 @@
 import { ref } from 'vue'
 import { useDex } from '../composables/useDex.js'
-import { DEX, familyOf, familyLine, hasEvoInFamily, TIER_LABEL } from '../../shared/species.js'
+import { DEX, SPECIES, familyOf, familyLine, hasEvoInFamily, TIER_LABEL } from '../../shared/species.js'
 import { entryKey } from '../../shared/entry.js'
 
 const TIERS = ['c', 'u', 'r', 'l']
+const BOARD_SIZE = SPECIES.length
 const DAY_MS = 24 * 60 * 60 * 1000
 
 // Date pivot en 'YYYY-MM-DD' : les dates de capture sont des chaînes de ce format, une
@@ -54,6 +55,8 @@ export function playerStats(catches, evolutions, today) {
   const families = new Set([...owned].map(familyOf).filter(hasEvoInFamily))
   const lineages = [...families].filter((fam) => familyLine(fam).flat().every((id) => owned.has(id))).length
 
+  const shinyIds = [...owned].filter((id) => dex.bySpecies.value[id].some((e) => e.shiny))
+
   const since = thirtyDaysBefore(today)
   const tiers = { c: 0, u: 0, r: 0, l: 0 }
   for (const c of catches) tiers[DEX[c.species].tier]++
@@ -63,8 +66,10 @@ export function playerStats(catches, evolutions, today) {
     // Compté sur les captures, pas sur le dex : un shiny évolué y apparaîtrait deux fois.
     shiny: catches.filter((c) => c.shiny).length,
     // Les espèces dont on tient un exemplaire shiny, sur 151 : c'est une collection, pas un
-    // taux. Ici l'évolution compte, puisqu'elle met une nouvelle espèce shiny au dex.
-    shinySpecies: [...owned].filter((id) => dex.bySpecies.value[id].some((e) => e.shiny)).length,
+    // taux. Ici l'évolution compte, puisqu'elle met une nouvelle espèce shiny au dex — c'est
+    // aussi ce que compte l'étoile de la grille.
+    shinySpecies: shinyIds.length,
+    shinySpeciesIds: shinyIds,
     legendaries: ofTier('l'),
     rares: ofTier('r'),
     lineages,
@@ -76,9 +81,11 @@ export function playerStats(catches, evolutions, today) {
   }
 }
 
+// Les shiny se départagent par espèce, comme les légendaires : le joueur lit la colonne
+// contre les étoiles de sa grille, qui comptent des espèces, pas des cartes.
 const byRank = (a, b) =>
   b.species - a.species ||
-  b.shiny - a.shiny ||
+  b.shinySpecies - a.shinySpecies ||
   b.legendaries - a.legendaries ||
   a.login.localeCompare(b.login, 'fr', { sensitivity: 'base' })
 
@@ -110,14 +117,21 @@ export function myStats(rows, today) {
 }
 
 /**
- * Les trois chiffres d'en-tête de la vue Équipe. Le Pokédex collectif compte les espèces vues
- * par au moins un joueur : c'est l'objectif commun, celui où personne n'est dernier.
+ * Les chiffres d'en-tête de la vue Équipe. Le Pokédex collectif compte les espèces vues
+ * par au moins un joueur : c'est l'objectif commun, celui où personne n'est dernier. Les
+ * shiny se comptent de la même façon, une fois par espèce. `missing` liste ce qui reste à
+ * trouver, dans l'ordre du Pokédex.
+ *
+ * Tout se compte sur la planche des 151 : la Gen 2 ne s'obtient qu'en boutique, et la lister
+ * parmi les manquantes l'y laisserait pour toujours.
  */
 export function teamTotals(rows, today) {
   const players = rankPlayers(rows, today)
+  const seen = new Set(players.flatMap((p) => p.speciesIds).filter((id) => id <= BOARD_SIZE))
   return {
-    collective: new Set(players.flatMap((p) => p.speciesIds)).size,
+    collective: seen.size,
     opened: players.reduce((n, p) => n + p.copies, 0),
-    shiny: players.reduce((n, p) => n + p.shiny, 0),
+    shiny: new Set(players.flatMap((p) => p.shinySpeciesIds).filter((id) => id <= BOARD_SIZE)).size,
+    missing: SPECIES.map(([id]) => id).filter((id) => !seen.has(id)),
   }
 }

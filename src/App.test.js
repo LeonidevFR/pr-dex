@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import App from './App.vue'
+import PokeCard from './components/PokeCard.vue'
 
 // `useAuth` construit un client Supabase au chargement du module et interroge le réseau dès
 // l'appel : monter App.vue pour de vrai suppose de le remplacer. La session reste nulle —
@@ -618,5 +619,79 @@ describe('l’annonce de l’arène', () => {
     const w = await mountApp()
     await aller(w, 'Ma fiche')
     expect(w.find('.teaser').exists()).toBe(false)
+  })
+})
+
+describe('succès', () => {
+  // Les coéquipiers fictifs de la démo sont datés depuis aujourd'hui : certains jours, l'un
+  // d'eux croise un tirage du joueur et « Jumeaux » s'ajoute aux succès attendus.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-14T12:00:00Z'))
+  })
+  afterEach(() => vi.useRealTimers())
+  const tabOf = (w, label) => w.findAll('.rail-tab').find((t) => t.text().startsWith(label))
+  // Les succès se chargent après la collection, sans la bloquer : on attend la pastille.
+  async function untilBadge(w) {
+    for (let i = 0; i < 50 && !w.find('.rail-tab-pip').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    expect(w.find('.rail-tab-pip').text()).toBe('11')
+  }
+
+  it('ouvre le récap des succès déjà acquis à l’arrivée sur « Ma fiche », une seule fois', async () => {
+    const w = await mountApp()
+    await untilBadge(w)
+    await tabOf(w, 'Ma fiche').trigger('click')
+    await flushPromises()
+    expect(w.find('.ach-recap-title').text()).toBe('Tu avais déjà 11 succès')
+    await w.find('.ach-recap-close').trigger('click')
+    await flushPromises()
+    expect(w.find('.ach-recap').exists()).toBe(false)
+    expect(w.find('.rail-tab-pip').exists()).toBe(false)
+    expect(w.findAll('.ach-row.is-owned')).toHaveLength(11)
+  })
+
+  it('Échap ferme le récap', async () => {
+    const w = await mountApp()
+    await untilBadge(w)
+    await tabOf(w, 'Ma fiche').trigger('click')
+    await flushPromises()
+    press('Escape')
+    await flushPromises()
+    expect(w.find('.ach-recap').exists()).toBe(false)
+  })
+
+  it('annonce « Sur la tête » au retournement de la première carte de la démo', async () => {
+    const w = await mountApp()
+    await untilBadge(w)
+    press(' ')
+    await flushPromises()
+    w.findComponent(PokeCard).vm.$emit('activate')
+    for (let i = 0; i < 50 && !w.find('.ach-toast').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    expect(w.find('.ach-toast-name').text()).toBe('Sur la tête')
+  })
+
+  it('un clic sur le toast ferme le rituel et ouvre le succès dans « Ma fiche »', async () => {
+    const w = await mountApp()
+    await untilBadge(w)
+    press(' ')
+    await flushPromises()
+    w.findComponent(PokeCard).vm.$emit('activate')
+    for (let i = 0; i < 50 && !w.find('.ach-toast').exists(); i++) {
+      await new Promise((r) => setTimeout(r, 5))
+      await flushPromises()
+    }
+    await w.find('.ach-toast-open').trigger('click')
+    await flushPromises()
+    expect(w.find('.ritual').exists()).toBe(false)
+    expect(tabOf(w, 'Ma fiche').classes()).toContain('active')
+    await w.find('.ach-recap-close').trigger('click')
+    await flushPromises()
+    expect(w.find('[data-code="on-top"]').classes()).toContain('focused')
   })
 })

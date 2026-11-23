@@ -19,7 +19,10 @@ let dir, env
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'collect-'))
   await mkdir(join(dir, 'attributions', 'monkey-testing'), { recursive: true })
-  env = { SLACK_CHANNEL_ID: 'C1', ATTRIBUTIONS_DIR: join(dir, 'attributions'), WORK_DIR: join(dir, 'work') }
+  env = {
+    SLACK_CHANNEL_ID: 'C1', ATTRIBUTIONS_DIR: join(dir, 'attributions'), WORK_DIR: join(dir, 'work'),
+    MONKEY_TESTING_ORGANIZERS: 'U0LEO, U0ZOE',
+  }
 })
 afterEach(async () => { await rm(dir, { recursive: true, force: true }) })
 
@@ -36,6 +39,22 @@ describe('collect', () => {
     expect(input.messages.map((m) => m.name)).toEqual(['Alice', 'Bob'])
   })
 
+  // Les sessions déjà jugées viennent des fichiers d'attribution : elles décident si un message
+  // qui renvoie vers l'une d'elles est une relance ou un nouveau test.
+  it('fait un nouveau test d’un message qui renvoie vers une session déjà jugée', async () => {
+    const link = `<https://x.slack.com/archives/C1/p${ts(0).replace('.', '')}>`
+    const second = { ts: ts(90000), user: 'U0LEO', text: `Deuxième tour ${link}`, reply_count: 2 }
+    const secondReplies = [second, { ts: ts(90060), user: 'U0ALICE', text: 'bug' }, { ts: ts(90120), user: 'U0BOB', text: 'export ok' }]
+    const slack = {
+      ...fakeSlack(),
+      history: async () => [root, second],
+      replies: async (_c, t) => (t === second.ts ? secondReplies : replies),
+    }
+    await writeFile(join(dir, 'attributions', 'monkey-testing', 'x.json'), JSON.stringify({ id: ts(0), seen_until: ts(120) }))
+    expect(await main(env, (T0 + 90121 + 86400) * 1000, slack)).toBe(1)
+    expect(await readdir(join(dir, 'work', 'inputs'))).toEqual([`${second.ts}.json`])
+  })
+
   it('ne prépare rien pour une session encore ouverte', async () => {
     expect(await main(env, later - 1000, fakeSlack())).toBe(0)
   })
@@ -48,6 +67,15 @@ describe('collect', () => {
   it('juge tout de suite le thread passé à la main', async () => {
     const forced = { ...env, THREAD_URL: `https://x.slack.com/archives/C1/p${ts(0).replace('.', '')}` }
     expect(await main(forced, (T0 + 200) * 1000, fakeSlack())).toBe(1)
+  })
+
+  it('ne prépare rien pour une session lancée hors de la liste d’organisateurs', async () => {
+    expect(await main({ ...env, MONKEY_TESTING_ORGANIZERS: 'U0ZOE' }, later, fakeSlack())).toBe(0)
+  })
+
+  // Une liste absente laisserait n'importe qui lancer une session : on refuse de tourner.
+  it.each([undefined, '', 'leo, U0ZOE'])('refuse une liste d’organisateurs absente ou mal formée (%j)', async (value) => {
+    await expect(main({ ...env, MONKEY_TESTING_ORGANIZERS: value }, later, fakeSlack())).rejects.toThrow(/MONKEY_TESTING_ORGANIZERS/)
   })
 
   it('refuse un thread d’une autre room', async () => {

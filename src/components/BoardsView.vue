@@ -55,7 +55,7 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
       <div v-if="totals" class="view-totals">
         <div data-total="collective"><div class="eyebrow">Pokédex collectif</div><div class="view-num">{{ totals.collective }} <small>/ 151</small></div></div>
         <div data-total="opened"><div class="eyebrow">Cartes retournées</div><div class="view-num">{{ totals.opened }}</div></div>
-        <div data-total="shiny"><div class="eyebrow">Shiny</div><div class="view-num gold">{{ totals.shiny }}</div></div>
+        <div data-total="shiny"><div class="eyebrow">Shiny</div><div class="view-num gold">{{ totals.shiny }} <small>/ 151</small></div></div>
       </div>
     </div>
 
@@ -64,7 +64,7 @@ const totals = computed(() => (rows.value ? teamTotals(rows.value, props.today) 
       remplit tout seul. Les points de la saison viennent ensuite — ils ne comptent que pour qui
       joue, et ils repartent de zéro tous les deux mois.
     -->
-    <TeamBoard :players="players" :loading="loading" :error="error" @retry="load" />
+    <TeamBoard :players="players" :loading="loading" :error="error" :missing="totals?.missing ?? null" @retry="load" />
 
     <SeasonBoard
       v-if="arenaOpen"

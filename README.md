@@ -61,8 +61,13 @@ non « chromatique » ; « Pokédex » pour les espèces déjà vues, « collect
 ## Le tableau des scores
 
 L'onglet Leaderboard ouvre le seul écran où l'on regarde les autres : un classement par espèces
-distinctes (puis shiny, puis légendaires), et ses propres stats — cartes retournées, tirages par
-palier, espèces shiny sur 151, évolutions.
+distinctes (puis espèces shiny, puis légendaires), et ses propres stats — cartes retournées, tirages par
+palier, espèces shiny sur 151, évolutions. Sous le classement, la liste des espèces que personne
+dans l'équipe n'a encore vues.
+
+Le shiny se compte par espèce, évolutions comprises, comme l'étoile de la grille : un Chenipan
+shiny qui évolue en Chrysacier fait deux espèces shiny pour une seule carte. Seul l'onglet
+Statistiques donne en plus le nombre de cartes shiny tirées.
 
 Seules les cartes **retournées** comptent, comme dans le dex : le classement ne dévoile pas
 un légendaire avant que son propriétaire l'ait vu. Ni le titre ni le lien des PR ne sortent
@@ -182,7 +187,9 @@ Une personne y est reconnue par son identifiant Slack.
 
 Ajouter une activité de ce genre ne demande aucun code ici : un dossier et un agent.
 Le connecteur plafonne `draws` à 10 et ignore la fenêtre de sept jours — une attribution
-n'expire pas. Un fichier mal formé fait finir le run en rouge, avec son chemin.
+n'expire pas. Une participation vaut 10 tirages, mais **3 pour un dev** : quelqu'un qui a une
+identité GitHub, ou des captures GitHub s'il l'a déliée. Un dev gagne déjà ses cartes avec
+ses PR ; le monkey-testing est surtout la porte d'entrée de ceux qui n'en font pas. Un fichier mal formé fait finir le run en rouge, avec son chemin.
 
 `state.version` remplace le SHA de blob git de l'ancienne version comme jeton de
 concurrence optimiste (un appareil qui écrit sur une version périmée reçoit un conflit,
@@ -195,8 +202,14 @@ avec le lien d'un thread. Il clone `main` d'ici et enchaîne quatre scripts de
 `scripts/agents/monkey-testing/` :
 
 1. `collect.mjs` lit #monkey-testing et prépare une entrée par session terminée (24 h sans
-   message). Une session est un message dont le thread a des réponses d'au moins deux
-   personnes autres que son auteur. Un retour posté dans la room rejoint la session ouverte.
+   message). Une session est un message posté par un **organisateur** (variable
+   `MONKEY_TESTING_ORGANIZERS` de pr-dex-data, identifiants Slack séparés par des virgules),
+   dont le thread a des réponses d'au moins deux autres personnes. Sans cette liste, un
+   message et deux complices suffiraient à se distribuer des boosters. Un retour posté dans
+   la room, par n'importe qui, rejoint la session ouverte. Une **relance** est un message
+   d'organisateur qui contient le lien du lancement d'une session pas encore jugée : ses
+   réponses comptent pour cette session (un booster par personne, un récap). Une fois la
+   session jugée, un message qui renvoie vers elle est un nouveau test.
 2. `judge.mjs` fait juger chaque entrée par Claude Code, **sans aucun outil**, selon
    `agents/monkey-testing.md`. Il tourne sur un abonnement (`CLAUDE_CODE_OAUTH_TOKEN`).
 3. `apply.mjs` contrôle chaque verdict — ni l'organisateur, ni quelqu'un d'absent, ni une
@@ -219,8 +232,22 @@ suite plutôt que d'attendre le prochain passage du cron, puis relire Supabase. 
 déclenchement passe par une fonction Edge Supabase (`supabase/functions/trigger-catch`),
 jamais par un appel direct du front à l'API GitHub — le front n'a que sa session
 Supabase habituelle, aucun jeton GitHub capable d'écrire quoi que ce soit. Un
-`workflow_dispatch` accepté ne dit pas que le run est fini : les nouvelles captures
-n'apparaissent qu'après, à un refresh suivant.
+`workflow_dispatch` accepté ne dit pas que le run est fini : une seconde fonction Edge,
+`supabase/functions/catch-status`, demande à GitHub où en est la capture lancée depuis le
+clic (en attente, en cours, réussie, en échec). Un message en bas de l'écran (`SyncToast`)
+suit cet état et dit qu'il est inutile de recharger la page : on le faisait en boucle, ce qui
+coupait justement l'attente. À la fin, il annonce les cartes trouvées, ou disparaît s'il n'y a
+rien. L'heure du clic est gardée : un rechargement reprend le suivi. Sans `catch-status`
+déployée, le bouton retombe sur l'ancienne méthode, relire les cartes jusqu'à en voir une
+nouvelle.
+
+## Les passages planifiés
+
+GitHub Actions retarde ou saute les passages planifiés d'un petit repo, parfois de plusieurs
+heures. Supabase lance donc lui-même `catch.yml` (toutes les heures, de 6 h à 17 h UTC) et
+`monkey-testing.yml` (chaque jour ouvré à 8 h UTC), par pg_cron et pg_net, avec un PAT rangé
+dans le Vault (`github_dispatch_token`). Voir `supabase/migrations/20261016000000_declenchements_planifies.sql`.
+Les crons de GitHub restent en secours : un passage en double ne refait rien.
 
 ## Les trois secrets privilégiés
 
@@ -300,6 +327,7 @@ shared/battle.js          puissance, forme du jour, probabilité de victoire, r�
 shared/arena-economy.js   enjeu du duel, gains, boutique, plafonds de jeu
 shared/species-stats.js   total des stats de base par espèce, généré depuis PokéAPI
 scripts/simulate-arena.mjs        simulation d'équilibrage de l'arène, en ligue de cinq joueurs
+supabase/functions/catch-status   fonction Edge : état de la capture lancée depuis un clic sur ⟳
 shared/species.js         table des 151 espèces + DEX/PARENT/POOL/familyOf/hasEvoInFamily
 shared/draw.js            fnv1a + drawFrom, partagé front ↔ Action
 shared/entry.js           entryKey(source, externalId) — clé d'exemplaire et seed du tirage
