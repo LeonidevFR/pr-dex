@@ -105,6 +105,12 @@ describe('rankPlayers', () => {
     const [p] = rankPlayers([{ ...row('lea', [c('a', 1)], [], true), avatar_url: 'x.png' }], TODAY)
     expect(p).toMatchObject({ login: 'lea', avatarUrl: 'x.png', isMe: true })
   })
+
+  it('porte le nombre de succès renvoyé par la base, null s’il manque', () => {
+    const [p] = rankPlayers([{ ...row('lea', [c('a', 1)]), achievements: 7 }], TODAY)
+    expect(p.achievements).toBe(7)
+    expect(rankPlayers([row('lea', [c('a', 1)])], TODAY)[0].achievements).toBeNull()
+  })
 })
 
 describe('myStats', () => {

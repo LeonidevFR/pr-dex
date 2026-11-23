@@ -41,6 +41,14 @@ describe('TeamView', () => {
     expect(w.find('[data-total="shiny"]').text()).toContain('2')
   })
 
+  it('affiche le nombre de succès de chaque joueur, « — » avant la migration', async () => {
+    const w = mountView(vi.fn().mockResolvedValue([{ ...ROWS[0], achievements: 12 }, ROWS[1]]))
+    await flushPromises()
+    const col = w.findAll('thead th').findIndex((th) => th.text() === 'Succès')
+    expect(col).toBeGreaterThan(-1)
+    expect(w.findAll('tbody tr').map((r) => r.findAll('td')[col].text())).toEqual(['12', '—'])
+  })
+
   it('liste les espèces qui manquent à l’équipe', async () => {
     const w = mountView(vi.fn().mockResolvedValue(ROWS))
     await flushPromises()
