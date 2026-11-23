@@ -36,16 +36,27 @@ const newestFirst = (x, y) => (x.row.unlocked_at < y.row.unlocked_at ? 1 : x.row
 // Un succès caché non obtenu ne montre pas sa rareté : le filtre par rareté ne doit pas la
 // trahir en le comptant.
 const ofTier = (i, t) => i.state !== 'hidden' && i.a.tier === t
-const ofStatus = (i, key) => key === 'all' || i.state === key
+// « Cachés » regroupe tous les succès cachés, ceux déjà trouvés compris : on y vient voir ce
+// qu'on a découvert autant que ce qu'il reste.
+const ofStatus = (i, key) => key === 'all' || (key === 'hidden' ? i.a.hidden : i.state === key)
 const shown = computed(() => (tier.value ? items.value.filter((i) => ofTier(i, tier.value)) : items.value))
 
-const groups = computed(() => [
-  ['owned', 'Obtenus', shown.value.filter((i) => i.state === 'owned').sort(newestFirst)],
-  ['todo', 'En cours', shown.value.filter((i) => i.state === 'todo')],
-  ['hidden', 'Cachés', shown.value.filter((i) => i.state === 'hidden')],
-].filter(([key, , list]) => list.length && ofStatus({ state: key }, filter.value)))
+const groups = computed(() => {
+  const kept = shown.value.filter((i) => ofStatus(i, filter.value))
+  return [
+    ['owned', 'Obtenus', kept.filter((i) => i.state === 'owned').sort(newestFirst)],
+    ['todo', 'En cours', kept.filter((i) => i.state === 'todo')],
+    ['hidden', 'Cachés', kept.filter((i) => i.state === 'hidden')],
+  ].filter(([, , list]) => list.length)
+})
 
 const countOf = (key) => shown.value.filter((i) => ofStatus(i, key)).length
+// Sur « Cachés », le compteur dit aussi combien on en a trouvé.
+const countLabel = (key) => {
+  if (key !== 'hidden') return countOf(key)
+  const all = shown.value.filter((i) => ofStatus(i, 'hidden'))
+  return `${all.filter((i) => i.state === 'owned').length} / ${all.length}`
+}
 const tierCountOf = (t) => items.value.filter((i) => ofTier(i, t) && ofStatus(i, filter.value)).length
 const ownedCount = computed(() => items.value.filter((i) => i.state === 'owned').length)
 const byTier = computed(() =>
@@ -99,7 +110,7 @@ watch(
         <button
           v-for="[key, label] in FILTERS" :key="key" class="ach-filter" :class="{ active: filter === key }"
           :aria-pressed="filter === key" @click="filter = key"
-        >{{ label }}<em>{{ countOf(key) }}</em></button>
+        >{{ label }}<em>{{ countLabel(key) }}</em></button>
       </div>
       <div class="ach-filters ach-filters-tier">
         <button class="ach-filter" :class="{ active: !tier }" :aria-pressed="!tier" @click="tier = null">Toutes raretés</button>
