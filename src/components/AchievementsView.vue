@@ -9,7 +9,6 @@ const props = defineProps({
   owned: { type: Object, required: true },
   counts: { type: Object, required: true },
   progress: { type: Object, required: true },
-  triggers: { type: Object, default: () => ({}) },
   ready: { type: Boolean, default: false },
   error: { type: String, default: null },
   // `{ code, seq }` : le succès à montrer, demandé depuis un toast. `seq` change à chaque
@@ -20,7 +19,8 @@ defineEmits(['retry'])
 
 const FILTERS = [['all', 'Tous'], ['owned', 'Obtenus'], ['todo', 'En cours'], ['hidden', 'Cachés']]
 const filter = ref('all')
-const openCode = ref(null)
+const tier = ref(null)
+const focused = ref(null)
 
 const items = computed(() => ACHIEVEMENTS.map((a) => {
   const row = props.owned[a.code] ?? null
@@ -33,14 +33,21 @@ const items = computed(() => ACHIEVEMENTS.map((a) => {
 }))
 
 const newestFirst = (x, y) => (x.row.unlocked_at < y.row.unlocked_at ? 1 : x.row.unlocked_at > y.row.unlocked_at ? -1 : 0)
-const groups = computed(() => [
-  ['owned', 'Obtenus', items.value.filter((i) => i.state === 'owned').sort(newestFirst)],
-  ['todo', 'En cours', items.value.filter((i) => i.state === 'todo')],
-  ['hidden', 'Cachés', items.value.filter((i) => i.state === 'hidden')],
-].filter(([key, , list]) => list.length && (filter.value === 'all' || filter.value === key)))
+// Un succès caché non obtenu ne montre pas sa rareté : le filtre par rareté ne doit pas la
+// trahir en le comptant.
+const ofTier = (i, t) => i.state !== 'hidden' && i.a.tier === t
+const ofStatus = (i, key) => key === 'all' || i.state === key
+const shown = computed(() => (tier.value ? items.value.filter((i) => ofTier(i, tier.value)) : items.value))
 
-const countOf = (key) => (key === 'all' ? items.value.length : items.value.filter((i) => i.state === key).length)
-const ownedCount = computed(() => countOf('owned'))
+const groups = computed(() => [
+  ['owned', 'Obtenus', shown.value.filter((i) => i.state === 'owned').sort(newestFirst)],
+  ['todo', 'En cours', shown.value.filter((i) => i.state === 'todo')],
+  ['hidden', 'Cachés', shown.value.filter((i) => i.state === 'hidden')],
+].filter(([key, , list]) => list.length && ofStatus({ state: key }, filter.value)))
+
+const countOf = (key) => shown.value.filter((i) => ofStatus(i, key)).length
+const tierCountOf = (t) => items.value.filter((i) => ofTier(i, t) && ofStatus(i, filter.value)).length
+const ownedCount = computed(() => items.value.filter((i) => i.state === 'owned').length)
 const byTier = computed(() =>
   ['c', 'u', 'r', 'l'].map((t) => ({ t, n: items.value.filter((i) => i.state === 'owned' && i.a.tier === t).length })))
 
@@ -52,17 +59,13 @@ watch(
   async () => {
     if (!props.focus) return
     filter.value = 'all'
-    openCode.value = props.focus.code
+    tier.value = null
+    focused.value = props.focus.code
     await nextTick()
     document.querySelector(`[data-code="${props.focus.code}"]`)?.scrollIntoView?.({ block: 'center' })
   },
   { immediate: true },
 )
-
-function toggle(item) {
-  if (item.state !== 'owned') return
-  openCode.value = openCode.value === item.a.code ? null : item.a.code
-}
 </script>
 
 <template>
@@ -70,7 +73,7 @@ function toggle(item) {
     <div class="view-head">
       <div>
         <div class="eyebrow">Succès</div>
-        <h1 class="view-title">Ce que <i>tu as</i> réussi</h1>
+        <h1 class="view-title">Tes <i>succès</i></h1>
       </div>
     </div>
 
@@ -99,25 +102,26 @@ function toggle(item) {
           :aria-pressed="filter === key" @click="filter = key"
         >{{ label }}<em>{{ countOf(key) }}</em></button>
       </div>
+      <div class="ach-filters ach-filters-tier">
+        <button class="ach-filter" :class="{ active: !tier }" :aria-pressed="!tier" @click="tier = null">Toutes raretés</button>
+        <button
+          v-for="t in ['c', 'u', 'r', 'l']" :key="t" class="ach-filter" :class="[`ach-t-${t}`, { active: tier === t }]"
+          :aria-pressed="tier === t" @click="tier = tier === t ? null : t"
+        ><i></i>{{ TIER_LABEL[t] }}<em>{{ tierCountOf(t) }}</em></button>
+      </div>
 
       <template v-for="[key, label, list] in groups" :key="key">
         <h3 class="ach-group">{{ label }}</h3>
         <ul class="ach-list">
           <li
             v-for="item in list" :key="item.a.code" class="ach-row"
-            :class="[`is-${item.state}`, { open: openCode === item.a.code }]" :data-code="item.a.code"
-            :tabindex="item.state === 'owned' ? 0 : undefined"
-            @click="toggle(item)" @keyup.enter="toggle(item)"
+            :class="[`is-${item.state}`, { focused: focused === item.a.code }]" :data-code="item.a.code"
           >
             <AchievementBadge :achievement="item.a" :state="item.state" />
             <div class="ach-text">
               <div class="ach-name">{{ item.state === 'hidden' ? 'Succès caché' : item.a.name }}</div>
               <div class="ach-desc">
                 {{ item.state === 'hidden' ? 'Il se révèle le jour où tu le débloques.' : item.a.desc }}
-              </div>
-              <!-- La date est déjà sur la ligne : le détail dit ce qui l'a déclenché. -->
-              <div v-if="openCode === item.a.code && triggers[item.row.trigger_key]" class="ach-detail">
-                {{ triggers[item.row.trigger_key] }}
               </div>
             </div>
             <div class="ach-when">

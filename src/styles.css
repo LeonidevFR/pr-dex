@@ -330,18 +330,17 @@
     font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
   .ach-filter.active{color:var(--ink);border-bottom-color:var(--ink)}
   .ach-filter em{font-style:normal;font-family:var(--f-data);letter-spacing:0;font-size:11px;margin-left:5px}
-  .ach-filter:focus-visible,.ach-row:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .ach-filter:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .ach-filters-tier{padding-top:4px}
+  .ach-filters-tier .ach-filter i{display:inline-block;width:8px;height:8px;border-radius:50%;border:2px solid var(--ach-ink);margin-right:6px;vertical-align:1px}
   .ach-group{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.26em;text-transform:uppercase;
     color:var(--ink-2);padding:18px 4px 6px;border-bottom:1px solid rgba(70,60,50,.35)}
   .ach-list{list-style:none}
   .ach-row{display:grid;grid-template-columns:64px 1fr 170px 190px;gap:20px;align-items:center;padding:13px 4px;border-top:1px dashed rgba(70,60,50,.28)}
   .ach-row:first-child{border-top:0}
-  .ach-row.is-owned{cursor:pointer}
-  .ach-row.is-owned:hover{background:rgba(120,90,40,.05)}
   .ach-name{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:17px;line-height:1.15}
   .ach-row:not(.is-owned) .ach-name{color:var(--ink-2)}
   .ach-desc{font-size:13.5px;color:#5a5044;margin-top:2px;line-height:1.35}
-  .ach-detail{font-family:var(--f-data);font-size:12px;color:var(--ink-2);margin-top:6px}
   .ach-when{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-family:var(--f-data);font-size:12px;color:var(--ink-2)}
   .ach-hand{font-family:Caveat,cursive;font-size:22px;color:#5d564c;line-height:1}
   .ach-bar{width:130px;height:7px;border:1px solid #5d564c;border-radius:4px;position:relative;overflow:hidden}

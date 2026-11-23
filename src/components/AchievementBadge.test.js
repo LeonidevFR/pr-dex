@@ -5,9 +5,9 @@ import { BY_CODE } from '../lib/achievements.js'
 
 describe('AchievementBadge', () => {
   it('un succès obtenu prend l’encre de son palier et son sprite en masque', () => {
-    const w = mount(AchievementBadge, { props: { achievement: BY_CODE['deja-vu'] } })
+    const w = mount(AchievementBadge, { props: { achievement: BY_CODE['golden-booster'] } })
     expect(w.classes()).toContain('ach-t-r')
-    expect(w.find('.ach-sprite').attributes('style')).toContain('/132.png')
+    expect(w.find('.ach-sprite').attributes('style')).toContain('/52.png')
   })
 
   it('un palier chiffré porte son glyphe', () => {
@@ -16,7 +16,7 @@ describe('AchievementBadge', () => {
   })
 
   it('un succès caché ne montre qu’un point d’interrogation, sans encre', () => {
-    const w = mount(AchievementBadge, { props: { achievement: BY_CODE['deja-vu'], state: 'hidden' } })
+    const w = mount(AchievementBadge, { props: { achievement: BY_CODE['shiny-booster'], state: 'hidden' } })
     expect(w.text()).toBe('?')
     expect(w.find('.ach-sprite').exists()).toBe(false)
     expect(w.classes()).not.toContain('ach-t-r')

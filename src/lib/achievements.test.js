@@ -15,14 +15,15 @@ const codes = (r) => Object.keys(r.unlocked).sort()
 const evo = (species, from, fromKey, date = D) => ({ species, from, fromKey, date })
 
 describe('catalogue', () => {
-  it('compte 29 succès aux codes uniques, chacun avec un palier de carte', () => {
-    expect(ACHIEVEMENTS).toHaveLength(29)
-    expect(Object.keys(BY_CODE)).toHaveLength(29)
+  it('compte 37 succès aux codes uniques, chacun avec un palier de carte', () => {
+    expect(ACHIEVEMENTS).toHaveLength(37)
+    expect(Object.keys(BY_CODE)).toHaveLength(37)
     for (const a of ACHIEVEMENTS) expect(['c', 'u', 'r', 'l']).toContain(a.tier)
   })
 
-  it('ne cache que les coups de dés et les actions', () => {
-    for (const a of ACHIEVEMENTS) expect(a.hidden).toBe(a.group === 'dice' || a.group === 'actions')
+  it('ne cache que les coups de dés, les actions et les trios de collection', () => {
+    const trios = ['starters', 'birds', 'fossils', 'team-rocket', 'eeveelutions']
+    for (const a of ACHIEVEMENTS) expect(a.hidden).toBe(a.group === 'dice' || a.group === 'actions' || trios.includes(a.code))
   })
 })
 
@@ -65,6 +66,24 @@ describe('evaluate — collection', () => {
     const r = run([gh('a', 1, { shiny: true }), gh('b', 25, { shiny: true })], { evolutions: [evo(2, 1, 'github:a')] })
     expect(r.progress['shiny-species-3'].current).toBe(3)
     expect(r.unlocked['shiny-species-3']).toBeDefined()
+  })
+
+  it('les paliers chromatiques vont de 3 à 50 espèces', () => {
+    const shinies = Array.from({ length: 50 }, (_, i) => gh(`s${i}`, i + 1, { shiny: true }))
+    expect(codes(run(shinies.slice(0, 49))).filter((c) => c.startsWith('shiny-species')))
+      .toEqual(['shiny-species-10', 'shiny-species-20', 'shiny-species-3', 'shiny-species-5'])
+    expect(run(shinies).unlocked['shiny-species-50']).toBeDefined()
+    expect(run(shinies).progress['shiny-species-50']).toEqual({ current: 50, target: 50 })
+  })
+
+  it('un trio se complète à la date du troisième, évolution comprise', () => {
+    const r = run([gh('a', 1), gh('b', 4, { date: '2026-06-03' }), gh('c', 7, { date: '2026-06-02' })])
+    expect(r.unlocked.starters).toEqual({ date: '2026-06-03', triggerKey: 'github:b' })
+    const eevee = run([gh('a', 133), gh('b', 133), gh('c', 134)], {
+      evolutions: [evo(135, 133, 'github:a', '2026-06-04'), evo(136, 133, 'github:b', '2026-06-08')],
+    })
+    expect(eevee.unlocked.eeveelutions).toEqual({ date: '2026-06-08', triggerKey: 'evo:1' })
+    expect(run([gh('a', 144), gh('b', 145)]).unlocked.birds).toBeUndefined()
   })
 
   it('ignore une évolution malformée sans décaler les clés evo:i', () => {
@@ -160,6 +179,14 @@ describe('evaluate — coups de dés', () => {
     expect(run([gh('a', 25, { pr: 4026 })]).unlocked['lucky-number']).toBeUndefined()
     expect(run([gh('a', 25)]).unlocked['lucky-number']).toBeUndefined() // ref absent
     expect(run([{ ...gh('a', 25), ref: 'pas un numéro' }]).unlocked['lucky-number']).toBeUndefined()
+  })
+
+  it('palindrome : un numéro de PR de 3 chiffres ou plus qui se lit dans les deux sens', () => {
+    expect(run([gh('a', 25, { pr: 121 })]).unlocked.palindrome).toBeDefined()
+    expect(run([gh('a', 25, { pr: 4004 })]).unlocked.palindrome).toBeDefined()
+    expect(run([gh('a', 25, { pr: 44 })]).unlocked.palindrome).toBeUndefined()
+    expect(run([gh('a', 25, { pr: 123 })]).unlocked.palindrome).toBeUndefined()
+    expect(run([gh('a', 25)]).unlocked.palindrome).toBeUndefined()
   })
 
   it('jumeaux : même espèce, même date qu’un coéquipier', () => {

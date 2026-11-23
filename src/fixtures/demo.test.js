@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { demoCatches, loadDemoClient } from './demo.js'
 import { entryKey } from '../../shared/entry.js'
 import { evaluate } from '../lib/achievements.js'
@@ -61,6 +61,13 @@ describe('cartes de monkey-testing de la démo', () => {
 // La démo doit laisser voir les trois moments : le récap au premier passage sur l'onglet, un
 // toast au premier retournement, deux toasts empilés au dernier.
 describe('succès de la démo', () => {
+  // Les coéquipiers fictifs de la démo sont datés depuis aujourd'hui : certains jours, l'un
+  // d'eux croise un tirage du joueur et « Jumeaux » s'ajoute aux succès attendus.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-14T12:00:00Z'))
+  })
+  afterEach(() => vi.useRealTimers())
   const unlockedAfter = async (client, claimed) => {
     const catches = await client.readCatches()
     const { state } = await client.readState()
@@ -78,7 +85,7 @@ describe('succès de la démo', () => {
       .map((c) => entryKey(c.source, c.external_id))
     const gained = []
     let before = await unlockedAfter(client, claimed)
-    expect(before).toHaveLength(9)
+    expect(before).toHaveLength(10)
     for (const key of pending) {
       claimed = [...claimed, key]
       const after = await unlockedAfter(client, claimed)

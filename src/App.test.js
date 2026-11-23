@@ -207,6 +207,13 @@ describe('réglages du compte', () => {
 })
 
 describe('succès', () => {
+  // Les coéquipiers fictifs de la démo sont datés depuis aujourd'hui : certains jours, l'un
+  // d'eux croise un tirage du joueur et « Jumeaux » s'ajoute aux succès attendus.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-14T12:00:00Z'))
+  })
+  afterEach(() => vi.useRealTimers())
   const tabOf = (w, label) => w.findAll('.rail-tab').find((t) => t.text().startsWith(label))
   // Les succès se chargent après la collection, sans la bloquer : on attend la pastille.
   async function untilBadge(w) {
@@ -214,7 +221,7 @@ describe('succès', () => {
       await new Promise((r) => setTimeout(r, 5))
       await flushPromises()
     }
-    expect(w.find('.rail-tab-pip').text()).toBe('9')
+    expect(w.find('.rail-tab-pip').text()).toBe('10')
   }
 
   it('ouvre le récap des succès déjà acquis à l’arrivée sur l’onglet, une seule fois', async () => {
@@ -222,12 +229,12 @@ describe('succès', () => {
     await untilBadge(w)
     await tabOf(w, 'Succès').trigger('click')
     await flushPromises()
-    expect(w.find('.ach-recap-title').text()).toBe('Tu avais déjà 9 succès')
+    expect(w.find('.ach-recap-title').text()).toBe('Tu avais déjà 10 succès')
     await w.find('.ach-recap-close').trigger('click')
     await flushPromises()
     expect(w.find('.ach-recap').exists()).toBe(false)
     expect(w.find('.rail-tab-pip').exists()).toBe(false)
-    expect(w.findAll('.ach-row.is-owned')).toHaveLength(9)
+    expect(w.findAll('.ach-row.is-owned')).toHaveLength(10)
   })
 
   it('Échap ferme le récap', async () => {
@@ -269,6 +276,6 @@ describe('succès', () => {
     expect(tabOf(w, 'Succès').classes()).toContain('active')
     await w.find('.ach-recap-close').trigger('click')
     await flushPromises()
-    expect(w.find('[data-code="on-top"]').classes()).toContain('open')
+    expect(w.find('[data-code="on-top"]').classes()).toContain('focused')
   })
 })

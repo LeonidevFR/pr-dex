@@ -231,15 +231,20 @@ venaient les données.
 
 ## Succès, octobre 2026
 
-29 succès, dans un 4e onglet. Ce qui ne se déduit pas du code :
+37 succès, dans un 4e onglet. Ce qui ne se déduit pas du code :
 
 - **Rien ne récompense le travail.** Pas de « 100 PR », pas d'heure, pas de série de jours :
   les succès portent sur la collection, la chance et les gestes de jeu. Seule exception, les
   paliers de sessions de monkey-testing, dont le but est justement de relancer la participation.
 - **La rareté est fixe et vient de la difficulté**, pas du nombre de joueurs qui l'ont. Elle
-  reprend les paliers des cartes. Les seuils ont été posés par simulation d'un an de jeu
-  (300 cartes) : commun si 70 % des joueurs l'ont en un an, peu commun de 30 à 70 %, rare de
-  10 à 30 %, légendaire en dessous. Le nombre de joueurs reste affiché, à titre d'info.
+  reprend les paliers des cartes : commun si 70 % des joueurs l'ont en un an, peu commun de
+  30 à 70 %, rare de 10 à 30 %, légendaire en dessous. Le nombre de joueurs reste affiché, à
+  titre d'info.
+- **Les seuils viennent d'une simulation calée sur la production** (novembre 2026) : les 13
+  joueurs, de ~20 à ~3 900 cartes par an, avec l'évolution faite dès que les bonbons le
+  permettent. Une première simulation à 300 cartes par an sous-estimait le volume d'un
+  facteur 3 à 13. Les numéros de PR y sont tirés au hasard : la rareté de « Numéro gagnant »
+  et de « Palindrome » en dépend.
 - **Le front écrit la table `achievements`, en insertion seule.** Les règles vivent côté
   client parce que le déblocage tombe au retournement, que l'Action ne voit pas. Un joueur
   peut donc s'insérer un succès depuis la console, comme il peut déjà écrire

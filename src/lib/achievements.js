@@ -15,31 +15,39 @@ export const ACHIEVEMENTS = [
   { code: 'lineage-1', group: 'collection', name: 'Première lignée', desc: 'Compléter une famille d’évolution.', tier: 'c', hidden: false, icon: { sprite: 6 } },
   { code: 'species-50', group: 'collection', name: '50 espèces', desc: 'Avoir 50 espèces au Pokédex.', tier: 'c', hidden: false, icon: { glyph: '50' }, target: 50 },
   { code: 'species-100', group: 'collection', name: '100 espèces', desc: 'Avoir 100 espèces au Pokédex.', tier: 'c', hidden: false, icon: { glyph: '100' }, target: 100 },
-  { code: 'species-140', group: 'collection', name: '140 espèces', desc: 'Avoir 140 espèces au Pokédex.', tier: 'l', hidden: false, icon: { glyph: '140' }, target: 140 },
-  { code: 'species-151', group: 'collection', name: '151 espèces', desc: 'Compléter le Pokédex.', tier: 'l', hidden: false, icon: { glyph: '151' }, target: 151 },
+  { code: 'species-140', group: 'collection', name: '140 espèces', desc: 'Avoir 140 espèces au Pokédex.', tier: 'u', hidden: false, icon: { glyph: '140' }, target: 140 },
+  { code: 'species-151', group: 'collection', name: '151 espèces', desc: 'Compléter la 1re génération.', tier: 'r', hidden: false, icon: { glyph: '151' }, target: 151 },
   { code: 'shiny-species-3', group: 'collection', name: 'Chasseur de chromatiques I', desc: 'Avoir 3 espèces chromatiques.', tier: 'u', hidden: false, icon: { glyph: '★3' }, target: 3 },
-  { code: 'shiny-species-5', group: 'collection', name: 'Chasseur de chromatiques II', desc: 'Avoir 5 espèces chromatiques.', tier: 'l', hidden: false, icon: { glyph: '★5' }, target: 5 },
-  { code: 'shiny-species-8', group: 'collection', name: 'Chasseur de chromatiques III', desc: 'Avoir 8 espèces chromatiques.', tier: 'l', hidden: false, icon: { glyph: '★8' }, target: 8 },
-  { code: 'mt-1', group: 'monkey', name: 'Premier booster', desc: 'Ouvrir son premier booster de monkey-testing.', tier: 'c', hidden: false, icon: { sprite: 56 } },
+  { code: 'shiny-species-5', group: 'collection', name: 'Chasseur de chromatiques II', desc: 'Avoir 5 espèces chromatiques.', tier: 'u', hidden: false, icon: { glyph: '★5' }, target: 5 },
+  { code: 'shiny-species-10', group: 'collection', name: 'Chasseur de chromatiques III', desc: 'Avoir 10 espèces chromatiques.', tier: 'u', hidden: false, icon: { glyph: '★10' }, target: 10 },
+  { code: 'shiny-species-20', group: 'collection', name: 'Chasseur de chromatiques IV', desc: 'Avoir 20 espèces chromatiques.', tier: 'r', hidden: false, icon: { glyph: '★20' }, target: 20 },
+  { code: 'shiny-species-50', group: 'collection', name: 'Chasseur de chromatiques V', desc: 'Avoir 50 espèces chromatiques.', tier: 'l', hidden: false, icon: { glyph: '★50' }, target: 50 },
+  { code: 'starters', group: 'collection', name: 'Le choix du prof', desc: 'Avoir Bulbizarre, Salamèche et Carapuce.', tier: 'u', hidden: true, icon: { sprite: 7 } },
+  { code: 'birds', group: 'collection', name: 'Trio d’oiseaux', desc: 'Avoir Artikodin, Électhor et Sulfura.', tier: 'r', hidden: true, icon: { sprite: 145 } },
+  { code: 'fossils', group: 'collection', name: 'Fossiles', desc: 'Avoir Amonita, Kabuto et Ptéra.', tier: 'u', hidden: true, icon: { sprite: 138 } },
+  { code: 'team-rocket', group: 'collection', name: 'Team Rocket', desc: 'Avoir Abo, Smogo et Miaouss.', tier: 'u', hidden: true, icon: { sprite: 52 } },
+  { code: 'eeveelutions', group: 'collection', name: 'Évolition', desc: 'Avoir Aquali, Voltali et Pyroli.', tier: 'u', hidden: true, icon: { sprite: 133 } },
+  { code: 'mt-1', group: 'monkey', name: 'Premier booster', desc: 'Ouvrir son premier booster de monkey-testing.', tier: 'u', hidden: false, icon: { sprite: 56 } },
   { code: 'mt-5', group: 'monkey', name: 'Habitué', desc: 'Participer à 5 sessions de monkey-testing.', tier: 'u', hidden: false, icon: { glyph: '×5' }, target: 5 },
   { code: 'mt-10', group: 'monkey', name: 'Golden Monkey', desc: 'Participer à 10 sessions de monkey-testing.', tier: 'r', hidden: false, icon: { sprite: 57 }, target: 10 },
   { code: 'two-hats', group: 'monkey', name: 'Double casquette', desc: 'Avoir des cartes GitHub et des cartes monkey-testing.', tier: 'u', hidden: false, icon: { sprite: 122 } },
   { code: 'on-top', group: 'dice', name: 'Sur la tête', desc: 'Tirer une carte, puis sa propre évolution juste après.', tier: 'c', hidden: true, icon: { sprite: 5 } },
   { code: 'hot-hand', group: 'dice', name: 'Main chaude', desc: 'Tirer 3 cartes rares ou mieux d’affilée.', tier: 'u', hidden: true, icon: { sprite: 126 } },
-  { code: 'deja-vu', group: 'dice', name: 'Déjà-vu', desc: 'Tirer la même espèce deux fois d’affilée.', tier: 'r', hidden: true, icon: { sprite: 132 } },
-  { code: 'lucky-number', group: 'dice', name: 'Numéro gagnant', desc: 'Les 3 derniers chiffres d’une PR donnent le numéro de la carte tirée.', tier: 'r', hidden: true, icon: { sprite: 25 } },
+  { code: 'deja-vu', group: 'dice', name: 'Déjà-vu', desc: 'Tirer la même espèce deux fois d’affilée.', tier: 'c', hidden: true, icon: { sprite: 132 } },
+  { code: 'lucky-number', group: 'dice', name: 'Numéro gagnant', desc: 'Les 3 derniers chiffres d’une PR donnent le numéro de la carte tirée.', tier: 'u', hidden: true, icon: { sprite: 25 } },
   { code: 'beginner-luck', group: 'dice', name: 'Chance du débutant', desc: 'Un légendaire ou un chromatique dans tes 10 premières cartes.', tier: 'r', hidden: true, icon: { sprite: 113 } },
-  { code: 'golden-booster', group: 'dice', name: 'Booster doré', desc: '3 cartes rares ou mieux dans un même booster.', tier: 'u', hidden: true, icon: { sprite: 52 } },
+  { code: 'golden-booster', group: 'dice', name: 'Booster doré', desc: '3 cartes rares ou mieux dans un même booster.', tier: 'r', hidden: true, icon: { sprite: 52 } },
   { code: 'shiny-booster', group: 'dice', name: 'Booster chromatique', desc: 'Un chromatique dans un booster de monkey-testing.', tier: 'r', hidden: true, icon: { glyph: '✦' } },
-  { code: 'twins', group: 'dice', name: 'Jumeaux', desc: 'Tirer la même espèce qu’un coéquipier, le même jour.', tier: 'r', hidden: true, icon: { sprite: 102 } },
+  { code: 'palindrome', group: 'dice', name: 'Palindrome', desc: 'Tirer une carte d’une PR dont le numéro se lit dans les deux sens (3 chiffres ou plus).', tier: 'c', hidden: true, icon: { glyph: '121' } },
+  { code: 'twins', group: 'dice', name: 'Jumeaux', desc: 'Tirer la même espèce qu’un coéquipier, le même jour.', tier: 'c', hidden: true, icon: { sprite: 102 } },
   { code: 'shiny-legendary', group: 'dice', name: 'Gros veinard', desc: 'Tirer un légendaire chromatique.', tier: 'l', hidden: true, icon: { sprite: 151 } },
-  { code: 'shiny-double', group: 'dice', name: 'Doublé chromatique', desc: 'Tirer 2 chromatiques à 10 cartes d’écart au plus.', tier: 'l', hidden: true, icon: { glyph: '★★' } },
+  { code: 'shiny-double', group: 'dice', name: 'Doublé chromatique', desc: 'Tirer 2 chromatiques à 10 cartes d’écart au plus.', tier: 'u', hidden: true, icon: { glyph: '★★' } },
   { code: 'too-late', group: 'actions', name: 'Trop tard', desc: 'Tirer une espèce que tu avais déjà obtenue par évolution.', tier: 'c', hidden: true, icon: { sprite: 79 } },
   { code: 'right-away', group: 'actions', name: 'Sitôt dit', desc: 'Faire évoluer une carte le jour où elle a été tirée.', tier: 'c', hidden: true, icon: { sprite: 63 } },
-  { code: 'big-leap', group: 'actions', name: 'Le grand saut', desc: 'Mener un même exemplaire du 1er au 3e stade.', tier: 'c', hidden: true, icon: { sprite: 3 } },
-  { code: 'worth-it', group: 'actions', name: 'Ça valait le coup', desc: 'Faire évoluer une carte chromatique.', tier: 'u', hidden: true, icon: { sprite: 133 } },
-  { code: 'patient-fisher', group: 'actions', name: 'Pêcheur patient', desc: 'Avoir 10 Magicarpe sans en avoir jamais fait évoluer.', tier: 'l', hidden: true, icon: { sprite: 129 } },
-  { code: 'gyarados', group: 'actions', name: 'Patience récompensée', desc: 'Faire évoluer Magicarpe en Léviator.', tier: 'l', hidden: true, icon: { sprite: 130 } },
+  { code: 'big-leap', group: 'actions', name: 'Le grand saut', desc: 'Mener un même exemplaire du 1er au 3e stade.', tier: 'u', hidden: true, icon: { sprite: 3 } },
+  { code: 'worth-it', group: 'actions', name: 'Ça valait le coup', desc: 'Faire évoluer une carte chromatique.', tier: 'c', hidden: true, icon: { sprite: 133 } },
+  { code: 'patient-fisher', group: 'actions', name: 'Pêcheur patient', desc: 'Avoir 10 Magicarpe sans en avoir jamais fait évoluer.', tier: 'u', hidden: true, icon: { sprite: 129 } },
+  { code: 'gyarados', group: 'actions', name: 'Patience récompensée', desc: 'Faire évoluer Magicarpe en Léviator.', tier: 'u', hidden: true, icon: { sprite: 130 } },
 ]
 
 export const BY_CODE = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.code, a]))
@@ -47,6 +55,15 @@ export const BY_CODE = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.code, a]))
 const MAGIKARP = 129
 const GYARADOS = 130
 const RARE_OR_BETTER = new Set(['r', 'l'])
+const SHINY_STEPS = [3, 5, 10, 20, 50]
+const TRIOS = {
+  starters: [1, 4, 7],
+  birds: [144, 145, 146],
+  fossils: [138, 140, 142],
+  'team-rocket': [23, 109, 52],
+  eeveelutions: [134, 135, 136],
+}
+const isPalindrome = (n) => n >= 100 && String(n) === [...String(n)].reverse().join('')
 const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
 const evosOf = (id) => { const t = DEX[id]?.to; return t == null ? [] : Array.isArray(t) ? t : [t] }
 const isMonkey = (c) => c.source === 'slack' && c.ref === 'monkey-testing'
@@ -106,7 +123,8 @@ export function evaluate({ catches, claimed, evolutions, others = [] }) {
       hit('shiny-1', ev.date, ev.key)
     }
     for (const n of [50, 100, 140, 151]) if (owned.size >= n) hit(`species-${n}`, ev.date, ev.key)
-    for (const n of [3, 5, 8]) if (shinyOwned.size >= n) hit(`shiny-species-${n}`, ev.date, ev.key)
+    for (const n of SHINY_STEPS) if (shinyOwned.size >= n) hit(`shiny-species-${n}`, ev.date, ev.key)
+    for (const [code, trio] of Object.entries(TRIOS)) if (trio.every((s) => owned.has(s))) hit(code, ev.date, ev.key)
     if (lineageDone(ev.species)) hit('lineage-1', ev.date, ev.key)
   }
 
@@ -144,6 +162,7 @@ export function evaluate({ catches, claimed, evolutions, others = [] }) {
     if (c.shiny && c.tier === 'l') hit('shiny-legendary', c.date, c.key)
     if (c.shiny && seq.slice(Math.max(0, i - 10), i).some((x) => x.open && x.shiny)) hit('shiny-double', c.date, c.key)
     if (c.source === 'github' && prNumber(c) !== null && prNumber(c) % 1000 === c.species) hit('lucky-number', c.date, c.key)
+    if (c.source === 'github' && prNumber(c) !== null && isPalindrome(prNumber(c))) hit('palindrome', c.date, c.key)
   }
   const theirs = new Set(others.map((o) => `${o.species}@${o.date}`))
   for (const c of open) if (theirs.has(`${c.species}@${c.date}`)) { hit('twins', c.date, c.key); break }
@@ -164,7 +183,7 @@ export function evaluate({ catches, claimed, evolutions, others = [] }) {
 
   const progress = {}
   for (const n of [50, 100, 140, 151]) progress[`species-${n}`] = { current: owned.size, target: n }
-  for (const n of [3, 5, 8]) progress[`shiny-species-${n}`] = { current: shinyOwned.size, target: n }
+  for (const n of SHINY_STEPS) progress[`shiny-species-${n}`] = { current: shinyOwned.size, target: n }
   for (const n of [5, 10]) progress[`mt-${n}`] = { current: sessions.size, target: n }
 
   return { unlocked, progress }

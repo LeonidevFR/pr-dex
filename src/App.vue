@@ -24,8 +24,6 @@ import AchievementsView from './components/AchievementsView.vue'
 import AchievementToasts from './components/AchievementToasts.vue'
 import AchievementRecap from './components/AchievementRecap.vue'
 import { useAchievements } from './composables/useAchievements.js'
-import { DEX } from '../shared/species.js'
-import { entryKey } from '../shared/entry.js'
 
 const collection = useCollection()
 const achievements = useAchievements()
@@ -66,18 +64,6 @@ const today = new Date().toISOString().slice(0, 10)
 // ouverte la veille ne doit pas antidater un succès.
 const nowDay = () => new Date().toISOString().slice(0, 10)
 const collectionData = () => ({ catches: collection.catches.value, state: collection.state.value })
-
-// Ce qui a déclenché chaque succès, pour son détail dans le registre.
-const achievementTriggers = computed(() => {
-  const map = {}
-  for (const c of collection.catches.value) {
-    map[entryKey(c.source, c.external_id)] = `Grâce à ${DEX[c.species]?.name ?? '?'}, tiré de « ${c.label} »`
-  }
-  collection.state.value.evolutions.forEach((e, i) => {
-    if (e && DEX[e.species]) map[`evo:${i}`] = `Grâce à l’évolution en ${DEX[e.species].name}`
-  })
-  return map
-})
 
 // Le récap se fige à l'ouverture : `acknowledge` vide la liste dès la fermeture, et la feuille
 // qui s'efface afficherait sinon « Tu avais déjà 0 succès ».
@@ -302,7 +288,7 @@ useKeyboardNav({
     <AchievementsView
       v-else-if="view === 'achievements'"
       :owned="achievements.owned.value" :counts="achievements.counts.value" :progress="achievements.progress.value"
-      :triggers="achievementTriggers" :ready="achievements.ready.value" :error="achievements.error.value"
+      :ready="achievements.ready.value" :error="achievements.error.value"
       :focus="achievementFocus"
       @retry="achievements.load(dataClient, collectionData)"
     />

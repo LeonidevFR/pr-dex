@@ -10,7 +10,7 @@ const mountView = (props = {}) => mount(AchievementsView, {
   props: {
     owned: OWNED, counts: { 'deja-vu': 4, 'species-100': 1, 'hot-hand': 3 },
     progress: { 'species-140': { current: 131, target: 140 } },
-    triggers: { 'github:b': 'Grâce à Rattata, tiré de « fix: race condition »' }, ready: true, error: null,
+    ready: true, error: null,
     ...props,
   },
 })
@@ -18,14 +18,14 @@ const row = (w, code) => w.find(`[data-code="${code}"]`)
 
 describe('AchievementsView', () => {
   it('compte les succès obtenus sur le total', () => {
-    expect(mountView().find('.ach-total').text()).toBe('2 / 29')
+    expect(mountView().find('.ach-total').text()).toBe('2 / 37')
   })
 
   it('un succès obtenu montre son nom, sa date, son palier et qui l’a', () => {
     const r = row(mountView(), 'deja-vu')
     expect(r.find('.ach-name').text()).toBe('Déjà-vu')
     expect(r.find('.ach-date').text()).toBe('2 sept. 2026')
-    expect(r.find('.ach-rarity b').text()).toBe('Rare')
+    expect(r.find('.ach-rarity b').text()).toBe('Commun')
     expect(r.find('.ach-rarity small').text()).toBe('4 joueurs l’ont')
   })
 
@@ -55,10 +55,15 @@ describe('AchievementsView', () => {
     expect(w.findAll('.ach-row').every((r) => r.classes('is-hidden'))).toBe(true)
   })
 
-  it('un clic sur un succès obtenu déplie ce qui l’a déclenché', async () => {
+  it('le filtre par rareté ne compte ni ne montre les succès cachés non obtenus', async () => {
     const w = mountView()
-    await row(w, 'deja-vu').trigger('click')
-    expect(row(w, 'deja-vu').find('.ach-detail').text()).toBe('Grâce à Rattata, tiré de « fix: race condition »')
+    const common = w.findAll('.ach-filters-tier .ach-filter').find((b) => b.text().startsWith('Commun'))
+    expect(common.find('em').text()).toBe('5')
+    await common.trigger('click')
+    expect(w.findAll('.ach-row').map((r) => r.attributes('data-code')).sort())
+      .toEqual(['deja-vu', 'lineage-1', 'shiny-1', 'species-100', 'species-50'])
+    await common.trigger('click')
+    expect(w.findAll('.ach-row')).toHaveLength(37)
   })
 
   it('affiche l’erreur et réessaie', async () => {
@@ -72,11 +77,11 @@ describe('AchievementsView', () => {
     expect(mountView({ ready: false }).find('.board-loading').exists()).toBe(true)
   })
 
-  it('ouvre et déplie le succès demandé depuis un toast, en revenant sur « Tous »', async () => {
+  it('montre le succès demandé depuis un toast, en revenant sur « Tous »', async () => {
     const w = mountView()
     await w.findAll('.ach-filter').find((b) => b.text().startsWith('Cachés')).trigger('click')
     await w.setProps({ focus: { code: 'deja-vu', seq: 1 } })
     expect(w.find('.ach-filter.active').text()).toMatch(/^Tous/)
-    expect(row(w, 'deja-vu').classes()).toContain('open')
+    expect(row(w, 'deja-vu').classes()).toContain('focused')
   })
 })
