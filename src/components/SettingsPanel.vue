@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue'
-import { X, CircleX } from '@lucide/vue'
+import { ref, computed, watch } from 'vue'
+import { X } from '@lucide/vue'
+import NoticeToast from './NoticeToast.vue'
 
 const props = defineProps({
   accountName: { type: String, required: true },
@@ -10,6 +11,19 @@ const props = defineProps({
   accountError: { type: Object, default: null },
 })
 const emit = defineEmits(['close', 'disconnect', 'link', 'unlink'])
+
+/** L'échec d'une liaison, lu pour un humain : `[titre, détail]`. */
+const echec = computed(() => {
+  const e = props.accountError
+  if (!e) return null
+  if (e.code === 'identity_already_exists' && /another user/i.test(e.description)) {
+    return ['Liaison impossible.', 'Ce compte est déjà relié à un autre profil pr-dex.']
+  }
+  if (e.code === 'identity_already_exists') return ['Rien à faire.', 'Ce compte est déjà relié à ton compte.']
+  return ['Ça n’a pas marché.', e.description || e.code]
+})
+const masque = ref(false)
+watch(() => props.accountError, () => { masque.value = false })
 
 const PROVIDERS = [['github', 'GitHub'], ['slack_oidc', 'Slack']]
 const linked = (provider) => props.identities.find((i) => i.provider === provider)
@@ -50,23 +64,6 @@ function onUnlink(provider) {
             <p v-if="!linked('slack_oidc')" class="muted acct-hint">Tes boosters de monkey-testing arrivent par ton compte Slack.</p>
           </template>
         </div>
-        <div v-if="accountError" class="sect">
-          <div class="banner err">
-            <CircleX class="bico" :size="16" aria-hidden="true" />
-            <div v-if="accountError.code === 'identity_already_exists' && /another user/i.test(accountError.description)">
-              <span class="bt">Liaison impossible.</span>
-              Ce compte est déjà relié à un autre profil pr-dex.
-            </div>
-            <div v-else-if="accountError.code === 'identity_already_exists'">
-              <span class="bt">Rien à faire.</span>
-              Ce compte est déjà relié à ton compte.
-            </div>
-            <div v-else>
-              <span class="bt">Ça n'a pas marché.</span>
-              {{ accountError.description || accountError.code }}
-            </div>
-          </div>
-        </div>
         <div class="sect">
           <button class="btn-ghost" @click="$emit('disconnect')">Se déconnecter</button>
         </div>
@@ -93,6 +90,12 @@ function onUnlink(provider) {
           </p>
         </div>
       </div>
+    </div>
+    <div class="toast-pile">
+      <NoticeToast
+        :title="echec && !masque ? echec[0] : null" :message="echec && !masque ? echec[1] : null"
+        @dismiss="masque = true"
+      />
     </div>
   </div>
 </template>

@@ -65,7 +65,7 @@ describe('SettingsPanel', () => {
   // Supabase renvoie le même code dans les deux cas ; seule la description les distingue.
   it('explique un compte Slack déjà relié à un autre profil', () => {
     const w = mountPanel({ accountError: { code: 'identity_already_exists', description: 'Identity is already linked to another user' } })
-    expect(w.find('.banner.err').text()).toContain('déjà relié à un autre profil')
+    expect(w.find('.notice-toast').text()).toContain('déjà relié à un autre profil')
   })
 
   it('ne parle pas d’autre profil quand le compte est déjà relié à celui-ci', () => {
@@ -76,6 +76,6 @@ describe('SettingsPanel', () => {
 
   it('affiche la cause brute pour toute autre erreur', () => {
     const w = mountPanel({ accountError: { code: 'access_denied', description: 'User cancelled' } })
-    expect(w.find('.banner.err').text()).toContain('User cancelled')
+    expect(w.find('.notice-toast').text()).toContain('User cancelled')
   })
 })

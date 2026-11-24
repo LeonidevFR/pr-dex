@@ -5,6 +5,8 @@ import { CircleCheck, CircleX, X } from '@lucide/vue'
 const props = defineProps({
   /** Le texte à annoncer, ou null. */
   message: { type: String, default: null },
+  /** Le début du message, en gras (« Pas de réseau. »). */
+  title: { type: String, default: null },
   /** `true` pour une bonne nouvelle (vente, carte arrivée), `false` pour un refus du serveur. */
   good: { type: Boolean, default: false },
 })
@@ -36,7 +38,7 @@ onUnmounted(() => clearTimeout(timer))
       :role="good ? 'status' : 'alert'" aria-live="polite"
     >
       <component :is="good ? CircleCheck : CircleX" class="toast-ico" :size="18" aria-hidden="true" />
-      <span class="toast-copy">{{ message }}</span>
+      <span class="toast-copy"><span v-if="title" class="bt">{{ title }}</span>{{ message }}</span>
       <button class="toast-x" aria-label="Fermer" @click="emit('dismiss')"><X :size="16" aria-hidden="true" /></button>
     </div>
   </transition>

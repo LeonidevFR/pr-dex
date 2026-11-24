@@ -1009,7 +1009,6 @@
   .btn-ghost:hover{color:var(--fg);border-color:var(--line-strong-hi)}
   .btn-solid:focus-visible,.btn-ghost:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .banner{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid;border-radius:8px;margin-top:22px;font-size:13px;line-height:1.5}
-  .banner.err{border-color:rgba(224,122,108,.5);background:rgba(224,122,108,.08);color:var(--fg)}
   .banner .bt{font-weight:700;color:var(--danger)}
   .banner .bico{flex:none;color:var(--danger);margin-top:1px}
   /* Invitation à lier Slack : même gabarit que l'erreur, en or. Elle tient sur une ligne au-dessus
@@ -1057,11 +1056,10 @@
     .front-card .pkc-art img{width:76px;height:76px}
   }
 
-  /* Message du bouton ⟳ : en bas de l'écran, au-dessus de la planche et sous les panneaux.
-     Il dit que les cartes arrivent seules : sans lui, on rechargeait la page en boucle. */
   /* La pile des messages passagers : centrée en bas, au-dessus des fenêtres (40) et du rituel
-     (60), sous les toasts de succès (80). Sur la
-     revente, elle remonte au-dessus de la barre de vente, qui porte le bouton. */
+     (60), sous les toasts de succès (80). Sur la revente, elle remonte au-dessus de la barre de
+     vente, qui porte le bouton. Le message du bouton ⟳ y dit que les cartes arrivent seules :
+     sans lui, on rechargeait la page en boucle. */
   .toast-pile{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:75;width:min(560px,calc(100vw - 32px));
     display:flex;flex-direction:column;gap:8px;pointer-events:none}
   .toast-pile.sur-vente{bottom:128px}
@@ -1084,6 +1082,8 @@
   .notice-toast .toast-ico{flex:none;color:var(--danger)}
   .notice-toast.bonne .toast-ico{color:var(--u-text)}
   .notice-toast .toast-copy{flex:1;min-width:0}
+  .notice-toast .bt{font-weight:700;margin-right:4px;color:var(--danger)}
+  .notice-toast.bonne .bt{color:var(--u-text)}
   .notice-enter-active,.notice-leave-active{transition:opacity .25s,transform .25s}
   .notice-enter-from,.notice-leave-to{opacity:0;transform:translateY(12px)}
   @media (prefers-reduced-motion:reduce){.sync-toast .toast-ico.spinning{animation:none}}
