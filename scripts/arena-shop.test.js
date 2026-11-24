@@ -67,10 +67,10 @@ describe.skipIf(!disponible)('boutique', () => {
   it('marque la génération et l’exigence d’inédit du pli acheté', async () => {
     await crediter(20000)
     const pack = await commeAcheteur(async (c) => {
-      const { rows } = await c.query("select public.arena_buy('gen2-r-inedit') as id")
+      const { rows } = await c.query("select public.arena_buy('gen1-r-inedit') as id")
       return (await c.query('select tier, gen, fresh from public.arena_packs where id = $1', [rows[0].id])).rows[0]
     })
-    expect(pack).toEqual({ tier: 'r', gen: 2, fresh: true })
+    expect(pack).toEqual({ tier: 'r', gen: 1, fresh: true })
   })
 
   // Payer sans recevoir, ou recevoir sans payer, sont deux façons également fâcheuses de perdre

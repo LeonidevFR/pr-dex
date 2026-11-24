@@ -1171,6 +1171,7 @@
      de la refonte accepte un bouton dans sa valeur, à condition qu'il ne pousse pas le nombre. */
   .shop-list dd{display:flex;align-items:baseline;gap:16px;justify-content:flex-end}
   .shop-list dd .evo-btn{padding:7px 13px;font-size:10px}
+  .shop-prix{white-space:nowrap}
 
   /* Dans la table du classement, le nom est un lien vers un profil : il garde la couleur et le
      poids d'un nom, et ne prend l'or qu'au survol. */

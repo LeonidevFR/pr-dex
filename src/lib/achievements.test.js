@@ -15,14 +15,14 @@ const codes = (r) => Object.keys(r.unlocked).sort()
 const evo = (species, from, fromKey, date = D) => ({ species, from, fromKey, date })
 
 describe('catalogue', () => {
-  it('compte 64 succès aux codes uniques, chacun avec un palier de carte', () => {
-    expect(ACHIEVEMENTS).toHaveLength(64)
-    expect(Object.keys(BY_CODE)).toHaveLength(64)
+  it('compte 58 succès aux codes uniques, chacun avec un palier de carte', () => {
+    expect(ACHIEVEMENTS).toHaveLength(58)
+    expect(Object.keys(BY_CODE)).toHaveLength(58)
     for (const a of ACHIEVEMENTS) expect(['c', 'u', 'r', 'l']).toContain(a.tier)
   })
 
   it('ne cache que les coups de dés, les actions, les trios et les exploits', () => {
-    const autres = ['starters', 'birds', 'fossils', 'team-rocket', 'eeveelutions', 'beasts', 'underdog', 'giant-slayer']
+    const autres = ['starters', 'birds', 'fossils', 'team-rocket', 'eeveelutions', 'underdog', 'giant-slayer']
     for (const a of ACHIEVEMENTS) expect(a.hidden).toBe(a.group === 'dice' || a.group === 'actions' || autres.includes(a.code))
   })
 })
@@ -237,17 +237,9 @@ describe('volume, 2e génération et boutique', () => {
     expect(run(cards).progress['cards-500']).toEqual({ current: 100, target: 500 })
   })
 
-  it('compte les espèces de la 2e génération, évolutions comprises', () => {
-    const r = run([gh('a', 152), gh('b', 155)], { evolutions: [evo(156, 155, 'github:b', '2026-06-03')] })
-    expect(r.unlocked['gen2-1']).toBeDefined()
-    expect(r.progress['gen2-25']).toEqual({ current: 3, target: 25 })
-    expect(run([gh('a', 1)]).unlocked['gen2-1']).toBeUndefined()
-  })
-
-  it('les trois bêtes et le légendaire de Johto', () => {
-    const r = run([gh('a', 243), gh('b', 244, { date: '2026-06-02' }), gh('c', 245, { date: '2026-06-05' })])
-    expect(r.unlocked.beasts).toEqual({ date: '2026-06-05', triggerKey: 'github:c' })
-    expect(r.unlocked['gen2-legendary']).toBeDefined()
+  // La Gen 2 et ses succès arrivent ensemble en saison 2 : aucun n'est atteignable avant.
+  it('n’a aucun succès de la 2e génération en saison 1', () => {
+    expect(ACHIEVEMENTS.filter((a) => a.group === 'gen2')).toEqual([])
   })
 
   it('compte les plis achetés en boutique, ouverts ou non', () => {

@@ -43,8 +43,8 @@ describe('gains', () => {
 })
 
 describe('boutique', () => {
-  it('vend les trois paliers de chaque génération, plus le légendaire', () => {
-    expect(SHOP.filter((a) => !a.fresh)).toHaveLength(7)
+  it('vend les trois paliers de la Gen 1, plus le légendaire', () => {
+    expect(SHOP.filter((a) => !a.fresh)).toHaveLength(4)
   })
 
   it('propose chaque article aussi en inédit garanti, à 2,5 fois le prix', () => {
@@ -54,12 +54,9 @@ describe('boutique', () => {
     }
   })
 
-  it('vend la Gen 2 deux fois le prix de la Gen 1 à palier égal', () => {
-    for (const tier of ['c', 'u', 'r']) {
-      const g1 = SHOP.find((a) => !a.fresh && a.gen === 1 && a.tier === tier)
-      const g2 = SHOP.find((a) => !a.fresh && a.gen === 2 && a.tier === tier)
-      expect(g2.price).toBe(g1.price * 2)
-    }
+  // La Gen 2 arrive en saison 2, en boutique et au tirage des PR à la fois.
+  it('ne vend aucun article Gen 2 en saison 1', () => {
+    expect(SHOP.filter((a) => a.gen === 2)).toEqual([])
   })
 
   // Le dernier objectif du jeu doit rester à plusieurs saisons de distance, sans quoi il n'y

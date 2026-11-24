@@ -270,12 +270,6 @@ insert into public.arena_shop (slug, gen, tier, fresh, price) values
   ('gen1-u-inedit', 1, 'u', true, 1250),
   ('gen1-r', 1, 'r', false, 1200),
   ('gen1-r-inedit', 1, 'r', true, 3000),
-  ('gen2-c', 2, 'c', false, 500),
-  ('gen2-c-inedit', 2, 'c', true, 1250),
-  ('gen2-u', 2, 'u', false, 1000),
-  ('gen2-u-inedit', 2, 'u', true, 2500),
-  ('gen2-r', 2, 'r', false, 2400),
-  ('gen2-r-inedit', 2, 'r', true, 6000),
   ('gen1-l', 1, 'l', false, 4500),
   ('gen1-l-inedit', 1, 'l', true, 11250)
 on conflict (slug) do update set price = excluded.price;
