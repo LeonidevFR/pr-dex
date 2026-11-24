@@ -11,9 +11,8 @@ import { FIRST_SEASON, arenaOpensAt } from '../../shared/arena-economy.js'
  * qu'elle décernerait les mêmes badges. L'arène attend donc le premier jour de la saison 1, et
  * cet écran occupe l'intervalle.
  *
- * Il annonce plutôt qu'il n'excuse : personne n'a envie de lire qu'une fonctionnalité n'est pas
- * prête. On y montre ce qui se prépare — le badge qui sera en jeu, les règles du duel — pour
- * que l'attente serve à comprendre le mode avant d'y entrer.
+ * Il annonce l'arène au lieu de s'excuser qu'elle ne soit pas prête : la date, le badge en jeu
+ * et les règles, pour qu'on connaisse le mode avant d'y entrer.
  */
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
   'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
@@ -37,8 +36,9 @@ const jours = computed(() =>
         <div class="eyebrow">Bientôt</div>
         <h1 class="view-title">L’arène ouvre <i>le {{ quand }}</i></h1>
         <p class="muted" style="margin-top:8px">
-          On y engage un de ses Pokémon contre celui d’un collègue. Le perdant est détruit. Le
-          vainqueur garde le sien et gagne des niveaux, des pokédollars et une carte.
+          Tu y mets un de tes Pokémon en jeu contre celui d’un collègue. Le perdant perd son
+          Pokémon. Le gagnant le garde, peut monter de niveau, et gagne des pokédollars, des
+          points de saison et une carte.
         </p>
       </div>
     </div>
@@ -50,33 +50,35 @@ const jours = computed(() =>
       </div>
       <div class="teaser-badge">
         <SeasonBadge :season="FIRST_SEASON" :rank="0" :size="78" />
-        <span class="mono">le badge de la saison 1</span>
+        <span class="mono">Badge de la saison 1</span>
       </div>
     </div>
 
     <div class="sect">
-      <div class="eyebrow sect-h"><span>Ce qui attend</span></div>
+      <div class="eyebrow sect-h"><span>Les règles</span></div>
       <div class="teaser-liste">
-        <p><b>Un engagement par crédit</b>, un crédit qui s’ajoute chaque jour ouvré,
-          cinq en réserve au plus. Ce qui n’est pas joué est perdu le dimanche soir.</p>
-        <p><b>Les deux mises restent scellées</b> jusqu’à la résolution : on choisit qui l’on
-          affronte, jamais avec quoi. Personne ne peut ajuster sa mise en voyant celle de
-          l’autre.</p>
-        <p><b>Aucun duel n’est joué d’avance.</b> Les chances sont bornées entre 5 % et 95 % :
-          le plus faible garde toujours une chance sur vingt, et le plus fort finit toujours par
-          tomber.</p>
-        <p><b>Écraser plus faible que soi ne fait pas progresser.</b> On ne gagne des niveaux
-          qu’en affrontant à sa hauteur, ou plus fort.</p>
-        <p><b>Deux mois par saison</b>, et les trois premiers gardent son badge. Une saison ne
-          se rejoue pas.</p>
+        <p><b>Un duel coûte un crédit.</b> Tu en reçois un par jour ouvré, cinq au maximum. Les
+          crédits non utilisés sont perdus chaque dimanche soir.</p>
+        <p><b>Tu ne vois pas le Pokémon de ton adversaire</b> avant le résultat, et lui ne voit
+          pas le tien.</p>
+        <p><b>Le plus faible a toujours sa chance.</b> Les chances de victoire restent entre 5 %
+          et 95 %.</p>
+        <p><b>Battre plus faible que toi ne fait pas monter de niveau.</b> Il faut affronter un
+          Pokémon de ta force, ou plus fort.</p>
+        <p><b>Contre l’ordinateur, tu ne risques rien.</b> Tu gagnes un peu de pokédollars,
+          mais ni niveau, ni point, ni carte. Un défi que personne ne relève en 24 h est joué
+          contre lui.</p>
+        <p><b>Une saison dure deux mois.</b> Les trois premiers gagnent son badge et une prime
+          de 1 000, 500 ou 250 ₽.</p>
+        <p><b>Les pokédollars servent en boutique</b>, pour acheter des cartes. Tes doublons
+          s’y revendent.</p>
       </div>
     </div>
 
     <div class="sect">
       <p class="muted">
-        D’ici là, rien ne change : les Pokémon continuent d’arriver, une PR mergée ou un
-        monkey-testing à la fois. Ceux que tu accumules maintenant seront ceux que tu engageras :
-        un exemplaire de plus, c’est un duel de plus que tu peux te permettre de perdre.
+        D’ici là, tes PR mergées et tes monkey-testings continuent de te rapporter des Pokémon.
+        Garde tes doublons : tu pourras les engager sans risquer ton seul exemplaire.
       </p>
     </div>
   </section>

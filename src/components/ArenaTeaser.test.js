@@ -44,13 +44,14 @@ describe('ArenaTeaser', () => {
   it('annonce les règles qui décident d’un duel', () => {
     const t = teaser().text()
     expect(t).toContain('5 %')
-    expect(t).toContain('Écraser plus faible que soi ne fait pas progresser')
-    expect(t).toContain('scellées')
+    expect(t).toContain('Battre plus faible que toi ne fait pas monter de niveau')
+    expect(t).toContain('Tu ne vois pas le Pokémon de ton adversaire')
+    expect(t).toContain('Contre l’ordinateur, tu ne risques rien')
   })
 
   // L'attente doit rester utile : ce qu'on accumule d'ici là servira.
   it('dit à quoi sert d’attendre', () => {
-    expect(teaser().text()).toContain('Ceux que\n        tu accumules maintenant'.replace(/\s+/g, ' '))
+    expect(teaser().text()).toContain('Garde tes doublons')
   })
 
   it('se déduit de la première saison plutôt que d’une date écrite deux fois', () => {
