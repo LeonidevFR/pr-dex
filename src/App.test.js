@@ -432,12 +432,11 @@ describe('revente du surplus', () => {
    * collection arrive un tour plus tard. On attend l'accusé de réception plutôt qu'un délai fixe.
    */
   /** Rien n'est coché au départ : on prend le surplus du premier tas d'un clic. */
-  const choisirLePremierTas = (w) => w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
+  const choisirLePremierTas = (w) => w.findAll('.vendre-tous')[0].trigger('click')
 
   const vendreEtAttendre = async (w) => {
-    const bouton = w.find('.vendre-btn')
-    await bouton.trigger('click')
-    await bouton.trigger('click')
+    await w.find('.vendre-btn').trigger('click')
+    await w.find('.vendre-confirmer').trigger('click')
     for (let i = 0; i < 100 && !w.find('.avis').exists(); i++) {
       await new Promise((r) => setTimeout(r, 5))
       await flushPromises()
@@ -461,7 +460,7 @@ describe('revente du surplus', () => {
     const avant = caisse()
 
     await choisirLePremierTas(w)
-    const total = Number(w.findAll('.view-num')[1].text().replace(/\D/g, ''))
+    const total = Number(w.find('.vendre-bar .gold').text().replace(/\D/g, ''))
     expect(total).toBeGreaterThan(0)
 
     await vendreEtAttendre(w)
@@ -476,13 +475,13 @@ describe('revente du surplus', () => {
     await ouvrirBoutique(w)
 
     const nidoran = w.findAll('.vendre-groupe')[0]
-    const avant = Number(nidoran.find('.vendre-compte').text().replace(/\D/g, ''))
+    const avant = nidoran.findAll('.vendre-ex').length
 
     await choisirLePremierTas(w)
     await vendreEtAttendre(w)
 
     const apres = w.findAll('.vendre-groupe')
-    const reste = apres.length ? Number(apres[0].find('.vendre-compte').text().replace(/\D/g, '')) : 0
+    const reste = apres.length ? apres[0].findAll('.vendre-ex').length : 0
     expect(reste).toBeLessThan(avant)
   })
 

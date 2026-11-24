@@ -15,6 +15,10 @@ const monter = (disponibles, levelOf = () => 1, props = {}) => mount(SaleSection
 
 const TROIS_RATTATA = [e('a', RATTATA), e('b', RATTATA), e('c', RATTATA)]
 
+const barre = (w) => w.find('.vendre-bar-txt').text()
+const tous = (w, n = 0) => w.findAll('.vendre-tous')[n].trigger('click')
+const pris = (w) => w.findAll('.vendre-ex').filter((l) => l.classes().includes('pris'))
+
 describe('SaleSection', () => {
   it('dit qu’il n’y a rien à vendre plutôt que d’afficher une liste vide', () => {
     const w = monter([e('a', RATTATA)])
@@ -35,93 +39,95 @@ describe('SaleSection', () => {
    */
   it('ne coche rien au départ', () => {
     const w = monter(TROIS_RATTATA)
-    expect(w.find('.view-num').text()).toBe('0 ₽')
+    expect(barre(w)).toBe('Aucun exemplaire choisi')
     expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
-    expect(w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))).toHaveLength(0)
+    expect(pris(w)).toHaveLength(0)
+  })
+
+  // Sans rien à déplier : on voit ce qu'on vend.
+  it('montre chaque exemplaire d’emblée, avec son niveau et son prix', () => {
+    const w = monter(TROIS_RATTATA, (k) => (k === 'b' ? 8 : 1))
+    const tuiles = w.findAll('.vendre-ex')
+    expect(tuiles).toHaveLength(3)
+    expect(w.text()).toContain('Niv. 8')
+    expect(w.text()).toContain('le meilleur')
+    expect(tuiles[0].text()).toContain(`${salePrice(RATTATA, 1)} ₽`)
   })
 
   it('chiffre la sélection à mesure qu’on la compose', async () => {
     const w = monter(TROIS_RATTATA)
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')   // « Tous »
-    expect(w.find('.view-num').text()).toBe(`${salePrice(RATTATA, 1) * 2} ₽`)
-    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
+    await tous(w)
+    expect(barre(w)).toBe(`2 exemplaires · ${salePrice(RATTATA, 1) * 2} ₽`)
+    expect(w.find('.vendre-groupe').text()).toContain('2 à vendre')
   })
 
-  it('vend en deux clics, et rend les clés choisies', async () => {
-    const w = monter(TROIS_RATTATA)
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
+  /** Rien ne part sans avoir vu le lot : la vente passe par un récapitulatif. */
+  it('montre le lot avant de vendre, puis rend les clés choisies', async () => {
+    const w = monter([...TROIS_RATTATA, e('d', BULBIZARRE), e('f', BULBIZARRE)])
+    await tous(w)
     await w.find('.vendre-btn').trigger('click')
     expect(w.emitted('sell')).toBeUndefined()
-    expect(w.find('.vendre-btn').text()).toContain('Confirmer')
 
-    await w.find('.vendre-btn').trigger('click')
+    const apercu = w.find('.vendre-apercu')
+    expect(apercu.find('.vendre-apercu-titre').text()).toBe('Vendre 2 exemplaires\u00a0?')
+    expect(apercu.findAll('.vendre-recap li')).toHaveLength(1)
+    expect(apercu.find('.vendre-recap').text()).toContain('Rattata ×2')
+    expect(apercu.find('.vendre-confirmer').text()).toBe(`Vendre pour ${salePrice(RATTATA, 1) * 2} ₽`)
+
+    await apercu.find('.vendre-confirmer').trigger('click')
     expect(w.emitted('sell')[0][0]).toHaveLength(2)
+    expect(w.find('.vendre-apercu').exists()).toBe(false)
   })
 
-  // Le second clic dit le prix : on confirme ce qu'on encaisse, pas seulement qu'on a cliqué.
-  it('annonce le montant sur le clic de confirmation', async () => {
+  it('referme le récapitulatif sans vendre ni perdre la sélection', async () => {
     const w = monter(TROIS_RATTATA)
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
+    await tous(w)
     await w.find('.vendre-btn').trigger('click')
-    expect(w.find('.vendre-btn').text()).toContain(`${salePrice(RATTATA, 1) * 2} ₽`)
+    await w.findAll('.vendre-apercu-actions button').find((b) => b.text() === 'Annuler').trigger('click')
+    expect(w.find('.vendre-apercu').exists()).toBe(false)
+    expect(w.emitted('sell')).toBeUndefined()
+    expect(barre(w)).toContain('2 exemplaires')
   })
 
-  it('ne propose rien à vendre quand la sélection est vidée', async () => {
+  // Un shiny est signalé : il ne doit pas partir sans qu'on l'ait vu.
+  it('signale les shinies, dans les tuiles et dans le récapitulatif', async () => {
+    const w = monter([e('a', RATTATA), e('b', RATTATA, true), e('c', RATTATA, true)])
+    expect(w.find('.vendre-grille').text()).toContain('shiny')
+    await tous(w)
+    await w.find('.vendre-btn').trigger('click')
+    expect(w.find('.vendre-apercu').text()).toContain('dont 1 shiny')
+  })
+
+  it('vide la sélection d’un groupe ou de toute la page', async () => {
     const w = monter(TROIS_RATTATA)
-    const bouton = () => w.findAll('.vendre-tete .evo-btn')[0]
-    await bouton().trigger('click')   // tous
-    await bouton().trigger('click')   // aucun
-    expect(w.find('.view-num').text()).toBe('0 ₽')
+    await tous(w)
+    expect(w.find('.vendre-tous').text()).toBe('Tout retirer')
+    await tous(w)
+    expect(barre(w)).toBe('Aucun exemplaire choisi')
+    await tous(w)
+    await w.findAll('.vendre-bar .btn-ghost').find((b) => b.text() === 'Vider').trigger('click')
+    expect(barre(w)).toBe('Aucun exemplaire choisi')
     expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
   })
 
-  // Le raccourci du groupe prend tout son surplus — jamais le dernier exemplaire.
-  it('bascule tout un groupe d’un clic, sans jamais prendre le dernier', async () => {
-    const w = monter(TROIS_RATTATA)
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
-    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
-  })
-
-  it('détaille les exemplaires une fois la ligne dépliée', async () => {
-    const w = monter(TROIS_RATTATA, (k) => (k === 'b' ? 8 : 1))
-    expect(w.find('.vendre-detail').exists()).toBe(false)
-    await w.find('.vendre-plier').trigger('click')
-
-    const lignes = w.findAll('.vendre-ligne')
-    expect(lignes).toHaveLength(3)
-    expect(w.find('.vendre-detail').text()).toContain('niv. 8')
-    expect(w.find('.vendre-detail').text()).toContain('le meilleur')
-  })
-
   /**
-   * La règle du dernier exemplaire s'apprend au doigt : la dernière case libre est verrouillée,
+   * La règle du dernier exemplaire s'apprend au doigt : la dernière tuile libre est verrouillée,
    * plutôt que de laisser composer un lot que le serveur refusera EN ENTIER.
    */
-  it('verrouille la dernière case libre d’un groupe', async () => {
+  it('verrouille le dernier exemplaire libre d’un groupe', async () => {
     const w = monter(TROIS_RATTATA)
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
-    await w.find('.vendre-plier').trigger('click')
-
-    const libre = w.findAll('.vendre-ligne').find((l) => l.classes().includes('bloque'))
-    expect(libre).toBeTruthy()
+    await tous(w)
+    const libre = w.findAll('.vendre-ex').find((l) => l.classes().includes('bloque'))
     expect(libre.attributes('disabled')).toBeDefined()
+    expect(libre.text()).toContain('gardé')
     expect(w.find('.vendre-note').text()).toContain('ne peut plus aller en arène')
   })
 
   it('décoche un exemplaire précis sans toucher aux autres', async () => {
     const w = monter(TROIS_RATTATA)
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
-    await w.find('.vendre-plier').trigger('click')
-    const pris = w.findAll('.vendre-ligne').filter((l) => l.classes().includes('pris'))
-    await pris[0].trigger('click')
-    expect(w.find('.view-totals .eyebrow').text()).toContain('1 exemplaire')
-  })
-
-  // Un shiny est signalé comme tel : il ne doit pas partir sans qu'on l'ait vu.
-  it('signale les shinies dans le détail', async () => {
-    const w = monter([e('a', RATTATA), e('b', RATTATA, true), e('c', RATTATA, true)])
-    await w.find('.vendre-plier').trigger('click')
-    expect(w.find('.vendre-detail').text()).toContain('shiny')
+    await tous(w)
+    await pris(w)[0].trigger('click')
+    expect(barre(w)).toContain('1 exemplaire ·')
   })
 
   /**
@@ -129,19 +135,15 @@ describe('SaleSection', () => {
    * personne n'est chromatique, celui qu'on garde est arbitraire : l'annoncer comme le meilleur
    * affirmerait une distinction qui n'existe pas.
    */
-  it('ne désigne un meilleur exemplaire que s’il se distingue', async () => {
-    const egaux = monter(TROIS_RATTATA)
-    await egaux.find('.vendre-plier').trigger('click')
-    expect(egaux.find('.vendre-detail').text()).not.toContain('le meilleur')
-
-    const inegaux = monter(TROIS_RATTATA, (k) => (k === 'b' ? 9 : 1))
-    await inegaux.find('.vendre-plier').trigger('click')
-    expect(inegaux.find('.vendre-detail').text()).toContain('le meilleur')
+  it('ne désigne un meilleur exemplaire que s’il se distingue', () => {
+    expect(monter(TROIS_RATTATA).text()).not.toContain('le meilleur')
+    expect(monter(TROIS_RATTATA, (k) => (k === 'b' ? 9 : 1)).text()).toContain('le meilleur')
   })
 
-  it('n’émet rien et ne se laisse pas cliquer pendant une opération', async () => {
+  it('n’émet rien et ne se laisse pas cliquer pendant une opération', () => {
     const w = monter(TROIS_RATTATA, () => 1, { busy: true })
     expect(w.find('.vendre-btn').attributes('disabled')).toBeDefined()
+    expect(w.find('.vendre-ex').attributes('disabled')).toBeDefined()
   })
 
   // Ce qui disparaît du stock quitte la sélection ; rien ne s'y ajoute jamais tout seul.
@@ -150,7 +152,7 @@ describe('SaleSection', () => {
     await w.setProps({
       groups: saleGroups([...TROIS_RATTATA, e('d', RATTATA), e('f', RATTATA)]),
     })
-    expect(w.find('.view-num').text()).toBe('0 ₽')
+    expect(barre(w)).toBe('Aucun exemplaire choisi')
   })
 
   /**
@@ -161,23 +163,23 @@ describe('SaleSection', () => {
    */
   it('garde la sélection quand le surplus est recalculé à l’identique', async () => {
     const w = monter(TROIS_RATTATA)
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')
-    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
+    await tous(w)
+    expect(barre(w)).toContain('2 exemplaires')
 
     await w.setProps({ groups: saleGroups([e('a', RATTATA), e('b', RATTATA), e('c', RATTATA)]) })
-    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
+    expect(barre(w)).toContain('2 exemplaires')
   })
 
   // Ce qui a disparu quitte la sélection, sinon la vente suivante porterait sur du vide.
   it('oublie un exemplaire qui n’est plus là, sans rien rajouter', async () => {
     const w = monter([e('a', RATTATA), e('b', RATTATA), e('c', RATTATA), e('d', RATTATA)])
-    await w.findAll('.vendre-tete .evo-btn')[0].trigger('click')   // tous : 3 sur 4
-    expect(w.find('.view-totals .eyebrow').text()).toContain('3 exemplaires')
+    await tous(w)   // tous : 3 sur 4
+    expect(barre(w)).toContain('3 exemplaires')
 
     // « b » était choisi et disparaît ; « z » arrive et ne s'invite pas dans la vente.
     await w.setProps({
       groups: saleGroups([e('a', RATTATA), e('c', RATTATA), e('d', RATTATA), e('z', RATTATA)]),
     })
-    expect(w.find('.view-totals .eyebrow').text()).toContain('2 exemplaires')
+    expect(barre(w)).toContain('2 exemplaires')
   })
 })

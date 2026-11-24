@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { Check, X } from '@lucide/vue'
 import { saleTotal } from '../lib/revente.js'
 import { TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -19,8 +20,7 @@ const emit = defineEmits(['sell'])
  * d'espèce porte le geste en un coup pour le tas qu'on a sous les yeux.
  */
 const choisies = ref(new Set())
-const ouverts = ref(new Set())
-const aConfirmer = ref(false)
+const apercu = ref(false)
 
 /**
  * Ce qui identifie le STOCK, et non l'objet qui le décrit.
@@ -40,7 +40,7 @@ watch(signature, () => {
   // la sélection part vide, ni quand le stock bouge — un exemplaire qui arrive pendant que le
   // joueur choisit n'a pas à se glisser dans sa vente.
   choisies.value = new Set([...choisies.value].filter((k) => vivantes.has(k)))
-  aConfirmer.value = false
+  if (!choisies.value.size) apercu.value = false
 }, { immediate: true })
 
 const total = computed(() => saleTotal(props.groups, choisies.value))
@@ -60,7 +60,6 @@ function basculer(g, i) {
   const s = new Set(choisies.value)
   s.has(i.key) ? s.delete(i.key) : s.add(i.key)
   choisies.value = s
-  aConfirmer.value = false
 }
 
 /** Le raccourci du groupe : tout son surplus, ou rien. Jamais le dernier exemplaire. */
@@ -70,41 +69,40 @@ function basculerGroupe(g) {
   const toutPris = cibles.every((i) => s.has(i.key))
   for (const i of cibles) toutPris ? s.delete(i.key) : s.add(i.key)
   choisies.value = s
-  aConfirmer.value = false
 }
 
 const prisDansGroupe = (g) => g.items.filter((i) => choisies.value.has(i.key)).length
+const toutPris = (g) => g.items.filter((i) => !i.keeper).every((i) => choisies.value.has(i.key))
 
-function ouvrir(species) {
-  const s = new Set(ouverts.value)
-  s.has(species) ? s.delete(species) : s.add(species)
-  ouverts.value = s
+/** Ce qui part, groupé par espèce : le récapitulatif montré avant de confirmer. */
+const lot = computed(() => props.groups
+  .map((g) => {
+    const items = g.items.filter((i) => choisies.value.has(i.key))
+    return { ...g, items, sousTotal: items.reduce((n, i) => n + i.price, 0) }
+  })
+  .filter((g) => g.items.length))
+const shiniesVendus = computed(() => lot.value.reduce((n, g) => n + g.items.filter((i) => i.shiny).length, 0))
+
+function vider() {
+  choisies.value = new Set()
+  apercu.value = false
 }
 
 function vendre() {
   if (!nombre.value) return
-  if (!aConfirmer.value) { aConfirmer.value = true; return }
-  aConfirmer.value = false
+  apercu.value = false
   emit('sell', [...choisies.value])
 }
+
+const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`
 </script>
 
 <template>
   <section class="view">
-    <!-- Le total de la sélection est le chiffre qu'on vient chercher : il prend la place des
-         compteurs, en haut à droite, et suit les cases qu'on coche. -->
     <div class="view-head">
       <div>
         <div class="eyebrow">Revente</div>
         <h1 class="view-title">Revendre tes doublons</h1>
-      </div>
-      <div v-if="groups.length" class="view-totals">
-        <div>
-          <div class="eyebrow">
-            {{ nombre }} exemplaire{{ nombre > 1 ? 's' : '' }} choisi{{ nombre > 1 ? 's' : '' }}
-          </div>
-          <div class="view-num gold">{{ total }} ₽</div>
-        </div>
       </div>
     </div>
 
@@ -117,63 +115,49 @@ function vendre() {
 
     <template v-else>
       <div class="sect">
-        <div class="sect-h">
-          <span>À vendre</span>
-          <button
-            class="evo-btn vendre-btn" :class="{ confirming: aConfirmer }"
-            :disabled="busy || !nombre" @click="vendre"
-          >{{ aConfirmer ? `Confirmer · ${total} ₽` : 'Vendre la sélection' }}</button>
-        </div>
-        <p v-if="aConfirmer" class="muted">
-          {{ nombre }} exemplaire{{ nombre > 1 ? 's quittent' : ' quitte' }} ta collection pour de
-          bon. L’espèce et les bonbons restent acquis.
+        <div class="eyebrow sect-h"><span>Tes doublons</span></div>
+        <p class="muted">
+          Clique sur les exemplaires à vendre. Tu en gardes toujours au moins un par espèce.
         </p>
-        <p v-else class="muted">
-          Coche ce que tu veux vendre. <b>Tous</b> prend le surplus d’une espèce d’un coup, le
-          chevron déplie le détail exemplaire par exemplaire. Il en
-          reste toujours un, quoi qu’il arrive.
-        </p>
-      </div>
 
-      <div class="sect">
-        <div class="eyebrow sect-h"><span>Par espèce</span></div>
         <div v-for="g in groups" :key="g.species" class="vendre-groupe">
-          <div class="log-row vendre-tete">
+          <div class="vendre-tete">
             <img
               class="vendre-mini" :src="spriteUrl(g.species, false)" :alt="g.name"
               :style="{ '--tier': TIER_VAR[g.tier] }" loading="lazy"
             >
-            <span class="log-title">
-              {{ g.name }}
-              <i class="mono vendre-compte">×{{ g.items.length }}</i>
+            <span class="vendre-nom">
+              <b>{{ g.name }}</b>
+              <span class="muted">
+                {{ pluriel(g.items.length, 'exemplaire') }}<template v-if="prisDansGroupe(g)">
+                  · {{ prisDansGroupe(g) }} à vendre</template>
+              </span>
             </span>
-            <span class="log-sha mono">{{ prisDansGroupe(g) }} / {{ g.items.length - 1 }}</span>
-            <button class="evo-btn" :disabled="busy" @click="basculerGroupe(g)">
-              {{ g.items.filter((i) => !i.keeper).every((i) => choisies.has(i.key))
-                ? 'Aucun' : 'Tous' }}
-            </button>
-            <button class="vendre-plier mono" :disabled="busy" @click="ouvrir(g.species)">
-              {{ ouverts.has(g.species) ? '▾' : '▸' }}
+            <button class="btn-ghost vendre-tous" :disabled="busy" @click="basculerGroupe(g)">
+              {{ toutPris(g) ? 'Tout retirer' : 'Tout le surplus' }}
             </button>
           </div>
 
-          <div v-if="ouverts.has(g.species)" class="vendre-detail">
+          <div class="vendre-grille">
             <button
-              v-for="i in g.items" :key="i.key" class="vendre-ligne"
+              v-for="i in g.items" :key="i.key" class="vendre-ex"
               :class="{ pris: choisies.has(i.key), bloque: bloque(g, i) }"
+              :aria-pressed="choisies.has(i.key)"
               :disabled="busy || bloque(g, i)" @click="basculer(g, i)"
             >
-              <span class="vendre-case mono">{{ choisies.has(i.key) ? '×' : '' }}</span>
-              <span class="vendre-niv mono">niv. {{ i.level }}</span>
+              <span class="vendre-case" aria-hidden="true">
+                <Check v-if="choisies.has(i.key)" :size="12" :stroke-width="3" />
+              </span>
+              <span class="vendre-niv">Niv. {{ i.level }}</span>
               <span v-if="i.shiny" class="vendre-tag mono">shiny</span>
               <span v-if="i.notable" class="vendre-tag mono">le meilleur</span>
-              <span class="vendre-prix mono">{{ i.price }} ₽</span>
+              <span class="vendre-prix mono">{{ bloque(g, i) ? 'gardé' : `${i.price} ₽` }}</span>
             </button>
-            <p v-if="restants(g) <= 1" class="muted vendre-note">
-              Il faut en garder un : sans exemplaire, l’espèce ne peut plus aller en arène ni
-              évoluer. Son entrée au Pokédex, elle, reste acquise.
-            </p>
           </div>
+          <p v-if="restants(g) <= 1" class="muted vendre-note">
+            Il faut en garder un : sans exemplaire, l’espèce ne peut plus aller en arène ni
+            évoluer. Son entrée au Pokédex, elle, reste acquise.
+          </p>
         </div>
       </div>
 
@@ -186,6 +170,64 @@ function vendre() {
           ne se fait qu’une fois.
         </p>
       </div>
+
+      <div class="vendre-bar">
+        <span class="vendre-bar-txt">
+          <template v-if="nombre">
+            <b>{{ pluriel(nombre, 'exemplaire') }}</b> · <span class="gold">{{ total }} ₽</span>
+          </template>
+          <span v-else class="muted">Aucun exemplaire choisi</span>
+        </span>
+        <button v-if="nombre" class="btn-ghost" :disabled="busy" @click="vider">Vider</button>
+        <button class="btn-solid vendre-btn" :disabled="busy || !nombre" @click="apercu = true">
+          Vérifier la vente
+        </button>
+      </div>
     </template>
+
+    <div v-if="apercu" class="scrim" @click.self="apercu = false">
+      <div class="panel vendre-apercu" role="dialog" aria-labelledby="vendre-apercu-titre">
+        <button class="x" aria-label="Fermer" @click="apercu = false">
+          <X :size="14" aria-hidden="true" />
+        </button>
+        <div class="eyebrow">Revente</div>
+        <h2 id="vendre-apercu-titre" class="vendre-apercu-titre">
+          Vendre {{ pluriel(nombre, 'exemplaire') }}&nbsp;?
+        </h2>
+
+        <ul class="vendre-recap">
+          <li v-for="g in lot" :key="g.species">
+            <img
+              class="vendre-mini" :src="spriteUrl(g.species, false)" :alt="g.name"
+              :style="{ '--tier': TIER_VAR[g.tier] }" loading="lazy"
+            >
+            <span class="vendre-recap-nom">
+              <b>{{ g.name }} ×{{ g.items.length }}</b>
+              <span class="vendre-recap-ex">
+                <span v-for="i in g.items" :key="i.key" class="vendre-puce mono" :class="{ shiny: i.shiny }">
+                  niv. {{ i.level }}{{ i.shiny ? ' · shiny' : '' }}
+                </span>
+              </span>
+            </span>
+            <span class="mono vendre-recap-prix">{{ g.sousTotal }} ₽</span>
+          </li>
+        </ul>
+
+        <div class="vendre-recap-total">
+          <span>Total</span><b class="gold">{{ total }} ₽</b>
+        </div>
+        <p class="muted">
+          Ces exemplaires quittent ta collection pour de bon<template v-if="shiniesVendus">, dont
+          <b>{{ pluriel(shiniesVendus, 'shiny') }}</b></template>. Les espèces restent au Pokédex et
+          les bonbons restent acquis.
+        </p>
+        <div class="vendre-apercu-actions">
+          <button class="btn-ghost" @click="apercu = false">Annuler</button>
+          <button class="btn-solid vendre-confirmer" :disabled="busy" @click="vendre">
+            Vendre pour {{ total }} ₽
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>

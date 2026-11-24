@@ -1371,33 +1371,60 @@
 .evo-btn.confirming { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 
   /* ───────── revente ───────── */
-  /* Le tas, pas l'exemplaire : une ligne par espèce, et le détail seulement si on le demande.
-     Une liste plate de cent exemplaires ferait de la revente une seconde corvée. */
-  .vendre-groupe{border-bottom:1px solid var(--line)}
+  /* Une espèce par bloc, ses exemplaires en tuiles toujours visibles : on voit ce qu'on vend
+     sans rien déplier. La barre du bas porte la sélection et ouvre le récapitulatif. */
+  .vendre-groupe{padding:16px 0;border-bottom:1px solid var(--line)}
   .vendre-groupe:last-child{border-bottom:0}
-  .vendre-tete{align-items:center;gap:10px}
-  .vendre-mini{width:34px;height:34px;flex:0 0 34px;image-rendering:pixelated;
+  .vendre-tete{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .vendre-mini{width:34px;height:34px;flex:0 0 34px;image-rendering:pixelated;border-radius:6px;
     border:1px solid var(--line);background:color-mix(in srgb, var(--tier) 12%, var(--surface))}
-  .vendre-compte{color:var(--fg-3);margin-left:6px;font-size:11px}
-  .vendre-plier{background:transparent;border:1px solid var(--line);color:var(--fg-2);
-    width:30px;height:30px;cursor:pointer;font-size:11px;line-height:1}
-  .vendre-plier:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
-  .vendre-detail{padding:4px 0 12px 44px;display:flex;flex-direction:column;gap:4px}
-  .vendre-ligne{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-    background:transparent;border:1px solid transparent;padding:6px 8px;cursor:pointer;
-    font-family:var(--f-label);font-size:11px;color:var(--fg-2)}
-  .vendre-ligne:hover:not(:disabled){border-color:var(--line-strong)}
-  /* Pris = part à la vente. La croix se lit de loin, et ne dépend pas de la couleur seule. */
-  .vendre-ligne.pris{color:var(--fg);border-color:var(--gold)}
-  .vendre-ligne.bloque{opacity:.4;cursor:default}
-  .vendre-case{width:16px;height:16px;flex:0 0 16px;border:1.5px solid var(--line-strong);
-    display:grid;place-items:center;font-size:12px;line-height:1}
-  .vendre-ligne.pris .vendre-case{border-color:var(--gold);color:var(--gold)}
-  .vendre-niv{color:var(--fg-3)}
+  .vendre-nom{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+  .vendre-nom b{font-size:15px;color:var(--fg)}
+  .vendre-nom .muted{font-size:12px}
+  .vendre-tous{padding:9px 14px;font-size:10px;white-space:nowrap}
+  .vendre-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .vendre-ex{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;text-align:left;min-width:0;
+    padding:10px 12px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);
+    color:var(--fg-2);font-family:var(--f-ui);font-size:13px;cursor:pointer}
+  .vendre-ex:hover:not(:disabled){border-color:var(--gold)}
+  /* Choisi : fond, bordure et coche. Trois signaux, aucun ne repose sur la couleur seule. */
+  .vendre-ex.pris{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold);color:var(--fg);
+    background:color-mix(in srgb, var(--gold) 12%, var(--surface))}
+  .vendre-ex.bloque{opacity:.5;cursor:default;border-style:dashed}
+  .vendre-case{width:18px;height:18px;flex:0 0 18px;border-radius:5px;border:1.5px solid var(--line-strong-hi);
+    display:grid;place-items:center}
+  .vendre-ex.pris .vendre-case{border-color:var(--gold);background:var(--gold);color:var(--on-gold)}
+  .vendre-niv{font-weight:600}
   .vendre-tag{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);
-    border:1px solid var(--line-strong);padding:1px 5px}
-  .vendre-prix{margin-left:auto;color:var(--fg)}
-  .vendre-note{margin:6px 0 0 8px;font-size:11px}
+    border:1px solid var(--line-strong);border-radius:4px;padding:1px 5px}
+  .vendre-prix{margin-left:auto;color:var(--fg);font-size:12px;white-space:nowrap}
+  .vendre-note{margin:10px 0 0;font-size:12px}
+  .vendre-bar{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin-top:8px;padding:14px 0;background:var(--bg);border-top:1px solid var(--line)}
+  .vendre-bar-txt{flex:1 1 auto;font-size:15px;color:var(--fg)}
+  .vendre-bar .gold{color:var(--gold)}
+  .vendre-bar .btn-ghost{padding:12px 18px}
+  .vendre-apercu{width:min(520px,100%);padding:30px 32px 26px}
+  @media (max-width:640px){
+    .vendre-apercu{padding:26px 16px 22px}
+    .vendre-apercu-titre{font-size:24px;padding-right:36px}
+    .vendre-bar-txt{flex-basis:100%}
+    .vendre-bar .btn-ghost{flex:0 0 auto;padding:13px 16px}
+    .vendre-bar .vendre-btn{flex:1 1 auto;white-space:nowrap;padding:15px 16px}
+  }
+  .vendre-apercu-titre{font-family:var(--f-display);font-size:28px;font-weight:400;margin:6px 0 16px}
+  .vendre-recap{list-style:none;margin:0;padding:0;max-height:min(46vh,420px);overflow:auto}
+  .vendre-recap li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .vendre-recap-nom{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+  .vendre-recap-ex{display:flex;flex-wrap:wrap;gap:4px}
+  .vendre-puce{font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--line-strong);color:var(--fg-2)}
+  .vendre-puce.shiny{border-color:var(--gold);color:var(--gold)}
+  .vendre-recap-prix{white-space:nowrap;color:var(--fg)}
+  .vendre-recap-total{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0 6px;font-size:15px}
+  .vendre-recap-total b{font-size:20px}
+  .vendre-recap-total .gold{color:var(--gold)}
+  .vendre-apercu-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  .vendre-apercu-actions button{flex:1 1 180px;white-space:nowrap}
   .vendre-un{padding:6px 12px;white-space:nowrap}
   /* Le lot au-dessus de la liste : c'est le geste courant, et la ligne par ligne l'exception. */
   .vendre-lot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
