@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import TheRail from './components/TheRail.vue'
-import { X } from '@lucide/vue'
 import TheTray from './components/TheTray.vue'
 import SpeciesSheet from './components/SpeciesSheet.vue'
 import RitualOverlay from './components/RitualOverlay.vue'
@@ -19,6 +18,7 @@ import MeView from './components/MeView.vue'
 import ConnectScreen from './components/ConnectScreen.vue'
 import SlackInvite from './components/SlackInvite.vue'
 import SyncToast from './components/SyncToast.vue'
+import NoticeToast from './components/NoticeToast.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
@@ -697,17 +697,6 @@ useKeyboardNav({
   />
 
   <template v-else>
-    <!--
-      Ce qui vient d'échouer. En haut du contenu et non en surimpression : on doit pouvoir
-      continuer à jouer en le lisant, et il disparaît au geste suivant plutôt que de réclamer
-      qu'on le referme.
-    -->
-    <div v-if="avis" class="avis" :class="{ bonne: avisBon }" role="status">
-      <span>{{ avis }}</span>
-      <button class="avis-x" aria-label="Masquer" @click="avis = null">
-        <X :size="12" aria-hidden="true" />
-      </button>
-    </div>
 
     <TheRail
       :caught-count="collection.dex.caughtCount.value"
@@ -843,7 +832,16 @@ useKeyboardNav({
         :current="arena ? arena.season.value : ''" @close="closeSeasonRecap"
       />
     </transition>
-    <SyncToast :sync="collection.sync.value" @open="collection.dismissSync(); openRitual()" @dismiss="collection.dismissSync" />
+    <!--
+      Les messages passagers, en bas de l'écran et au-dessus des fenêtres : le résultat d'un
+      geste (vente, refus du serveur, carte arrivée) s'affiche là où l'on regarde, même quand
+      on a fait défiler la page ou qu'un duel est ouvert. Ils s'empilent au lieu de se couvrir,
+      et remontent au-dessus de la barre de vente quand elle est à l'écran.
+    -->
+    <div class="toast-pile" :class="{ 'sur-vente': shopOpen && route.param === 'revente' }">
+      <NoticeToast :message="avis" :good="avisBon" @dismiss="avis = null" />
+      <SyncToast :sync="collection.sync.value" @open="collection.dismissSync(); openRitual()" @dismiss="collection.dismissSync" />
+    </div>
 
     <transition name="fade">
       <AchievementRecap v-if="recap" :items="recap.items" :first="recap.first" @close="closeRecap" />

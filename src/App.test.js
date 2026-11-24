@@ -439,7 +439,7 @@ describe('revente du surplus', () => {
   const vendreEtAttendre = async (w) => {
     await w.find('.vendre-btn').trigger('click')
     await w.find('.vendre-confirmer').trigger('click')
-    for (let i = 0; i < 100 && !w.find('.avis').exists(); i++) {
+    for (let i = 0; i < 100 && !w.find('.notice-toast').exists(); i++) {
       await new Promise((r) => setTimeout(r, 5))
       await flushPromises()
     }
@@ -468,7 +468,7 @@ describe('revente du surplus', () => {
     await vendreEtAttendre(w)
 
     expect(caisse()).toBe(avant + total)
-    expect(w.find('.avis').text()).toContain('₽')
+    expect(w.find('.notice-toast').text()).toContain('₽')
   })
 
   // Ce qui est vendu quitte le stock : la planche doit cesser de le compter.
