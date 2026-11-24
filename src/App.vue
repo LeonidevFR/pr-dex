@@ -333,6 +333,7 @@ const collectionData = () => ({
   arena: arena
     ? { userId: userId.value, duels: arena.recentDuels.value, exemplars: arena.exemplars.value, seasons: arena.seasons.value }
     : null,
+  team: { members: team.members.value.map((m) => m.id), cards: team.cards.value },
 })
 
 // Le récap se fige à l'ouverture : `acknowledge` vide la liste dès la fermeture, et la feuille
@@ -442,6 +443,9 @@ async function connectSession(s) {
 async function loadTeam(c) {
   await team.load(c, { today, force: demoNoel })
   if (team.gift.value) noelPopup.value = true
+  // Les succès ont pu s'évaluer avant que les cartes équipe arrivent : un atelier déjà complet
+  // s'inscrit ici, en silence, à sa date.
+  achievements.check(null)
 }
 
 /**
@@ -667,6 +671,12 @@ function showPacket(entry) {
 }
 const showNextPacket = () => showPacket(collection.dex.pending.value[0])
 
+/** La carte qui complète l'atelier débloque son succès au retournement, comme une capture. */
+async function openTeamCard(key) {
+  await team.open(key)
+  achievements.check(nowDay())
+}
+
 function teamEntry(card, remaining) {
   return { card, member: team.byId.value[card.member], remaining, isNew: !team.owned.value[card.member] }
 }
@@ -849,7 +859,7 @@ useKeyboardNav({
       <TeamRitual
         v-if="teamRitual" :key="teamRitual.card.key" :card="teamRitual.card" :member="teamRitual.member"
         :remaining="teamRitual.remaining" :is-new="teamRitual.isNew"
-        @open="team.open" @next="nextRitual" @close="teamRitual = null"
+        @open="openTeamCard" @next="nextRitual" @close="teamRitual = null"
       />
     </transition>
 
