@@ -1631,10 +1631,6 @@
   /* Un détail creusé DANS l'émail se peint de la couleur de la plaque : peint en émail sur
      l'émail, il disparaît — c'est ce qui a d'abord rendu le rabat du Pli invisible. */
   .sbadge .bg-trait{stroke:var(--b-plaque)}
-  /* Le rang est une pastille posée sur le badge, pas une teinte appliquée dessus : les huit
-     médailles ont leurs couleurs propres, et les repeindre en or, argent et bronze ferait de
-     huit dessins distincts trois nuances de la même. */
-  }
 
   /* Le badge en jeu, en tête de la saison : assez grand pour donner envie, posé à côté de ce
      qu'il coûte d'obtenir plutôt qu'en vignette au milieu d'un tableau. */
