@@ -225,7 +225,7 @@ describe('prix de revente', () => {
     expect([1, 3, 5, 10].map((n) => salePrice(19, n))).toEqual([5, 7, 8, 13])         // Rattata, commun
     expect([1, 3, 5, 10].map((n) => salePrice(35, n))).toEqual([10, 13, 17, 25])      // Mélofée, peu commun
     expect([1, 3, 5, 10].map((n) => salePrice(1, n))).toEqual([25, 33, 42, 63])       // Bulbizarre, rare
-    expect([1, 3, 5, 10].map((n) => salePrice(150, n))).toEqual([90, 120, 150, 225])  // Mewtwo, légendaire
+    expect([1, 3, 5, 10].map((n) => salePrice(150, n))).toEqual([200, 267, 333, 500])  // Mewtwo, légendaire
   })
 
   /**
@@ -248,10 +248,16 @@ describe('prix de revente', () => {
    * la même chose sans dépendre d'un arrondi, et il dit ce qui compte à qui voudrait grinder.
    */
   it('exige vingt reventes au niveau maximum pour racheter un seul pli du même palier', () => {
-    for (const [espece, palier] of [[19, 'c'], [35, 'u'], [1, 'r'], [150, 'l']]) {
+    for (const [espece, palier] of [[19, 'c'], [35, 'u'], [1, 'r']]) {
       const cartes = Math.ceil(PLI_GEN1[palier] / salePrice(espece, LEVEL_MAX))
       expect(cartes).toBeGreaterThanOrEqual(20)
     }
+  })
+
+  // Le légendaire se revend mieux, parce qu'il tombe rarement en double ; son pli reste hors de
+  // portée de la revente.
+  it('exige encore neuf reventes de légendaire au niveau maximum pour racheter son pli', () => {
+    expect(Math.ceil(PLI_GEN1.l / salePrice(150, LEVEL_MAX))).toBe(9)
   })
 
   // Le niveau est un multiplicateur borné, pas une échappatoire : dix victoires valent ×2,5.

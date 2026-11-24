@@ -210,8 +210,14 @@ export function daysLeftInSeason(season, now = new Date()) {
  * un par jour ouvré, tandis que la revente suit le volume de PR, qui n'a pas de plafond et qui
  * grandit avec l'équipe. À 26 %, la revente redevient ce qu'elle doit être : une sortie pour le
  * surplus, jamais une stratégie de revenu.
+ *
+ * Le légendaire fait exception aux invariants 1 et 2 : à 2 % de son pli, il se revendait 90 ₽,
+ * ce qui se lisait comme une sous-cote face aux 4 500 ₽ de la boutique. Il tombe dans 0,5 % des
+ * tirages, environ une fois par joueur et par saison, et son doublon plus rarement encore : le
+ * porter à 200 ₽ ne change rien au débit de la revente. Au niveau maximum, il vaut 500 ₽, sous
+ * les 600 ₽ d'une victoire de son palier, et il faut encore neuf reventes pour racheter son pli.
  */
-export const SALE_BASE = { c: 5, u: 10, r: 25, l: 90 }
+export const SALE_BASE = { c: 5, u: 10, r: 25, l: 200 }
 
 /** La Gen 2 coûte le double en boutique. Elle se revend le double : même rapport, même échelle. */
 const SALE_GEN_FACTOR = { 1: 1, 2: 2 }

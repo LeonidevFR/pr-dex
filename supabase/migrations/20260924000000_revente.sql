@@ -42,7 +42,7 @@ alter table public.arena_exemplars
 create or replace function public.dex_sale_price(species int, level int, shiny boolean)
 returns int language sql immutable as $$
   select round(
-           (case st.tier when 'c' then 5 when 'u' then 10 when 'r' then 25 when 'l' then 90 end)
+           (case st.tier when 'c' then 5 when 'u' then 10 when 'r' then 25 when 'l' then 200 end)
            -- La Gen 2 coûte le double en boutique : elle se revend le double.
            * (case when dex_sale_price.species > 151 then 2 else 1 end)
            * (1 + (least(10, greatest(1, coalesce(dex_sale_price.level, 1))) - 1) / 6.0)
