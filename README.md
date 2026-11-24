@@ -86,9 +86,11 @@ Le tirage (`shared/noel.js`) suit la même règle que celui des Pokémon : le se
 d'exemplaire.
 
 Ces cartes sont décoratives. Elles vivent dans `team_cards`, pas dans `catches` : ni le
-Pokédex, ni le leaderboard, ni les statistiques, ni les bonbons, ni les succès ne les voient.
-On les retrouve dans l'étagère « Équipe · Noël » de la Collection, qui n'apparaît qu'à la
-première carte.
+Pokédex, ni le leaderboard, ni les statistiques, ni les bonbons ne les voient. Une seule
+exception, le succès caché « L'atelier au complet » : il se débloque quand on a ouvert une carte
+de chaque membre, saisons confondues, et compte au classement comme tout succès. On les
+retrouve dans l'étagère « Équipe · Noël » de la Collection, qui n'apparaît qu'à la première
+carte.
 
 Le repo étant public, rien de l'équipe n'y entre. Les membres sont dans `team_members`, remplie
 à la main (`id`, `name`, `blurb`, `photo`), et les photos dans le bucket privé `equipe` de
