@@ -131,10 +131,19 @@ create table public.arena_season_points (
 -- référent une fois les points de la saison remis à zéro.
 create table public.arena_seasons (
   season text primary key,
-  closed_at timestamptz not null default now(),
-  first_id uuid references auth.users (id),
-  second_id uuid references auth.users (id),
-  third_id uuid references auth.users (id)
+  closed_at timestamptz not null default now()
+);
+
+-- Le podium d'une saison close : une ligne par joueur classé dans les trois premiers. Les ex
+-- aequo partagent le même rang et se partagent les primes des places qu'ils occupent ; deux
+-- premiers ex aequo touchent chacun (1 000 + 500) / 2, et le suivant est troisième. Une
+-- marche peut donc porter plusieurs joueurs, et le podium plus de trois.
+create table public.arena_season_podium (
+  season text not null references public.arena_seasons (season) on delete cascade,
+  user_id uuid not null references auth.users (id),
+  rank int not null check (rank between 1 and 3),
+  prize int not null check (prize >= 0),
+  primary key (season, user_id)
 );
 
 alter table public.arena_exemplars enable row level security;
@@ -142,6 +151,7 @@ alter table public.arena_duels enable row level security;
 alter table public.arena_wallet enable row level security;
 alter table public.arena_season_points enable row level security;
 alter table public.arena_seasons enable row level security;
+alter table public.arena_season_podium enable row level security;
 
 -- Lecture seule, et rien d'autre. L'unique écrivain de ces tables sera la fonction
 -- `security definer` du lot 2b : une policy d'écriture ici serait une faille, pas une
@@ -156,6 +166,9 @@ create policy "arena_season_points_select_all" on public.arena_season_points
   for select to authenticated using (true);
 
 create policy "arena_seasons_select_all" on public.arena_seasons
+  for select to authenticated using (true);
+
+create policy "arena_season_podium_select_all" on public.arena_season_podium
   for select to authenticated using (true);
 
 -- Un duel résolu est lisible par ses deux participants. Un duel ouvert ne l'est par personne
@@ -182,7 +195,8 @@ create policy "arena_duels_select_own_open" on public.arena_duels
 -- Aucun `insert`, `update` ni `delete` n'est accordé à quiconque : l'unique écrivain de ces
 -- tables sera la fonction `security definer` du lot 2b, qui s'exécute sous son propre droit.
 grant select on public.species_stats, public.arena_exemplars, public.arena_duels,
-                public.arena_wallet, public.arena_season_points, public.arena_seasons
+                public.arena_wallet, public.arena_season_points, public.arena_seasons,
+                public.arena_season_podium
   to authenticated;
 
 -- Qui est qui dans l'arène.
@@ -1312,8 +1326,6 @@ as $$
 declare
   v_season text;
   v_podium int[] := array[1000, 500, 250];
-  v_rang int;
-  v_user uuid;
   v_n int := 0;
 begin
   for v_season in
@@ -1325,32 +1337,27 @@ begin
       and not exists (select 1 from public.arena_seasons s where s.season = p.season)
     order by 1
   loop
-    -- `row_number` et non `rank` : deux joueurs à égalité ne peuvent pas occuper tous deux la
-    -- première marche d'un podium qui n'en a qu'une. Le classement affiché les montre à
-    -- égalité ; la récompense, elle, doit être attribuable.
+    insert into public.arena_seasons (season) values (v_season);
+
+    -- `rank` et non `row_number` : des ex aequo partagent la marche, comme au classement
+    -- affiché. Un groupe de `n` ex aequo classé `r` occupe les places r à r + n - 1 ; il se
+    -- partage les primes de celles qui sont sur le podium, arrondies à l'unité inférieure.
     with c as (
-      select user_id, row_number() over (order by points desc, user_id) as rank
+      select user_id, points,
+             rank() over (order by points desc) :: int as r,
+             count(*) over (partition by points) :: int as n
       from public.arena_season_points where season = v_season
     )
-    insert into public.arena_seasons (season, first_id, second_id, third_id)
-    select v_season,
-           (select user_id from c where rank = 1),
-           (select user_id from c where rank = 2),
-           (select user_id from c where rank = 3);
+    insert into public.arena_season_podium (season, user_id, rank, prize)
+    select v_season, c.user_id, c.r,
+           (select coalesce(sum(v_podium[k]), 0) from generate_series(c.r, least(c.r + c.n - 1, 3)) k)
+             / c.n
+    from c where c.r <= 3;
 
-    for v_rang in 1 .. 3 loop
-      select user_id into v_user from (
-        select user_id, row_number() over (order by points desc, user_id) as rank
-        from public.arena_season_points where season = v_season
-      ) c where c.rank = v_rang;
-
-      if v_user is not null then
-        insert into public.arena_wallet (user_id, pokedollars)
-        values (v_user, v_podium[v_rang])
-        on conflict (user_id) do update
-          set pokedollars = arena_wallet.pokedollars + excluded.pokedollars;
-      end if;
-    end loop;
+    insert into public.arena_wallet (user_id, pokedollars)
+    select user_id, prize from public.arena_season_podium where season = v_season and prize > 0
+    on conflict (user_id) do update
+      set pokedollars = arena_wallet.pokedollars + excluded.pokedollars;
 
     v_n := v_n + 1;
   end loop;

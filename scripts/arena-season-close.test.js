@@ -17,6 +17,15 @@ const D = 'd4000000-0000-0000-0000-000000000004'
 const PASSEE = '2099-S1'
 /** Antérieure au plancher : elle se joue, mais ne se ferme jamais. */
 const AVANT_PLANCHER = '2019-S1'
+/** Deux premiers ex aequo, puis un troisième. */
+const EGALITE_TETE = '2099-S2'
+/** Un premier, puis trois deuxièmes ex aequo. */
+const EGALITE_DEUXIEME = '2099-S3'
+
+const podium = (c, saison) => c.query(
+  'select user_id, rank, prize from public.arena_season_podium where season = $1 order by rank, user_id',
+  [saison],
+).then((r) => r.rows)
 
 const solde = (c, u) => c.query(
   'select coalesce(pokedollars, 0)::int as n from public.arena_wallet where user_id = $1', [u],
@@ -34,7 +43,7 @@ describe.skipIf(!disponible)('clôture de saison', () => {
           on conflict (id) do nothing
         `, [u, p])
       }
-      for (const saison of [PASSEE, AVANT_PLANCHER]) {
+      for (const saison of [PASSEE, AVANT_PLANCHER, EGALITE_TETE, EGALITE_DEUXIEME]) {
         await c.query('delete from public.arena_seasons where season = $1', [saison])
         await c.query('delete from public.arena_season_points where season = $1', [saison])
       }
@@ -43,6 +52,11 @@ describe.skipIf(!disponible)('clôture de saison', () => {
         insert into public.arena_season_points (user_id, season, points)
         values ($1, $5, 300), ($2, $5, 200), ($3, $5, 100), ($4, $5, 10)
       `, [A, B, C, D, PASSEE])
+      await c.query(`
+        insert into public.arena_season_points (user_id, season, points)
+        values ($1, $5, 300), ($2, $5, 300), ($3, $5, 100), ($4, $5, 10),
+               ($1, $6, 300), ($2, $6, 200), ($3, $6, 200), ($4, $6, 200)
+      `, [A, B, C, D, EGALITE_TETE, EGALITE_DEUXIEME])
       await c.query(
         'insert into public.arena_season_points (user_id, season, points) values ($1, $2, 500)',
         [A, AVANT_PLANCHER],
@@ -55,22 +69,40 @@ describe.skipIf(!disponible)('clôture de saison', () => {
       .then((r) => r.rows[0].n))
     expect(n).toBeGreaterThanOrEqual(1)
 
-    const row = await withDb((c) => c.query(
-      'select first_id, second_id, third_id from public.arena_seasons where season = $1', [PASSEE],
-    ).then((r) => r.rows[0]))
-    expect(row.first_id).toBe(A)
-    expect(row.second_id).toBe(B)
-    expect(row.third_id).toBe(C)
+    expect(await withDb((c) => podium(c, PASSEE))).toEqual([
+      { user_id: A, rank: 1, prize: 1000 },
+      { user_id: B, rank: 2, prize: 500 },
+      { user_id: C, rank: 3, prize: 250 },
+    ])
+  })
+
+  // Pas de départage arbitraire : les ex aequo partagent la marche et les primes des places
+  // qu'ils occupent ensemble.
+  it('partage la marche et les primes entre ex aequo', async () => {
+    await withDb(async (c) => {
+      expect(await podium(c, EGALITE_TETE)).toEqual([
+        { user_id: A, rank: 1, prize: 750 },
+        { user_id: B, rank: 1, prize: 750 },
+        { user_id: C, rank: 3, prize: 250 },
+      ])
+      expect(await podium(c, EGALITE_DEUXIEME)).toEqual([
+        { user_id: A, rank: 1, prize: 1000 },
+        { user_id: B, rank: 2, prize: 250 },
+        { user_id: C, rank: 2, prize: 250 },
+        { user_id: D, rank: 2, prize: 250 },
+      ])
+    })
   })
 
   // Modestes et partagés à dessein : à cinq joueurs presque tout le monde touche quelque chose,
   // et le meilleur ne creuse pas un écart matériel saison après saison.
-  it('verse le podium, et rien au quatrième', async () => {
+  it('verse les primes du podium, et rien au quatrième', async () => {
     await withDb(async (c) => {
-      expect(await solde(c, A)).toBe(1000)
-      expect(await solde(c, B)).toBe(500)
-      expect(await solde(c, C)).toBe(250)
-      expect(await solde(c, D)).toBe(0)
+      // Somme des trois saisons closes par ce test.
+      expect(await solde(c, A)).toBe(1000 + 750 + 1000)
+      expect(await solde(c, B)).toBe(500 + 750 + 250)
+      expect(await solde(c, C)).toBe(250 + 250 + 250)
+      expect(await solde(c, D)).toBe(0 + 0 + 250)
     })
   })
 

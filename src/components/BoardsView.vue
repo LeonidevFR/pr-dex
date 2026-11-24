@@ -47,8 +47,8 @@ const bandeau = computed(() => {
   const depuis = (new Date(`${props.today}T12:00:00`) - fin) / 86_400_000
   if (depuis < 0 || depuis > RAPPEL_JOURS) return null
   const nom = (id) => s.board?.find((r) => r.user_id === id)?.login ?? 'un joueur'
-  const podium = [s.first_id, s.second_id, s.third_id]
-    .map((id, i) => (id ? `${MEDALS[i]} ${nom(id)}` : null)).filter(Boolean)
+  const podium = [...(s.podium ?? [])].sort((a, b) => a.rank - b.rank)
+    .map((p) => `${MEDALS[p.rank - 1]} ${nom(p.user_id)}`)
   return { titre: `${seasonLabel(s.season)} terminée`, podium }
 })
 

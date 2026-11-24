@@ -5,7 +5,7 @@ import { entryKey } from '../shared/entry.js'
 import * as github from './connectors/github.mjs'
 import * as slack from './connectors/slack.mjs'
 import { slackClient } from './agents/monkey-testing/slack.mjs'
-import { SEASON_PODIUM, seasonLabel, seasonOf } from '../shared/arena-economy.js'
+import { seasonLabel, seasonOf } from '../shared/arena-economy.js'
 
 /**
  * Registre des sources : ajouter un pôle, c'est écrire un connecteur et l'inscrire ici.
@@ -130,7 +130,7 @@ const formatDollars = (n) => n.toLocaleString('fr-FR').replace(/\u202f/g, ' ')
 /** Le message Slack d'une saison close : son podium, puis la saison qui commence. */
 export function seasonAnnouncement({ season, podium, current, url }) {
   const lignes = podium.length
-    ? podium.map((p, i) => `${MEDALS[i]} *${p.login}* · ${p.points} pts · +${formatDollars(SEASON_PODIUM[i])} ₽`)
+    ? podium.map((p) => `${MEDALS[p.rank - 1]} *${p.login}* · ${p.points} pts · +${formatDollars(p.prize)} ₽`)
     : ['Personne n’a marqué de point cette saison.']
   return [
     `:trophy: *${seasonLabel(season)} terminée !*`,
@@ -143,7 +143,8 @@ export function seasonAnnouncement({ season, podium, current, url }) {
 
 /**
  * Annonce sur Slack les saisons que la clôture vient de fermer, les plus anciennes d'abord.
- * Le podium est relu dans `arena_leaderboard`, qui porte le login et les points de la saison.
+ * Le podium et ses primes sont relus dans `arena_season_podium`, le login et les points dans
+ * `arena_leaderboard`. Des ex aequo partagent un rang : il peut y avoir plus de trois lignes.
  */
 export async function announceClosedSeasons(supabaseUrl, serviceKey, n, { post, channel, url, now = new Date() }, fetchFn = fetch) {
   const get = async (path) => {
@@ -153,7 +154,9 @@ export async function announceClosedSeasons(supabaseUrl, serviceKey, n, { post, 
   }
   const closes = (await get(`arena_seasons?select=season&order=season.desc&limit=${n}`)).reverse()
   for (const { season } of closes) {
-    const podium = await get(`arena_leaderboard?select=login,points,rank&season=eq.${season}&order=rank&limit=3`)
+    const marches = await get(`arena_season_podium?select=user_id,rank,prize&season=eq.${season}&order=rank`)
+    const board = await get(`arena_leaderboard?select=user_id,login,points&season=eq.${season}&rank=lte.3`)
+    const podium = marches.map((m) => ({ login: 'un joueur', points: 0, ...m, ...board.find((b) => b.user_id === m.user_id) }))
     await post(channel, undefined, seasonAnnouncement({ season, podium, current: seasonOf(now), url }))
   }
   return closes.length

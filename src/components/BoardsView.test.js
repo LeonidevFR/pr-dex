@@ -114,7 +114,7 @@ describe('BoardsView', () => {
 
   it('rappelle la saison close pendant une semaine', async () => {
     const lastSeason = {
-      season: '2026-S3', first_id: 'u-a', second_id: 'u-b', third_id: null,
+      season: '2026-S3', podium: [{ user_id: 'u-b', rank: 2, prize: 500 }, { user_id: 'u-a', rank: 1, prize: 1000 }],
       board: [{ user_id: 'u-a', login: 'alice' }, { user_id: 'u-b', login: 'bob' }],
     }
     // 2026-S3 couvre juin et juillet : elle finit le 31 juillet.

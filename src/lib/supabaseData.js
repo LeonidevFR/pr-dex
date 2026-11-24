@@ -166,7 +166,7 @@ export function createSupabaseClient(userId) {
       .eq('season', season).order('rank'))
 
   const readSeasons = () =>
-    query(() => supabase.from('arena_seasons').select('season, first_id, second_id, third_id')
+    query(() => supabase.from('arena_seasons').select('season, podium:arena_season_podium(user_id, rank, prize)')
       .order('season', { ascending: false }))
 
   /**

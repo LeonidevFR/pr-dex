@@ -59,7 +59,7 @@ describe.skipIf(!disponible)('droits de l’arène', () => {
       const { rows } = await c.query(`
         select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relname in ('arena_wallet', 'arena_exemplars', 'arena_duels',
-          'arena_packs', 'evolutions', 'species_stats', 'arena_shop', 'arena_seasons', 'arena_season_points')
+          'arena_packs', 'evolutions', 'species_stats', 'arena_shop', 'arena_seasons', 'arena_season_podium', 'arena_season_points')
           and (has_table_privilege('authenticated', c.oid, 'INSERT, UPDATE, DELETE, TRUNCATE')
                or has_table_privilege('anon', c.oid, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE'))
       `)

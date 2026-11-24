@@ -4,8 +4,8 @@ import ProfilePanel from './ProfilePanel.vue'
 
 const FICHE = { user_id: 'u-lui', slug: 'leo-dev', login: 'leo-dev', species: 87, wins: 18, losses: 7 }
 const SAISONS = [
-  { season: '2026-S3', first_id: 'u-autre', second_id: 'u-lui', third_id: null },
-  { season: '2026-S2', first_id: 'u-lui', second_id: null, third_id: null },
+  { season: '2026-S3', podium: [{ user_id: 'u-autre', rank: 1, prize: 0 }, { user_id: 'u-lui', rank: 2, prize: 0 }] },
+  { season: '2026-S2', podium: [{ user_id: 'u-lui', rank: 1, prize: 0 }] },
 ]
 
 const monter = (props = {}) => mount(ProfilePanel, {

@@ -309,12 +309,19 @@ describe('arène', () => {
 
   it('podium et titre de champion, datés du dernier jour de la saison', () => {
     const seasons = [
-      { season: '2026-S6', first_id: 'u-autre', second_id: ME, third_id: null },
-      { season: '2027-S1', first_id: ME, second_id: null, third_id: null },
+      { season: '2026-S6', podium: [{ user_id: 'u-autre', rank: 1, prize: 0 }, { user_id: ME, rank: 2, prize: 0 }] },
+      { season: '2027-S1', podium: [{ user_id: ME, rank: 1, prize: 0 }] },
     ]
     const r = play(arena([], { seasons }))
     expect(r.unlocked.podium).toEqual({ date: '2027-01-31', triggerKey: 'saison:2026-S6' })
     expect(r.unlocked.champion).toEqual({ date: '2027-03-31', triggerKey: 'saison:2027-S1' })
+  })
+
+  it('fait champion un premier ex aequo', () => {
+    const seasons = [{ season: '2026-S6', podium: [
+      { user_id: 'u-autre', rank: 1, prize: 750 }, { user_id: ME, rank: 1, prize: 750 },
+    ] }]
+    expect(play(arena([], { seasons })).unlocked.champion).toEqual({ date: '2027-01-31', triggerKey: 'saison:2026-S6' })
   })
 
   it('compte les cartes revendues', () => {

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import SeasonBadge from './SeasonBadge.vue'
+import { podiumRank } from '../../shared/arena-economy.js'
 
 const props = defineProps({
   /** Les saisons closes, avec leur podium. */
@@ -18,10 +19,9 @@ const props = defineProps({
  * Les saisons manquées gardent leur socle, vide : une étagère à trous raconte une histoire
  * qu'une liste de badges gagnés ne raconte pas.
  */
-const RANGS = ['first_id', 'second_id', 'third_id']
 const palmares = computed(() => props.seasons.map((s) => ({
   season: s.season,
-  rank: RANGS.findIndex((r) => s[r] === props.userId) + 1,
+  rank: podiumRank(s, props.userId),
 })))
 
 const gagnes = computed(() => palmares.value.filter((p) => p.rank).length)

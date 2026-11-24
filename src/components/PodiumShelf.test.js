@@ -4,8 +4,8 @@ import PodiumShelf from './PodiumShelf.vue'
 
 const MOI = 'u-moi'
 const SAISONS = [
-  { season: '2026-S3', first_id: 'u-marion', second_id: MOI, third_id: null },
-  { season: '2026-S2', first_id: 'u-thomas', second_id: null, third_id: null },
+  { season: '2026-S3', podium: [{ user_id: 'u-marion', rank: 1, prize: 0 }, { user_id: MOI, rank: 2, prize: 0 }] },
+  { season: '2026-S2', podium: [{ user_id: 'u-thomas', rank: 1, prize: 0 }] },
 ]
 
 const monter = (props = {}) => mount(PodiumShelf, { props: { seasons: SAISONS, userId: MOI, ...props } })

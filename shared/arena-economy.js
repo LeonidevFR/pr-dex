@@ -76,6 +76,14 @@ export const SHOP = BASE_PRICES.flatMap(({ gen, tier, price }) => [
  */
 export const SEASON_PODIUM = [1000, 500, 250]
 
+/**
+ * Le rang d'un joueur sur le podium d'une saison close (`{ season, podium: [{ user_id, rank,
+ * prize }] }`), 0 s'il n'y est pas. Des ex aequo partagent le même rang : le podium peut
+ * compter plus de trois joueurs.
+ */
+export const podiumRank = (season, userId) =>
+  season?.podium?.find((p) => p.user_id === userId)?.rank ?? 0
+
 export const CREDIT_PER_WORKING_DAY = 1
 export const CREDIT_CAP = 5
 export const PAIR_WEEKLY_CAP = 2

@@ -330,8 +330,6 @@ CREATE OR REPLACE FUNCTION "public"."arena_close_finished_seasons"() RETURNS int
 declare
   v_season text;
   v_podium int[] := array[1000, 500, 250];
-  v_rang int;
-  v_user uuid;
   v_n int := 0;
 begin
   for v_season in
@@ -343,32 +341,27 @@ begin
       and not exists (select 1 from public.arena_seasons s where s.season = p.season)
     order by 1
   loop
-    -- `row_number` et non `rank` : deux joueurs à égalité ne peuvent pas occuper tous deux la
-    -- première marche d'un podium qui n'en a qu'une. Le classement affiché les montre à
-    -- égalité ; la récompense, elle, doit être attribuable.
+    insert into public.arena_seasons (season) values (v_season);
+
+    -- `rank` et non `row_number` : des ex aequo partagent la marche, comme au classement
+    -- affiché. Un groupe de `n` ex aequo classé `r` occupe les places r à r + n - 1 ; il se
+    -- partage les primes de celles qui sont sur le podium, arrondies à l'unité inférieure.
     with c as (
-      select user_id, row_number() over (order by points desc, user_id) as rank
+      select user_id, points,
+             rank() over (order by points desc) :: int as r,
+             count(*) over (partition by points) :: int as n
       from public.arena_season_points where season = v_season
     )
-    insert into public.arena_seasons (season, first_id, second_id, third_id)
-    select v_season,
-           (select user_id from c where rank = 1),
-           (select user_id from c where rank = 2),
-           (select user_id from c where rank = 3);
+    insert into public.arena_season_podium (season, user_id, rank, prize)
+    select v_season, c.user_id, c.r,
+           (select coalesce(sum(v_podium[k]), 0) from generate_series(c.r, least(c.r + c.n - 1, 3)) k)
+             / c.n
+    from c where c.r <= 3;
 
-    for v_rang in 1 .. 3 loop
-      select user_id into v_user from (
-        select user_id, row_number() over (order by points desc, user_id) as rank
-        from public.arena_season_points where season = v_season
-      ) c where c.rank = v_rang;
-
-      if v_user is not null then
-        insert into public.arena_wallet (user_id, pokedollars)
-        values (v_user, v_podium[v_rang])
-        on conflict (user_id) do update
-          set pokedollars = arena_wallet.pokedollars + excluded.pokedollars;
-      end if;
-    end loop;
+    insert into public.arena_wallet (user_id, pokedollars)
+    select user_id, prize from public.arena_season_podium where season = v_season and prize > 0
+    on conflict (user_id) do update
+      set pokedollars = arena_wallet.pokedollars + excluded.pokedollars;
 
     v_n := v_n + 1;
   end loop;
@@ -1698,12 +1691,22 @@ CREATE OR REPLACE VIEW "public"."arena_public_profile" AS
 ALTER VIEW "public"."arena_public_profile" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."arena_season_podium" (
+    "season" "text" NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "rank" integer NOT NULL,
+    "prize" integer NOT NULL,
+    CONSTRAINT "arena_season_podium_prize_check" CHECK (("prize" >= 0)),
+    CONSTRAINT "arena_season_podium_rank_check" CHECK ((("rank" >= 1) AND ("rank" <= 3)))
+);
+
+
+ALTER TABLE "public"."arena_season_podium" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."arena_seasons" (
     "season" "text" NOT NULL,
-    "closed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "first_id" "uuid",
-    "second_id" "uuid",
-    "third_id" "uuid"
+    "closed_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
@@ -1797,6 +1800,11 @@ ALTER TABLE ONLY "public"."arena_exemplars"
 
 ALTER TABLE ONLY "public"."arena_packs"
     ADD CONSTRAINT "arena_packs_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."arena_season_podium"
+    ADD CONSTRAINT "arena_season_podium_pkey" PRIMARY KEY ("season", "user_id");
 
 
 
@@ -1925,23 +1933,18 @@ ALTER TABLE ONLY "public"."arena_packs"
 
 
 
+ALTER TABLE ONLY "public"."arena_season_podium"
+    ADD CONSTRAINT "arena_season_podium_season_fkey" FOREIGN KEY ("season") REFERENCES "public"."arena_seasons"("season") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."arena_season_podium"
+    ADD CONSTRAINT "arena_season_podium_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id");
+
+
+
 ALTER TABLE ONLY "public"."arena_season_points"
     ADD CONSTRAINT "arena_season_points_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."arena_seasons"
-    ADD CONSTRAINT "arena_seasons_first_id_fkey" FOREIGN KEY ("first_id") REFERENCES "auth"."users"("id");
-
-
-
-ALTER TABLE ONLY "public"."arena_seasons"
-    ADD CONSTRAINT "arena_seasons_second_id_fkey" FOREIGN KEY ("second_id") REFERENCES "auth"."users"("id");
-
-
-
-ALTER TABLE ONLY "public"."arena_seasons"
-    ADD CONSTRAINT "arena_seasons_third_id_fkey" FOREIGN KEY ("third_id") REFERENCES "auth"."users"("id");
 
 
 
@@ -2012,6 +2015,13 @@ ALTER TABLE "public"."arena_packs" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "arena_packs_select_own" ON "public"."arena_packs" FOR SELECT USING (("auth"."uid"() = "user_id"));
+
+
+
+ALTER TABLE "public"."arena_season_podium" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "arena_season_podium_select_all" ON "public"."arena_season_podium" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -2402,6 +2412,11 @@ GRANT ALL ON TABLE "public"."state" TO "service_role";
 
 GRANT ALL ON TABLE "public"."arena_public_profile" TO "service_role";
 GRANT SELECT ON TABLE "public"."arena_public_profile" TO "authenticated";
+
+
+
+GRANT ALL ON TABLE "public"."arena_season_podium" TO "service_role";
+GRANT SELECT ON TABLE "public"."arena_season_podium" TO "authenticated";
 
 
 

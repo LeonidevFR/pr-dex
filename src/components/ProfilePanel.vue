@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import SeasonBadge from './SeasonBadge.vue'
-import { seasonLabel } from '../../shared/arena-economy.js'
+import { podiumRank, seasonLabel } from '../../shared/arena-economy.js'
 
 const props = defineProps({
   /** La fiche publique telle que la base la rend : nom, espèces, victoires, défaites. */
@@ -45,12 +45,11 @@ const cases = computed(() => {
 })
 
 /** Les trois marches, et rien d'autre : une saison sans podium n'a pas de badge à montrer. */
-const RANGS = ['first_id', 'second_id', 'third_id']
 const palmares = computed(() => {
   const id = props.fiche?.user_id
   if (!id) return []
   return props.seasons
-    .map((s) => ({ season: s.season, rank: RANGS.findIndex((r) => s[r] === id) + 1 }))
+    .map((s) => ({ season: s.season, rank: podiumRank(s, id) }))
     .filter((s) => s.rank > 0)
 })
 </script>

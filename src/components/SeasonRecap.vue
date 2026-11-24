@@ -2,10 +2,10 @@
 import { computed } from 'vue'
 import { X } from '@lucide/vue'
 import SeasonBadge from './SeasonBadge.vue'
-import { SEASON_PODIUM, seasonLabel } from '../../shared/arena-economy.js'
+import { seasonLabel } from '../../shared/arena-economy.js'
 
 const props = defineProps({
-  /** La saison close : `{ season, first_id, second_id, third_id, board }`, `board` étant son classement. */
+  /** La saison close : `{ season, podium: [{ user_id, rank, prize }], board }`, `board` étant son classement. */
   recap: { type: Object, required: true },
   userId: { type: String, default: '' },
   /** La saison qui commence. */
@@ -14,12 +14,16 @@ const props = defineProps({
 defineEmits(['close'])
 
 const nom = (id) => props.recap.board.find((r) => r.user_id === id)?.login ?? 'un joueur'
-const podium = computed(() => [props.recap.first_id, props.recap.second_id, props.recap.third_id]
-  .map((id, i) => (id ? { id, rang: i + 1, nom: nom(id), gain: SEASON_PODIUM[i] } : null))
-  .filter(Boolean))
+const podium = computed(() => {
+  const lignes = props.recap.podium ?? []
+  return [...lignes]
+    .map((p) => ({ id: p.user_id, rang: p.rank, nom: nom(p.user_id), gain: p.prize,
+      exAequo: lignes.filter((q) => q.rank === p.rank).length > 1 }))
+    .sort((a, b) => a.rang - b.rang || a.nom.localeCompare(b.nom))
+})
 const moi = computed(() => podium.value.find((p) => p.id === props.userId) ?? null)
 const monRang = computed(() => props.recap.board.find((r) => r.user_id === props.userId)?.rank ?? null)
-const rangLu = (n) => (n === 1 ? '1er' : `${n}e`)
+const rangLu = (n, exAequo = false) => (n === 1 ? '1er' : `${n}e`) + (exAequo ? ' ex aequo' : '')
 const pd = (n) => n.toLocaleString('fr-FR').replace(/\s/g, ' ')
 </script>
 
@@ -36,12 +40,13 @@ const pd = (n) => n.toLocaleString('fr-FR').replace(/\s/g, ' ')
         <li v-for="p in podium" :key="p.id" :class="{ moi: p.id === userId }">
           <SeasonBadge :season="recap.season" :rank="p.rang" :size="64" />
           <b>{{ p.nom }}</b>
-          <span class="mono">{{ rangLu(p.rang) }} · +{{ pd(p.gain) }} ₽</span>
+          <span class="mono">{{ rangLu(p.rang, p.exAequo) }}</span>
+          <span class="mono gain">+{{ pd(p.gain) }} ₽</span>
         </li>
       </ol>
 
       <p v-if="moi" class="season-recap-moi">
-        Tu finis {{ rangLu(moi.rang) }} : {{ pd(moi.gain) }} ₽ sont dans ta caisse et le badge rejoint
+        Tu finis {{ rangLu(moi.rang, moi.exAequo) }} : {{ pd(moi.gain) }} ₽ sont dans ta caisse et le badge rejoint
         ton étagère.
       </p>
       <p v-else-if="monRang" class="season-recap-moi">Tu finis {{ rangLu(monRang) }}.</p>

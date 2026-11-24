@@ -659,7 +659,11 @@ describe('annonce de fin de saison', () => {
   it('donne le podium, les gains, puis la saison qui commence', () => {
     const texte = seasonAnnouncement({
       season: '2026-S6',
-      podium: [{ login: 'alice', points: 310 }, { login: 'bob', points: 200 }, { login: 'carol', points: 90 }],
+      podium: [
+        { login: 'alice', points: 310, rank: 1, prize: 1000 },
+        { login: 'bob', points: 200, rank: 2, prize: 500 },
+        { login: 'carol', points: 90, rank: 3, prize: 250 },
+      ],
       current: '2027-S1',
       url: 'https://exemple.test/pr-dex/',
     })
@@ -667,6 +671,19 @@ describe('annonce de fin de saison', () => {
     expect(texte).toContain('🥇 *alice* · 310 pts · +1 000 ₽')
     expect(texte).toContain('🥉 *carol* · 90 pts · +250 ₽')
     expect(texte).toContain('La Saison 2 commence : les points repartent de zéro. <https://exemple.test/pr-dex/|Ouvrir pr-dex>')
+  })
+
+  it('donne la même médaille aux ex aequo, avec leur part des primes', () => {
+    const texte = seasonAnnouncement({
+      season: '2026-S6',
+      podium: [
+        { login: 'alice', points: 300, rank: 1, prize: 750 },
+        { login: 'bob', points: 300, rank: 1, prize: 750 },
+        { login: 'carol', points: 90, rank: 3, prize: 250 },
+      ],
+      current: '2027-S1',
+    })
+    expect(texte).toContain('🥇 *alice* · 300 pts · +750 ₽\n🥇 *bob* · 300 pts · +750 ₽\n🥉 *carol* · 90 pts · +250 ₽')
   })
 
   it('dit quand personne n’a joué', () => {
@@ -677,16 +694,18 @@ describe('annonce de fin de saison', () => {
     const posts = []
     const fetchFn = async (url) => ({
       ok: true,
-      json: async () => (url.includes('arena_seasons')
-        ? [{ season: '2027-S1' }, { season: '2026-S6' }]
-        : [{ login: url.includes('2026-S6') ? 'alice' : 'bob', points: 10, rank: 1 }]),
+      json: async () => {
+        if (url.includes('arena_seasons')) return [{ season: '2027-S1' }, { season: '2026-S6' }]
+        if (url.includes('arena_season_podium')) return [{ user_id: 'u1', rank: 1, prize: 1000 }]
+        return [{ user_id: 'u1', login: url.includes('2026-S6') ? 'alice' : 'bob', points: 10 }]
+      },
     })
     const n = await announceClosedSeasons('https://sb.test', 'cle', 2, {
       post: async (channel, thread, text) => posts.push({ channel, text }), channel: 'C1', now: new Date('2027-03-02'),
     }, fetchFn)
     expect(n).toBe(2)
     expect(posts.map((p) => p.text.split('\n')[0])).toEqual([':trophy: *Saison 1 terminée !*', ':trophy: *Saison 2 terminée !*'])
-    expect(posts[0].text).toContain('alice')
+    expect(posts[0].text).toContain('🥇 *alice* · 10 pts · +1 000 ₽')
     expect(posts[0].channel).toBe('C1')
   })
 })

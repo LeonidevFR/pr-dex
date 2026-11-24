@@ -15,7 +15,10 @@ describe('RewardTable', () => {
   })
 
   // La règle qui surprend le plus à l'usage : miser gros contre un petit ne rapporte pas gros.
-  it('dit que l’enjeu est le plus petit des deux engagements', () => {
-    expect(mount(RewardTable).text()).toContain('le plus petit des deux engagements')
+  it('dit que l’enjeu est celui du moins rare des deux, et comment se partage le podium', () => {
+    const texte = mount(RewardTable).text()
+    expect(texte).toContain('moins rare des deux Pokémon')
+    expect(texte).toContain('1 000, 500 et 250 ₽')
+    expect(texte).toContain('ex aequo')
   })
 })

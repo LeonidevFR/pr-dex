@@ -27,14 +27,14 @@ begin;
 revoke all on
   public.species_stats, public.species_evo, public.evolutions,
   public.arena_exemplars, public.arena_duels, public.arena_wallet, public.arena_packs,
-  public.arena_season_points, public.arena_seasons, public.arena_shop,
+  public.arena_season_points, public.arena_seasons, public.arena_season_podium, public.arena_shop,
   public.arena_identities, public.arena_players, public.arena_open_challenges,
   public.arena_public_dex, public.arena_leaderboard, public.arena_public_profile
   from anon, authenticated;
 grant select on
   public.species_stats, public.species_evo, public.evolutions,
   public.arena_exemplars, public.arena_duels, public.arena_wallet, public.arena_packs,
-  public.arena_season_points, public.arena_seasons, public.arena_shop,
+  public.arena_season_points, public.arena_seasons, public.arena_season_podium, public.arena_shop,
   public.arena_identities, public.arena_players, public.arena_open_challenges,
   public.arena_public_dex, public.arena_leaderboard, public.arena_public_profile
   to authenticated;

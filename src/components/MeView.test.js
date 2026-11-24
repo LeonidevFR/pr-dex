@@ -12,7 +12,7 @@ const ROWS = [
 const MOI = 'u-moi'
 const PRIVE = { copies: 58, pokedollars: 14000, credits: 5, destroyed: 2, sold: 3, soldTotal: 120 }
 const FICHE = { user_id: MOI, login: 'leonard', species: 44, wins: 7, losses: 2 }
-const SAISONS = [{ season: '2026-S3', first_id: 'u-marion', second_id: MOI, third_id: null }]
+const SAISONS = [{ season: '2026-S3', podium: [{ user_id: 'u-marion', rank: 1, prize: 0 }, { user_id: MOI, rank: 2, prize: 0 }] }]
 
 const monter = (props = {}, read = vi.fn().mockResolvedValue(ROWS)) => mount(MeView, {
   props: {

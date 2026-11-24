@@ -1,6 +1,6 @@
 import { DEX, familyOf, familyLine, hasEvoInFamily } from '../../shared/species.js'
 import { entryKey } from '../../shared/entry.js'
-import { seasonBounds } from '../../shared/arena-economy.js'
+import { podiumRank, seasonBounds } from '../../shared/arena-economy.js'
 
 /**
  * Le catalogue des succès. L'ordre est celui de l'affichage, groupe par groupe.
@@ -224,10 +224,10 @@ export function evaluate({ catches, claimed, evolutions, others = [], arena = nu
       if (last) { hit('level-10', day(last.resolved_at), ex.entry_key); break }
     }
     const podiums = (arena.seasons ?? [])
-      .filter((s) => [s.first_id, s.second_id, s.third_id].includes(me))
+      .filter((s) => podiumRank(s, me) > 0)
       .sort((a, b) => (a.season < b.season ? -1 : 1))
     if (podiums.length) hit('podium', seasonEndDay(podiums[0].season), `saison:${podiums[0].season}`)
-    const won = podiums.find((s) => s.first_id === me)
+    const won = podiums.find((s) => podiumRank(s, me) === 1)
     if (won) hit('champion', seasonEndDay(won.season), `saison:${won.season}`)
     const sold = (arena.exemplars ?? []).filter((e) => e.sold_at).sort((a, b) => (a.sold_at < b.sold_at ? -1 : 1))
     for (const n of SELL_STEPS) if (sold.length >= n) hit(`sell-${n}`, day(sold[n - 1].sold_at), sold[n - 1].entry_key)

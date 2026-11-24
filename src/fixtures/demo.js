@@ -633,10 +633,10 @@ export function demoArena(catches, ouvertes = []) {
      * pour que l'étagère montre aussi ce qu'on a manqué — un socle vide raconte une histoire.
      */
     readSeasons: async () => [
-      { season: '2026-S2', first_id: 'demo-ada', second_id: 'demo-bob', third_id: null },
-      { season: '2026-S3', first_id: 'demo-ada', second_id: MOI, third_id: 'demo-bob' },
-      { season: '2026-S4', first_id: 'demo-bob', second_id: 'demo-ada', third_id: MOI },
-      { season: '2026-S5', first_id: MOI, second_id: 'demo-bob', third_id: 'demo-ada' },
+      { season: '2026-S2', podium: [{ user_id: 'demo-ada', rank: 1, prize: 1000 }, { user_id: 'demo-bob', rank: 2, prize: 500 }] },
+      { season: '2026-S3', podium: [{ user_id: 'demo-ada', rank: 1, prize: 1000 }, { user_id: MOI, rank: 2, prize: 500 }, { user_id: 'demo-bob', rank: 3, prize: 250 }] },
+      { season: '2026-S4', podium: [{ user_id: 'demo-bob', rank: 1, prize: 1000 }, { user_id: 'demo-ada', rank: 2, prize: 500 }, { user_id: MOI, rank: 3, prize: 250 }] },
+      { season: '2026-S5', podium: [{ user_id: MOI, rank: 1, prize: 1000 }, { user_id: 'demo-bob', rank: 2, prize: 500 }, { user_id: 'demo-ada', rank: 3, prize: 250 }] },
     ],
     readShop: async () => SHOP.map(({ slug, gen, tier, fresh, price }) => ({ slug, gen, tier, fresh, price })),
     /**

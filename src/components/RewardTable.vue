@@ -14,6 +14,10 @@ import { TIER_LABEL, TIER_VAR } from '../../shared/species.js'
  * moins que pas de table du tout.
  */
 const bareme = computed(() => TIER_ORDER.map((t) => ({ tier: t, ...REWARD[t] })))
+
+const pd = (n) => n.toLocaleString('fr-FR').replace(/\s/g, ' ')
+/** « 1 000, 500 et 250 » */
+const podiumLu = `${SEASON_PODIUM.slice(0, -1).map(pd).join(', ')} et ${pd(SEASON_PODIUM.at(-1))}`
 </script>
 
 <template>
@@ -28,9 +32,9 @@ const bareme = computed(() => TIER_ORDER.map((t) => ({ tier: t, ...REWARD[t] }))
       </div>
     </div>
     <p class="muted" style="margin-top:12px">
-      L’enjeu est toujours <b>le plus petit des deux engagements</b> : miser gros contre un
-      petit ne rapporte pas gros. À la clôture, le podium touche
-      {{ SEASON_PODIUM.join(', ') }} ₽ : de quoi fêter, pas de quoi dominer la saison suivante.
+      L’enjeu est celui du <b>moins rare des deux Pokémon</b>. À la clôture, le podium touche
+      {{ podiumLu }} ₽ : de quoi fêter, pas de quoi dominer la saison suivante. Des ex aequo
+      partagent la même marche et se partagent les primes des places qu’ils occupent.
     </p>
   </div>
 </template>
