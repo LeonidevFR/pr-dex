@@ -1,10 +1,12 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { Snowflake } from '@lucide/vue'
 import { formatDate } from '../lib/dates.js'
 
 /**
- * La carte d'un membre de l'équipe : le carton or du légendaire, une photo à la place du sprite,
- * la description sous le nom. Même objet que la PokeCard — même face, même dos, même
+ * La carte d'un membre de l'équipe : un carton vert sapin semé de flocons, un ruban rouge noué
+ * en coin, une photo à la place du sprite, la description sous le nom. La dorure du légendaire
+ * reste (filets, halo), mais la carte ne s'y confond plus : c'est une édition à part. Même objet que la PokeCard — même face, même dos, même
  * retournement piloté par le parent — sans numéro ni palier : elle n'appartient à aucune planche.
  */
 const props = defineProps({
@@ -45,6 +47,13 @@ const initial = computed(() => props.member.name.trim()[0]?.toUpperCase() ?? '?'
       <div class="pkc-frame"></div>
       <span class="pkc-corner tl"></span><span class="pkc-corner tr"></span>
       <span class="pkc-corner bl"></span><span class="pkc-corner br"></span>
+      <span class="team-ribbon" aria-hidden="true">
+        <svg class="team-bow" viewBox="0 0 32 24">
+          <path d="M15 13 10 22.5l3-1 2 2.5zM17 13l5 9.5-3-1-2 2.5z" />
+          <path d="M16 12C10 2 2 4 4 10c1 4 7 4 12 2zM16 12c6-10 14-8 12-2-1 4-7 4-12 2z" />
+          <circle cx="16" cy="12" r="2.6" />
+        </svg>
+      </span>
       <div class="pkc-top"><span class="pkc-no mono">Équipe · Noël</span></div>
       <div class="pkc-art">
         <img v-if="member.photoUrl" class="team-photo" :src="member.photoUrl" :alt="member.name">
@@ -58,14 +67,14 @@ const initial = computed(() => props.member.name.trim()[0]?.toUpperCase() ?? '?'
       </div>
     </div>
 
-    <div v-if="provenance" class="pkc-face pkc-back" data-back="gold" :aria-hidden="flipped ? null : 'true'">
+    <div v-if="provenance" class="pkc-face pkc-back" data-back="noel" :aria-hidden="flipped ? null : 'true'">
       <div class="pkc-back-rosace"></div>
       <div class="pkc-back-sheen"></div>
       <div class="pkc-back-head mono">
         <span class="pkc-back-no">Édition Noël</span>
         <span class="pkc-back-date">{{ formatDate(provenance.date) }}</span>
       </div>
-      <span class="pkc-mark"><span class="pkc-mark-word"><i>PR</i>·DEX</span></span>
+      <span class="pkc-mark"><Snowflake class="pkc-back-legend" aria-hidden="true" /><span class="pkc-mark-word"><i>PR</i>·DEX</span></span>
       <div class="pkc-lab">
         <span class="pkc-lab-eyebrow">Provenance</span>
         <span v-if="provenance.ref" class="pkc-lab-ref mono">{{ provenance.ref }}</span>
