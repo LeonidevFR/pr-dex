@@ -665,6 +665,34 @@ create unique index arena_duels_one_open_per_exemplar
 
 -- Engager un exemplaire : poster un défi ouvert, ou affronter l'ordinateur tout de suite.
 --
+-- L'ouverture de l'arène, gardée par la base et pas seulement par l'écran.
+--
+-- Le front cache l'arène avant le 1er décembre, mais une fois ce SQL joué, les fonctions
+-- répondaient à tout joueur connecté, par la fiche d'espèce ou directement par l'API. Des duels
+-- joués en novembre auraient compté dans une saison antérieure, clôturée le 1er décembre avec
+-- podium et primes. Engager, relever, acheter et vendre passent tous par ce verrou.
+--
+-- La date vit dans une table d'une ligne et non dans le code : la pile locale la recule
+-- (`seed-local.sql`) pour que les tests, qui tournent avant le lancement, trouvent l'arène
+-- ouverte. Aucun joueur ne la lit ni ne l'écrit : RLS sans policy, droits retirés. Sans ligne,
+-- le verrou retombe sur la date du lancement, fermé plutôt qu'ouvert.
+create table public.arena_opening (
+  id boolean primary key default true check (id),
+  opens_at timestamptz not null
+);
+alter table public.arena_opening enable row level security;
+insert into public.arena_opening (opens_at) values (timestamptz '2026-12-01 00:00:00 Europe/Paris');
+
+create or replace function public.arena_assert_open()
+returns void language plpgsql stable set search_path = public as $$
+begin
+  if now() < coalesce((select opens_at from public.arena_opening),
+                      timestamptz '2026-12-01 00:00:00 Europe/Paris') then
+    raise exception 'arene : l''arène ouvre le 1er décembre';
+  end if;
+end;
+$$;
+
 -- `security definer` parce que c'est l'unique écrivain des tables d'arène : aucun joueur n'a
 -- de droit d'écriture, donc tout ce qui s'écrit passe par ici et par les règles écrites ici.
 -- `set search_path = public` pour qu'un schéma placé devant par un appelant ne puisse pas
@@ -690,6 +718,7 @@ declare
   v_day text := to_char(now() at time zone 'Europe/Paris', 'YYYY-MM-DD');
   v_seed text;
 begin
+  perform public.arena_assert_open();
   if v_uid is null then
     raise exception 'arene : appel non authentifié';
   end if;
@@ -902,6 +931,7 @@ declare
   v_loser_key text;
   v_day text := to_char(now() at time zone 'Europe/Paris', 'YYYY-MM-DD');
 begin
+  perform public.arena_assert_open();
   if v_uid is null then
     raise exception 'arene : appel non authentifié';
   end if;
@@ -1417,6 +1447,7 @@ declare
   v_solde int;
   v_pack bigint;
 begin
+  perform public.arena_assert_open();
   if v_uid is null then
     raise exception 'arene : il faut être connecté pour acheter';
   end if;

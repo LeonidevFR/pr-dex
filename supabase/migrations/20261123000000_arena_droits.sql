@@ -31,6 +31,8 @@ revoke all on
   public.arena_identities, public.arena_players, public.arena_open_challenges,
   public.arena_public_dex, public.arena_leaderboard, public.arena_public_profile
   from anon, authenticated;
+-- La date d'ouverture : ni lecture ni écriture pour les joueurs, seul le verrou la consulte.
+revoke all on public.arena_opening from anon, authenticated;
 grant select on
   public.species_stats, public.species_evo, public.evolutions,
   public.arena_exemplars, public.arena_duels, public.arena_wallet, public.arena_packs,

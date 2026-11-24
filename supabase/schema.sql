@@ -67,6 +67,7 @@ declare
   v_loser_key text;
   v_day text := to_char(now() at time zone 'Europe/Paris', 'YYYY-MM-DD');
 begin
+  perform public.arena_assert_open();
   if v_uid is null then
     raise exception 'arene : appel non authentifié';
   end if;
@@ -281,6 +282,22 @@ $$;
 ALTER FUNCTION "public"."arena_accept"("p_duel_id" bigint, "p_entry_key" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."arena_assert_open"() RETURNS "void"
+    LANGUAGE "plpgsql" STABLE
+    SET "search_path" TO 'public'
+    AS $$
+begin
+  if now() < coalesce((select opens_at from public.arena_opening),
+                      timestamptz '2026-12-01 00:00:00 Europe/Paris') then
+    raise exception 'arene : l''arène ouvre le 1er décembre';
+  end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."arena_assert_open"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."arena_buy"("p_slug" "text") RETURNS bigint
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -291,6 +308,7 @@ declare
   v_solde int;
   v_pack bigint;
 begin
+  perform public.arena_assert_open();
   if v_uid is null then
     raise exception 'arene : il faut être connecté pour acheter';
   end if;
@@ -459,6 +477,7 @@ declare
   v_day text := to_char(now() at time zone 'Europe/Paris', 'YYYY-MM-DD');
   v_seed text;
 begin
+  perform public.arena_assert_open();
   if v_uid is null then
     raise exception 'arene : appel non authentifié';
   end if;
@@ -1122,6 +1141,7 @@ declare
   v_total int := 0;
   v_n int := 0;
 begin
+  perform public.arena_assert_open();
   if v_uid is null then
     raise exception 'dex : appel non authentifié';
   end if;
@@ -1564,6 +1584,16 @@ CREATE OR REPLACE VIEW "public"."arena_open_challenges" AS
 ALTER VIEW "public"."arena_open_challenges" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."arena_opening" (
+    "id" boolean DEFAULT true NOT NULL,
+    "opens_at" timestamp with time zone NOT NULL,
+    CONSTRAINT "arena_opening_id_check" CHECK ("id")
+);
+
+
+ALTER TABLE "public"."arena_opening" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."arena_packs" (
     "id" bigint NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -1798,6 +1828,11 @@ ALTER TABLE ONLY "public"."arena_exemplars"
 
 
 
+ALTER TABLE ONLY "public"."arena_opening"
+    ADD CONSTRAINT "arena_opening_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."arena_packs"
     ADD CONSTRAINT "arena_packs_pkey" PRIMARY KEY ("id");
 
@@ -2011,6 +2046,9 @@ CREATE POLICY "arena_exemplars_select_own" ON "public"."arena_exemplars" FOR SEL
 
 
 
+ALTER TABLE "public"."arena_opening" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."arena_packs" ENABLE ROW LEVEL SECURITY;
 
 
@@ -2122,6 +2160,11 @@ GRANT ALL ON FUNCTION "public"."achievement_counts"() TO "service_role";
 REVOKE ALL ON FUNCTION "public"."arena_accept"("p_duel_id" bigint, "p_entry_key" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."arena_accept"("p_duel_id" bigint, "p_entry_key" "text") TO "service_role";
 GRANT ALL ON FUNCTION "public"."arena_accept"("p_duel_id" bigint, "p_entry_key" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."arena_assert_open"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."arena_assert_open"() TO "service_role";
 
 
 
@@ -2365,6 +2408,10 @@ GRANT SELECT ON TABLE "public"."arena_leaderboard" TO "authenticated";
 
 GRANT ALL ON TABLE "public"."arena_open_challenges" TO "service_role";
 GRANT SELECT ON TABLE "public"."arena_open_challenges" TO "authenticated";
+
+
+
+GRANT ALL ON TABLE "public"."arena_opening" TO "service_role";
 
 
 

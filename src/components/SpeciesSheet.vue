@@ -32,6 +32,8 @@ const props = defineProps({
    * Pokémon, évite d'avoir à ouvrir l'arène pour savoir si le moment est bon.
    */
   arenaFormOf: { type: Function, default: null },
+  /** Faux avant l'ouverture : la section Arène (engager, vendre) n'existe pas encore. */
+  arenaOpen: { type: Boolean, default: true },
 })
 const emit = defineEmits(['close', 'evolve', 'engage', 'sell'])
 
@@ -233,7 +235,7 @@ const info = computed(() => SPECIES_INFO[props.id] ?? null)
         de l'envoyer. Le passage par l'écran d'arène restait possible, mais il obligeait à
         retrouver dans une grille le Pokémon qu'on avait justement sous les yeux.
       -->
-      <div v-if="caught && available.length" class="sect">
+      <div v-if="arenaOpen && caught && available.length" class="sect">
         <!--
           Pas de niveau en tête de section. Il y en avait un, celui du PREMIER exemplaire de la
           liste — ni le plus fort ni le plus faible, seulement le plus ancien — présenté comme

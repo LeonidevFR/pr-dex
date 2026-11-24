@@ -22,7 +22,7 @@ let wrapper = null
 // de `matchMedia`, et sans lui le montage jette avant d'avoir rien affiché.
 beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: false }))
-  window.history.replaceState({}, '', '/?demo')
+  window.history.replaceState({}, '', '/?demo&arene')
 })
 
 afterEach(() => {
@@ -270,7 +270,7 @@ describe('les lieux ont une URL', () => {
 
   // Le cas du lien partagé, et celui du rechargement : l'écran doit se reconstituer seul.
   it('ouvre directement le bon écran depuis l’adresse', async () => {
-    window.history.replaceState({}, '', '/shop?demo')
+    window.history.replaceState({}, '', '/shop?demo&arene')
     const w = await mountApp()
     expect(w.find('.view-title').text()).toBe('Boutique')
   })
@@ -305,7 +305,7 @@ describe('le profil', () => {
 
   // Un lien reçu d'un collègue : l'écran doit se reconstituer seul.
   it('ouvre la fiche d’un collègue depuis l’adresse', async () => {
-    window.history.replaceState({}, '', '/profile/bob-dev?demo')
+    window.history.replaceState({}, '', '/profile/bob-dev?demo&arene')
     const w = await mountApp()
     await flushPromises()
     expect(w.find('.view-title i').text()).toBe('bob-dev')
@@ -319,7 +319,7 @@ describe('le profil', () => {
    * tiers les voit, amputés de ce qu'elle ne publie pas.
    */
   it('renvoie à sa propre fiche, pas à sa version vue de l’extérieur', async () => {
-    window.history.replaceState({}, '', '/profile/leonard?demo')
+    window.history.replaceState({}, '', '/profile/leonard?demo&arene')
     const w = await mountApp()
     await flushPromises()
     expect(location.pathname).toBe('/moi')
@@ -328,7 +328,7 @@ describe('le profil', () => {
   })
 
   it('explique un login qui ne joue pas, au lieu d’une fiche vide', async () => {
-    window.history.replaceState({}, '', '/profile/fantome?demo')
+    window.history.replaceState({}, '', '/profile/fantome?demo&arene')
     const w = await mountApp()
     await flushPromises()
     expect(w.text()).toContain('Personne ne joue sous ce nom')
@@ -352,7 +352,7 @@ describe('la saison', () => {
 
   // Sa propre ligne mène chez soi : le même clic, l'autre destination.
   it('emmène à sa propre fiche depuis sa ligne du classement', async () => {
-    window.history.replaceState({}, '', '/classements?demo')
+    window.history.replaceState({}, '', '/classements?demo&arene')
     const w = await mountApp()
     await flushPromises()
     const moi = w.findAll('.saison-voir').find((r) => r.text().includes('leonard'))
@@ -364,7 +364,7 @@ describe('la saison', () => {
 
   // Un nom qu'on regarde depuis des semaines mérite de mener quelque part.
   it('emmène à la fiche d’un joueur du classement', async () => {
-    window.history.replaceState({}, '', '/classements?demo')
+    window.history.replaceState({}, '', '/classements?demo&arene')
     const w = await mountApp()
     await flushPromises()
     const autre = w.findAll('.saison-voir').find((r) => !r.text().includes('leonard'))
@@ -396,7 +396,7 @@ describe('enchaîner les engagements', () => {
   }
 
   it('laisse poster un second défi dans la foulée du premier', async () => {
-    window.history.replaceState({}, '', '/duels?demo')
+    window.history.replaceState({}, '', '/duels?demo&arene')
     const w = await mountApp()
 
     await choisir(w)

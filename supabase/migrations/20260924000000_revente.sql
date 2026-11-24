@@ -156,6 +156,7 @@ declare
   v_total int := 0;
   v_n int := 0;
 begin
+  perform public.arena_assert_open();
   if v_uid is null then
     raise exception 'dex : appel non authentifié';
   end if;

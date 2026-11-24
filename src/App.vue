@@ -68,11 +68,15 @@ const accountName = ref('')
 const identities = ref([])
 const isDemo = new URLSearchParams(location.search).has('demo')
 /**
- * `?demo&teaser` montre l'arène fermée alors qu'on est avant son ouverture — c'est le seul
- * moyen de relire l'écran d'annonce, que la démonstration cache par construction puisqu'elle
- * ouvre tout. Sans effet une fois l'arène ouverte : la date reste la seule autorité.
+ * La démo suit la date, comme le reste : l'adresse `?demo` circule, et avant le 1er décembre
+ * elle aurait montré l'arène entière à qui la connaissait. `?demo&arene` l'ouvre quand même,
+ * pour essayer le jeu avant son lancement.
+ *
+ * `?demo&teaser` garde l'arène fermée même avec `&arene`. Sans effet une fois l'arène ouverte :
+ * la date reste la seule autorité.
  */
 const teaserForce = new URLSearchParams(location.search).has('teaser')
+const areneForce = new URLSearchParams(location.search).has('arene')
 // Tant qu'on ne sait pas s'il faut se connecter, on n'affiche pas l'accueil : la démo ou une
 // session déjà ouverte le faisaient clignoter au rechargement, avant la planche.
 const restoring = computed(() => !connectError.value && (isDemo || !ready.value || !!session.value))
@@ -125,7 +129,7 @@ const meOpen = computed(() => route.value.name === 'moi')
  * fonctionnalité à ceux qui viennent précisément la voir.
  */
 const demo = ref(false)
-const areneOuverte = computed(() => (demo.value && !teaserForce) || arenaIsOpen())
+const areneOuverte = computed(() => arenaIsOpen() || (demo.value && areneForce && !teaserForce))
 const teaser = computed(() => !areneOuverte.value && ['duels', 'shop'].includes(route.value.name))
 
 /**
@@ -744,7 +748,7 @@ useKeyboardNav({
       v-if="view === 'succes'"
       :owned="achievements.owned.value" :counts="achievements.counts.value" :progress="achievements.progress.value"
       :ready="achievements.ready.value" :error="achievements.error.value"
-      :focus="achievementFocus"
+      :focus="achievementFocus" :arena-open="areneOuverte"
       @retry="achievements.load(dataClient, collectionData)"
     />
 
@@ -761,6 +765,7 @@ useKeyboardNav({
         :arena-credits="arena ? arena.credits.value : 0"
         :arena-level-of="arena ? arena.levelOf : () => 1"
         :arena-form-of="arena && areneOuverte ? arena.formOfKey : null"
+        :arena-open="areneOuverte && !!arena"
         @close="router.go('collection')" @evolve="onEvolve" @engage="onEngageFromSheet"
         @sell="onSell"
       />

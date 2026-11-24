@@ -14,6 +14,11 @@ const props = defineProps({
   // `{ code, seq }` : le succès à montrer, demandé depuis un toast. `seq` change à chaque
   // demande, pour qu'un second clic sur le même succès le remontre.
   focus: { type: Object, default: null },
+  /**
+   * Faux avant l'ouverture de l'arène : ses succès n'y sont pas encore. Affichés, ils se
+   * liraient comme des objectifs impossibles plutôt que comme une annonce.
+   */
+  arenaOpen: { type: Boolean, default: true },
 })
 defineEmits(['retry'])
 
@@ -22,7 +27,8 @@ const filter = ref('all')
 const tier = ref(null)
 const focused = ref(null)
 
-const items = computed(() => ACHIEVEMENTS.map((a) => {
+const catalogue = computed(() => (props.arenaOpen ? ACHIEVEMENTS : ACHIEVEMENTS.filter((a) => a.group !== 'arena')))
+const items = computed(() => catalogue.value.map((a) => {
   const row = props.owned[a.code] ?? null
   return {
     a, row,
@@ -98,7 +104,7 @@ watch(
     <div v-else class="ach-sheet">
       <div class="ach-head">
         <h2 class="ach-title">Registre des succès</h2>
-        <div class="ach-total"><b>{{ ownedCount }}</b> / {{ ACHIEVEMENTS.length }}</div>
+        <div class="ach-total"><b>{{ ownedCount }}</b> / {{ catalogue.length }}</div>
         <div class="ach-tiers">
           <span v-for="{ t, n } in byTier" :key="t" class="ach-tier-count" :class="`ach-t-${t}`" :title="TIER_LABEL[t]">
             <i></i>{{ n }}
