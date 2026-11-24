@@ -52,6 +52,11 @@ describe('parseRoute', () => {
   })
 
   // Seuls la collection et le profil portent un paramètre : `/arena/quelquechose` n'a pas de sens.
+  it('lit l’onglet de la boutique, et ignore un onglet inconnu', () => {
+    expect(parseRoute('/shop/revente', '/')).toEqual({ name: 'shop', param: 'revente' })
+    expect(parseRoute('/shop/nimporte', '/')).toEqual({ name: 'shop', param: null })
+  })
+
   it('ignore un paramètre sur un lieu qui n’en prend pas', () => {
     expect(parse('/pr-dex/duels/42')).toEqual({ name: 'duels', param: null })
   })
@@ -61,6 +66,7 @@ describe('routePath', () => {
   it('reconstruit une URL complète, préfixe compris', () => {
     expect(routePath({ name: 'duels' }, '/pr-dex/')).toBe('/pr-dex/duels')
     expect(routePath({ name: 'collection', param: 25 }, '/pr-dex/')).toBe('/pr-dex/collection/025')
+    expect(routePath({ name: 'shop', param: 'revente' }, '/pr-dex/')).toBe('/pr-dex/shop/revente')
     expect(routePath({ name: 'shop' }, '/pr-dex/')).toBe('/pr-dex/shop')
     expect(routePath({ name: 'profile', param: 'marion' }, '/pr-dex/')).toBe('/pr-dex/profile/marion')
   })

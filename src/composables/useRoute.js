@@ -30,8 +30,11 @@ import { DEX } from '../../shared/species.js'
  */
 export const ROUTES = ['collection', 'duels', 'shop', 'classements', 'succes', 'moi', 'profile']
 
-/** Seuls ces deux lieux désignent quelque chose de précis : une espèce, une personne. */
-const AVEC_PARAM = { collection: 'species', profile: 'login' }
+/** Ces lieux désignent quelque chose de précis : une espèce, une personne, un onglet. */
+const AVEC_PARAM = { collection: 'species', profile: 'login', shop: 'onglet' }
+
+/** Les onglets de la boutique autres que celui par défaut (« Acheter », sans paramètre). */
+export const SHOP_TABS = ['revente']
 
 const DEFAUT = { name: 'collection', param: null }
 
@@ -50,6 +53,7 @@ export function parseRoute(chemin, base = import.meta.env.BASE_URL) {
   if (!attendu || brut === undefined || brut === '') return { name: lieu, param: null }
 
   if (attendu === 'login') return { name: lieu, param: decodeURIComponent(brut) }
+  if (attendu === 'onglet') return { name: lieu, param: SHOP_TABS.includes(brut) ? brut : null }
 
   // Une espèce hors planche vient d'une URL bricolée ou d'un lien périmé : on retombe sur la
   // planche plutôt que d'ouvrir une fiche vide.

@@ -1373,9 +1373,33 @@
   /* ───────── revente ───────── */
   /* Une espèce par bloc, ses exemplaires en tuiles toujours visibles : on voit ce qu'on vend
      sans rien déplier. La barre du bas porte la sélection et ouvre le récapitulatif. */
-  .vendre-groupe{padding:16px 0;border-bottom:1px solid var(--line)}
+  .onglets{display:flex;gap:4px;margin:-8px 0 8px;border-bottom:1px solid var(--line)}
+  .onglet{position:relative;background:none;border:0;padding:12px 16px;cursor:pointer;color:var(--fg-3);
+    font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    display:inline-flex;align-items:center;gap:8px}
+  .onglet:hover{color:var(--fg)}
+  .onglet.active{color:var(--fg)}
+  .onglet.active::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;background:var(--gold)}
+  .onglet-compte{font-size:10px;letter-spacing:0;padding:1px 7px;border-radius:999px;background:var(--surface);
+    border:1px solid var(--line-strong);color:var(--fg-2)}
+  .vendre-resume{font-size:11px;color:var(--fg-3);letter-spacing:0;text-transform:none}
+  .vendre-outils{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:14px 0 6px}
+  .vendre-cherche{display:flex;align-items:center;gap:8px;flex:0 1 260px;padding:8px 12px;border-radius:999px;
+    border:1px solid var(--line-strong);background:var(--surface);color:var(--fg-3)}
+  .vendre-cherche input{flex:1;min-width:0;border:0;background:none;outline:none;color:var(--fg);font:inherit;font-size:13px}
+  .vendre-cherche:focus-within{border-color:var(--gold)}
+  .vendre-tris{margin:0}
+  .vendre-groupe{border-bottom:1px solid var(--line)}
   .vendre-groupe:last-child{border-bottom:0}
-  .vendre-tete{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .vendre-tete{display:flex;align-items:center;gap:12px;padding:8px 0}
+  .vendre-deplier{display:flex;align-items:center;gap:12px;flex:1;min-width:0;padding:4px 0;background:none;border:0;
+    text-align:left;cursor:pointer;color:inherit;font:inherit}
+  .vendre-chevron{flex:0 0 auto;color:var(--fg-3);transition:transform .15s}
+  .vendre-groupe.ouverte .vendre-chevron{transform:rotate(90deg);color:var(--gold)}
+  .vendre-deplier:hover .vendre-nom b{color:var(--gold)}
+  .vendre-pris{font-size:11px;color:var(--gold);white-space:nowrap}
+  .vendre-nom .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vendre-corps{padding:4px 0 16px 28px}
   .vendre-mini{width:34px;height:34px;flex:0 0 34px;image-rendering:pixelated;border-radius:6px;
     border:1px solid var(--line);background:color-mix(in srgb, var(--tier) 12%, var(--surface))}
   .vendre-nom{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
@@ -1399,6 +1423,13 @@
     border:1px solid var(--line-strong);border-radius:4px;padding:1px 5px}
   .vendre-prix{margin-left:auto;color:var(--fg);font-size:12px;white-space:nowrap}
   .vendre-note{margin:10px 0 0;font-size:12px}
+  @media (max-width:640px){
+    .vendre-corps{padding-left:0}
+    .vendre-cherche{flex:1 1 100%}
+    .vendre-tete{gap:8px}
+    .vendre-deplier{gap:8px}
+    .vendre-tete .vendre-tous{padding:8px 10px;font-size:9px;letter-spacing:.1em}
+  }
   .vendre-bar{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
     margin-top:8px;padding:14px 0;background:var(--bg);border-top:1px solid var(--line)}
   .vendre-bar-txt{flex:1 1 auto;font-size:15px;color:var(--fg)}

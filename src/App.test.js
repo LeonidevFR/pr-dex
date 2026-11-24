@@ -425,6 +425,8 @@ describe('revente du surplus', () => {
   const ouvrirBoutique = async (w) => {
     await aller(w, 'Boutique')
     await flushPromises()
+    await w.findAll('.onglet').find((o) => o.text().startsWith('Revendre')).trigger('click')
+    await flushPromises()
   }
 
   /**
@@ -475,13 +477,14 @@ describe('revente du surplus', () => {
     await ouvrirBoutique(w)
 
     const nidoran = w.findAll('.vendre-groupe')[0]
-    const avant = nidoran.findAll('.vendre-ex').length
+    const tas = (g) => Number(g.find('.vendre-nom .muted').text().match(/×(\d+)/)[1])
+    const avant = tas(nidoran)
 
     await choisirLePremierTas(w)
     await vendreEtAttendre(w)
 
     const apres = w.findAll('.vendre-groupe')
-    const reste = apres.length ? apres[0].findAll('.vendre-ex').length : 0
+    const reste = apres.length ? tas(apres[0]) : 0
     expect(reste).toBeLessThan(avant)
   })
 

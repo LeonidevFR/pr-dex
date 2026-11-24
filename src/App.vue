@@ -805,13 +805,12 @@ useKeyboardNav({
     <ShopPanel
       v-if="shopOpen && arena && areneOuverte"
       :pokedollars="arena.pokedollars.value" :shop="arena.shop.value" :busy="arenaBusy"
-      @buy="onBuy"
-    />
-
-    <SaleSection
-      v-if="shopOpen && arena && areneOuverte"
-      :groups="surplus" :busy="arenaBusy" @sell="onSell"
-    />
+      :tab="route.param === 'revente' ? 'revente' : 'acheter'"
+      :sale-count="surplus.reduce((n, g) => n + g.items.length - 1, 0)"
+      @buy="onBuy" @tab="(t) => router.go('shop', t === 'revente' ? 'revente' : null)"
+    >
+      <SaleSection :groups="surplus" :busy="arenaBusy" @sell="onSell" />
+    </ShopPanel>
 
     <ProfilePanel
       v-if="profileOpen"

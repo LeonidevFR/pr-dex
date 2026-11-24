@@ -5,8 +5,13 @@ defineProps({
   pokedollars: { type: Number, required: true },
   shop: { type: Array, default: () => [] },
   busy: { type: Boolean, default: false },
+  /** L'onglet ouvert : `acheter`, ou `revente` dont le contenu arrive par le slot. */
+  tab: { type: String, default: 'acheter' },
+  /** Le nombre d'exemplaires en trop, affiché sur l'onglet Revendre. */
+  saleCount: { type: Number, default: 0 },
 })
-const emit = defineEmits(['buy'])
+const emit = defineEmits(['buy', 'tab'])
+const ONGLETS = [['acheter', 'Acheter'], ['revente', 'Revendre']]
 
 const ARTICLE = { c: 'commune', u: 'peu commune', r: 'rare', l: 'légendaire' }
 
@@ -42,7 +47,19 @@ function cliquer(a) {
       </div>
     </div>
 
-  <div class="sect">
+  <!-- On gagne et on dépense les pokédollars au même endroit : la caisse reste en tête, les
+       deux usages se partagent la page en onglets. -->
+  <div class="onglets" role="tablist">
+    <button
+      v-for="[cle, label] in ONGLETS" :key="cle" class="onglet" role="tab"
+      :class="{ active: tab === cle }" :aria-selected="tab === cle" @click="emit('tab', cle)"
+    >
+      {{ label }}<span v-if="cle === 'revente' && saleCount" class="onglet-compte mono">{{ saleCount }}</span>
+    </button>
+  </div>
+
+  <slot v-if="tab === 'revente'" />
+  <div v-else class="sect">
     <div class="eyebrow sect-h"><span>Articles</span></div>
     <p class="muted" style="margin-bottom:12px">
       Une carte achetée se découvre comme les autres, aux mêmes cotes. Seul l’ensemble dans lequel
