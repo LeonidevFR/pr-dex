@@ -227,10 +227,8 @@ const teamShelf = computed(() => (team.cards.value.length
 const arenaBusy = ref(false)
 const arenaPreselect = ref(null)
 /**
- * L'étagère regardée. Une seule en saison 1 : la Gen 2 arrive d'un bloc en saison 2, en
- * boutique et au tirage des PR, et son étagère avec elle.
- *
- * Avant cela, elle ne s'achetait qu'en boutique, donc n'existait pas avant que l'arène ouvre. Annoncer une étagère vide en désignant un magasin
+ * L'étagère regardée. La Gen 2 ne se tire jamais au travail : elle s'achète en boutique, donc
+ * elle n'existe pas avant que l'arène ouvre. Annoncer une étagère vide en désignant un magasin
  * fermé pour six semaines, c'est promettre ce qu'on ne sert pas.
  *
  * Le repli n'est pas décoratif : un joueur resté sur la seconde étagère au moment de la
@@ -786,7 +784,7 @@ useKeyboardNav({
       v-if="route.name === 'collection'"
       :by-species="collection.dex.bySpecies.value" :available="availableById" :evolvable="collection.dex.evolvableIds.value"
       :active-tiers="filters.activeTiers.value" :status-filter="filters.statusFilter.value"
-      :query="filters.query.value" :gen="gen" :gen2="false" :team="teamShelf"
+      :query="filters.query.value" :gen="gen" :gen2="areneOuverte" :team="teamShelf"
       @select="(id) => router.go('collection', id)"
       @toggle-tier="filters.toggleTier" @set-status-filter="filters.setStatusFilter"
       @set-query="filters.setQuery" @reset-filters="filters.reset"

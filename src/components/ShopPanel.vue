@@ -63,7 +63,8 @@ function cliquer(a) {
     <div class="eyebrow sect-h"><span>Articles</span></div>
     <p class="muted" style="margin-bottom:12px">
       Une carte achetée se découvre comme les autres, aux mêmes cotes. Seul l’ensemble dans lequel
-      elle est tirée est fixé d’avance. L’<b>inédit garanti</b> ne tire que parmi les espèces qui te manquent encore.
+      elle est tirée est fixé d’avance. La <b>Gen 2</b> ne s’obtient que par ici ; l’<b>inédit
+      garanti</b> ne tire que parmi les espèces qui te manquent encore.
     </p>
     <div class="board-stats shop-list">
       <div v-for="a in shop" :key="a.slug">
