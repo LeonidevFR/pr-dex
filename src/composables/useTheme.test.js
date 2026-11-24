@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { useTheme } from './useTheme.js'
 
 const fakeMedia = (matches) => {
@@ -53,7 +53,28 @@ describe('useTheme', () => {
     expect(theme.value).toBe('light')
   })
 
+  /**
+   * Ce cas ne testait pas ce qu'il annonçait. Il passait `media: undefined`, ce qui RELANCE la
+   * valeur par défaut du paramètre — `globalThis.matchMedia(...)` — au lieu de la neutraliser :
+   * un défaut de déstructuration ne s'applique qu'à `undefined`, précisément. Le résultat ne
+   * dépendait donc pas du composable mais du `matchMedia` ambiant, et le jour où un autre
+   * fichier en a laissé un qui répond `matches: true`, le cas est tombé.
+   *
+   * On retire donc le global, qui est ce que « sans matchMedia » veut dire.
+   */
   it('retombe sur le sombre sans matchMedia', () => {
-    expect(useTheme({ storage: fakeStorage(), media: undefined, root: { dataset: {} } }).theme.value).toBe('dark')
+    vi.stubGlobal('matchMedia', undefined)
+    expect(useTheme({ storage: fakeStorage(), root: { dataset: {} } }).theme.value).toBe('dark')
+  })
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
+describe('useTheme, le global', () => {
+  // Le pendant du cas ci-dessus : avec un `matchMedia` qui annonce le thème clair, le
+  // composable le suit. Les deux ensemble prouvent qu'il lit bien le système.
+  it('suit le matchMedia ambiant quand on ne lui en passe pas', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }))
+    expect(useTheme({ storage: fakeStorage(), root: { dataset: {} } }).theme.value).toBe('light')
   })
 })

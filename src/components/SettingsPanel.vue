@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue'
-import { X, CircleX } from '@lucide/vue'
+import { ref, computed, watch } from 'vue'
+import { X } from '@lucide/vue'
+import NoticeToast from './NoticeToast.vue'
 
 const props = defineProps({
   accountName: { type: String, required: true },
@@ -10,6 +11,19 @@ const props = defineProps({
   accountError: { type: Object, default: null },
 })
 const emit = defineEmits(['close', 'disconnect', 'link', 'unlink'])
+
+/** L'échec d'une liaison, lu pour un humain : `[titre, détail]`. */
+const echec = computed(() => {
+  const e = props.accountError
+  if (!e) return null
+  if (e.code === 'identity_already_exists' && /another user/i.test(e.description)) {
+    return ['Liaison impossible.', 'Ce compte est déjà relié à un autre profil pr-dex.']
+  }
+  if (e.code === 'identity_already_exists') return ['Rien à faire.', 'Ce compte est déjà relié à ton compte.']
+  return ['Ça n’a pas marché.', e.description || e.code]
+})
+const masque = ref(false)
+watch(() => props.accountError, () => { masque.value = false })
 
 const PROVIDERS = [['github', 'GitHub'], ['slack_oidc', 'Slack']]
 const linked = (provider) => props.identities.find((i) => i.provider === provider)
@@ -50,32 +64,38 @@ function onUnlink(provider) {
             <p v-if="!linked('slack_oidc')" class="muted acct-hint">Tes boosters de monkey-testing arrivent par ton compte Slack.</p>
           </template>
         </div>
-        <div v-if="accountError" class="sect">
-          <div class="banner err">
-            <CircleX class="bico" :size="16" aria-hidden="true" />
-            <div v-if="accountError.code === 'identity_already_exists' && /another user/i.test(accountError.description)">
-              <span class="bt">Liaison impossible.</span>
-              Ce compte est déjà relié à un autre profil pr-dex.
-            </div>
-            <div v-else-if="accountError.code === 'identity_already_exists'">
-              <span class="bt">Rien à faire.</span>
-              Ce compte est déjà relié à ton compte.
-            </div>
-            <div v-else>
-              <span class="bt">Ça n'a pas marché.</span>
-              {{ accountError.description || accountError.code }}
-            </div>
-          </div>
-        </div>
         <div class="sect">
           <button class="btn-ghost" @click="$emit('disconnect')">Se déconnecter</button>
         </div>
         <div class="sect">
           <p class="muted">
-            Ta collection est liée à ton compte. Les autres joueurs voient tes totaux dans le classement, pas le détail de tes captures.
+            Ta collection est liée à ton compte, et le classement la publie : les autres y lisent
+            tes espèces, tes shiny, tes rares, tes lignées et ton nombre de cartes. Le détail
+            voyage avec : l’écran n’affiche que les totaux, mais la réponse du serveur contient
+            chaque capture. Considère ta collection comme visible de l’équipe.
+          </p>
+        </div>
+        <!--
+          Les illustrations empruntées se citent, et se citent quelque part où l'on peut les
+          trouver. Les réglages sont le seul écran qui parle de l'application elle-même plutôt que
+          du jeu : c'est là que ça a sa place, plutôt qu'en bas d'un écran de duel.
+        -->
+        <div class="sect">
+          <div class="eyebrow sect-h"><span>Illustrations</span></div>
+          <p class="muted">
+            Les badges de saison sont dessinés pour ce dex : huit médailles, une par mécanique
+            du jeu. Les sprites viennent de PokéAPI. Pokémon est une marque de Nintendo, Game
+            Freak et Creatures : ce dex est un jouet d'équipe, sans rapport avec eux et sans
+            usage commercial.
           </p>
         </div>
       </div>
+    </div>
+    <div class="toast-pile">
+      <NoticeToast
+        :title="echec && !masque ? echec[0] : null" :message="echec && !masque ? echec[1] : null"
+        @dismiss="masque = true"
+      />
     </div>
   </div>
 </template>

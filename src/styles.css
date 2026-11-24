@@ -95,6 +95,39 @@
   .mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
 
   /* ───────── en-tête ───────── */
+  /* ───────── barre latérale ───────── */
+  :root{--side-w:232px}
+  :root[data-sidebar="collapsed"]{--side-w:72px}
+  #app{padding-left:calc(var(--side-w) + 48px);max-width:calc(1280px + var(--side-w))}
+  .side{position:fixed;top:0;left:0;bottom:0;z-index:35;width:var(--side-w);display:flex;flex-direction:column;
+    padding:22px 14px 18px;background:var(--header-bg);border-right:1px solid var(--line-gold);
+    transition:width .18s ease}
+  .side-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:0 6px 26px}
+  .side-brand{min-width:0}
+  .side.collapsed .side-full{display:none}
+  .side.collapsed .side-head{flex-direction:column;align-items:center;padding-inline:0}
+  .side-collapse,.side-close,.side-burger{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
+    border-radius:8px;border:0;background:none;color:var(--fg-3);cursor:pointer;position:relative}
+  .side-collapse:hover,.side-close:hover,.side-burger:hover{color:var(--fg);background:rgba(239,230,207,.06)}
+  .side-close,.side-burger{display:none}
+  .side .rail-nav{display:flex;flex-direction:column;gap:2px;padding:0;border:0;background:none;border-radius:0}
+  .side .rail-tab{justify-content:flex-start;gap:12px;width:100%;padding:10px 12px;border-radius:10px;font-size:13px;letter-spacing:.02em;text-align:left}
+  .side .rail-tab.active{background:var(--cream);color:var(--on-gold)}
+  .rail-tab-ico{flex:none}
+  .rail-tab-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side .rail-tab-pip{margin-left:0}
+  .side.collapsed .rail-tab{justify-content:center;padding:10px 0;position:relative}
+  .side.collapsed .rail-tab-label{display:none}
+  .side.collapsed .rail-tab-pip{position:absolute;top:4px;right:8px;min-width:15px;height:15px}
+  .side-tools{margin-top:auto;display:flex;flex-direction:column;gap:2px;padding-top:14px;border-top:1px solid var(--line)}
+  .side .gear{width:100%;height:auto;justify-content:flex-start;gap:12px;padding:9px 12px;border-radius:10px;border:0;background:none;font-size:13px}
+  .side.collapsed .gear{justify-content:center;padding:9px 0}
+  .side.collapsed .side-tool-label{display:none}
+  .side-tool-ico{display:inline-flex}
+  .side-burger-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+  .side-scrim{display:none}
+
+  /* ───────── en-tête ───────── */
   .rail{
     position:sticky;top:0;z-index:20;
     background:var(--header-bg);
@@ -104,9 +137,8 @@
     box-shadow:0 0 0 100vmax var(--header-bg);clip-path:inset(0 -100vmax);
     backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line-gold);
-    padding:22px 0 18px;margin-bottom:22px;
-    /* 24 et non 32 : avec l'onglet Succès, l'en-tête passait sur deux lignes sous 1 280 px. */
-    display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+    padding:18px 0 16px;margin-bottom:22px;
+    display:flex;align-items:center;justify-content:flex-end;gap:24px;
   }
   .wordmark{font-family:var(--f-title);font-weight:300;font-size:30px;letter-spacing:-.02em;line-height:1;color:var(--fg-title)}
   .wordmark i{font-weight:600;color:var(--gold)}
@@ -127,6 +159,12 @@
   .rail-tab-pip span{color:var(--bg);font-size:10px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:0;text-box:trim-both cap alphabetic}
   .rail-tab.active .rail-tab-pip span{color:var(--cream)}
   .rail-tab:focus-visible,.gear:focus-visible,.claim-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  /* Le second niveau de l'arène : la même langue que le rail, un cran plus bas. Posée sous
+     l'en-tête et non dedans, elle dit qu'on navigue À L'INTÉRIEUR d'un lieu. */
+  .place-nav{display:inline-flex;gap:4px;padding:4px;margin-bottom:20px;border-radius:999px;
+    background:rgba(239,230,207,.05);border:1px solid var(--line-strong)}
+  .place-tab{font-size:11.5px;padding:7px 14px}
+
   .progress{flex:1;min-width:110px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
   .progress-count{font-family:var(--f-title);font-size:24px;font-weight:300;line-height:1;color:var(--fg-title);white-space:nowrap}
   .progress-count b{font-weight:300}
@@ -145,7 +183,7 @@
   /* La rotation est sur le glyphe (span), pas sur le bouton entier : sinon la pastille
      d'erreur, positionnée dans un coin du bouton, tournait avec tout le bloc. Le SVG est
      carré et symétrique, donc le pivot tombe au centre de l'anneau. */
-  .gear.sync span:not(.err-dot){display:inline-flex;line-height:0}
+  .gear.sync .side-tool-ico{display:inline-flex;line-height:0}
   .gear.sync span.spinning{color:var(--fg);animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .err-dot{position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px var(--bg)}
@@ -258,6 +296,44 @@
     background:radial-gradient(ellipse 70% 60% at 50% 40%,rgba(212,176,106,.2),transparent 72%);border-right:1px solid rgba(212,176,106,.12)}
   .sheet-main{padding:40px 44px 32px 36px;min-width:0}
   .panel-top{padding:0 0 22px;border-bottom:1px solid rgba(212,176,106,.14)}
+  /* Le duel : la scène à gauche, le résultat à droite, pour que tout tienne sans défiler. */
+  .duel-panel{width:min(1000px,100%)}
+  /* Fin de saison : le récap à la connexion, puis le rappel sur Scores. */
+  .season-recap{width:min(560px,100%);padding:30px 32px 26px;text-align:center}
+  .season-recap .x{position:absolute;right:16px;top:16px}
+  .season-recap-title{font-family:var(--f-title);font-weight:400;font-size:30px;color:var(--fg-title);margin:8px 0 22px}
+  .season-podium{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:0 0 20px;padding:0}
+  .season-podium li{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 12px;border-radius:10px;min-width:110px}
+  .season-podium .gain{white-space:nowrap}
+  .season-podium li.moi{background:var(--surface);box-shadow:0 0 0 1px var(--gold)}
+  .season-podium .mono{font-size:12px;color:var(--fg-3)}
+  .season-recap-moi{font-size:15px;color:var(--fg);margin:0 0 10px}
+  .season-recap-go{margin-top:18px}
+  @media (max-width:640px){
+    .season-recap{padding:26px 16px 22px}
+    .season-recap-title{font-size:25px}
+    .season-podium{gap:6px}
+    .season-podium li{flex:1;min-width:0;padding:8px 4px}
+    .season-podium b{font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .season-podium .mono{font-size:11px;text-align:center}
+  }
+  .season-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin:0 0 8px;padding:14px 18px;border-radius:10px;
+    border:1px solid var(--gold);background:var(--surface);color:var(--fg);font-size:14px}
+  .duel-panel > .panel-top{padding:20px 28px 16px}
+  .duel-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .duel-layout > .duel-scene{border-bottom:0;border-right:1.5px solid var(--line);display:flex;flex-direction:column;justify-content:center}
+  .duel-body{padding:4px 28px 18px;min-width:0}
+  .duel-body .sect{padding:16px 0}
+  .duel-detail summary{cursor:pointer;list-style:none;margin-bottom:0}
+  .duel-detail summary::-webkit-details-marker{display:none}
+  .duel-detail summary::after{content:"Afficher";font-family:var(--f-ui);font-size:10px;letter-spacing:.2em;color:var(--fg-3)}
+  .duel-detail[open] summary{margin-bottom:14px}
+  .duel-detail[open] summary::after{content:"Masquer"}
+  @media (max-width:860px){
+    .duel-layout{grid-template-columns:1fr}
+    .duel-layout > .duel-scene{border-right:0;border-bottom:1.5px solid var(--line)}
+    .duel-body{padding:4px 20px 16px}
+  }
   .panel-art{width:180px;height:180px;display:grid;place-items:center;border-radius:10px;background:var(--surface)}
   .panel-art img{width:80%;height:80%;object-fit:contain}
   .panel-art img[data-broken]{opacity:.18;filter:grayscale(1)}
@@ -298,26 +374,34 @@
   .view-title{font-family:var(--f-title);font-weight:300;font-size:44px;letter-spacing:-.02em;line-height:1;color:var(--fg-title);margin-top:10px}
   .view-title i{font-weight:600;color:var(--gold)}
   .view-totals{display:flex;gap:40px;margin-left:auto}
-  .view-num{font-family:var(--f-title);font-weight:300;font-size:30px;color:var(--fg-title);margin-top:6px}
+  .view-num{white-space:nowrap;font-family:var(--f-title);font-weight:300;font-size:30px;color:var(--fg-title);margin-top:6px}
   .view-num small{font-family:var(--f-ui);font-size:13px;color:var(--fg-3)}
   .view-num.gold{color:var(--gold)}
   .board-loading,.board-empty,.board-error{padding:48px 0;text-align:center;color:var(--fg-2)}
   .board-error p{margin:0 0 14px}
   /* ───────── succès ───────── */
-  /* La feuille et les toasts restent en papier dans les deux thèmes : leurs encres sont donc
-     fixes. Ce sont les paliers des cartes, dans leur version pour fond clair, toutes au-dessus
-     de 4,5:1 sur le papier. La dorure du légendaire ne sert qu'au décor (badge, liseré du
-     toast) : ses arrêts clairs effaceraient un texte, écrit donc dans l'encre pleine --ach-l. */
+  /* La feuille et les toasts suivent le thème : une surface sombre par défaut, le papier en
+     clair. Les encres de palier passent 4,5:1 sur leur fond dans les deux cas. La dorure du
+     légendaire ne sert qu'au décor (badge, liseré du toast) : ses arrêts clairs effaceraient un
+     texte, écrit donc dans l'encre pleine --ach-l. */
   .ach-sheet,.ach-toast{
+    --paper:#211c18; --ink:#efe7d8; --ink-2:#a89a85; --ink-3:#9a8d7a;
+    --ach-c:#a89a85; --ach-u:#9fd0b6; --ach-r:#f0a79b; --ach-l:#e8cc8e;
+    --ach-foil:linear-gradient(120deg,#7a581a,#d9b66a 30%,#8a6a2c 50%,#f0d58f 70%,#7a581a);
+    --ach-desc:#c9bca7; --ach-hand:#c9bca7; --ach-frame:rgba(212,176,106,.22); --ach-rule:rgba(239,230,207,.14);
+    --ach-rule-strong:rgba(239,230,207,.28); --ach-hover:rgba(212,176,106,.1); --ach-dot:rgba(212,176,106,.05);
+    background-color:var(--paper);color:var(--ink);
+    background-image:radial-gradient(var(--ach-dot) 1px,transparent 1px);background-size:7px 7px;
+  }
+  :root[data-theme="light"] .ach-sheet,:root[data-theme="light"] .ach-toast{
     --paper:#efe6d0; --ink:#2a2622; --ink-2:#6f6350; --ink-3:#8a7f6e;
     --ach-c:#665d53; --ach-u:#4a6a42; --ach-r:#9e3b2e; --ach-l:#6e5418;
-    --ach-foil:linear-gradient(120deg,#7a581a,#d9b66a 30%,#8a6a2c 50%,#f0d58f 70%,#7a581a);
-    background-color:var(--paper);color:var(--ink);
-    background-image:radial-gradient(rgba(120,90,40,.07) 1px,transparent 1px);background-size:7px 7px;
+    --ach-desc:#5a5044; --ach-hand:#5d564c; --ach-frame:rgba(120,90,40,.22); --ach-rule:rgba(70,60,50,.28);
+    --ach-rule-strong:rgba(70,60,50,.35); --ach-hover:rgba(120,90,40,.1); --ach-dot:rgba(120,90,40,.07);
   }
   .ach-t-c{--ach-ink:var(--ach-c)} .ach-t-u{--ach-ink:var(--ach-u)} .ach-t-r{--ach-ink:var(--ach-r)} .ach-t-l{--ach-ink:var(--ach-l)}
   .ach-sheet{position:relative;border-radius:6px;padding:28px 34px 22px;box-shadow:0 14px 34px rgba(0,0,0,.18)}
-  .ach-sheet::before{content:"";position:absolute;inset:10px;border:1px solid rgba(120,90,40,.22);border-radius:3px;pointer-events:none}
+  .ach-sheet::before{content:"";position:absolute;inset:10px;border:1px solid var(--ach-frame);border-radius:3px;pointer-events:none}
   .ach-head{display:flex;align-items:baseline;gap:22px;border-bottom:1.5px solid var(--ink);padding-bottom:12px}
   .ach-title{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:15px;letter-spacing:.28em;text-transform:uppercase}
   .ach-total{font-family:var(--f-data);font-size:11px;color:var(--ink-2)}
@@ -334,17 +418,17 @@
   .ach-filters-tier{padding-top:4px}
   .ach-filters-tier .ach-filter i{display:inline-block;width:8px;height:8px;border-radius:50%;border:2px solid var(--ach-ink);margin-right:6px;vertical-align:1px}
   .ach-group{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.26em;text-transform:uppercase;
-    color:var(--ink-2);padding:18px 4px 6px;border-bottom:1px solid rgba(70,60,50,.35)}
+    color:var(--ink-2);padding:18px 4px 6px;border-bottom:1px solid var(--ach-rule-strong)}
   .ach-list{list-style:none}
-  .ach-row{display:grid;grid-template-columns:64px 1fr 170px 190px;gap:20px;align-items:center;padding:13px 4px;border-top:1px dashed rgba(70,60,50,.28)}
+  .ach-row{display:grid;grid-template-columns:64px 1fr 170px 190px;gap:20px;align-items:center;padding:13px 4px;border-top:1px dashed var(--ach-rule)}
   .ach-row:first-child{border-top:0}
   .ach-name{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:17px;line-height:1.15}
   .ach-row:not(.is-owned) .ach-name{color:var(--ink-2)}
-  .ach-desc{font-size:13.5px;color:#5a5044;margin-top:2px;line-height:1.35}
+  .ach-desc{font-size:13.5px;color:var(--ach-desc);margin-top:2px;line-height:1.35}
   .ach-when{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-family:var(--f-data);font-size:12px;color:var(--ink-2)}
-  .ach-hand{font-family:Caveat,cursive;font-size:22px;color:#5d564c;line-height:1}
-  .ach-bar{width:130px;height:7px;border:1px solid #5d564c;border-radius:4px;position:relative;overflow:hidden}
-  .ach-bar i{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(45deg,#5d564c 0 2px,transparent 2px 4px)}
+  .ach-hand{font-family:Caveat,cursive;font-size:22px;color:var(--ach-hand);line-height:1}
+  .ach-bar{width:130px;height:7px;border:1px solid var(--ach-hand);border-radius:4px;position:relative;overflow:hidden}
+  .ach-bar i{position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(45deg,var(--ach-hand) 0 2px,transparent 2px 4px)}
   .ach-rarity{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
   .ach-rarity b{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ach-ink)}
   .ach-rarity small{font-family:var(--f-data);font-size:11px;color:var(--ink-2)}
@@ -376,7 +460,7 @@
     border:0;background:none;color:inherit;font:inherit;padding:11px 34px 11px 12px}
   .ach-toast-x{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
     border:0;background:transparent;color:var(--ink-2);cursor:pointer}
-  .ach-toast-x:hover{color:var(--ink);background:rgba(120,90,40,.1)}
+  .ach-toast-x:hover{color:var(--ink);background:var(--ach-hover)}
   .ach-toast-open:focus-visible,.ach-toast-x:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
   .ach-toast::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ach-ink)}
   .ach-toast.ach-t-l::before{background:var(--ach-foil)}
@@ -395,8 +479,8 @@
   .ach-recap{width:min(640px,100%);max-height:calc(100dvh - 40px);display:flex;flex-direction:column;padding:30px 34px 26px;text-align:center}
   .ach-recap-kicker{color:var(--ink-2)}
   /* La croix des panneaux, à l'encre du papier : l'or du décor sombre s'y lirait mal. */
-  .ach-recap .x{right:16px;top:16px;width:36px;height:36px;color:var(--ink-2);border-color:rgba(70,60,50,.3)}
-  .ach-recap .x:hover{color:var(--ink);background:rgba(120,90,40,.08)}
+  .ach-recap .x{right:16px;top:16px;width:36px;height:36px;color:var(--ink-2);border-color:var(--ach-rule-strong)}
+  .ach-recap .x:hover{color:var(--ink);background:var(--ach-hover)}
   .ach-recap .x:focus-visible{outline-color:var(--ink)}
   .ach-recap-title{font-family:var(--f-title);font-weight:300;font-size:32px;letter-spacing:-.02em;margin:8px 0 22px;color:var(--ink)}
   .ach-recap-grid{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:18px 10px;margin-bottom:24px;
@@ -436,6 +520,8 @@
   .board-pick-in{display:inline-flex;align-items:center;gap:4px}
   .board-pick .board-sort img{width:28px;height:28px;object-fit:contain;margin:-8px 0}
   .board-pick-x{background:none;border:0;color:var(--fg-3);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px}
+  /* À 390 px, le sprite de l'en-tête poussait le tableau hors de l'écran : le nom suffit. */
+  @media (max-width:640px){.board-pick .board-sort img{display:none}}
   .board-pick-x:hover{color:var(--gold)}
   .board-table td.board-pick{color:var(--gold)}
   .board-none td{text-align:center;color:var(--fg-2);padding:32px 0}
@@ -449,6 +535,13 @@
   .species-picker-item .board-dot{margin-right:0}
   .board-detail{display:none}
   .board-detail td{text-align:left;padding-top:4px;color:var(--fg-3);font-size:12px;white-space:normal}
+  /* Avec la barre latérale, le tableau complet ne tient plus sous 1 180 px : les colonnes
+     secondaires se replient dans la ligne de détail, comme en mobile. */
+  @media (max-width:1180px){
+    .board-table .secondary{display:none}
+    .board-table tbody tr{cursor:pointer}
+    .board-detail{display:table-row}
+  }
   .board-detail-item{display:inline-block;margin-right:14px}
   .board-detail-item b{color:var(--fg)}
   /* Ce qui manque à l'équipe : des silhouettes éteintes, comme les cases vides de la grille. */
@@ -475,6 +568,16 @@
   .sect{padding:22px 0;border-bottom:1px solid rgba(212,176,106,.12)}
   .sect:last-child{border-bottom:0}
   .sect-h{margin-bottom:14px;display:flex;justify-content:space-between;align-items:baseline}
+  /* Dans une page, une section se lit comme un chapitre : un vrai titre, de l'air au-dessus et un
+     filet doré entre deux. Le sur-titre minuscule reste aux fiches et aux overlays, où il suffit. */
+  .view > .sect{padding:36px 0 34px;border-bottom:1px solid var(--line-gold)}
+  .view > .sect:last-child{border-bottom:0}
+  .view .sect-h{margin-bottom:18px;font-family:var(--f-title);font-weight:400;font-size:23px;line-height:1.2;
+    letter-spacing:-.01em;text-transform:none;color:var(--fg-title)}
+  .view .sect-h > :first-child{font:inherit;letter-spacing:inherit;text-transform:none;color:inherit}
+  .view .sect-h > :not(:first-child):not(button){font-family:var(--f-ui);font-size:10px;font-weight:700;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--fg-3)}
+  .prof-cases + .muted{margin-top:14px}
   .copies-count{font-family:var(--f-data);font-size:11px;color:var(--gold)}
   .dexnote{font-family:var(--f-title);font-weight:300;font-size:18px;line-height:1.55;color:var(--note);margin:22px 0 0;max-width:52ch}
 
@@ -484,6 +587,15 @@
   .log{display:flex;flex-direction:column;max-height:232px;overflow-y:auto;overscroll-behavior:contain;
     scrollbar-width:thin;scrollbar-color:var(--line-strong-hi) transparent}
   .log-row{display:flex;gap:13px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);color:var(--fg)}
+  .defis{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .defi{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 18px;border-radius:10px;
+    background:var(--surface);border:1px solid var(--line-gold)}
+  .defi.cible{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+  .defi-txt{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:15px;color:var(--fg)}
+  .defi-txt .muted{font-size:12px}
+  .defi-btn{flex:none;padding:10px 20px;white-space:nowrap}
+  .defi-login{white-space:nowrap}
+  .defi-rappel{margin:0 0 14px;padding:10px 14px;border-radius:8px;border:1px solid var(--gold);color:var(--fg);font-size:13.5px}
   .log-row:last-child{border-bottom:0}
   a.log-row:hover .log-title{color:var(--gold)}
   .log-title{font-size:13.5px;line-height:1.4;flex:1;transition:color .15s}
@@ -534,6 +646,13 @@
   .specimen-shiny{position:absolute;left:8px;top:6px;color:var(--l-text)}
   .specimen-date{font-size:12px;font-weight:600}
   .specimen-ref{font-size:10px;color:var(--fg-3)}
+  /* Le multiplicateur d'espèce et la forme du jour, sur la même vignette que dans la fiche.
+     La forme se colore parce qu'elle aide ou handicape ; son ampleur, elle, ne se chiffre
+     jamais — c'est aux joueurs de se faire leur idée du poids que ça pèse. */
+  .specimen-mult{font-style:normal;color:var(--gold);margin-left:4px}
+  .specimen-ref.form-up{color:var(--u-text)}
+  .specimen-ref.form-down{color:var(--danger)}
+  .specimen:disabled{opacity:.45;cursor:default}
   .picker-actions{display:flex;gap:10px;margin-top:16px}
   .cancel-btn{border:1px solid var(--line-strong);border-radius:999px;background:transparent;color:var(--fg-2);font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:14px 22px;cursor:pointer}
   .cancel-btn:hover{color:var(--fg);border-color:var(--line-strong-hi)}
@@ -916,7 +1035,6 @@
   .btn-ghost:hover{color:var(--fg);border-color:var(--line-strong-hi)}
   .btn-solid:focus-visible,.btn-ghost:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .banner{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid;border-radius:8px;margin-top:22px;font-size:13px;line-height:1.5}
-  .banner.err{border-color:rgba(224,122,108,.5);background:rgba(224,122,108,.08);color:var(--fg)}
   .banner .bt{font-weight:700;color:var(--danger)}
   .banner .bico{flex:none;color:var(--danger);margin-top:1px}
   /* Invitation à lier Slack : même gabarit que l'erreur, en or. Elle tient sur une ligne au-dessus
@@ -964,9 +1082,15 @@
     .front-card .pkc-art img{width:76px;height:76px}
   }
 
-  /* Message du bouton ⟳ : en bas de l'écran, au-dessus de la planche et sous les panneaux.
-     Il dit que les cartes arrivent seules : sans lui, on rechargeait la page en boucle. */
-  .sync-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:35;width:min(560px,calc(100vw - 32px));
+  /* La pile des messages passagers : centrée en bas, au-dessus des fenêtres (40) et du rituel
+     (60), sous les toasts de succès (80). Sur la revente, elle remonte au-dessus de la barre de
+     vente, qui porte le bouton. Le message du bouton ⟳ y dit que les cartes arrivent seules :
+     sans lui, on rechargeait la page en boucle. */
+  .toast-pile{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:75;width:min(560px,calc(100vw - 32px));
+    display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .toast-pile.sur-vente{bottom:128px}
+  .toast-pile>*{pointer-events:auto}
+  .sync-toast,.notice-toast{width:100%;
     display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;border:1px solid var(--line-gold);
     background:var(--surface-hi);color:var(--fg);font-size:13px;line-height:1.5;box-shadow:0 18px 50px rgba(0,0,0,.45)}
   .sync-toast .bt{font-weight:700;margin-right:4px}
@@ -979,7 +1103,15 @@
   .toast-x:hover{color:var(--fg);background:rgba(212,176,106,.1)}
   .toast-x:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .toast-enter-active,.toast-leave-active{transition:opacity .25s,transform .25s}
-  .toast-enter-from,.toast-leave-to{opacity:0;transform:translate(-50%,12px)}
+  .toast-enter-from,.toast-leave-to{opacity:0;transform:translateY(12px)}
+  .notice-toast.bonne{border-color:var(--u-text)}
+  .notice-toast .toast-ico{flex:none;color:var(--danger)}
+  .notice-toast.bonne .toast-ico{color:var(--u-text)}
+  .notice-toast .toast-copy{flex:1;min-width:0}
+  .notice-toast .bt{font-weight:700;margin-right:4px;color:var(--danger)}
+  .notice-toast.bonne .bt{color:var(--u-text)}
+  .notice-enter-active,.notice-leave-active{transition:opacity .25s,transform .25s}
+  .notice-enter-from,.notice-leave-to{opacity:0;transform:translateY(12px)}
   @media (prefers-reduced-motion:reduce){.sync-toast .toast-ico.spinning{animation:none}}
   .fade-enter-active,.fade-leave-active{transition:opacity .28s}
   .fade-enter-from,.fade-leave-to{opacity:0}
@@ -988,26 +1120,27 @@
     .tray{grid-template-columns:repeat(6,minmax(0,1fr))}
     .view-totals{margin-left:0}
   }
-  /* Étroit : les onglets descendent en barre fixe en bas d'écran, là où le pouce les trouve.
-     L'en-tête garde le logo, le compteur, Ouvrir, la sync et les réglages. */
+  /* Étroit : la barre latérale devient un tiroir, ouvert depuis l'en-tête. L'en-tête garde le
+     menu, le compteur et Retourner. */
   @media (max-width:640px){
-    #app{padding:0 16px calc(90px + env(safe-area-inset-bottom))}
+    #app{padding:0 16px calc(40px + env(safe-area-inset-bottom));max-width:none}
+    .side,.side.collapsed{width:264px;transform:translateX(-100%);transition:transform .2s ease}
+    .side.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.4)}
+    .side.collapsed .side-full,.side.collapsed .rail-tab-label,.side.collapsed .side-tool-label{display:revert}
+    .side.collapsed .side-head{flex-direction:row;align-items:flex-start;padding:0 6px 26px}
+    .side.collapsed .rail-tab,.side.collapsed .gear{justify-content:flex-start;padding:10px 12px}
+    .side.collapsed .rail-tab-pip{position:static}
+    .side-collapse{display:none}
+    .side-close,.side-burger{display:inline-flex}
+    .side-scrim{display:block;position:fixed;inset:0;z-index:34;background:var(--scrim)}
     /* Pas de `backdrop-filter` ici : il fait de l'en-tête le bloc conteneur de ses enfants
        `position:fixed`, et la barre d'onglets se calait alors sur lui au lieu du bas d'écran. */
-    .rail{gap:12px;padding:14px 0 12px;backdrop-filter:none;background:var(--bg)}
-    .rail-sub{display:none}
-    .wordmark{font-size:24px}
+    .rail{gap:12px;padding:12px 0;backdrop-filter:none;background:var(--bg);justify-content:space-between}
     .progress{min-width:0;flex:1}
     .bar{width:100%}
-    .rail-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;border-radius:0;border:0;border-top:1px solid var(--line-gold);
-      background:var(--header-bg);backdrop-filter:blur(10px);padding:8px 12px calc(8px + env(safe-area-inset-bottom));
-      justify-content:space-around;padding-left:6px;padding-right:6px}
-    /* Quatre onglets depuis les succès : sans padding resserré, « Succès » sort de l'écran à 390 px. */
-    .rail-tab{flex:1;height:48px;padding:0 4px;min-width:0;letter-spacing:.02em}
-    /* Au-dessus de la barre d'onglets fixée en bas. */
-    .sync-toast{bottom:calc(84px + env(safe-area-inset-bottom))}
     .claim-btn{padding:11px 16px;letter-spacing:.12em}
     .ach-sheet{padding:22px 18px 16px}
+    .ach-filters{gap:8px 18px}
     .ach-row{grid-template-columns:48px 1fr;gap:12px}
     .ach-when,.ach-rarity{grid-column:2;align-items:flex-start;text-align:left}
     .tray-search-wrap{width:100%}
@@ -1039,3 +1172,506 @@
     .reveal-name{font-size:26px}
     .reveal-note{margin-top:10px}
   }
+
+  .gen-tabs{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:0 26px 14px}
+
+  /* ───────── arène ───────── */
+  /*
+    Les chiffres de l'arène parlent la langue de la refonte : display léger, grande taille,
+    `--fg-title`. Ils vivaient en 34 px gras, un reste de l'ancienne direction où les nombres
+    criaient ; ici ils portent, sans hausser le ton.
+
+    `.arena-big` ne sert plus qu'aux chiffres DANS une page — la cérémonie, le teaser. Les
+    compteurs d'un écran sont remontés dans son en-tête, en `.view-num`.
+  */
+  .arena-big{font-family:var(--f-title);font-weight:300;font-size:36px;letter-spacing:-.02em;
+    color:var(--fg-title);line-height:1}
+  .arena-big.spent{color:var(--fg-3)}
+  .arena-unit{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--fg-3)}
+
+  /* Un engagement dépensé s'éteint plutôt que de disparaître : le zéro doit se voir. */
+  .view-num.is-spent{color:var(--fg-3)}
+
+  /* La boutique : le prix en display, le bouton au bout de la même ligne. Le motif `dt`/`dd`
+     de la refonte accepte un bouton dans sa valeur, à condition qu'il ne pousse pas le nombre. */
+  .shop-list dd{display:flex;align-items:baseline;gap:16px;justify-content:flex-end}
+  .shop-list dd .evo-btn{padding:7px 13px;font-size:10px}
+  .shop-prix{white-space:nowrap}
+
+  /* Dans la table du classement, le nom est un lien vers un profil : il garde la couleur et le
+     poids d'un nom, et ne prend l'or qu'au survol. */
+  .saison-voir{background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit;
+    display:inline-flex;align-items:center;gap:14px}
+  .saison-voir:hover .board-login{color:var(--gold)}
+  .board-table tr.podium .board-rank{color:var(--gold)}
+
+  /* La sélection encadre la vignette sans toucher au texte : le nom et le niveau doivent rester
+     lisibles au moment précis où l'on décide de miser. */
+  .arena-pick{position:relative;background:var(--surface);border:1px solid var(--line);padding:9px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px;width:88px;
+    font-family:var(--f-label);font-size:10px;color:var(--fg-2);transition:border-color .15s,box-shadow .15s,color .15s}
+  .arena-pick:hover:not(:disabled){border-color:var(--gold);color:var(--fg)}
+  .arena-pick:disabled{opacity:.4;cursor:default}
+  .arena-pick img{width:46px;height:46px}
+  .arena-pick .nm{color:var(--fg);font-size:10.5px;text-align:center;line-height:1.25}
+  .arena-pick .lv{font-family:var(--f-data);font-size:9px;color:var(--fg-3)}
+  .arena-pick.on{border-color:var(--gold);box-shadow:inset 0 0 0 2px var(--gold);color:var(--fg)}
+  .arena-pick.on .lv{color:var(--gold)}
+
+  /* Pas de défilement propre : le panneau défile déjà, et une fenêtre dans une fenêtre
+     réduisait la grille à quelques rangées tout en donnant deux barres à manœuvrer. La barre
+     d'action étant collée en bas, on peut dérouler la liste entière sans jamais la perdre. */
+  .arena-list{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+
+  .arena-rule{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
+  .arena-rule b{color:var(--fg);font-family:var(--f-label);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;min-width:96px;padding-top:2px}
+
+  /* L'attente n'est pas décorative : elle sépare le moment où l'on voit les deux Pokémon de
+     celui où l'on apprend lequel tombe. Sans elle, le duel s'affiche au lieu de se jouer. */
+  .arena-wait{display:flex;gap:6px;align-items:center;justify-content:center;padding:18px 0}
+  .arena-wait span{width:7px;height:7px;background:var(--gold);border-radius:50%;opacity:.25;
+    animation:arena-pulse 1s infinite}
+  .arena-wait span:nth-child(2){animation-delay:.16s}
+  .arena-wait span:nth-child(3){animation-delay:.32s}
+  @keyframes arena-pulse{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+
+  /* ───────── la cérémonie du duel ─────────
+     Le seul endroit de l'application où quelque chose cesse d'exister. Il avait jusqu'ici moins
+     d'égards qu'un pli commun qu'on ouvre : deux sprites côte à côte et un filtre sépia. */
+  .duel-scene{
+    position:relative;overflow:hidden;padding:26px 22px 18px;
+    border-bottom:1.5px solid var(--line);
+    background:radial-gradient(ellipse 82% 62% at 50% 8%, #2a2419, #17140f 74%);
+  }
+  /* Le sol : une ellipse de lumière très basse, pour que les deux camps posent sur quelque chose. */
+  .duel-scene::after{
+    content:"";position:absolute;left:50%;bottom:52px;width:76%;height:74px;transform:translateX(-50%);
+    background:radial-gradient(ellipse 50% 50% at 50% 50%, rgba(240,231,212,.07), transparent 70%);
+    pointer-events:none;
+  }
+  .duel-camps{position:relative;display:flex;align-items:flex-start;justify-content:center;gap:26px}
+  .duel-camp{display:flex;flex-direction:column;align-items:center;gap:11px;width:165px}
+
+  /* La carte fait 266×372 : trop pour deux de front dans un panneau de 560. On la réduit
+     depuis le contenant plutôt que depuis `.pkc`, dont la transformation porte déjà le
+     retournement et l'inclinaison. */
+  .duel-slot{position:relative;width:165px;height:231px;perspective:900px}
+  /* En mobile, les deux cartes côte à côte doivent tenir dans la largeur de la scène. */
+  @media (max-width:860px){
+    .duel-camps{gap:14px}
+    .duel-camp,.duel-slot{width:min(140px,38vw)}
+    .duel-slot{height:calc(min(140px,38vw) * 1.4)}
+    .duel-scene{--duel-scale:.5}
+  }
+  @media (max-width:360px){.duel-scene{--duel-scale:.44}}
+  .duel-flip{
+    position:absolute;top:50%;left:50%;width:266px;height:372px;margin:-186px 0 0 -133px;
+    transform-style:preserve-3d;transform:scale(var(--duel-scale,.62)) rotateY(0deg);
+    transition:transform .62s cubic-bezier(.2,.8,.2,1);
+  }
+  /* Les deux mises se retournent EN MÊME TEMPS : personne n'ajuste la sienne en voyant l'autre,
+     et c'est la règle centrale du jeu — une animation simultanée la dit sans une ligne de texte. */
+  .duel-flip.dos{transform:scale(var(--duel-scale,.62)) rotateY(180deg)}
+  .duel-dos,.duel-front{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  /* Le `rotateY(0deg)` ne déplace rien : il donne à la face avant le transform propre sans
+     lequel Firefox ignore `backface-visibility` et la laisse voir en miroir, carte scellée.
+     Même remède que `.pkc-front`, et le même test de feuille de style le garde en place. */
+  .duel-front{transform:rotateY(0deg)}
+  .duel-dos{
+    transform:rotateY(180deg);display:grid;place-items:center;
+    background:linear-gradient(168deg,#2f2820,#221c15 46%,#191410);
+    border:1px solid #4a4033;
+    box-shadow:0 18px 40px rgba(0,0,0,.6),inset 0 0 0 4px rgba(255,255,255,.06);
+  }
+  .duel-cire{
+    width:92px;height:92px;border-radius:50%;display:grid;place-items:center;
+    background:radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--t) 78%, #fff), var(--t) 62%, #000 190%);
+    font-family:var(--f-display);font-weight:700;font-size:25px;color:rgba(255,247,230,.86);
+    box-shadow:inset 0 -4px 10px rgba(0,0,0,.4);
+  }
+  /* Le cachet respire tant qu'il tient : une mise en attente est vivante. Il s'arrête net au
+     retournement — l'animation ne vaut que pour l'état scellé. */
+  .duel-scene[data-etat="scelle"] .duel-cire{animation:duel-respire 2.4s ease-in-out infinite}
+  @keyframes duel-respire{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+  .duel-nom{text-align:center;transition:opacity .6s ease}
+  .duel-nom b{display:block;font-family:var(--f-display);font-size:15px;font-weight:600;color:#f0e7d4}
+  .duel-nom span{display:block;margin-top:3px;font-size:10.5px;color:#8a7f68}
+
+  /* Le vainqueur s'auréole. */
+  .duel-camp.gagne .duel-front{filter:drop-shadow(0 0 22px rgba(255,214,140,.5))}
+  /* Le perdant ne se sépie pas : il s'éteint. Il blanchit comme à l'évolution — mais
+     l'évolution blanchit pour faire naître, celle-ci ne laisse rien. La carte reste en place,
+     éteinte : la retirer ferait sauter la mise en page au moment le plus lu de l'écran. */
+  .duel-camp.perd .duel-flip{animation:duel-extinction 1.5s cubic-bezier(.4,0,.75,0) .25s forwards}
+  @keyframes duel-extinction{
+    0%{filter:none}
+    26%{filter:brightness(4.5) saturate(.15)}
+    52%{filter:brightness(1.05) saturate(0) contrast(.72);opacity:.5}
+    100%{filter:brightness(.45) saturate(0) blur(6px);opacity:.12}
+  }
+  .duel-camp.perd .duel-nom{opacity:.34}
+  /* Face à l'ordinateur, rien n'est détruit : il perd le combat, pas un exemplaire — il n'en
+     possède aucun. Il s'efface donc sans brûler. */
+  .duel-camp.rien .duel-flip{animation:none;filter:saturate(.3);opacity:.42;transition:opacity .7s ease .25s,filter .7s ease .25s}
+
+  .duel-cendre{
+    position:absolute;left:calc(24% + var(--i) * 8%);top:38%;width:3px;height:3px;border-radius:50%;
+    background:#a99a7f;opacity:0;pointer-events:none;
+  }
+  .duel-camp.perd .duel-cendre{animation:duel-cendre 1.9s ease-in calc(.45s + var(--i) * .09s) forwards}
+  @keyframes duel-cendre{
+    0%{opacity:0;transform:translate(0,0) scale(1)}
+    18%{opacity:.7}
+    100%{opacity:0;transform:translate(calc(var(--i) * 3px - 11px),70px) scale(.35)}
+  }
+
+  /* La balance reste après le verdict : elle ne dit pas qui gagne, elle dit ce qui était en
+     jeu. À 95 contre 5, gagner n'est pas un exploit et perdre en est un rare — sans elle, un
+     joueur battu ne peut pas savoir s'il a joué ou subi. */
+  .duel-balance{
+    position:relative;margin:18px auto 0;max-width:400px;opacity:0;transform:translateY(8px);
+    transition:opacity .5s ease,transform .5s ease;
+  }
+  .duel-balance.vu{opacity:1;transform:none}
+  .duel-piste{display:flex;height:5px;background:#2b251c;border:1px solid #3a3226;overflow:hidden}
+  .duel-piste i{display:block;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+  .duel-piste .moi{background:var(--gold)}
+  .duel-piste .lui{background:#6d6250}
+  .duel-cotes{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-top:8px;font-size:12px;color:#a99a7f}
+  .duel-chances{font-size:10.5px;letter-spacing:.06em;color:#f0e7d4}
+
+  .duel-eclat{
+    position:absolute;left:50%;top:38%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;
+    background:#fff5e6;opacity:0;pointer-events:none;z-index:3;
+  }
+  .duel-scene[data-etat="verdict"] .duel-eclat{animation:duel-eclat .62s ease-out forwards}
+  @keyframes duel-eclat{0%{transform:scale(.12);opacity:.85}100%{transform:scale(6);opacity:0}}
+
+  .duel-annonce{
+    position:relative;text-align:center;margin-top:16px;
+    font-family:var(--f-label);font-weight:700;font-size:10.5px;letter-spacing:.38em;text-transform:uppercase;
+    color:#6d6250;transition:color .5s ease;
+  }
+  .duel-annonce.vif{color:var(--gold);animation:duel-annonce .55s cubic-bezier(.2,.9,.3,1.45) both}
+  .duel-scene{cursor:pointer}
+  .duel-passer{
+    position:relative;text-align:center;margin-top:7px;
+    font-family:var(--f-data);font-size:9.5px;letter-spacing:.1em;color:#5a5142;
+  }
+  @keyframes duel-annonce{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+
+  .arena-vs-mark{font-family:var(--f-label);font-size:11px;letter-spacing:.14em;color:var(--fg-3)}
+
+  .arena-pick .mult{color:var(--gold);font-family:var(--f-data);font-size:10px;margin-left:3px}
+
+  /* Collée au bas du panneau : sans ça, la barre d'action sortait de l'écran juste après le
+     clic qui l'avait fait apparaître. */
+  /* Même retrait horizontal que `.sect` : à 2 px, la barre était collée aux bords du panneau
+     pendant que tout le reste respirait à 26. Et deux lignes plutôt qu'une — l'information
+     au-dessus, les boutons en dessous — parce que les tasser côte à côte ne tient sur aucune
+     largeur d'écran. */
+  .arena-bar{position:sticky;bottom:0;z-index:2;background:var(--bg);
+    border-top:1.5px solid var(--line);padding:18px 26px 20px}
+  .arena-bar .line-name{line-height:1.6;font-size:13px}
+  .arena-bar .muted{line-height:1.6;margin-top:2px}
+  .arena-bar-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+  .arena-bar-actions button{flex:1 1 190px;white-space:nowrap}
+
+  /* La forme du jour se lit d'un coup d'œil : au-dessus de la normale ou en dessous. */
+  .form-up{color:var(--u-text)}
+  .form-down{color:var(--gold)}
+
+  /* L'issue arrive après l'attente : elle doit s'imposer une seconde, pas apparaître comme une
+     ligne de plus. */
+  .arena-verdict{font-family:var(--f-display);font-size:30px;font-weight:600;letter-spacing:.02em;
+    text-align:center;padding:10px 0;animation:arena-verdict .5s cubic-bezier(.2,.9,.3,1.4) both}
+  .arena-verdict.won{color:var(--t)}
+  .arena-verdict.lost{color:var(--fg-3)}
+  @keyframes arena-verdict{0%{opacity:0;transform:scale(.82)}100%{opacity:1;transform:scale(1)}}
+
+  /* Les trois chiffres qui ont décidé du duel, au-dessus du détail qui les explique. */
+  .arena-duel-nums{display:flex;gap:22px;flex-wrap:wrap;margin-top:8px}
+  .arena-duel-nums div{display:flex;flex-direction:column;gap:2px}
+  .arena-duel-nums .v{font-family:var(--f-display);font-size:26px;font-weight:600;color:var(--fg);line-height:1}
+  .arena-duel-nums .v.win{color:var(--gold)}
+
+  .arena-badges{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px}
+  .arena-badge{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px}
+
+  .arena-reward{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .arena-reward div{display:flex;flex-direction:column;gap:2px}
+  .arena-reward .v{font-family:var(--f-display);font-size:22px;font-weight:600;color:var(--fg);line-height:1}
+
+
+/* Un achat à confirmer : le bouton change d'état, pas seulement de libellé — le libellé seul
+   se lit après coup, la couleur se voit avant de recliquer. */
+.evo-btn.confirming { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+  /* ───────── revente ───────── */
+  /* Une espèce par bloc, ses exemplaires en tuiles toujours visibles : on voit ce qu'on vend
+     sans rien déplier. La barre du bas porte la sélection et ouvre le récapitulatif. */
+  .onglets{display:flex;gap:4px;margin:-8px 0 8px;border-bottom:1px solid var(--line)}
+  .onglet{position:relative;background:none;border:0;padding:12px 16px;cursor:pointer;color:var(--fg-3);
+    font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    display:inline-flex;align-items:center;gap:8px}
+  .onglet:hover{color:var(--fg)}
+  .onglet.active{color:var(--fg)}
+  .onglet.active::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;background:var(--gold)}
+  .onglet-compte{font-size:10px;letter-spacing:0;padding:1px 7px;border-radius:999px;background:var(--surface);
+    border:1px solid var(--line-strong);color:var(--fg-2)}
+  .vendre-resume{font-size:11px;color:var(--fg-3);letter-spacing:0;text-transform:none}
+  .vendre-outils{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:14px 0 6px}
+  .vendre-cherche{display:flex;align-items:center;gap:8px;flex:0 1 260px;padding:8px 12px;border-radius:999px;
+    border:1px solid var(--line-strong);background:var(--surface);color:var(--fg-3)}
+  .vendre-cherche input{flex:1;min-width:0;border:0;background:none;outline:none;color:var(--fg);font:inherit;font-size:13px}
+  .vendre-cherche:focus-within{border-color:var(--gold)}
+  .vendre-tri{display:flex;align-items:center;gap:10px;margin-left:auto;font-size:13px}
+  .vendre-select{position:relative;display:inline-flex;align-items:center;color:var(--fg-2)}
+  .vendre-select select{appearance:none;-webkit-appearance:none;cursor:pointer;font:inherit;font-size:13px;color:var(--fg);
+    padding:8px 34px 8px 14px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface)}
+  .vendre-select select:focus-visible{outline:none;border-color:var(--gold)}
+  .vendre-select option{background:var(--panel-bg);color:var(--fg)}
+  .vendre-select svg{position:absolute;right:12px;pointer-events:none}
+
+  /* ───────── historique des duels ───────── */
+  .histo-filtres{display:flex;flex-wrap:wrap;gap:10px 20px;margin:4px 0 14px}
+  .histo-filtres .vendre-tri{margin-left:0}
+  .histo-liste{list-style:none;margin:0;padding:0}
+  .histo-ligne{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+  .histo-ligne:first-child{border-top:0}
+  .histo-issue{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-align:center;
+    padding:4px 0;border-radius:999px;border:1px solid currentColor}
+  .histo-ligne.gagne .histo-issue{color:var(--u-text)}
+  .histo-ligne.perdu .histo-issue{color:var(--danger)}
+  .histo-corps{min-width:0}
+  .histo-face{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:13px}
+  .histo-camp{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .histo-face .mono{font-size:11px;color:var(--fg-2)}
+  .histo-sprite{width:28px;height:28px;image-rendering:pixelated;margin:-4px -2px}
+  .histo-vs{font-size:11px;color:var(--fg-3)}
+  .histo-details{font-size:11px;color:var(--fg-2);margin-top:2px}
+  .histo-details.perte{color:var(--danger)}
+  .histo-plus{margin-top:14px}
+  .vendre-groupe{border-bottom:1px solid var(--line)}
+  .vendre-groupe:last-child{border-bottom:0}
+  .vendre-tete{display:flex;align-items:center;gap:12px;padding:8px 0}
+  .vendre-deplier{display:flex;align-items:center;gap:12px;flex:1;min-width:0;padding:4px 0;background:none;border:0;
+    text-align:left;cursor:pointer;color:inherit;font:inherit}
+  .vendre-chevron{flex:0 0 auto;color:var(--fg-3);transition:transform .15s}
+  .vendre-groupe.ouverte .vendre-chevron{transform:rotate(90deg);color:var(--gold)}
+  .vendre-deplier:hover .vendre-nom b{color:var(--gold)}
+  .vendre-pris{font-size:11px;color:var(--gold);white-space:nowrap}
+  .vendre-nom .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vendre-corps{padding:4px 0 16px 28px}
+  .vendre-mini{width:34px;height:34px;flex:0 0 34px;image-rendering:pixelated;border-radius:6px;
+    border:1px solid var(--line);background:color-mix(in srgb, var(--tier) 12%, var(--surface))}
+  .vendre-nom{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+  .vendre-nom b{font-size:15px;color:var(--fg)}
+  .vendre-nom .muted{font-size:12px}
+  .vendre-tous{padding:9px 14px;font-size:10px;white-space:nowrap}
+  .vendre-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .vendre-ex{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;text-align:left;min-width:0;
+    padding:10px 12px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);
+    color:var(--fg-2);font-family:var(--f-ui);font-size:13px;cursor:pointer}
+  .vendre-ex:hover:not(:disabled){border-color:var(--gold)}
+  /* Choisi : fond, bordure et coche. Trois signaux, aucun ne repose sur la couleur seule. */
+  .vendre-ex.pris{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold);color:var(--fg);
+    background:color-mix(in srgb, var(--gold) 12%, var(--surface))}
+  .vendre-ex.bloque{opacity:.5;cursor:default;border-style:dashed}
+  .vendre-case{width:18px;height:18px;flex:0 0 18px;border-radius:5px;border:1.5px solid var(--line-strong-hi);
+    display:grid;place-items:center}
+  .vendre-ex.pris .vendre-case{border-color:var(--gold);background:var(--gold);color:var(--on-gold)}
+  .vendre-niv{font-weight:600}
+  .vendre-tag{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);
+    border:1px solid var(--line-strong);border-radius:4px;padding:1px 5px}
+  .vendre-prix{margin-left:auto;color:var(--fg);font-size:12px;white-space:nowrap}
+  .vendre-note{margin:10px 0 0;font-size:12px}
+  @media (max-width:640px){
+    .vendre-corps{padding-left:0}
+    .vendre-cherche{flex:1 1 100%}
+    .vendre-tri{margin-left:0}
+    .vendre-tete{gap:8px}
+    .vendre-deplier{gap:8px}
+    .vendre-tete .vendre-tous{padding:8px 10px;font-size:9px;letter-spacing:.1em}
+  }
+  /* La barre porte déjà un filet : la section juste au-dessus n'en ajoute pas un second. */
+  .vendre-prix-note{border-bottom:0}
+  .vendre-bar{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin-top:8px;padding:14px 0;background:var(--bg);border-top:1px solid var(--line)}
+  .vendre-bar-txt{flex:1 1 auto;font-size:15px;color:var(--fg)}
+  .vendre-bar .gold{color:var(--gold)}
+  .vendre-bar .btn-ghost{padding:12px 18px}
+  .vendre-apercu{width:min(520px,100%);padding:30px 32px 26px}
+  @media (max-width:640px){
+    .vendre-apercu{padding:26px 16px 22px}
+    .vendre-apercu-titre{font-size:24px;padding-right:36px}
+    .vendre-bar-txt{flex-basis:100%}
+    .vendre-bar .btn-ghost{flex:0 0 auto;padding:13px 16px}
+    .vendre-bar .vendre-btn{flex:1 1 auto;white-space:nowrap;padding:15px 16px}
+  }
+  .vendre-apercu-titre{font-family:var(--f-display);font-size:28px;font-weight:400;margin:6px 0 16px}
+  .vendre-recap{list-style:none;margin:0;padding:0;max-height:min(46vh,420px);overflow:auto}
+  .vendre-recap li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .vendre-recap-nom{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+  .vendre-recap-ex{display:flex;flex-wrap:wrap;gap:4px}
+  .vendre-puce{font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--line-strong);color:var(--fg-2)}
+  .vendre-puce.shiny{border-color:var(--gold);color:var(--gold)}
+  .vendre-recap-prix{white-space:nowrap;color:var(--fg)}
+  .vendre-recap-total{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0 6px;font-size:15px}
+  .vendre-recap-total b{font-size:20px}
+  .vendre-recap-total .gold{color:var(--gold)}
+  .vendre-apercu-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  .vendre-apercu-actions button{flex:1 1 180px;white-space:nowrap}
+  .vendre-un{padding:6px 12px;white-space:nowrap}
+  /* Le lot au-dessus de la liste : c'est le geste courant, et la ligne par ligne l'exception. */
+  .vendre-lot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .forme-shiny{padding:0 5px;font-size:10px;line-height:1.5}
+  .vendre-lot-note{font-size:11px;flex:1 1 220px}
+
+  /* ───────── profil ───────── */
+  /* Un filet d'un pixel et demi entre les cases, obtenu par la couleur de fond de la grille :
+     plus net qu'une bordure par case, qui doublerait aux jointures. */
+  .prof-cases{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1.5px;
+    background:var(--line);border-bottom:1.5px solid var(--line);
+  }
+  .prof-case{background:var(--surface);padding:16px 18px}
+  .prof-case b{
+    display:block;font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .prof-case span{
+    display:block;margin-top:7px;font-family:var(--f-label);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--fg-2);
+  }
+  /* Hachurée plutôt que retirée : une case barrée montre où passe la règle, une case absente
+     laisse croire qu'il n'y avait rien à dire. */
+
+  .prof-badges{display:flex;gap:20px;flex-wrap:wrap}
+  .prof-badge{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .prof-badge span{font-size:10.5px;color:var(--fg-2)}
+  /* Le rang sous le trophée plutôt que sur lui : posé en pastille, il mangeait la silhouette
+     à cette taille et débordait du conteneur, qui n'a pas à s'ouvrir pour l'accueillir. */
+  .prof-badge .prof-rang{font-size:11.5px;color:var(--fg);margin-top:-3px}
+
+  /* ───────── saison ───────── */
+  /* Sous le chiffre des jours restants, à sa largeur : un sablier plus large que ce qu'il
+     mesure se lisait comme une barre de progression de la page entière. */
+  .saison-sablier{
+    height:4px;width:100%;min-width:88px;background:var(--surface);border:1px solid var(--line);
+    position:relative;overflow:hidden;margin-top:10px;
+  }
+  .saison-sablier i{position:absolute;inset:0 auto 0 0;background:var(--u-text)}
+
+  /* Chaque rang est un bouton : le nom mène à la fiche, ce qui donne enfin une raison de
+     cliquer sur un nom qu'on regarde depuis des semaines. */
+  .saison-rangs{display:flex;flex-direction:column}
+  .saison-rang{
+    display:flex;align-items:center;gap:13px;width:100%;padding:11px 0;cursor:pointer;
+    border:0;border-bottom:1px solid rgba(179,161,121,.4);background:transparent;
+    font-family:var(--f-label);text-align:left;color:var(--fg-2);
+  }
+  .saison-rang:last-child{border-bottom:0}
+  .saison-rang:hover{color:var(--fg)}
+  .saison-rang:hover .nom{text-decoration:underline;text-underline-offset:3px}
+  .saison-rang .pos{width:20px;font-size:11px;color:var(--fg-3)}
+  .saison-rang.podium .pos{color:var(--gold);font-weight:600}
+  .saison-rang .nom{width:88px;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .saison-rang .piste{flex:1;height:7px;background:var(--surface);position:relative;min-width:60px}
+  .saison-rang .piste i{position:absolute;inset:0 auto 0 0;background:var(--line-strong)}
+  .saison-rang .pts{width:46px;text-align:right;font-size:13px}
+  .saison-rang.moi{color:var(--fg)}
+  .saison-rang.moi .nom,.saison-rang.moi .pts{font-weight:600;color:var(--gold)}
+  .saison-rang.moi .piste i{background:var(--gold)}
+
+  .saison-bareme{display:flex;flex-direction:column}
+  .saison-ligne{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(179,161,121,.4)}
+  .saison-ligne:last-child{border-bottom:0}
+  .saison-ligne .pastille{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+  .saison-ligne .quoi{flex:1;font-size:12.5px;color:var(--fg-2)}
+  .saison-ligne .pts{font-size:13.5px}
+  .saison-ligne .sous{width:56px;text-align:right;font-size:11px;color:var(--fg-3)}
+
+  .saison-etagere{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:18px 12px}
+  .saison-socle{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .saison-socle .qd{font-size:10px;color:var(--fg-3)}
+  .saison-socle .rg{font-size:11px;color:var(--fg)}
+  .saison-socle.vide .rg{color:var(--fg-3)}
+  /* Le socle vide est gravé, pas absent : il dit qu'une place existait et n'a pas été prise. */
+  .socle-vide{
+    width:46px;height:46px;border-radius:50%;border:1px dashed var(--line-strong);opacity:.65;
+    background:radial-gradient(circle at 50% 42%, rgba(44,38,32,.06), transparent 62%);
+  }
+
+  /* ───────── une page, pas une couche ─────────
+     Les lieux étaient des panneaux flottants au-dessus de la planche, avec une croix pour les
+     refermer. Un onglet ne mène pas à une couche : il mène à un endroit. La page occupe donc le
+     flux, sans scrim ni bord de carte — c'est le rail qui la surmonte et les filets de section
+     qui la structurent, comme sur un document. On en sort par un autre onglet, pas par une croix. */
+  .page{display:block;padding-bottom:40px}
+  .page > .panel-top{padding:0 0 18px;border-bottom:1.5px solid var(--line);gap:22px}
+  .page > .sect{padding:20px 0}
+  .page .panel-name{margin-top:5px}
+
+  /* ───────── badge de saison ───────── */
+  .sbadge{position:relative;display:inline-flex;width:var(--taille);height:var(--taille)}
+  .sbadge svg{display:block;overflow:visible}
+
+  /* La frappe : une plaque, un biseau décalé d'un cheveu vers le bas qui lui donne son relief,
+     et la figure en émail. Le biseau est le MÊME contour que la plaque — c'est ce décalage,
+     et lui seul, qui fait l'épaisseur du métal. Trois couleurs par badge au lieu de trente-cinq
+     classes recopiées. */
+  .sbadge .bg-plaque{fill:var(--b-biseau)}
+  .sbadge .bg-biseau{fill:var(--b-plaque);transform:translateY(-2.5%) scale(.955);transform-origin:center}
+  .sbadge .bg-figure{fill:var(--b-email);stroke:var(--b-email)}
+  .sbadge .bg-figure [fill="none"]{fill:none}
+  /* Un détail creusé DANS l'émail se peint de la couleur de la plaque : peint en émail sur
+     l'émail, il disparaît — c'est ce qui a d'abord rendu le rabat du Pli invisible. */
+  .sbadge .bg-trait{stroke:var(--b-plaque)}
+  /* Le rang est une pastille posée sur le badge, pas une teinte appliquée dessus : les huit
+     médailles ont leurs couleurs propres, et les repeindre en or, argent et bronze ferait de
+     huit dessins distincts trois nuances de la même. */
+  }
+
+  /* Le badge en jeu, en tête de la saison : assez grand pour donner envie, posé à côté de ce
+     qu'il coûte d'obtenir plutôt qu'en vignette au milieu d'un tableau. */
+  .saison-prix{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .saison-prix .sbadge{flex-shrink:0}
+  .saison-prix > p{flex:1;min-width:210px;margin:0}
+
+  /* Un gain nul se lit au premier coup d'œil comme une absence, pas comme un zéro perdu au
+     milieu de chiffres qui, eux, comptent. */
+  .arena-reward .v.nul{color:var(--fg-3)}
+
+  /* ───────── l'arène à venir ───────── */
+  .teaser-tete{display:flex;align-items:center;gap:34px;flex-wrap:wrap}
+  .teaser-badge{display:flex;flex-direction:column;align-items:center;gap:9px;margin-left:auto}
+  .teaser-badge span{font-size:10.5px;color:var(--fg-2)}
+  .teaser-liste{display:flex;flex-direction:column}
+  .teaser-liste p{
+    font-size:13px;line-height:1.65;color:var(--fg-2);
+    padding:11px 0;border-bottom:1px solid rgba(179,161,121,.4);
+  }
+  .teaser-liste p:last-child{border-bottom:0}
+  .teaser-liste b{color:var(--fg)}
+
+  /* La forme du jour, exemplaire par exemplaire : à plusieurs, elles diffèrent — la forme se
+     tire de la clé, pas de l'espèce — et c'est ce qui décide lequel engager aujourd'hui. */
+  .formes{display:flex;flex-direction:column;margin-bottom:12px}
+  .forme-ligne{
+    display:flex;align-items:center;gap:12px;padding:8px 0;
+    border-bottom:1px solid rgba(179,161,121,.4);
+  }
+  .forme-ligne:last-child{border-bottom:0}
+  .forme-ligne .no{font-size:10px;color:var(--fg-3);width:14px}
+  .forme-ligne .quoi{font-size:12px;color:var(--fg-2);width:52px}
+  .forme-nom{flex:1;font-size:12.5px;color:var(--fg-2)}
+  .forme-nom.up{color:var(--u-text)}
+  .forme-nom.down{color:var(--gold)}
+
+
+  /* Le rappel du nom manquant : un filet rouge, pas un bandeau — il informe, il n'interdit rien. */
+

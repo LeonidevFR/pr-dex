@@ -75,7 +75,7 @@ describe('succès de la démo', () => {
     return Object.keys(evaluate({ catches, claimed, evolutions: state.evolutions, others }).unlocked)
   }
 
-  it('la première carte en attente débloque un succès, la dernière deux', async () => {
+  it('quatre des cinq cartes en attente débloquent un succès', async () => {
     const client = loadDemoClient()
     const catches = await client.readCatches()
     let { state: { claimed } } = await client.readState()
@@ -85,15 +85,16 @@ describe('succès de la démo', () => {
       .map((c) => entryKey(c.source, c.external_id))
     const gained = []
     let before = await unlockedAfter(client, claimed)
-    expect(before).toHaveLength(10)
+    expect(before).toHaveLength(11)
     for (const key of pending) {
       claimed = [...claimed, key]
       const after = await unlockedAfter(client, claimed)
       gained.push(after.filter((c) => !before.includes(c)).sort())
       before = after
     }
-    expect(gained[0]).toEqual(['on-top'])
-    expect(gained.at(-1)).toEqual(['shiny-booster', 'shiny-species-5'])
+    // Avec l'arène, la démo tient Électhor et Sulfura et un Nidoran chromatique de plus : le
+    // retournement d'Artikodin complète le trio d'oiseaux, et le 5e chromatique tombe plus tôt.
+    expect(gained).toEqual([['on-top'], ['birds'], ['shiny-species-5'], [], ['shiny-booster']])
   })
 
   it('garde les succès insérés, sans doublon, et leur annonce', async () => {

@@ -27,14 +27,14 @@ describe('feuille de style', () => {
    * déplace rien, suffit à ce que les deux navigateurs racontent la même chose.
    */
   /**
-   * La barre d'onglets du bas, en mobile, partage la largeur entre ses onglets. À quatre, le
-   * padding de 16 px du desktop fait sortir « Succès » de l'écran à 390 px.
+   * En mobile, la barre latérale sort de l'écran et revient en tiroir, posée sur un voile qui
+   * la referme au toucher.
    */
-  it('resserre les onglets de la barre mobile pour que les quatre tiennent', () => {
-    const mobile = regles.find((r) => r.selecteur === '.rail-tab' && declare('flex')(r))
-    expect(mobile).toBeDefined()
-    expect(mobile.corps).toMatch(/padding\s*:\s*0 4px/)
-    expect(mobile.corps).toMatch(/min-width\s*:\s*0/)
+  it('range la barre latérale en tiroir sous 640 px', () => {
+    const tiroir = regles.find((r) => r.selecteur.includes('.side.collapsed') && /translateX\(-100%\)/.test(r.corps))
+    expect(tiroir).toBeDefined()
+    const voile = regles.find((r) => r.selecteur === '.side-scrim' && /display\s*:\s*block/.test(r.corps))
+    expect(voile).toBeDefined()
   })
 
   it('donne à la pastille de l’onglet Succès la couleur du texte, le chiffre dans celle du fond', () => {
@@ -65,14 +65,17 @@ describe('feuille de style', () => {
    * mesure la plus longue des deux et attend 1,25 s au lieu des 0,25 s du fondu.
    */
   /**
-   * La feuille et les toasts gardent un papier fixe dans les deux thèmes. Le texte d'un
-   * palier (compteur de l'en-tête, libellé de rareté, 12 px) s'écrit dans son encre : elle
-   * doit passer le contraste AA de 4,5:1 sur ce papier, le légendaire compris, et aucun
+   * La feuille et les toasts suivent le thème. Le texte d'un palier (compteur de l'en-tête,
+   * libellé de rareté, 12 px) s'écrit dans son encre : elle doit passer le contraste AA de
+   * 4,5:1 sur le fond de la feuille, dans les deux thèmes, le légendaire compris, et aucun
    * libellé ne se peint avec la dorure, dont les arrêts clairs tombent sous 2:1.
    */
-  it('écrit chaque palier dans une encre lisible sur le papier, sans dorure sur le texte', () => {
-    const papier = regles.find((r) => r.selecteur === '.ach-sheet,.ach-toast')
-    const couleur = (nom) => papier.corps.match(new RegExp(`--${nom}\\s*:\\s*(#[0-9a-f]{6})`, 'i'))[1]
+  it.each([
+    ['sombre', '.ach-sheet,.ach-toast'],
+    ['clair', ':root[data-theme="light"] .ach-sheet,:root[data-theme="light"] .ach-toast'],
+  ])('écrit chaque palier dans une encre lisible sur la feuille en thème %s', (_, selecteur) => {
+    const feuille = regles.find((r) => r.selecteur === selecteur)
+    const couleur = (nom) => feuille.corps.match(new RegExp(`--${nom}\\s*:\\s*(#[0-9a-f]{6})`, 'i'))[1]
     const luminance = (hex) => {
       const [r, g, b] = [1, 3, 5].map((i) => {
         const c = parseInt(hex.slice(i, i + 2), 16) / 255
@@ -82,9 +85,13 @@ describe('feuille de style', () => {
     }
     const fond = luminance(couleur('paper'))
     for (const palier of ['ach-c', 'ach-u', 'ach-r', 'ach-l']) {
-      const ratio = (fond + 0.05) / (luminance(couleur(palier)) + 0.05)
+      const encre = luminance(couleur(palier))
+      const ratio = (Math.max(fond, encre) + 0.05) / (Math.min(fond, encre) + 0.05)
       expect(ratio, palier).toBeGreaterThanOrEqual(4.5)
     }
+  })
+
+  it('ne peint aucun libellé de palier avec la dorure', () => {
     const texteDore = regles.filter(
       (r) => /\.ach-(rarity|tier-count)/.test(r.selecteur) && /color\s*:\s*transparent/.test(r.corps),
     )
@@ -308,5 +315,52 @@ describe('feuille de style', () => {
     const gemmes = regles.filter((r) => /\.pkc-back-legend$/.test(r.selecteur) && declare('width')(r))
     expect(gemmes.length).toBeGreaterThan(0)
     for (const r of gemmes) expect(r.corps).toMatch(/width\s*:\s*\d+px/)
+  })
+})
+
+/**
+ * La refonte a renommé toute la palette : `--paper` est devenue `--bg`, `--ink` `--fg`, et
+ * onze jetons ont disparu d'un coup. Un `var(--jeton-mort)` ne casse rien de visible au
+ * montage — la propriété retombe sur la valeur héritée, souvent proche, et le défaut passe
+ * inaperçu jusqu'à ce qu'on regarde le bon écran dans le bon thème.
+ *
+ * Quatre avaient survécu au ré-habillage parce qu'ils étaient écrits dans des styles en
+ * ligne, hors de la feuille, là où aucune relecture de CSS ne les cherchait.
+ */
+describe('les jetons employés existent', () => {
+  const definis = new Set(css.match(/--[a-z0-9-]+(?=\s*:)/g) ?? [])
+
+  // `--type-` et consorts sont composés à l'exécution (`--type-${nom}`) : un nom partiel ne
+  // peut pas se vérifier ici, et le composant qui les pose les définit lui-même.
+  const composes = (jeton) => jeton.endsWith('-')
+
+  /**
+   * Les gabarits seulement, et non la feuille : elle appelle des jetons que ses appelants lui
+   * posent en ligne — `--tier`, `--type`, `--taille` — qui n'ont par construction pas de
+   * définition à chercher ici. Le défaut qu'on traque est l'inverse : un gabarit qui demande
+   * une couleur que la palette ne sert plus.
+   */
+  it.each([
+    'src/App.vue', 'src/components',
+  ])('%s n’appelle que des jetons définis', async (cible) => {
+    const { readdirSync, statSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const racine = new URL('../', import.meta.url).pathname
+    const chemin = join(racine, cible)
+    const fichiers = statSync(chemin).isDirectory()
+      ? readdirSync(chemin).filter((f) => f.endsWith('.vue')).map((f) => join(chemin, f))
+      : [chemin]
+
+    const morts = []
+    for (const f of fichiers) {
+      const src = readFileSync(f, 'utf8')
+      for (const appel of src.match(/var\(\s*--[a-z0-9-]+/g) ?? []) {
+        const jeton = appel.replace(/var\(\s*/, '')
+        if (!composes(jeton) && !definis.has(jeton) && !src.includes(`${jeton}:`)) {
+          morts.push(`${f.replace(racine, '')} → ${jeton}`)
+        }
+      }
+    }
+    expect(morts).toEqual([])
   })
 })

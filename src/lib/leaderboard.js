@@ -1,9 +1,10 @@
 import { ref } from 'vue'
 import { useDex } from '../composables/useDex.js'
-import { DEX, familyOf, familyLine, hasEvoInFamily, TIER_LABEL } from '../../shared/species.js'
+import { DEX, SPECIES, familyOf, familyLine, hasEvoInFamily, TIER_LABEL } from '../../shared/species.js'
 import { entryKey } from '../../shared/entry.js'
 
 const TIERS = ['c', 'u', 'r', 'l']
+const BOARD_SIZE = SPECIES.length
 const DAY_MS = 24 * 60 * 60 * 1000
 
 // Date pivot en 'YYYY-MM-DD' : les dates de capture sont des chaînes de ce format, une
@@ -23,9 +24,28 @@ export function playerStats(catches, evolutions, today) {
   // malformée chez un seul joueur ne doit pas casser le panneau de toute l'équipe. Jusqu'ici
   // un état corrompu ne gênait que celui qui l'avait écrit ; c'est le premier écran où il
   // atteint les autres. On ne garde que ce que `useDex` sait lire.
-  const evos = (Array.isArray(evolutions) ? evolutions : []).filter((e) => e && DEX[e.species])
-  const state = ref({ claimed: catches.map((c) => entryKey(c.source, c.external_id)), spent: {}, evolutions: evos })
-  const dex = useDex(ref(catches), state)
+  /**
+   * Les évolutions arrivent sous deux formes, et il faut lire les deux.
+   *
+   * L'ancienne vit dans `state.evolutions`, écrite par le client : `{ species, from, fromKey }`.
+   * La nouvelle vient de la table `evolutions`, que le serveur valide : `{ to_species,
+   * from_species, from_key }`. Le classement lit les deux tant que la bascule n'est pas faite
+   * partout — un joueur déjà migré et un autre qui ne l'est pas apparaissent dans le même
+   * tableau.
+   *
+   * Et l'on ne garde que ce que `useDex` sait lire : `state.evolutions` n'était validée par
+   * personne, et une entrée corrompue chez un seul joueur casserait le panneau de toute
+   * l'équipe. Jusqu'ici un état abîmé ne gênait que son auteur ; c'est le premier écran où il
+   * atteint les autres.
+   */
+  const evos = (Array.isArray(evolutions) ? evolutions : [])
+    .map((e, i) => (e && e.to_species != null
+      ? { id: e.id ?? i, to_species: e.to_species, from_species: e.from_species, from_key: e.from_key }
+      : e && { id: i, to_species: e.species, from_species: e.from, from_key: e.fromKey }))
+    .filter((e) => e && DEX[e.to_species])
+
+  const state = ref({ claimed: catches.map((c) => entryKey(c.source, c.external_id)), spent: {} })
+  const dex = useDex(ref(catches), state, ref(new Set()), ref(evos))
 
   const owned = new Set(Object.keys(dex.bySpecies.value).map(Number))
   const ofTier = (t) => [...owned].filter((id) => DEX[id].tier === t).length
@@ -133,14 +153,17 @@ export function myStats(rows, today) {
  * par au moins un joueur : c'est l'objectif commun, celui où personne n'est dernier. Les
  * shiny se comptent de la même façon, une fois par espèce. `missing` liste ce qui reste à
  * trouver, dans l'ordre du Pokédex.
+ *
+ * Tout se compte sur la planche des 151 : la Gen 2 ne s'obtient qu'en boutique, et la lister
+ * parmi les manquantes l'y laisserait pour toujours.
  */
 export function teamTotals(rows, today) {
   const players = rankPlayers(rows, today)
-  const seen = new Set(players.flatMap((p) => p.speciesIds))
+  const seen = new Set(players.flatMap((p) => p.speciesIds).filter((id) => id <= BOARD_SIZE))
   return {
     collective: seen.size,
     opened: players.reduce((n, p) => n + p.copies, 0),
-    shiny: new Set(players.flatMap((p) => p.shinySpeciesIds)).size,
-    missing: Object.keys(DEX).map(Number).filter((id) => !seen.has(id)),
+    shiny: new Set(players.flatMap((p) => p.shinySpeciesIds).filter((id) => id <= BOARD_SIZE)).size,
+    missing: SPECIES.map(([id]) => id).filter((id) => !seen.has(id)),
   }
 }

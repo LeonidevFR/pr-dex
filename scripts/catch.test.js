@@ -2,9 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { sinceDate, bootstrapDate, toRows, planSources, main, CONNECTORS } from './catch.mjs'
-import { drawFrom } from '../shared/draw.js'
+import {
+  sinceDate, bootstrapDate, toRows, planSources, packRows, main, CONNECTORS,
+  seasonAnnouncement, announceClosedSeasons,
+} from './catch.mjs'
+import { drawFrom, drawInTier } from '../shared/draw.js'
 import { entryKey } from '../shared/entry.js'
+import { DEX, poolOf } from '../shared/species.js'
 
 const searchPage = (items, more = false) => ({
   ok: true, status: 200,
@@ -121,12 +125,30 @@ describe('main', () => {
    * l'URL. `github` fournit les réponses GitHub dans l'ordre d'appel, communes à toutes les
    * identités traitées par ce run — suffisant tant qu'une seule identité par test a du nouveau.
    */
-  function makeFetch({ identities, catchesByUser = {}, github = [] } = {}) {
+  function makeFetch({ identities, catchesByUser = {}, github = [], packs = [] } = {}) {
     const githubQueue = [...github]
     const inserted = []
+    const claimed = []
+    const expired = []
+    const closed = []
     const fn = vi.fn(async (url, init = {}) => {
       if (url.includes('/rest/v1/identities')) {
         return { ok: true, status: 200, json: async () => identities, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/rpc/arena_resolve_expired')) {
+        expired.push(url)
+        return { ok: true, status: 200, json: async () => 0, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/rpc/arena_close_finished_seasons')) {
+        closed.push(url)
+        return { ok: true, status: 200, json: async () => 0, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/arena_packs') && (!init.method || init.method === 'GET')) {
+        return { ok: true, status: 200, json: async () => packs, headers: new Headers() }
+      }
+      if (url.includes('/rest/v1/arena_packs') && init.method === 'PATCH') {
+        claimed.push(url)
+        return { ok: true, status: 204, json: async () => [], headers: new Headers() }
       }
       if (url.includes('/rest/v1/catches') && (!init.method || init.method === 'GET')) {
         const params = new URL(url).searchParams
@@ -146,6 +168,9 @@ describe('main', () => {
       return next
     })
     fn.inserted = inserted
+    fn.closed = closed
+    fn.claimed = claimed
+    fn.expired = expired
     return fn
   }
 
@@ -441,4 +466,247 @@ describe('main', () => {
   it('n’enregistre que des sources dont le connecteur déclare la même clé', () => {
     for (const [key, connector] of Object.entries(CONNECTORS)) expect(connector.id).toBe(key)
   })
+
+  // L'arène n'a pas son propre déclencheur : elle profite du run qui existe déjà, et donc du
+  // bouton de synchronisation, qui devient aussi « montre-moi ce que j'ai gagné ».
+  it('matérialise les plis d’arène dus dans le même run que les captures', async () => {
+    const fetchMock = makeFetch({
+      identities: [identity('u1')],
+      github: [searchPage([])],
+      packs: [
+        { id: 11, user_id: 'u1', tier: 'r', duel_id: 3, created_at: '2026-08-11T09:00:00+00:00' },
+        { id: 12, user_id: 'u2', tier: 'c', duel_id: 4, created_at: '2026-08-11T10:00:00+00:00' },
+      ],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const total = await main()
+
+    expect(total).toBe(2)
+    const lignes = fetchMock.inserted.flat()
+    expect(lignes.map((l) => [l.user_id, l.source, l.external_id]))
+      .toEqual([['u1', 'arene', '11'], ['u2', 'arene', '12']])
+    expect(DEX[lignes[0].species].tier).toBe('r')
+    expect(DEX[lignes[1].species].tier).toBe('c')
+  })
+
+  // Marquer avant d'insérer ferait disparaître un pli gagné si le run mourait entre les deux ;
+  // marquer après ne coûte qu'un doublon, que la contrainte unique de `catches` absorbe.
+  it('ne marque les plis comme matérialisés qu’après les avoir insérés', async () => {
+    const ordre = []
+    const fetchMock = makeFetch({
+      identities: [identity('u1')],
+      github: [searchPage([])],
+      packs: [{ id: 21, user_id: 'u1', tier: 'u', duel_id: 5, created_at: '2026-08-11T09:00:00+00:00' }],
+    })
+    const suivi = vi.fn(async (url, init = {}) => {
+      if (url.includes('/rest/v1/catches') && init.method === 'POST') ordre.push('insert')
+      if (url.includes('/rest/v1/arena_packs') && init.method === 'PATCH') ordre.push('marque')
+      return fetchMock(url, init)
+    })
+    vi.stubGlobal('fetch', suivi)
+
+    await main()
+
+    expect(ordre).toEqual(['insert', 'marque'])
+  })
+
+  it('ne touche pas aux plis quand il n’y en a aucun de dû', async () => {
+    const fetchMock = makeFetch({ identities: [identity('u1')], github: [searchPage([])] })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    expect(fetchMock.claimed).toEqual([])
+  })
+
+  // La péremption se greffe sur le run qui existe déjà : l'arène n'a pas besoin de son propre
+  // planificateur, et un retard d'une heure sur un délai de vingt-quatre n'a aucun effet.
+  it('résout les défis périmés à chaque passage', async () => {
+    const fetchMock = makeFetch({ identities: [identity('u1')], github: [searchPage([])] })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    expect(fetchMock.expired).toHaveLength(1)
+  })
+
+
+  /**
+   * La clôture des saisons se greffe sur le même passage que le reste : l'arène n'a pas son
+   * propre planificateur. Sans cet appel, `arena_close_finished_seasons` existait sans que rien
+   * ne la déclenche — aucune saison ne se serait jamais fermée, et aucun badge n'aurait atterri
+   * sur une étagère.
+   */
+  describe('clôture des saisons', () => {
+    it('demande la clôture à chaque passage de la collecte', async () => {
+      const fetchMock = makeFetch({ identities: [], github: [] })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      expect(fetchMock.closed).toHaveLength(1)
+    })
+
+    // Le podium verse des pokédollars : mieux vaut qu'ils soient en caisse avant que les plis
+    // gagnés ne se matérialisent, pour que le joueur trouve tout en arrivant.
+    it('ferme les saisons avant de matérialiser les plis', async () => {
+      const fetchMock = makeFetch({ identities: [], github: [] })
+      vi.stubGlobal('fetch', fetchMock)
+      await main()
+      const urls = fetchMock.mock.calls.map(([u]) => u)
+      const cloture = urls.findIndex((u) => u.includes('arena_close_finished_seasons'))
+      const plis = urls.findIndex((u) => u.includes('/rest/v1/arena_packs'))
+      expect(cloture).toBeGreaterThanOrEqual(0)
+      expect(cloture).toBeLessThan(plis)
+    })
+  })
+
 })
+
+describe('packRows', () => {
+  const pli = (over = {}) => ({
+    id: 42, user_id: 'u1', tier: 'r', duel_id: 7,
+    created_at: '2026-08-11T09:30:00+00:00', ...over,
+  })
+
+  it('fabrique une capture de source arène', () => {
+    const [row] = packRows([pli()])
+    expect(row.source).toBe('arene')
+    expect(row.external_id).toBe('42')
+    expect(row.user_id).toBe('u1')
+    expect(row.date).toBe('2026-08-11')
+    expect(row.ref).toBe('duel #7')
+  })
+
+  // Le palier vient du duel, jamais du hasard : c'est tout ce que l'arène décide du tirage.
+  it('respecte le palier de l’enjeu', () => {
+    for (const tier of ['c', 'u', 'r', 'l']) {
+      for (let id = 1; id < 60; id++) {
+        const [row] = packRows([pli({ id, tier })])
+        expect(DEX[row.species].tier).toBe(tier)
+      }
+    }
+  })
+
+  // Même clé, même exemplaire : un pli rematérialisé après un run interrompu doit retomber
+  // sur la même espèce, sinon la contrainte unique absorberait un doublon différent.
+  it('est déterministe pour un même pli', () => {
+    expect(packRows([pli()])).toEqual(packRows([pli()]))
+  })
+
+  it('tire le même exemplaire que le tirage direct sur la clé d’arène', () => {
+    const [row] = packRows([pli()])
+    const attendu = drawInTier(entryKey('arene', '42'), 'r')
+    expect({ species: row.species, shiny: row.shiny }).toEqual(attendu)
+  })
+
+})
+
+/**
+ * Un pli acheté ne se distingue d'un pli gagné que par l'ensemble dans lequel il pioche : la
+ * génération vient de l'article, « inédit garanti » retire ce qu'on possède déjà. Les cotes ne
+ * bougent jamais — c'est ce qui permet à la boutique de récompenser sans avantager.
+ */
+describe('plis de boutique', () => {
+  const achat = (over = {}) => ({
+    id: 900, user_id: 'u1', tier: 'r', gen: 1, fresh: false, duel_id: null,
+    created_at: '2026-08-11T09:00:00+00:00', ...over,
+  })
+
+  it('se reconnaît à sa source et à son intitulé', () => {
+    const [row] = packRows([achat()])
+    expect(row.source).toBe('boutique')
+    expect(row.label).toBe('Acheté en boutique')
+    expect(row.ref).toBeNull()
+  })
+
+  it('tire dans la génération achetée', () => {
+    for (let id = 900; id < 940; id++) {
+      const [g2] = packRows([achat({ id, gen: 2 })])
+      expect(g2.species).toBeGreaterThan(151)
+      const [g1] = packRows([achat({ id, gen: 1 })])
+      expect(g1.species).toBeLessThanOrEqual(151)
+    }
+  })
+
+  it('respecte le palier acheté dans les deux générations', () => {
+    for (const gen of [1, 2]) {
+      for (const tier of ['c', 'u', 'r', 'l']) {
+        const [row] = packRows([achat({ id: 950 + gen, tier, gen })])
+        expect(DEX[row.species].tier).toBe(tier)
+      }
+    }
+  })
+
+  it('évite ce qu’on possède déjà quand l’inédit est garanti', () => {
+    const deja = new Set(poolOf('r', 1).slice(0, -1))
+    const [row] = packRows([achat({ fresh: true })], { u1: deja })
+    expect(deja.has(row.species)).toBe(false)
+  })
+
+  // Mieux vaut un doublon qu'un pli perdu : tout posséder au palier acheté doit rester jouable.
+  it('rend quand même un exemplaire quand tout le palier est déjà possédé', () => {
+    const tout = new Set(poolOf('r', 1))
+    const [row] = packRows([achat({ fresh: true })], { u1: tout })
+    expect(DEX[row.species].tier).toBe('r')
+  })
+
+  it('reste déterministe pour un même achat', () => {
+    expect(packRows([achat()])).toEqual(packRows([achat()]))
+  })
+})
+
+describe('annonce de fin de saison', () => {
+  it('donne le podium, les gains, puis la saison qui commence', () => {
+    const texte = seasonAnnouncement({
+      season: '2026-S6',
+      podium: [
+        { login: 'alice', points: 310, rank: 1, prize: 1000 },
+        { login: 'bob', points: 200, rank: 2, prize: 500 },
+        { login: 'carol', points: 90, rank: 3, prize: 250 },
+      ],
+      current: '2027-S1',
+      url: 'https://exemple.test/pr-dex/',
+    })
+    expect(texte).toContain('*Saison 1 terminée !*')
+    expect(texte).toContain('🥇 *alice* · 310 pts · +1 000 ₽')
+    expect(texte).toContain('🥉 *carol* · 90 pts · +250 ₽')
+    expect(texte).toContain('La Saison 2 commence : les points repartent de zéro. <https://exemple.test/pr-dex/|Ouvrir pr-dex>')
+  })
+
+  it('donne la même médaille aux ex aequo, avec leur part des primes', () => {
+    const texte = seasonAnnouncement({
+      season: '2026-S6',
+      podium: [
+        { login: 'alice', points: 300, rank: 1, prize: 750 },
+        { login: 'bob', points: 300, rank: 1, prize: 750 },
+        { login: 'carol', points: 90, rank: 3, prize: 250 },
+      ],
+      current: '2027-S1',
+    })
+    expect(texte).toContain('🥇 *alice* · 300 pts · +750 ₽\n🥇 *bob* · 300 pts · +750 ₽\n🥉 *carol* · 90 pts · +250 ₽')
+  })
+
+  it('dit quand personne n’a joué', () => {
+    expect(seasonAnnouncement({ season: '2026-S6', podium: [], current: '2027-S1' })).toContain('Personne n’a marqué')
+  })
+
+  it('poste une annonce par saison close, la plus ancienne d’abord', async () => {
+    const posts = []
+    const fetchFn = async (url) => ({
+      ok: true,
+      json: async () => {
+        if (url.includes('arena_seasons')) return [{ season: '2027-S1' }, { season: '2026-S6' }]
+        if (url.includes('arena_season_podium')) return [{ user_id: 'u1', rank: 1, prize: 1000 }]
+        return [{ user_id: 'u1', login: url.includes('2026-S6') ? 'alice' : 'bob', points: 10 }]
+      },
+    })
+    const n = await announceClosedSeasons('https://sb.test', 'cle', 2, {
+      post: async (channel, thread, text) => posts.push({ channel, text }), channel: 'C1', now: new Date('2027-03-02'),
+    }, fetchFn)
+    expect(n).toBe(2)
+    expect(posts.map((p) => p.text.split('\n')[0])).toEqual([':trophy: *Saison 1 terminée !*', ':trophy: *Saison 2 terminée !*'])
+    expect(posts[0].text).toContain('🥇 *alice* · 10 pts · +1 000 ₽')
+    expect(posts[0].channel).toBe('C1')
+  })
+})
+

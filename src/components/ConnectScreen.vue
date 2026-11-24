@@ -1,8 +1,9 @@
 <script setup>
-import { CircleX } from '@lucide/vue'
+import { ref, watch } from 'vue'
 import PokeCard from './PokeCard.vue'
+import NoticeToast from './NoticeToast.vue'
 
-defineProps({
+const props = defineProps({
   error: { type: String, default: null }, // 'offline' | 'server'
   busy: { type: Boolean, default: false },
 })
@@ -11,6 +12,16 @@ const emit = defineEmits(['connect'])
 // Les quatre paliers, posés en éventail : l'écran d'accueil montre d'emblée ce qu'on va
 // collectionner, et que la matière de la carte dit sa rareté. Espèces fixes, jamais tirées.
 const FAN = [[16, 'c'], [37, 'u'], [4, 'r'], [146, 'l']]
+
+// L'échec de connexion s'annonce en toast. Le refermer ne touche pas à l'erreur, qui appartient à
+// l'application : un nouvel échec, même identique au précédent, le rouvre au prochain essai.
+const ERREURS = {
+  offline: ['Pas de réseau.', 'Impossible de joindre GitHub ou Supabase. Vérifie ta connexion et réessaie.'],
+  server: ['Service indisponible.', 'Ce n’est pas ton compte. Réessaie dans un moment.'],
+}
+const masque = ref(false)
+watch(() => props.error, () => { masque.value = false })
+watch(() => props.busy, (busy) => { if (busy) masque.value = false })
 </script>
 
 <template>
@@ -22,20 +33,6 @@ const FAN = [[16, 'c'], [37, 'u'], [4, 'r'], [146, 'l']]
         Le dex se remplit depuis tes PR mergées sur GitHub et tes retours de monkey-testing sur
         Slack. Connecte-toi une fois : rien d'autre à configurer, ta collection est liée à ton compte.
       </p>
-
-      <div v-if="error" class="banner err">
-        <CircleX class="bico" :size="16" aria-hidden="true" />
-        <div>
-          <template v-if="error === 'offline'">
-            <span class="bt">Pas de réseau.</span>
-            Impossible de joindre GitHub ou Supabase. Vérifie ta connexion et réessaie.
-          </template>
-          <template v-else>
-            <span class="bt">Service indisponible.</span>
-            Ce n'est pas ton compte — réessaie dans un moment.
-          </template>
-        </div>
-      </div>
 
       <div class="front-actions">
         <button class="btn-solid" :disabled="busy" @click="emit('connect', 'github')">
@@ -54,6 +51,14 @@ const FAN = [[16, 'c'], [37, 'u'], [4, 'r'], [146, 'l']]
       <div v-for="([id, tier], i) in FAN" :key="id" class="pkc-stage front-card" :style="{ '--i': i }">
         <PokeCard :species-id="id" :tier="tier" scene="night" />
       </div>
+    </div>
+
+    <div class="toast-pile">
+      <NoticeToast
+        :title="error && !masque ? (ERREURS[error] ?? ERREURS.server)[0] : null"
+        :message="error && !masque ? (ERREURS[error] ?? ERREURS.server)[1] : null"
+        @dismiss="masque = true"
+      />
     </div>
   </div>
 </template>

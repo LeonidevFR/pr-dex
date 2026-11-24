@@ -1,8 +1,11 @@
 import { pathToFileURL } from 'node:url'
-import { drawFrom } from '../shared/draw.js'
+import { drawFrom, drawFromPool } from '../shared/draw.js'
+import { poolOf } from '../shared/species.js'
 import { entryKey } from '../shared/entry.js'
 import * as github from './connectors/github.mjs'
 import * as slack from './connectors/slack.mjs'
+import { slackClient } from './agents/monkey-testing/slack.mjs'
+import { seasonLabel, seasonOf } from '../shared/arena-economy.js'
 
 /**
  * Registre des sources : ajouter un pôle, c'est écrire un connecteur et l'inscrire ici.
@@ -77,6 +80,162 @@ export function toRows(userId, source, events) {
       shiny,
     }
   })
+}
+
+/**
+ * Un pli gagné en arène devient une capture comme une autre, de source `arene`.
+ *
+ * Le tirage n'a délibérément pas été porté en SQL : `catches` garde ainsi son écrivain unique
+ * — cette Action — et il n'existe toujours qu'un seul endroit au monde où une espèce est
+ * attribuée. La fonction de résolution en base se contente d'enregistrer qu'un pli est dû, à
+ * quel palier ; c'est ici qu'il prend un visage.
+ *
+ * Le palier vient du duel, l'espèce et le chromatique se tirent aux cotes de tout le monde.
+ */
+export function packRows(packs, ownedByUser = {}) {
+  return packs.map((p) => {
+    const external = String(p.id)
+    const source = p.duel_id ? 'arene' : 'boutique'
+
+    // L'ensemble dans lequel on pioche, et lui seul, distingue un pli d'un autre : la
+    // génération vient de l'article acheté, et « inédit garanti » retire ce que le joueur
+    // possède déjà. Les cotes, elles, ne bougent jamais — c'est ce qui permet à la boutique de
+    // récompenser sans avantager.
+    let ids = poolOf(p.tier, p.gen ?? 1)
+    if (p.fresh) {
+      const deja = ownedByUser[p.user_id] ?? new Set()
+      const inedits = ids.filter((id) => !deja.has(id))
+      // Tout posséder au palier acheté est possible : mieux vaut un doublon qu'un pli perdu.
+      if (inedits.length) ids = inedits
+    }
+
+    const { species, shiny } = drawFromPool(entryKey(source, external), ids)
+    return {
+      user_id: p.user_id,
+      source,
+      external_id: external,
+      label: p.duel_id ? 'Victoire en arène' : 'Acheté en boutique',
+      ref: p.duel_id ? `duel #${p.duel_id}` : null,
+      url: null,
+      date: String(p.created_at).slice(0, 10),
+      species,
+      shiny,
+    }
+  })
+}
+
+const MEDALS = ['🥇', '🥈', '🥉']
+const formatDollars = (n) => n.toLocaleString('fr-FR').replace(/\u202f/g, ' ')
+
+/** Le message Slack d'une saison close : son podium, puis la saison qui commence. */
+export function seasonAnnouncement({ season, podium, current, url }) {
+  const lignes = podium.length
+    ? podium.map((p) => `${MEDALS[p.rank - 1]} *${p.login}* · ${p.points} pts · +${formatDollars(p.prize)} ₽`)
+    : ['Personne n’a marqué de point cette saison.']
+  return [
+    `:trophy: *${seasonLabel(season)} terminée !*`,
+    '',
+    ...lignes,
+    '',
+    `La ${seasonLabel(current)} commence : les points repartent de zéro.${url ? ` <${url}|Ouvrir pr-dex>` : ''}`,
+  ].join('\n')
+}
+
+/**
+ * Annonce sur Slack les saisons que la clôture vient de fermer, les plus anciennes d'abord.
+ * Le podium et ses primes sont relus dans `arena_season_podium`, le login et les points dans
+ * `arena_leaderboard`. Des ex aequo partagent un rang : il peut y avoir plus de trois lignes.
+ */
+export async function announceClosedSeasons(supabaseUrl, serviceKey, n, { post, channel, url, now = new Date() }, fetchFn = fetch) {
+  const get = async (path) => {
+    const res = await fetchFn(`${supabaseUrl}/rest/v1/${path}`, { headers: sbHeaders(serviceKey) })
+    if (!res.ok) throw new Error(`${path.split('?')[0]} a répondu ${res.status}`)
+    return res.json()
+  }
+  const closes = (await get(`arena_seasons?select=season&order=season.desc&limit=${n}`)).reverse()
+  for (const { season } of closes) {
+    const marches = await get(`arena_season_podium?select=user_id,rank,prize&season=eq.${season}&order=rank`)
+    const board = await get(`arena_leaderboard?select=user_id,login,points&season=eq.${season}&rank=lte.3`)
+    const podium = marches.map((m) => ({ login: 'un joueur', points: 0, ...m, ...board.find((b) => b.user_id === m.user_id) }))
+    await post(channel, undefined, seasonAnnouncement({ season, podium, current: seasonOf(now), url }))
+  }
+  return closes.length
+}
+
+/**
+ * Résout les défis que personne n'a relevés depuis 24 h.
+ *
+ * L'arène n'a pas son propre planificateur : elle se greffe sur celui qui existe déjà. C'est
+ * suffisant — un défi posté en fin de journée expire le lendemain matin, et un retard d'une
+ * heure sur une péremption de vingt-quatre n'a aucune conséquence.
+ */
+export async function resolveExpiredDuels(supabaseUrl, serviceKey, fetchFn = fetch) {
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/rpc/arena_resolve_expired`, {
+    method: 'POST',
+    headers: sbHeaders(serviceKey),
+    body: '{}',
+  })
+  if (!res.ok) throw new Error(`arena_resolve_expired a répondu ${res.status}`)
+  return res.json()
+}
+
+/**
+ * Ferme les saisons révolues : podium consigné, pokédollars versés, badges acquis.
+ *
+ * Comme la péremption des défis, l'arène se greffe sur le planificateur qui existe déjà plutôt
+ * que d'en réclamer un. Une saison finit à minuit le dernier jour du mois et se ferme au
+ * premier passage suivant — quelques heures de décalage sur deux mois de jeu ne changent rien,
+ * et le classement affiché est de toute façon exact avant comme après.
+ *
+ * Sans cet appel, la fonction existait sans que rien ne la déclenche : aucune saison ne se
+ * serait jamais fermée, et aucun badge n'aurait atterri sur une étagère.
+ */
+export async function closeFinishedSeasons(supabaseUrl, serviceKey, fetchFn = fetch) {
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/rpc/arena_close_finished_seasons`, {
+    method: 'POST',
+    headers: sbHeaders(serviceKey),
+    body: '{}',
+  })
+  if (!res.ok) throw new Error(`arena_close_finished_seasons a répondu ${res.status}`)
+  return res.json()
+}
+
+/** Toutes les espèces déjà possédées par un joueur — base des plis « inédit garanti ». */
+export async function fetchAllCatches(supabaseUrl, serviceKey, userId, fetchFn = fetch) {
+  const res = await fetchFn(
+    `${supabaseUrl}/rest/v1/catches?user_id=eq.${userId}&select=species`,
+    { headers: sbHeaders(serviceKey) },
+  )
+  if (!res.ok) throw new Error(`catches (lecture) a répondu ${res.status} pour ${userId}`)
+  return res.json()
+}
+
+/** Les plis gagnés que personne n'a encore matérialisés en captures. */
+export async function fetchOwedPacks(supabaseUrl, serviceKey, fetchFn = fetch) {
+  const res = await fetchFn(
+    `${supabaseUrl}/rest/v1/arena_packs?claimed_at=is.null&select=id,user_id,tier,gen,fresh,duel_id,created_at`,
+    { headers: sbHeaders(serviceKey) },
+  )
+  if (!res.ok) throw new Error(`arena_packs (lecture) a répondu ${res.status}`)
+  return res.json()
+}
+
+/**
+ * Marqué APRÈS l'insertion, jamais avant : si le run meurt entre les deux, le pli est
+ * simplement rematérialisé au passage suivant et la contrainte unique de `catches` absorbe le
+ * doublon. Marquer d'abord ferait disparaître un pli gagné sans que personne ne le voie.
+ */
+export async function markPacksClaimed(supabaseUrl, serviceKey, ids, fetchFn = fetch) {
+  if (!ids.length) return
+  const res = await fetchFn(
+    `${supabaseUrl}/rest/v1/arena_packs?id=in.(${ids.join(',')})`,
+    {
+      method: 'PATCH',
+      headers: { ...sbHeaders(serviceKey), Prefer: 'return=minimal' },
+      body: JSON.stringify({ claimed_at: new Date().toISOString() }),
+    },
+  )
+  if (!res.ok) throw new Error(`arena_packs (écriture) a répondu ${res.status}`)
 }
 
 /**
@@ -205,6 +364,47 @@ export async function main() {
       total += rows.length
     }
     console.log(`${identity.source}/${identity.handle} : ${rows.length} nouvelle(s) capture(s).`)
+  }
+
+  // La péremption AVANT la matérialisation : un défi qui expire à ce passage-ci peut produire
+  // un pli, et on préfère le donner tout de suite plutôt qu'au passage suivant.
+  const expires = await resolveExpiredDuels(supabaseUrl, serviceKey)
+  if (expires) console.log(`arène : ${expires} défi(s) périmé(s) résolu(s) contre l'ordinateur.`)
+
+  // La clôture avant la matérialisation elle aussi : le podium verse des pokédollars, autant
+  // qu'ils soient en caisse quand le joueur revient voir.
+  const closes = await closeFinishedSeasons(supabaseUrl, serviceKey)
+  if (closes) console.log(`arène : ${closes} saison(s) close(s), podium consigné.`)
+  // L'annonce ne doit jamais faire échouer la collecte : le podium est déjà consigné.
+  if (closes && process.env.SLACK_BOT_TOKEN && process.env.PRDEX_SLACK_CHANNEL_ID) {
+    try {
+      await announceClosedSeasons(supabaseUrl, serviceKey, closes, {
+        post: slackClient(process.env.SLACK_BOT_TOKEN).post,
+        channel: process.env.PRDEX_SLACK_CHANNEL_ID,
+        url: process.env.PRDEX_URL,
+      })
+    } catch (e) {
+      console.error(`arène : annonce Slack de la clôture impossible (${e.message}).`)
+    }
+  }
+
+  // Les plis d'arène après les captures de travail, et dans le même run : l'arène n'a pas
+  // besoin de son propre déclencheur, elle profite de celui qui existe déjà — y compris du
+  // bouton de synchronisation, qui devient donc aussi le bouton « montre-moi ce que j'ai
+  // gagné ».
+  const packs = await fetchOwedPacks(supabaseUrl, serviceKey)
+  if (packs.length) {
+    // Ce que chaque joueur possède déjà, pour les plis « inédit garanti ». Lu une fois par
+    // joueur concerné plutôt qu'une fois par pli.
+    const owned = {}
+    for (const uid of [...new Set(packs.filter((p) => p.fresh).map((p) => p.user_id))]) {
+      const rows = await fetchAllCatches(supabaseUrl, serviceKey, uid)
+      owned[uid] = new Set(rows.map((c) => c.species))
+    }
+    await insertCatches(supabaseUrl, serviceKey, packRows(packs, owned))
+    await markPacksClaimed(supabaseUrl, serviceKey, packs.map((p) => p.id))
+    total += packs.length
+    console.log(`arène : ${packs.length} pli(s) gagné(s) matérialisé(s).`)
   }
 
   console.log(`${total} nouvelle(s) capture(s) au total sur ${identities.length} identité(s).`)
