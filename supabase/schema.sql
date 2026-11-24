@@ -1813,6 +1813,45 @@ CREATE TABLE IF NOT EXISTS "public"."species_stats" (
 ALTER TABLE "public"."species_stats" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."team_cards" (
+    "id" bigint NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "key" "text" NOT NULL,
+    "member" "text" NOT NULL,
+    "date" "date" NOT NULL,
+    "label" "text" NOT NULL,
+    "ref" "text",
+    "opened_at" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."team_cards" OWNER TO "postgres";
+
+
+ALTER TABLE "public"."team_cards" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME "public"."team_cards_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."team_members" (
+    "id" "text" NOT NULL,
+    "name" "text" NOT NULL,
+    "blurb" "text" NOT NULL,
+    "photo" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."team_members" OWNER TO "postgres";
+
+
 ALTER TABLE ONLY "public"."achievements"
     ADD CONSTRAINT "achievements_pkey" PRIMARY KEY ("user_id", "code");
 
@@ -1913,6 +1952,21 @@ ALTER TABLE ONLY "public"."state"
 
 
 
+ALTER TABLE ONLY "public"."team_cards"
+    ADD CONSTRAINT "team_cards_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."team_cards"
+    ADD CONSTRAINT "team_cards_user_id_key_key" UNIQUE ("user_id", "key");
+
+
+
+ALTER TABLE ONLY "public"."team_members"
+    ADD CONSTRAINT "team_members_pkey" PRIMARY KEY ("id");
+
+
+
 CREATE INDEX "arena_duels_challenger_idx" ON "public"."arena_duels" USING "btree" ("challenger_id");
 
 
@@ -2010,6 +2064,16 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."state"
     ADD CONSTRAINT "state_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."team_cards"
+    ADD CONSTRAINT "team_cards_member_fkey" FOREIGN KEY ("member") REFERENCES "public"."team_members"("id");
+
+
+
+ALTER TABLE ONLY "public"."team_cards"
+    ADD CONSTRAINT "team_cards_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -2141,6 +2205,24 @@ CREATE POLICY "state_select_own" ON "public"."state" FOR SELECT USING (("auth"."
 
 
 CREATE POLICY "state_update_own" ON "public"."state" FOR UPDATE USING (("auth"."uid"() = "user_id"));
+
+
+
+ALTER TABLE "public"."team_cards" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "team_cards_select_own" ON "public"."team_cards" FOR SELECT USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "team_cards_update_own" ON "public"."team_cards" FOR UPDATE USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
+
+
+
+ALTER TABLE "public"."team_members" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "team_members_select_authenticated" ON "public"."team_members" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -2502,6 +2584,26 @@ GRANT SELECT ON TABLE "public"."species_stats" TO "authenticated";
 
 
 
+GRANT ALL ON TABLE "public"."team_cards" TO "service_role";
+GRANT SELECT ON TABLE "public"."team_cards" TO "authenticated";
+
+
+
+GRANT UPDATE("opened_at") ON TABLE "public"."team_cards" TO "authenticated";
+
+
+
+GRANT ALL ON SEQUENCE "public"."team_cards_id_seq" TO "anon";
+GRANT ALL ON SEQUENCE "public"."team_cards_id_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "public"."team_cards_id_seq" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."team_members" TO "service_role";
+GRANT SELECT ON TABLE "public"."team_members" TO "authenticated";
+
+
+
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
@@ -2533,58 +2635,3 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 
 
 
--- Édition Noël (cartes équipe) : voir supabase/migrations/2026-11-23-cartes-equipe-noel.sql.
-
--- team_members : l'équipe telle que les cartes de Noël la montrent. Remplie à la main
--- (dashboard), jamais depuis le jeu. `photo` est un chemin dans le bucket privé `equipe` :
--- le repo du front est public, ni les visages ni les descriptions n'y entrent.
-create table public.team_members (
-  id text primary key,
-  name text not null,
-  blurb text not null,
-  photo text,
-  created_at timestamptz not null default now()
-);
-
-alter table public.team_members enable row level security;
-
-create policy "team_members_select_authenticated" on public.team_members
-  for select to authenticated using (true);
-
-revoke all on public.team_members from anon, authenticated;
-grant select on public.team_members to authenticated;
-
--- team_cards : les cartes équipe gagnées. Hors de `catches` à dessein : l'arène, la revente,
--- le classement, les bonbons et les succès lisent `catches`, et ces cartes sont décoratives.
--- Écrite par `catch.yml` (service_role) ; le joueur ne peut que marquer la sienne ouverte.
-create table public.team_cards (
-  id bigint generated always as identity primary key,
-  user_id uuid not null references auth.users (id) on delete cascade,
-  key text not null,
-  member text not null references public.team_members (id),
-  date date not null,
-  label text not null,
-  ref text,
-  opened_at timestamptz,
-  created_at timestamptz not null default now(),
-  unique (user_id, key)
-);
-
-alter table public.team_cards enable row level security;
-
-create policy "team_cards_select_own" on public.team_cards
-  for select using (auth.uid() = user_id);
-
-create policy "team_cards_update_own" on public.team_cards
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-revoke all on public.team_cards from anon, authenticated;
-grant select on public.team_cards to authenticated;
-grant update (opened_at) on public.team_cards to authenticated;
-
--- Les photos : bucket privé, lisible par un joueur connecté (URL signée côté front).
-insert into storage.buckets (id, name, public) values ('equipe', 'equipe', false)
-  on conflict (id) do nothing;
-
-create policy "equipe_select_authenticated" on storage.objects
-  for select to authenticated using (bucket_id = 'equipe');
