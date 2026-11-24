@@ -119,6 +119,14 @@ describe('ArenaPanel', () => {
     expect(w.text()).toContain('Dracaufeu est sur la table')
   })
 
+  it('mène à Scores par un lien', async () => {
+    const w = monter()
+    const lien = w.findAll('a').find((a) => a.text() === 'Scores')
+    expect(lien.attributes('href')).toMatch(/classements$/)
+    await lien.trigger('click')
+    expect(w.emitted('navigate')).toEqual([['classements']])
+  })
+
   it('dit qu’un défi sans preneur finira contre l’ordinateur', () => {
     const w = monter()
     expect(w.text()).toContain('l’ordinateur le relèvera demain')
@@ -129,10 +137,11 @@ describe('ArenaPanel', () => {
   // n'a pas conçu le mode.
   it('explique les règles à la demande, sans les imposer', async () => {
     const w = monter()
-    expect(w.text()).not.toContain('Comme au poker')
+    expect(w.text()).not.toContain('le moins rare des deux Pokémon')
     await w.findAll('.btn-ghost').find((b) => b.text().includes('Comment ça marche')).trigger('click')
-    expect(w.text()).toContain('Comme au poker')
+    expect(w.text()).toContain('le moins rare des deux Pokémon')
     expect(w.text()).toContain('une chance sur vingt')
+    expect(w.text()).toContain('Joueur ou ordinateur')
   })
 
   // À cinquante exemplaires ouverts, une liste à plat devient illisible : une vignette par

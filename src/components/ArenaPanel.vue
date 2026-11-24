@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR } from '../../shared/species.js'
 import { REWARD } from '../../shared/arena-economy.js'
 import { spriteUrl } from '../lib/sprites.js'
+import { routePath } from '../composables/useRoute.js'
 
 const props = defineProps({
   credits: { type: Number, required: true },
@@ -19,7 +20,7 @@ const props = defineProps({
   busy: { type: Boolean, default: false },
   preselect: { type: String, default: null },
 })
-const emit = defineEmits(['engage', 'accept'])
+const emit = defineEmits(['engage', 'accept', 'navigate'])
 
 const chosen = ref(null)
 /** Le défi qu'on a choisi de relever : on choisit ensuite le Pokémon qu'on lui oppose. */
@@ -182,7 +183,18 @@ function take(duelId) {
       <b>Engager</b>
       <span class="muted">
         Tu mets un Pokémon en jeu sans savoir ce que l’autre engagera : vous découvrez vos
-        deux choix en même temps. Sans ça, le second ajusterait toujours sa mise pour gagner.
+        deux choix en même temps.
+      </span>
+    </div>
+    <div class="arena-rule">
+      <b>Joueur ou ordinateur</b>
+      <span class="muted">
+        Contre un collègue, tu postes un défi ou tu relèves le sien. Le perdant perd son Pokémon,
+        le gagnant prend tous les gains. Un défi que personne ne relève en vingt-quatre heures
+        est joué contre l’ordinateur. Contre l’ordinateur, le duel se joue tout de suite et ne
+        risque rien : personne ne perd de Pokémon, mais tu ne gagnes ni niveau, ni point de
+        saison, ni carte, et les pokédollars sont au cinquième du tarif. Les deux coûtent un
+        engagement.
       </span>
     </div>
     <!--
@@ -216,11 +228,9 @@ function take(duelId) {
     <div class="arena-rule">
       <b>Combien</b>
       <span class="muted">
-        Tu ne peux pas gagner plus que ce que l’adversaire a risqué. S’il engage un commun
-        et toi un rare, le duel vaut un commun pour vous deux. Comme au poker, on ne remporte
-        que la mise que l’autre a couverte. Battre un rare ne vaut {{ REWARD.r.dollars }} ₽ que
-        si vous en avez engagé un chacun. Un légendaire des deux côtés en vaut
-        {{ REWARD.l.dollars }}.
+        Le duel rapporte ce que rapporte le moins rare des deux Pokémon. Un rare contre un
+        commun rapporte comme un commun. Pour gagner {{ REWARD.r.dollars }} ₽, il faut un rare de
+        chaque côté ; un légendaire de chaque côté en rapporte {{ REWARD.l.dollars }}.
       </span>
     </div>
     <div class="arena-rule">
@@ -363,7 +373,8 @@ function take(duelId) {
   -->
   <div class="sect">
     <p class="muted">
-      Le classement, le badge en jeu et ce qui reste à jouer sont sur la page <b>Scores</b>.
+      Le classement, le badge en jeu et ce qui reste à jouer sont sur la page
+      <a :href="routePath({ name: 'classements' })" @click.prevent="emit('navigate', 'classements')">Scores</a>.
     </p>
   </div>
 

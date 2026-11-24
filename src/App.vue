@@ -796,7 +796,7 @@ useKeyboardNav({
       :my-open="arena.myOpen.value" :level-of="arena.levelOf"
       :form-of-key="arena.formOfKey" :busy="arenaBusy"
       :preselect="arenaPreselect"
-      @engage="onEngage" @accept="onAccept"
+      @engage="onEngage" @accept="onAccept" @navigate="(v) => router.go(v)"
     />
 
     <ShopPanel

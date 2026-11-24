@@ -121,6 +121,16 @@ const niveauxGagnes = computed(() => levelGain(gagnant.value.power, perdant.valu
 const auPlafond = computed(() => gagnant.value.level >= LEVEL_MAX)
 
 const tierOf = (species) => DEX[species]?.tier ?? 'c'
+
+/** Le gain suit le Pokémon le moins rare des deux : le dire avec les deux paliers engagés. */
+const enjeuExplique = computed(() => {
+  const nom = (t) => TIER_LABEL[t].toLowerCase()
+  const a = tierOf(mine.value.species)
+  const b = tierOf(theirs.value.species)
+  if (a === b) return `Vous avez engagé chacun un ${nom(a)} : le duel rapporte ce que rapporte un ${nom(a)}.`
+  return `Tu as engagé un ${nom(a)}, ton adversaire un ${nom(b)}. Le duel rapporte ce que rapporte `
+    + `le moins rare des deux : un ${nom(props.duel.stake_tier)}.`
+})
 const nameOf = (species) => DEX[species]?.name ?? '—'
 const formName = (i) => FORMS[i]?.name ?? '—'
 
@@ -309,9 +319,7 @@ const breakdown = (s) => [
             </span>
           </div>
           <p class="muted">
-            Vous avez engagé un {{ TIER_LABEL[tierOf(mine.species)].toLowerCase() }} et un
-            {{ TIER_LABEL[tierOf(theirs.species)].toLowerCase() }} : le duel vaut donc le plus
-            modeste des deux. Comme au poker, on ne remporte que la mise que l’autre a couverte.
+            {{ enjeuExplique }}
           </p>
         </div>
 

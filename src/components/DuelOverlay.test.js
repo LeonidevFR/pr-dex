@@ -101,8 +101,11 @@ describe('DuelOverlay', () => {
   it('nomme l’enjeu et l’explique par les deux paliers réellement engagés', async () => {
     const w = await revele(monter())
     expect(w.text()).toContain('Enjeu')
-    expect(w.text()).toContain('comme au poker'.replace('c', 'C'))
-    expect(w.text()).toContain('le plus modeste des deux')
+    expect(w.text()).toContain('Vous avez engagé chacun un rare')
+    const inegal = await revele(monter({ opponent_species: 19, stake_tier: 'c' }))
+    expect(inegal.text()).toContain('ton adversaire un commun')
+    expect(inegal.text()).toContain('le moins rare des deux : un commun')
+    expect(w.text()).not.toContain('poker')
   })
 
   /**
