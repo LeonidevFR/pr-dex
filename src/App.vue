@@ -267,6 +267,9 @@ async function annoncerLaSaison() {
   let board = []
   try { board = (await client.readSeasonLeaderboard(closes[0].season)) ?? [] } catch { /* noms par défaut */ }
   lastSeason.value = { ...closes[0], board }
+  // Pas de récap en démo : il s'ouvrait à chaque chargement, avant même qu'on ait vu le jeu.
+  // Le bandeau de Scores suffit à montrer qu'une saison vient de se clore.
+  if (isDemo) return
   if (!(collection.state.value.seenSeasons ?? []).includes(closes[0].season)) seasonRecap.value = lastSeason.value
 }
 function closeSeasonRecap() {

@@ -44,36 +44,21 @@ afterEach(() => {
  * `/collection`, alors que le rail surmonte tous les lieux. Sonder la planche revenait à exiger d'être
  * arrivé sur un écran précis pour considérer l'application montée.
  */
-async function mountApp({ garderSaison = false } = {}) {
+async function mountApp() {
   wrapper = mount(App, { attachTo: document.body })
   for (let i = 0; i < 50 && wrapper.findAll('.rail-tab').length === 0; i++) {
     await new Promise((r) => setTimeout(r, 5))
     await flushPromises()
   }
   expect(wrapper.findAll('.rail-tab').length).toBeGreaterThan(0)
-  // La démo a des saisons closes : leur récap s'ouvre au chargement, comme à la première
-  // connexion après une clôture. On le referme pour les tests qui ne portent pas sur lui.
-  for (let i = 0; i < 50 && !wrapper.find('.season-recap').exists(); i++) {
-    await new Promise((r) => setTimeout(r, 5))
-    await flushPromises()
-  }
-  if (!garderSaison && wrapper.find('.season-recap').exists()) {
-    await wrapper.find('.season-recap-go').trigger('click')
-    await flushPromises()
-  }
   return wrapper
 }
 
 describe('fin de saison', () => {
-  it('annonce la dernière saison close, puis se referme', async () => {
-    const w = await mountApp({ garderSaison: true })
-    const recap = w.find('.season-recap')
-    expect(recap.find('.season-recap-title').text()).toBe('2026-S5 terminée')
-    expect(recap.findAll('.season-podium li')).toHaveLength(3)
-    expect(recap.find('.season-podium li.moi').text()).toContain('1er · +1 000 ₽')
-    expect(recap.find('.season-recap-moi').text()).toContain('Tu finis 1er')
-    await recap.find('.season-recap-go').trigger('click')
-    await flushPromises()
+  // La démo a des saisons closes, mais n'ouvre pas leur récap : il s'imposait à chaque chargement.
+  it('n’ouvre pas le récap de saison en démo', async () => {
+    const w = await mountApp()
+    for (let i = 0; i < 20; i++) { await new Promise((r) => setTimeout(r, 5)); await flushPromises() }
     expect(w.find('.season-recap').exists()).toBe(false)
     w.unmount()
     wrapper = null
