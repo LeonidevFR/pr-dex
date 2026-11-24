@@ -374,7 +374,7 @@
   .view-title{font-family:var(--f-title);font-weight:300;font-size:44px;letter-spacing:-.02em;line-height:1;color:var(--fg-title);margin-top:10px}
   .view-title i{font-weight:600;color:var(--gold)}
   .view-totals{display:flex;gap:40px;margin-left:auto}
-  .view-num{font-family:var(--f-title);font-weight:300;font-size:30px;color:var(--fg-title);margin-top:6px}
+  .view-num{white-space:nowrap;font-family:var(--f-title);font-weight:300;font-size:30px;color:var(--fg-title);margin-top:6px}
   .view-num small{font-family:var(--f-ui);font-size:13px;color:var(--fg-3)}
   .view-num.gold{color:var(--gold)}
   .board-loading,.board-empty,.board-error{padding:48px 0;text-align:center;color:var(--fg-2)}
@@ -507,6 +507,32 @@
   .board-table tr.me .board-login{color:var(--gold)}
   .board-table tr.me .board-login::after{content:" · toi";font-weight:400;color:var(--fg-3)}
   .board-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:2px}
+  /* Tri : l'en-tête est un bouton qui garde l'allure de l'en-tête ; la flèche dit le sens. */
+  .board-sort{font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .board-sort:hover,.board-sort.sorted{color:var(--fg)}
+  .board-sort.sorted::after{content:"↓";font-size:11px;color:var(--gold)}
+  .board-sort.sorted.asc::after{content:"↑"}
+  .board-rank .board-sort.sorted::after{content:none}
+  .board-sort:focus-visible,.board-pick-x:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .board-toolbar{margin-bottom:24px}
+  .board-owners{cursor:pointer}
+  .board-owners:focus-within{outline:2px solid var(--gold);outline-offset:2px}
+  .board-pick-in{display:inline-flex;align-items:center;gap:4px}
+  .board-pick .board-sort img{width:28px;height:28px;object-fit:contain;margin:-8px 0}
+  .board-pick-x{background:none;border:0;color:var(--fg-3);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px}
+  /* À 390 px, le sprite de l'en-tête poussait le tableau hors de l'écran : le nom suffit. */
+  @media (max-width:640px){.board-pick .board-sort img{display:none}}
+  .board-pick-x:hover{color:var(--gold)}
+  .board-table td.board-pick{color:var(--gold)}
+  .board-none td{text-align:center;color:var(--fg-2);padding:32px 0}
+  .species-picker{position:relative}
+  .species-picker-list{position:absolute;z-index:20;top:calc(100% + 6px);left:0;min-width:260px;list-style:none;margin:0;padding:6px;
+    background:var(--panel-bg);border:1px solid var(--line-strong);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+  .species-picker-item{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--fg)}
+  .species-picker-item.active{background:var(--surface-hi)}
+  .species-picker-item img{width:32px;height:32px;object-fit:contain}
+  .species-picker-no{font-size:11px;color:var(--fg-3)}
+  .species-picker-item .board-dot{margin-right:0}
   .board-detail{display:none}
   .board-detail td{text-align:left;padding-top:4px;color:var(--fg-3);font-size:12px;white-space:normal}
   /* Avec la barre latérale, le tableau complet ne tient plus sous 1 180 px : les colonnes
