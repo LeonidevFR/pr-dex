@@ -116,4 +116,88 @@ describe('TeamView', () => {
     await w.findAll('tbody tr')[0].trigger('click')
     expect(w.findAll('.board-detail')).toHaveLength(1)
   })
+
+  describe('tri et espèce', () => {
+    const SPECIES_ROWS = [
+      { login: 'lea', avatar_url: null, is_me: false, catches: [c('a', 1), c('b', 4), c('c', 7)], evolutions: [] },
+      { login: 'max', avatar_url: null, is_me: false, catches: [c('d', 133), c('e', 133), c('f', 133)], evolutions: [{ species: 134, from: 133, date: '2026-09-02', fromKey: 'github:d' }] },
+      { login: 'moi', avatar_url: null, is_me: true, catches: [c('g', 133)], evolutions: [] },
+    ]
+    const logins = (w) => w.findAll('tbody tr:not(.board-detail):not(.board-none)').map((r) => r.find('.board-login').text())
+    const ranks = (w) => w.findAll('tbody tr:not(.board-detail):not(.board-none)').map((r) => r.find('.board-rank').text())
+    const pick = async (w, text) => {
+      const input = w.find('.species-picker input')
+      await input.setValue(text)
+      await input.trigger('keydown', { key: 'Enter' })
+    }
+
+    it('trie au clic sur un en-tête, puis inverse au second clic', async () => {
+      const w = mountView(vi.fn().mockResolvedValue(SPECIES_ROWS))
+      await flushPromises()
+      expect(logins(w)).toEqual(['lea', 'max', 'moi'])
+      const cards = w.findAll('thead th').find((th) => th.text() === 'Cartes')
+      await cards.find('button').trigger('click')
+      expect(logins(w)).toEqual(['lea', 'max', 'moi']) // 3, 3, 1 : égalité départagée par le rang
+      expect(cards.attributes('aria-sort')).toBe('descending')
+      await cards.find('button').trigger('click')
+      expect(logins(w)).toEqual(['moi', 'lea', 'max'])
+      expect(ranks(w)).toEqual(['3', '1', '2'])
+    })
+
+    it('choisir une espèce ajoute sa colonne d’exemplaires en main et trie dessus', async () => {
+      const w = mountView(vi.fn().mockResolvedValue(SPECIES_ROWS))
+      await flushPromises()
+      await pick(w, 'evoli')
+      expect(w.find('th[data-col="pick"]').text()).toContain('Évoli')
+      expect(logins(w)).toEqual(['max', 'moi', 'lea'])
+      // max a 3 Évoli, dont un a évolué : 2 en main.
+      expect(w.findAll('td[data-col="pick"]').map((td) => td.text())).toEqual(['2', '1', '0'])
+      expect(ranks(w)).toEqual(['2', '3', '1'])
+    })
+
+    it('trouve une espèce par son numéro', async () => {
+      const w = mountView(vi.fn().mockResolvedValue(SPECIES_ROWS))
+      await flushPromises()
+      await pick(w, '#133')
+      expect(w.find('th[data-col="pick"]').text()).toContain('Évoli')
+    })
+
+    it('« Seulement ceux qui en ont » masque les joueurs à zéro', async () => {
+      const w = mountView(vi.fn().mockResolvedValue(SPECIES_ROWS))
+      await flushPromises()
+      await pick(w, 'evoli')
+      await w.find('.board-owners input').setValue(true)
+      expect(logins(w)).toEqual(['max', 'moi'])
+      await pick(w, 'mewtwo')
+      expect(w.find('.board-none').text()).toContain('Personne n’a de Mewtwo en main.'.replace('’', "'"))
+    })
+
+    it('propose d’abord les noms qui commencent par la saisie', async () => {
+      const w = mountView(vi.fn().mockResolvedValue(SPECIES_ROWS))
+      await flushPromises()
+      await w.find('.species-picker input').setValue('ev')
+      expect(w.findAll('.species-picker-item')[0].text()).toContain('Évoli')
+    })
+
+    it('une espèce choisie fait passer Shiny dans le détail déplié', async () => {
+      const w = mountView(vi.fn().mockResolvedValue(SPECIES_ROWS))
+      await flushPromises()
+      const shinyTh = () => w.findAll('thead th').find((th) => th.text() === 'Shiny')
+      expect(shinyTh().classes()).not.toContain('secondary')
+      await pick(w, 'evoli')
+      expect(shinyTh().classes()).toContain('secondary')
+      await w.findAll('tbody tr')[0].trigger('click')
+      expect(w.find('.board-detail').text()).toContain('Shiny')
+    })
+
+    it('retirer l’espèce rend le classement et ses colonnes', async () => {
+      const w = mountView(vi.fn().mockResolvedValue(SPECIES_ROWS))
+      await flushPromises()
+      await pick(w, 'evoli')
+      await w.find('.board-pick-x').trigger('click')
+      expect(w.find('[data-col="pick"]').exists()).toBe(false)
+      expect(logins(w)).toEqual(['lea', 'max', 'moi'])
+      expect(w.find('.board-owners').exists()).toBe(false)
+    })
+  })
 })

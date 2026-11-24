@@ -58,7 +58,31 @@ export function playerStats(catches, evolutions, today) {
     evolved: evos.length,
     tiers,
     speciesIds: [...owned],
+    // Les exemplaires en main par espèce, ceux que la grille du joueur affiche : une carte
+    // consommée par une évolution n'y est plus. Seules les espèces à au moins un exemplaire.
+    copiesBySpecies: Object.fromEntries(
+      [...owned].map((id) => [id, dex.copyCount(id)]).filter(([, n]) => n > 0),
+    ),
   }
+}
+
+/** Les exemplaires en main d'une espèce chez un joueur classé, 0 s'il n'en a aucun. */
+export const speciesCopies = (player, id) => player.copiesBySpecies[id] ?? 0
+
+/**
+ * Réordonne un classement déjà rangé sur une valeur choisie (`value(p)`), sans toucher au
+ * rang : le #1 reste celui du classement général, quel que soit le tri. À égalité, l'ordre
+ * du classement. Une valeur `null` (des succès pas encore comptés) passe en dernier dans les
+ * deux sens : « — » n'est ni plus grand ni plus petit qu'un nombre.
+ */
+export function sortPlayers(players, value, dir = 'desc') {
+  const sign = dir === 'asc' ? 1 : -1
+  return [...players].sort((a, b) => {
+    const va = value(a)
+    const vb = value(b)
+    if (va == null || vb == null) return (va == null) - (vb == null) || a.rank - b.rank
+    return sign * (va - vb) || a.rank - b.rank
+  })
 }
 
 // Les shiny se départagent par espèce, comme les légendaires : le joueur lit la colonne
