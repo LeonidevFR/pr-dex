@@ -57,10 +57,21 @@ grant select on public.team_cards to authenticated;
 grant update (opened_at) on public.team_cards to authenticated;
 
 -- Les photos : bucket privé, lisible par un joueur connecté (URL signée côté front).
-insert into storage.buckets (id, name, public) values ('equipe', 'equipe', false)
-  on conflict (id) do nothing;
+-- Sauté quand Storage est absent : la base locale le coupe (supabase/config.toml), la
+-- production l'a toujours.
+do $$
+begin
+  if to_regclass('storage.buckets') is null then
+    raise notice 'Storage absent : bucket equipe non créé.';
+    return;
+  end if;
 
-create policy "equipe_select_authenticated" on storage.objects
-  for select to authenticated using (bucket_id = 'equipe');
+  insert into storage.buckets (id, name, public) values ('equipe', 'equipe', false)
+    on conflict (id) do nothing;
+
+  create policy "equipe_select_authenticated" on storage.objects
+    for select to authenticated using (bucket_id = 'equipe');
+end
+$$;
 
 commit;
