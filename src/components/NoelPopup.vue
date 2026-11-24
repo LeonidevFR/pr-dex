@@ -14,7 +14,7 @@ onMounted(() => openEl.value?.focus())
       <div class="noel-gift" aria-hidden="true"><Gift :size="40" :stroke-width="1.4" /></div>
       <div class="eyebrow ach-recap-kicker">Édition Noël</div>
       <h2 class="ach-recap-title">Joyeux Noël !</h2>
-      <p class="noel-text">Un booster spécial t’attend sous le sapin. Dedans : quelqu’un de l’équipe.</p>
+      <p class="noel-text">Un booster spécial t’attend sous le sapin.</p>
       <div class="noel-actions">
         <button ref="openEl" class="ach-recap-close" @click="emit('open')">Ouvrir le booster</button>
         <button class="filter-reset" @click="emit('later')">Plus tard</button>
