@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ref } from 'vue'
+import { ref, computed, effectScope } from 'vue'
+import { formOf } from '../../shared/battle.js'
 import { useArena } from './useArena.js'
 
 const exemplaire = (key, over = {}) => ({ key, species: 6, shiny: false, ...over })
@@ -19,6 +20,27 @@ const fauxClient = (over = {}) => ({
 })
 
 describe('useArena', () => {
+  // Un onglet laissé ouvert passé minuit à Paris doit montrer la forme du nouveau jour, celle
+  // que le serveur appliquera, sans attendre un autre rendu.
+  it('passe à la forme du jour suivant à minuit, heure de Paris', () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-08-14T21:59:30Z'))  // 23 h 59 à Paris
+      const scope = effectScope()
+      const forme = scope.run(() => {
+        const a = useArena(fauxClient(), ref([]))
+        return computed(() => a.formOfKey('github:c').slug)
+      })
+      expect(forme.value).toBe(formOf('github:c', '2026-08-14').slug)
+      vi.advanceTimersByTime(60_000)                     // 0 h 00 à Paris
+      expect(forme.value).toBe(formOf('github:c', '2026-08-15').slug)
+      expect(forme.value).not.toBe(formOf('github:c', '2026-08-14').slug)
+      scope.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('charge crédits, portefeuille et défis en une fois', async () => {
     const client = fauxClient({
       readOpenChallenges: async () => [{ id: 1, login: 'bob-dev' }],

@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, getCurrentScope, onScopeDispose } from 'vue'
 import { formOf, parisDay } from '../../shared/battle.js'
 import { seasonOf } from '../../shared/arena-economy.js'
 
@@ -20,6 +20,7 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
   const shop = ref([])
   const leaderboard = ref([])
   const seasons = ref([])
+  const jour = ref(parisDay())
   /**
    * La saison en cours. Forçable, pour la démonstration : elle montre l'arène telle qu'elle
    * sera, et une saison antérieure au lancement n'a pas de numéro — l'écran y afficherait un
@@ -82,7 +83,27 @@ export function useArena(client, claimed, consumed = computed(() => new Set()), 
    * la date de PARIS, celle que le serveur emploie : prendre celle du navigateur montrerait à
    * qui joue tard une forme que le duel n'appliquerait pas.
    */
-  const formOfKey = (key) => formOf(key, parisDay())
+  const formOfKey = (key) => formOf(key, jour.value)
+
+  /**
+   * Le jour de Paris, tenu à jour pendant que la page reste ouverte. Lu à chaque appel mais sans
+   * dépendance réactive, il ne changeait qu'au rendu suivant : un onglet laissé ouvert passé
+   * minuit montrait la forme de la veille, et l'on engageait sur une forme que le serveur
+   * n'appliquerait plus. Vérifié chaque minute et au retour sur l'onglet, qu'un navigateur peut
+   * avoir mis en veille.
+   */
+  function relireLeJour() {
+    const aujourdhui = parisDay()
+    if (aujourdhui !== jour.value) jour.value = aujourdhui
+  }
+  const minuteur = setInterval(relireLeJour, 60_000)
+  globalThis.document?.addEventListener('visibilitychange', relireLeJour)
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      clearInterval(minuteur)
+      globalThis.document?.removeEventListener('visibilitychange', relireLeJour)
+    })
+  }
 
   async function load() {
     loading.value = true
