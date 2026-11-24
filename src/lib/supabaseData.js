@@ -204,6 +204,50 @@ export function createSupabaseClient(userId) {
       .limit(limite))
 
   /**
+   * L'historique de ses duels joués, une page à la fois, le plus récent d'abord.
+   *
+   * Les filtres s'appliquent côté base et non sur la page reçue : filtrer vingt lignes déjà
+   * lues donnerait trois défaites, puis un « Voir plus » qui en apporterait deux autres, et
+   * l'on croirait la liste finie. On lit une ligne de plus que la page pour savoir s'il en
+   * reste, sans compter toute la table.
+   *
+   * Le nom de l'adversaire vient d'`arena_identities` : la ligne du duel ne porte que son
+   * identifiant. Un duel contre l'ordinateur n'a pas d'adversaire, `winner_id` nul y veut dire
+   * que l'ordinateur a gagné.
+   *
+   * @param {{ userId: string, offset?: number, limit?: number,
+   *   issue?: 'tous'|'gagnes'|'perdus', adversaire?: 'tous'|'joueur'|'ordinateur' }} options
+   * @returns {Promise<{ duels: Array, plus: boolean }>}
+   */
+  async function readDuelHistory({ userId, offset = 0, limit = 20, issue = 'tous', adversaire = 'tous' }) {
+    const lignes = await query(() => {
+      let q = supabase.from('arena_duels').select('*').neq('status', 'open')
+      if (issue === 'gagnes') q = q.eq('winner_id', userId)
+      if (issue === 'perdus') q = q.or(`winner_id.is.null,winner_id.neq.${userId}`)
+      if (adversaire === 'joueur') q = q.eq('status', 'resolved')
+      if (adversaire === 'ordinateur') q = q.eq('status', 'computer')
+      return q.order('resolved_at', { ascending: false }).order('id', { ascending: false })
+        .range(offset, offset + limit)
+    }) ?? []
+    const duels = lignes.slice(0, limit)
+    const autres = [...new Set(duels
+      .map((d) => (d.challenger_id === userId ? d.opponent_id : d.challenger_id))
+      .filter(Boolean))]
+    let noms = new Map()
+    if (autres.length) {
+      const ids = await query(() => supabase.from('arena_identities').select('user_id, login').in('user_id', autres))
+      noms = new Map((ids ?? []).map((i) => [i.user_id, i.login]))
+    }
+    return {
+      duels: duels.map((d) => {
+        const autre = d.challenger_id === userId ? d.opponent_id : d.challenger_id
+        return { ...d, adversaire_login: autre ? noms.get(autre) ?? null : null }
+      }),
+      plus: lignes.length > limit,
+    }
+  }
+
+  /**
    * Le dossier public d'un joueur : le sien, ou celui d'un collègue.
    *
    * La vue ne porte QUE ce que la spec § 5 autorise à publier — espèces, victoires, défaites.
@@ -291,7 +335,7 @@ export function createSupabaseClient(userId) {
     checkAccess, readCatches, readState, writeState, triggerCatch, catchStatus, readLeaderboard,
     readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readSeasonLeaderboard,
     readSeasons, engage, accept,
-    readPublicProfile, readMyProfile, readDestroyed, readMyDuels, sell,
+    readPublicProfile, readMyProfile, readDestroyed, readMyDuels, readDuelHistory, sell,
     readEvolutions, evolve,
     readAchievements, insertAchievements, markAnnounced, readAchievementCounts,
   }

@@ -19,6 +19,7 @@ import ConnectScreen from './components/ConnectScreen.vue'
 import SlackInvite from './components/SlackInvite.vue'
 import SyncToast from './components/SyncToast.vue'
 import NoticeToast from './components/NoticeToast.vue'
+import DuelHistory from './components/DuelHistory.vue'
 import { useCollection } from './composables/useCollection.js'
 import { useArena } from './composables/useArena.js'
 import { useAuth } from './composables/useAuth.js'
@@ -789,7 +790,12 @@ useKeyboardNav({
       :form-of-key="arena.formOfKey" :busy="arenaBusy"
       :preselect="arenaPreselect"
       @engage="onEngage" @accept="onAccept" @navigate="(v) => router.go(v)"
-    />
+    >
+      <DuelHistory
+        v-if="client?.readDuelHistory" :load="client.readDuelHistory" :user-id="userId"
+        :version="arena.recentDuels.value"
+      />
+    </ArenaPanel>
 
     <ShopPanel
       v-if="shopOpen && arena && areneOuverte"

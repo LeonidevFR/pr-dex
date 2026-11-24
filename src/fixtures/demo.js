@@ -483,6 +483,51 @@ export function demoArena(catches, ouvertes = []) {
   }
 
   /**
+   * Des duels plus anciens, pour l'historique seulement : sans eux, la démo n'aurait rien à
+   * montrer tant qu'on n'a pas joué, et ni le « Voir plus » ni les filtres ne s'essaieraient.
+   * Tenus hors de `readMyDuels` : ils se rejoueraient sinon comme des duels manqués à chaque
+   * chargement. Résolus par la même fonction que les vrais, sur des tirages fixes.
+   */
+  const ARCHIVES = Array.from({ length: 26 }, (_, i) => {
+    const id = 60 - i
+    const rival = i % 3 === 2 ? null : RIVAUX[i % 2]
+    const statut = rival ? 'resolved' : 'computer'
+    const pioche = (graine) => {
+      const pool = poolOf(['c', 'u', 'r'][fnv1a(`${graine}:palier`) % 3], 1)
+      return pool[fnv1a(graine) % pool.length]
+    }
+    const jour = new Date(Date.parse(`${JOUR}T12:00:00Z`) - (i + 1) * 86_400_000 * 0.6)
+      .toISOString().slice(0, 10)
+    const moi = cote(`archive:moi:${id}`, pioche(`archive:moi:${id}`), 1 + (fnv1a(`niv:${id}`) % 6))
+    const lui = cote(`archive:lui:${id}`, pioche(`archive:lui:${id}`), 1 + (fnv1a(`niv:lui:${id}`) % 6))
+    const out = resolveDuel({ left: moi, right: lui, seed: `demo:archive:${id}` })
+    const gagne = out.winner === 'left'
+    return {
+      id, challenger_id: MOI, challenger_key: moi.key,
+      opponent_id: rival?.id ?? null, opponent_key: rival ? lui.key : null,
+      status: statut, winner_id: gagne ? MOI : rival?.id ?? null,
+      stake_tier: coveredTier(DEX[moi.species].tier, DEX[lui.species].tier),
+      challenger_species: moi.species, opponent_species: lui.species,
+      challenger_level: moi.level, opponent_level: lui.level,
+      challenger_form: FORMS.indexOf(moi.form), opponent_form: FORMS.indexOf(lui.form),
+      challenger_power: power(moi), opponent_power: power(lui),
+      probability: out.probability, roll: out.roll, resolved_at: jour,
+    }
+  })
+
+  /** Même contrat que `readDuelHistory` côté Supabase : filtres appliqués avant la page. */
+  const readDuelHistory = async ({ userId, offset = 0, limit = 20, issue = 'tous', adversaire = 'tous' }) => {
+    const tous = [...[...duels.values()].sort((a, b) => b.id - a.id), ...ARCHIVES].filter((d) =>
+      (issue === 'tous' || (issue === 'gagnes') === (d.winner_id === userId))
+      && (adversaire === 'tous' || (adversaire === 'joueur') === (d.status === 'resolved')))
+    const login = (id) => RIVAUX.find((r) => r.id === id)?.login ?? null
+    return {
+      duels: tous.slice(offset, offset + limit).map((d) => ({ ...d, adversaire_login: login(d.opponent_id) })),
+      plus: tous.length > offset + limit,
+    }
+  }
+
+  /**
    * Sa propre fiche publique, recalculée depuis les duels réellement joués : une fiche figée
    * donnerait l'impression que l'écran n'a pas vu ce qui vient de se passer, alors que c'est
    * précisément ce qu'on essaie en démo.
@@ -612,6 +657,8 @@ export function demoArena(catches, ouvertes = []) {
     readMyDuels: async () => [...duels.values()]
       .sort((a, b) => b.id - a.id)
       .map((d) => ({ ...d })),
+
+    readDuelHistory,
 
     /**
      * Le classement porte l'identité GitHub, comme celui d'équipe : `login` nomme, `slug`

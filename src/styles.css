@@ -1408,6 +1408,26 @@
   .vendre-select select:focus-visible{outline:none;border-color:var(--gold)}
   .vendre-select option{background:var(--panel-bg);color:var(--fg)}
   .vendre-select svg{position:absolute;right:12px;pointer-events:none}
+
+  /* ───────── historique des duels ───────── */
+  .histo-filtres{display:flex;flex-wrap:wrap;gap:10px 20px;margin:4px 0 14px}
+  .histo-filtres .vendre-tri{margin-left:0}
+  .histo-liste{list-style:none;margin:0;padding:0}
+  .histo-ligne{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+  .histo-ligne:first-child{border-top:0}
+  .histo-issue{font-family:"IBM Plex Sans Condensed",var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-align:center;
+    padding:4px 0;border-radius:999px;border:1px solid currentColor}
+  .histo-ligne.gagne .histo-issue{color:var(--u-text)}
+  .histo-ligne.perdu .histo-issue{color:var(--danger)}
+  .histo-corps{min-width:0}
+  .histo-face{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:13px}
+  .histo-camp{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .histo-face .mono{font-size:11px;color:var(--fg-2)}
+  .histo-sprite{width:28px;height:28px;image-rendering:pixelated;margin:-4px -2px}
+  .histo-vs{font-size:11px;color:var(--fg-3)}
+  .histo-details{font-size:11px;color:var(--fg-2);margin-top:2px}
+  .histo-details.perte{color:var(--danger)}
+  .histo-plus{margin-top:14px}
   .vendre-groupe{border-bottom:1px solid var(--line)}
   .vendre-groupe:last-child{border-bottom:0}
   .vendre-tete{display:flex;align-items:center;gap:12px;padding:8px 0}

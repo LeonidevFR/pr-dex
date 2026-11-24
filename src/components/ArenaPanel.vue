@@ -378,5 +378,8 @@ function take(duelId) {
     </p>
   </div>
 
+  <!-- L'historique des duels joués, fourni par l'application qui détient le client. -->
+  <slot />
+
   </section>
 </template>
