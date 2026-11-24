@@ -83,12 +83,13 @@ describe('SaleSection', () => {
   it('trie par valeur, par rareté ou par numéro', async () => {
     const w = monter([...TROIS_RATTATA, e('d', BULBIZARRE), e('f', BULBIZARRE), e('g', 150), e('h', 150)])
     expect(noms(w)[0]).toBe('Rattata')   // le plus gros tas
-    const trier = (label) => w.findAll('.vendre-tris button').find((b) => b.text() === label).trigger('click')
-    await trier('Numéro')
+    const trier = (cle) => w.find('.vendre-tri select').setValue(cle)
+    expect(w.findAll('.vendre-tri option').map((o) => o.text())).toEqual(['Quantité', 'Valeur', 'Rareté', 'N° Pokédex'])
+    await trier('numero')
     expect(noms(w)).toEqual(['Bulbizarre', 'Rattata', 'Mewtwo'])
-    await trier('Plus rares')
+    await trier('rarete')
     expect(noms(w)[0]).toBe('Mewtwo')
-    await trier('Plus de valeur')
+    await trier('valeur')
     expect(noms(w)[0]).toBe('Mewtwo')
   })
 

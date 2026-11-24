@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { Check, ChevronRight, Search, X } from '@lucide/vue'
+import { Check, ChevronDown, ChevronRight, Search, X } from '@lucide/vue'
 import { saleTotal } from '../lib/revente.js'
 import { TIER_VAR } from '../../shared/species.js'
 import { spriteUrl } from '../lib/sprites.js'
@@ -84,7 +84,7 @@ const valeurDe = (g) => surplusDe(g).reduce((n, i) => n + i.price, 0)
 const enTrop = computed(() => props.groups.reduce((n, g) => n + g.items.length - 1, 0))
 const valeurTotale = computed(() => props.groups.reduce((n, g) => n + valeurDe(g), 0))
 
-const TRIS = [['tas', 'Plus gros tas'], ['valeur', 'Plus de valeur'], ['rarete', 'Plus rares'], ['numero', 'Numéro']]
+const TRIS = [['tas', 'Quantité'], ['valeur', 'Valeur'], ['rarete', 'Rareté'], ['numero', 'N° Pokédex']]
 const RANG_RARETE = { l: 0, r: 1, u: 2, c: 3 }
 const sansAccent = (t) => t.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
@@ -150,12 +150,15 @@ const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`
             <Search :size="14" aria-hidden="true" />
             <input v-model="recherche" type="search" placeholder="Chercher une espèce" aria-label="Chercher une espèce">
           </label>
-          <div class="ach-filters vendre-tris">
-            <button
-              v-for="[cle, label] in TRIS" :key="cle" class="ach-filter"
-              :class="{ active: tri === cle }" :aria-pressed="tri === cle" @click="tri = cle"
-            >{{ label }}</button>
-          </div>
+          <label class="vendre-tri">
+            <span class="muted">Trier par</span>
+            <span class="vendre-select">
+              <select v-model="tri">
+                <option v-for="[cle, label] in TRIS" :key="cle" :value="cle">{{ label }}</option>
+              </select>
+              <ChevronDown :size="14" aria-hidden="true" />
+            </span>
+          </label>
         </div>
 
         <p v-if="!visibles.length" class="muted">Aucune espèce ne correspond à « {{ recherche }} ».</p>
@@ -212,7 +215,7 @@ const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`
         </div>
       </div>
 
-      <div class="sect">
+      <div class="sect vendre-prix-note">
         <p class="muted" style="margin:0">
           Le prix suit le palier, le <b>niveau</b> et le <b>chromatique</b> : un exemplaire qui a
           gagné des duels se revend plus cher, un shiny quatre fois plus. Un commun ordinaire part

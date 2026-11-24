@@ -1388,7 +1388,13 @@
     border:1px solid var(--line-strong);background:var(--surface);color:var(--fg-3)}
   .vendre-cherche input{flex:1;min-width:0;border:0;background:none;outline:none;color:var(--fg);font:inherit;font-size:13px}
   .vendre-cherche:focus-within{border-color:var(--gold)}
-  .vendre-tris{margin:0}
+  .vendre-tri{display:flex;align-items:center;gap:10px;margin-left:auto;font-size:13px}
+  .vendre-select{position:relative;display:inline-flex;align-items:center;color:var(--fg-2)}
+  .vendre-select select{appearance:none;-webkit-appearance:none;cursor:pointer;font:inherit;font-size:13px;color:var(--fg);
+    padding:8px 34px 8px 14px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface)}
+  .vendre-select select:focus-visible{outline:none;border-color:var(--gold)}
+  .vendre-select option{background:var(--panel-bg);color:var(--fg)}
+  .vendre-select svg{position:absolute;right:12px;pointer-events:none}
   .vendre-groupe{border-bottom:1px solid var(--line)}
   .vendre-groupe:last-child{border-bottom:0}
   .vendre-tete{display:flex;align-items:center;gap:12px;padding:8px 0}
@@ -1426,10 +1432,13 @@
   @media (max-width:640px){
     .vendre-corps{padding-left:0}
     .vendre-cherche{flex:1 1 100%}
+    .vendre-tri{margin-left:0}
     .vendre-tete{gap:8px}
     .vendre-deplier{gap:8px}
     .vendre-tete .vendre-tous{padding:8px 10px;font-size:9px;letter-spacing:.1em}
   }
+  /* La barre porte déjà un filet : la section juste au-dessus n'en ajoute pas un second. */
+  .vendre-prix-note{border-bottom:0}
   .vendre-bar{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
     margin-top:8px;padding:14px 0;background:var(--bg);border-top:1px solid var(--line)}
   .vendre-bar-txt{flex:1 1 auto;font-size:15px;color:var(--fg)}
