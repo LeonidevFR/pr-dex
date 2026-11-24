@@ -235,18 +235,20 @@ paramètres retenus (4 → 1, 14 Magicarpe, à volonté) :
 - **L'économie l'est davantage.** Le stock fond d'environ 40 % (800 → 493 exemplaires à 800 cartes),
   donc la revente rapporte moins. Et les enjeux des duels montent : le gain se fait au palier du plus
   petit des deux engagements, et il reste peu de communs à engager.
-- **Conséquence pour la boutique.** Ses prix doivent être fixés sur l'économie *avec* fusion, pas sur
+- **Conséquence pour la boutique.** La boutique de plis ouvre avec l'arène ; ses objets (Potions,
+  Super Bonbon, Œuf Chance, pierres) attendent la fin de la saison 1. Leurs prix doivent être fixés sur l'économie *avec* fusion, pas sur
   les chiffres bruts de la saison 1, qui mesureront un revenu de revente que la fusion va réduire. Le
   remède est de rejouer la fusion sur les stocks réels de fin de saison 1, puis de recalculer revente
-  et prix : la fusion étant déterministe, la simulation se fait sur les vraies données.
+  et prix : la fusion étant déterministe, la simulation se fait sur les vraies données. Les prix des
+  plis, dérivés du même revenu, sont à revérifier au même moment.
 
-**Conclusion : après la saison 1 est le bon moment**, à condition de livrer la fusion avec la
-boutique, et de fixer les prix de la boutique après la simulation.
+**Conclusion : après la saison 1 est le bon moment**, à condition de livrer la fusion avec les
+objets de la boutique, et de fixer leurs prix après la simulation.
 
 ### Ce qui est retenu
 
-- **1er février 2027**, ouverture de la saison 2 : le socle (§ 5.1), la fusion et la boutique, aux prix
-  recalculés.
+- **1er février 2027**, ouverture de la saison 2 : le socle (§ 5.1), la fusion et les objets de la
+  boutique, aux prix recalculés.
 - **L'échange dans la foulée, en cours de saison 2.** Livré avant la fusion, il se jouerait encore sous
   les bonbons et demanderait de décider si une carte reçue crédite sa famille — une question que la
   fusion supprime ensuite.

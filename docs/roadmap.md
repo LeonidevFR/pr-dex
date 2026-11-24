@@ -7,16 +7,17 @@ dit seulement **quoi, quand et dans quel ordre**.
 
 | date | lot | où en est-il | spec |
 |---|---|---|---|
-| 1er décembre 2026 | **Arène, saison 1** — duels, saisons, profils, revente | PR #10, en draft | PR #10 |
+| 1er décembre 2026 | **Arène, saison 1** — duels, saisons, profils, boutique de plis, revente | PR #10, en draft | PR #10 |
 | 15 décembre 2026 → 6 janvier 2027 | **Édition Noël** — cartes équipe, booster du 25 | PR #33, empilée sur #10 | PR #33 |
-| 1er février 2027 (saison 2) | **Socle des exemplaires + fusion + boutique** | arbitré, rien d'implémenté | `spec-fusion-echange.md`, `spec-objets-boutique.md` |
+| 1er février 2027 (saison 2) | **Socle des exemplaires + fusion + objets de la boutique** | arbitré, rien d'implémenté | `spec-fusion-echange.md`, `spec-objets-boutique.md` |
 | saison 2, après la fusion | **Échange entre joueurs** | arbitré, rien d'implémenté | `spec-fusion-echange.md` |
 
 ### Pourquoi cet ordre
 
-- **La boutique attend une saison de chiffres** : ses prix dérivent du revenu réel d'un joueur, que la
-  saison 1 mesure.
-- **La fusion sort avec la boutique**, au changement de saison : elle consomme le surplus et fait
+- **Les objets de la boutique attendent une saison de chiffres** (Potions, Super Bonbon, Œuf Chance,
+  pierres ; la boutique de plis, elle, ouvre avec l'arène) : leurs prix dérivent du revenu réel d'un
+  joueur, que la saison 1 mesure.
+- **La fusion sort avec les objets**, au changement de saison : elle consomme le surplus et fait
   baisser la revente, donc les prix se fixent après l'avoir simulée sur les stocks réels de fin de
   saison 1. Le changement de saison remet les points à zéro : la vague de fusions ne fausse aucun
   classement en cours.
