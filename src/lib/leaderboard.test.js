@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { playerStats, rankPlayers, myStats, teamTotals } from './leaderboard.js'
+import { playerStats, rankPlayers, myStats, teamTotals, sortPlayers, speciesCopies } from './leaderboard.js'
 
 const TODAY = '2026-09-30'
 const c = (id, species, { shiny = false, date = '2026-06-01' } = {}) =>
@@ -172,5 +172,47 @@ describe('teamTotals', () => {
 
   it('vaut zéro partout sans joueur', () => {
     expect(teamTotals([], TODAY)).toMatchObject({ collective: 0, opened: 0, shiny: 0 })
+  })
+})
+
+describe('copiesBySpecies', () => {
+  it('compte les exemplaires en main, sans la carte consommée par une évolution', () => {
+    const s = playerStats(
+      [c('a', 133), c('b', 133), c('c', 133)],
+      [{ species: 134, from: 133, date: '2026-06-02', fromKey: 'github:a' }],
+      TODAY,
+    )
+    expect(s.copiesBySpecies).toEqual({ 133: 2, 134: 1 })
+  })
+
+  it('omet une espèce vue dont le dernier exemplaire a évolué', () => {
+    const s = playerStats([c('a', 1)], [{ species: 2, from: 1, date: '2026-06-02', fromKey: 'github:a' }], TODAY)
+    expect(s.species).toBe(2)
+    expect(s.copiesBySpecies).toEqual({ 2: 1 })
+    expect(speciesCopies(s, 1)).toBe(0)
+  })
+})
+
+describe('sortPlayers', () => {
+  const players = rankPlayers([
+    row('lea', [c('a', 1), c('b', 4), c('c', 7)]),
+    row('max', [c('d', 133), c('e', 133)]),
+    row('zoe', [c('f', 133), c('g', 4)]),
+  ], TODAY)
+
+  it('trie sur la valeur choisie sans changer le rang', () => {
+    const sorted = sortPlayers(players, (p) => speciesCopies(p, 133))
+    expect(sorted.map((p) => [p.login, p.rank])).toEqual([['max', 3], ['zoe', 2], ['lea', 1]])
+  })
+
+  it('départage à égalité par le classement, dans les deux sens', () => {
+    expect(sortPlayers(players, (p) => speciesCopies(p, 4)).map((p) => p.login)).toEqual(['lea', 'zoe', 'max'])
+    expect(sortPlayers(players, (p) => speciesCopies(p, 4), 'asc').map((p) => p.login)).toEqual(['max', 'lea', 'zoe'])
+  })
+
+  it('met une valeur absente en dernier, dans les deux sens', () => {
+    const withNull = players.map((p) => ({ ...p, achievements: p.login === 'lea' ? null : p.rank }))
+    expect(sortPlayers(withNull, (p) => p.achievements).at(-1).login).toBe('lea')
+    expect(sortPlayers(withNull, (p) => p.achievements, 'asc').at(-1).login).toBe('lea')
   })
 })
