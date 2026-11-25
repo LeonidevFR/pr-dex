@@ -97,7 +97,7 @@ Le repo étant public, rien de l'équipe n'y entre. Les membres sont dans `team_
 Supabase Storage, où `photo` donne le chemin du fichier. Les deux ne sont lisibles qu'avec une
 session. Sans aucun membre en base, `catch.mjs` ne distribue aucune carte équipe.
 
-Pour l'essayer : `?demo&noel`, avec une équipe inventée.
+Pour l'essayer en local : `?demo&noel`, avec une équipe inventée.
 
 ## Lancer en local
 
@@ -116,14 +116,15 @@ VITE_SUPABASE_ANON_KEY=<clé anon public>
 Ces deux valeurs sont publiques par construction (Vite les inline dans le build) — ce
 qui protège les données de chaque dev, c'est RLS côté base, pas le secret de ces valeurs.
 
-Pour l'essayer sans backend et sans connexion, ouvrir l'URL avec `?demo` :
+Pour l'essayer sans backend et sans connexion, ouvrir l'URL du serveur de développement
+(`npm run dev`) avec `?demo`. Le site publié ignore ce paramètre :
 
 ```
 http://localhost:5173/?demo
 ```
 
-Ce mode charge 42 fausses PR (`src/fixtures/demo.js`, chargé dynamiquement, jamais
-inclus dans le build de production) : toute l'interface est cliquable sans compte ni
+Ce mode charge 42 fausses PR (`src/fixtures/demo.js`, chargé dynamiquement, absent
+du build de production) : toute l'interface est cliquable sans compte ni
 connexion réseau.
 
 ## Tests

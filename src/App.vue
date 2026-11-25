@@ -76,7 +76,10 @@ const connecting = ref(false)
 const accountName = ref('')
 const identities = ref([])
 const params = new URLSearchParams(location.search)
-const isDemo = params.has('demo')
+// La démo ne vit qu'en développement (`npm run dev`) : sur le site publié, `?demo` est ignoré,
+// et `?demo&noel` ne dévoile pas l'édition Noël avant son heure. Vite retire aussi du build le
+// chunk des fausses PR, que plus rien n'importe.
+const isDemo = import.meta.env.DEV && params.has('demo')
 // `?demo&noel` joue l'édition Noël hors calendrier, avec une équipe inventée.
 const demoNoel = isDemo && params.has('noel')
 /**
