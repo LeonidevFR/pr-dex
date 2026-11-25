@@ -121,7 +121,7 @@ describe('main', () => {
    * l'URL. `github` fournit les réponses GitHub dans l'ordre d'appel, communes à toutes les
    * identités traitées par ce run — suffisant tant qu'une seule identité par test a du nouveau.
    */
-  function makeFetch({ identities, catchesByUser = {}, github = [] } = {}) {
+  function makeFetch({ identities, catchesByUser = {}, github = [], maxRows = Infinity, rejectInsert = {} } = {}) {
     const githubQueue = [...github]
     const inserted = []
     const fn = vi.fn(async (url, init = {}) => {
@@ -132,13 +132,23 @@ describe('main', () => {
         const params = new URL(url).searchParams
         const userId = params.get('user_id').replace('eq.', '')
         const source = params.get('source').replace('eq.', '')
+        // Comme PostgREST : `offset`/`limit` respectés, et réponse tronquée à `max_rows`.
+        const offset = Number(params.get('offset') ?? 0)
+        const limit = Math.min(Number(params.get('limit') ?? Infinity), maxRows)
+        const rows = (catchesByUser[userId] ?? []).filter((c) => c.source === source)
         return {
           ok: true, status: 200, headers: new Headers(),
-          json: async () => (catchesByUser[userId] ?? []).filter((c) => c.source === source),
+          json: async () => rows.slice(offset, offset + limit),
         }
       }
       if (url.includes('/rest/v1/catches') && init.method === 'POST') {
-        inserted.push(JSON.parse(init.body))
+        const body = JSON.parse(init.body)
+        const status = rejectInsert[body[0].user_id]
+        if (status) {
+          return { ok: false, status, headers: new Headers(), text: async () => '{"code":"23505"}' }
+        }
+        fn.insertUrls.push(url)
+        inserted.push(body)
         return { ok: true, status: 201, json: async () => [], headers: new Headers() }
       }
       const next = githubQueue.shift()
@@ -146,6 +156,7 @@ describe('main', () => {
       return next
     })
     fn.inserted = inserted
+    fn.insertUrls = []
     return fn
   }
 
@@ -371,6 +382,57 @@ describe('main', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(main()).rejects.toThrow(/github\/parti.*422/)
+    expect(fetchMock.inserted).toHaveLength(1)
+    expect(fetchMock.inserted[0][0].user_id).toBe('u2')
+  })
+
+  /**
+   * Supabase tronque une réponse à `max_rows` (1000 par défaut). Lue d'un seul tenant, une
+   * capture au-delà passait pour inconnue, était réinsérée, et la base répondait 409.
+   */
+  it('lit toutes les captures existantes au-delà du plafond de Supabase', async () => {
+    const known = Array.from({ length: 1002 }, (_, i) => ({
+      source: 'github', external_id: `sha-${i}`, url: `https://github.com/moi/atlas/pull/${i}`, date: '2026-01-05',
+    }))
+    const fetchMock = makeFetch({
+      identities: [identity('u1')],
+      catchesByUser: { u1: known },
+      maxRows: 1000,
+      // La PR 1001 est déjà en base, mais au-delà de la 1000e ligne.
+      github: [searchPage([item('moi/atlas', 1001, 'déjà là')])],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const total = await main()
+
+    expect(total).toBe(0)
+    expect(fetchMock.inserted).toHaveLength(0)
+  })
+
+  it('vise la contrainte unique de capture pour ignorer un doublon', async () => {
+    const fetchMock = makeFetch({
+      identities: [identity('u1')],
+      github: [searchPage([item('moi/atlas', 1, 'a')]), prDetail('sha-a', '2026-01-02T10:00:00Z')],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await main()
+
+    expect(fetchMock.insertUrls[0]).toContain('on_conflict=user_id,source,external_id')
+  })
+
+  it('une écriture refusée n’empêche pas les identités suivantes, et le run échoue à la fin', async () => {
+    const fetchMock = makeFetch({
+      identities: [identity('u1'), identity('u2', { handle: 'toi' })],
+      rejectInsert: { u1: 409 },
+      github: [
+        searchPage([item('moi/atlas', 1, 'a')]), prDetail('sha-a', '2026-01-02T10:00:00Z'),
+        searchPage([item('moi/atlas', 9, 'b')]), prDetail('sha-9', '2026-01-06T10:00:00Z'),
+      ],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(main()).rejects.toThrow(/github\/moi.*409.*23505/)
     expect(fetchMock.inserted).toHaveLength(1)
     expect(fetchMock.inserted[0][0].user_id).toBe('u2')
   })
