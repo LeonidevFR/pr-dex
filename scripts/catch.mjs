@@ -101,29 +101,52 @@ export async function hasCatches(supabaseUrl, serviceKey, userId, source, fetchF
   return (await res.json()).length > 0
 }
 
-/** Captures déjà connues d'une identité — base de la déduplication et de `sinceDate`. */
+/** Taille d'une page de lecture : au plus le plafond par défaut de Supabase (`max_rows`). */
+export const PAGE_SIZE = 1000
+
+/**
+ * Captures déjà connues d'une identité — base de la déduplication et de `sinceDate`.
+ *
+ * Lues page par page, triées par `id`, jusqu'à une page vide : Supabase tronque une réponse
+ * à `max_rows` (1000 par défaut) sans le signaler. Une lecture d'un seul tenant faisait
+ * passer, au-delà de 1000 captures, les autres pour inconnues : le script tentait de les
+ * réinsérer, et le run tombait pour tout le monde. S'arrêter à la première page vide plutôt
+ * qu'à la première page incomplète reste juste si `max_rows` est réglé plus bas.
+ */
 export async function fetchExistingCatches(supabaseUrl, serviceKey, userId, source, fetchFn = fetch) {
-  const res = await fetchFn(
-    `${supabaseUrl}/rest/v1/catches?user_id=eq.${userId}&source=eq.${source}&select=external_id,url,date`,
-    { headers: sbHeaders(serviceKey) },
-  )
-  if (!res.ok) throw new Error(`catches (lecture) a répondu ${res.status} pour ${userId}/${source}`)
-  return res.json()
+  const all = []
+  for (;;) {
+    const res = await fetchFn(
+      `${supabaseUrl}/rest/v1/catches?user_id=eq.${userId}&source=eq.${source}`
+        + `&select=external_id,url,date&order=id.asc&limit=${PAGE_SIZE}&offset=${all.length}`,
+      { headers: sbHeaders(serviceKey) },
+    )
+    if (!res.ok) throw new Error(`catches (lecture) a répondu ${res.status} pour ${userId}/${source}`)
+    const page = await res.json()
+    if (!page.length) return all
+    all.push(...page)
+  }
 }
 
 /**
- * `resolution=ignore-duplicates` : garde-fou d'idempotence côté base, en plus de la
- * déduplication déjà faite en mémoire — la contrainte unique (user_id, source, external_id)
- * absorbe un rejeu sans jamais dupliquer ni réécrire une entrée existante.
+ * `on_conflict` + `resolution=ignore-duplicates` : garde-fou d'idempotence côté base, en plus
+ * de la déduplication déjà faite en mémoire. Sans `on_conflict`, PostgREST ne visait que la
+ * clé primaire `id` : un doublon sur (user_id, source, external_id) répondait 409 au lieu
+ * d'être ignoré.
  */
 export async function insertCatches(supabaseUrl, serviceKey, rows, fetchFn = fetch) {
   if (!rows.length) return
-  const res = await fetchFn(`${supabaseUrl}/rest/v1/catches`, {
+  const res = await fetchFn(`${supabaseUrl}/rest/v1/catches?on_conflict=user_id,source,external_id`, {
     method: 'POST',
     headers: { ...sbHeaders(serviceKey), Prefer: 'resolution=ignore-duplicates,return=minimal' },
     body: JSON.stringify(rows),
   })
-  if (!res.ok) throw new Error(`catches (écriture) a répondu ${res.status} pour ${rows[0].user_id}`)
+  if (!res.ok) {
+    // Le corps porte le code Postgres et la contrainte en cause : sans lui, un 409 ne dit pas
+    // s'il s'agit d'un doublon ou d'une clé étrangère.
+    const detail = await res.text().catch(() => '')
+    throw new Error(`catches (écriture) a répondu ${res.status} pour ${rows[0].user_id}${detail ? ` : ${detail}` : ''}`)
+  }
 }
 
 /**
@@ -201,7 +224,15 @@ export async function main() {
 
     const rows = toRows(identity.user_id, identity.source, events)
     if (rows.length) {
-      await insertCatches(supabaseUrl, serviceKey, rows)
+      try {
+        await insertCatches(supabaseUrl, serviceKey, rows)
+      } catch (e) {
+        // Même isolation que pour la collecte : une écriture refusée pour une personne ne doit
+        // pas priver de leurs captures tous ceux qui la suivent dans la liste.
+        failed.push(`${identity.source}/${identity.handle} : ${e.message}`)
+        console.error(`${identity.source}/${identity.handle} : écriture refusée, identité ignorée (${e.message}).`)
+        continue
+      }
       total += rows.length
     }
     console.log(`${identity.source}/${identity.handle} : ${rows.length} nouvelle(s) capture(s).`)
