@@ -76,6 +76,29 @@ de la base pour un autre joueur — la fonction `leaderboard_players()` (voir
 et la date de chaque capture ouverte. Le calcul des colonnes passe par le même `useDex`
 que le dex personnel : un classement ne peut pas contredire le compteur /151 d'un joueur.
 
+## L'édition Noël
+
+Du 15 décembre au 6 janvier, une carte gagnée sur quinze (PR ou monkey-testing) apporte en
+plus de son Pokémon une **carte équipe** : un membre de l'équipe, sa photo et une description.
+Chaque joueur reçoit aussi un booster de Noël daté du 25 décembre, offert à partir de ce jour
+et à ouvrir quand il veut ; une popup le lui rappelle à chaque connexion tant qu'il est fermé.
+Le tirage (`shared/noel.js`) suit la même règle que celui des Pokémon : le seul seed est la clé
+d'exemplaire.
+
+Ces cartes sont décoratives. Elles vivent dans `team_cards`, pas dans `catches` : ni le
+Pokédex, ni le leaderboard, ni les statistiques, ni les bonbons ne les voient. Une seule
+exception, le succès caché « L'atelier au complet » : il se débloque quand on a ouvert une carte
+de chaque membre, saisons confondues, et compte au classement comme tout succès. On les
+retrouve dans l'étagère « Équipe · Noël » de la Collection, qui n'apparaît qu'à la première
+carte.
+
+Le repo étant public, rien de l'équipe n'y entre. Les membres sont dans `team_members`, remplie
+à la main (`id`, `name`, `blurb`, `photo`), et les photos dans le bucket privé `equipe` de
+Supabase Storage, où `photo` donne le chemin du fichier. Les deux ne sont lisibles qu'avec une
+session. Sans aucun membre en base, `catch.mjs` ne distribue aucune carte équipe.
+
+Pour l'essayer en local : `?demo&noel`, avec une équipe inventée.
+
 ## Lancer en local
 
 ```bash
@@ -93,14 +116,15 @@ VITE_SUPABASE_ANON_KEY=<clé anon public>
 Ces deux valeurs sont publiques par construction (Vite les inline dans le build) — ce
 qui protège les données de chaque dev, c'est RLS côté base, pas le secret de ces valeurs.
 
-Pour l'essayer sans backend et sans connexion, ouvrir l'URL avec `?demo` :
+Pour l'essayer sans backend et sans connexion, ouvrir l'URL du serveur de développement
+(`npm run dev`) avec `?demo`. Le site publié ignore ce paramètre :
 
 ```
 http://localhost:5173/?demo
 ```
 
-Ce mode charge 42 fausses PR (`src/fixtures/demo.js`, chargé dynamiquement, jamais
-inclus dans le build de production) : toute l'interface est cliquable sans compte ni
+Ce mode charge 42 fausses PR (`src/fixtures/demo.js`, chargé dynamiquement, absent
+du build de production) : toute l'interface est cliquable sans compte ni
 connexion réseau.
 
 ## Tests

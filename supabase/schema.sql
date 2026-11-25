@@ -1813,6 +1813,45 @@ CREATE TABLE IF NOT EXISTS "public"."species_stats" (
 ALTER TABLE "public"."species_stats" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."team_cards" (
+    "id" bigint NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "key" "text" NOT NULL,
+    "member" "text" NOT NULL,
+    "date" "date" NOT NULL,
+    "label" "text" NOT NULL,
+    "ref" "text",
+    "opened_at" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."team_cards" OWNER TO "postgres";
+
+
+ALTER TABLE "public"."team_cards" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME "public"."team_cards_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."team_members" (
+    "id" "text" NOT NULL,
+    "name" "text" NOT NULL,
+    "blurb" "text" NOT NULL,
+    "photo" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."team_members" OWNER TO "postgres";
+
+
 ALTER TABLE ONLY "public"."achievements"
     ADD CONSTRAINT "achievements_pkey" PRIMARY KEY ("user_id", "code");
 
@@ -1913,6 +1952,21 @@ ALTER TABLE ONLY "public"."state"
 
 
 
+ALTER TABLE ONLY "public"."team_cards"
+    ADD CONSTRAINT "team_cards_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."team_cards"
+    ADD CONSTRAINT "team_cards_user_id_key_key" UNIQUE ("user_id", "key");
+
+
+
+ALTER TABLE ONLY "public"."team_members"
+    ADD CONSTRAINT "team_members_pkey" PRIMARY KEY ("id");
+
+
+
 CREATE INDEX "arena_duels_challenger_idx" ON "public"."arena_duels" USING "btree" ("challenger_id");
 
 
@@ -2010,6 +2064,16 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."state"
     ADD CONSTRAINT "state_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."team_cards"
+    ADD CONSTRAINT "team_cards_member_fkey" FOREIGN KEY ("member") REFERENCES "public"."team_members"("id");
+
+
+
+ALTER TABLE ONLY "public"."team_cards"
+    ADD CONSTRAINT "team_cards_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -2141,6 +2205,24 @@ CREATE POLICY "state_select_own" ON "public"."state" FOR SELECT USING (("auth"."
 
 
 CREATE POLICY "state_update_own" ON "public"."state" FOR UPDATE USING (("auth"."uid"() = "user_id"));
+
+
+
+ALTER TABLE "public"."team_cards" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "team_cards_select_own" ON "public"."team_cards" FOR SELECT USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "team_cards_update_own" ON "public"."team_cards" FOR UPDATE USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
+
+
+
+ALTER TABLE "public"."team_members" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "team_members_select_authenticated" ON "public"."team_members" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -2499,6 +2581,26 @@ GRANT SELECT ON TABLE "public"."species_evo" TO "authenticated";
 
 GRANT ALL ON TABLE "public"."species_stats" TO "service_role";
 GRANT SELECT ON TABLE "public"."species_stats" TO "authenticated";
+
+
+
+GRANT ALL ON TABLE "public"."team_cards" TO "service_role";
+GRANT SELECT ON TABLE "public"."team_cards" TO "authenticated";
+
+
+
+GRANT UPDATE("opened_at") ON TABLE "public"."team_cards" TO "authenticated";
+
+
+
+GRANT ALL ON SEQUENCE "public"."team_cards_id_seq" TO "anon";
+GRANT ALL ON SEQUENCE "public"."team_cards_id_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "public"."team_cards_id_seq" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."team_members" TO "service_role";
+GRANT SELECT ON TABLE "public"."team_members" TO "authenticated";
 
 
 

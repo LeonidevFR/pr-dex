@@ -14,9 +14,10 @@ const templates = [new URL('./App.vue', import.meta.url), ...readdirSync(dir).fi
 /**
  * `SeasonBadge` échappe à la règle du SVG : ce n'est pas une icône mais une ILLUSTRATION — les
  * huit médailles d'arène, dessinées pour ce dex. La règle vise l'uniformité du trait entre
- * icônes ; une médaille frappée n'a pas à ressembler à un chevron.
+ * icônes ; une médaille frappée n'a pas à ressembler à un chevron. Même chose pour le nœud du
+ * ruban de `TeamCard`, l'édition Noël : un décor de la carte, pas un bouton ni un repère.
  */
-const ILLUSTRATIONS = ['SeasonBadge.vue']
+const ILLUSTRATIONS = ['SeasonBadge.vue', 'TeamCard.vue']
 
 describe('icônes', () => {
   it('ne dessine aucun SVG à la main dans les gabarits', () => {

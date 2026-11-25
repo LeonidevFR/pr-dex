@@ -331,7 +331,37 @@ export function createSupabaseClient(userId) {
     return query(() => supabase.rpc('achievement_counts'))
   }
 
+  /**
+   * Les cartes équipe du joueur et l'équipe entière. Les photos vivent dans un bucket privé :
+   * une URL signée par photo, valable une journée, le temps d'une session.
+   */
+  async function readTeam() {
+    const [members, cards] = await Promise.all([
+      query(() => supabase.from('team_members').select('id, name, blurb, photo')),
+      query(() =>
+        supabase.from('team_cards').select('key, member, date, label, ref, opened_at')
+          .eq('user_id', userId).order('date', { ascending: true }).order('id', { ascending: true }),
+      ),
+    ])
+    const paths = members.map((m) => m.photo).filter(Boolean)
+    const signed = paths.length
+      ? await query(() => supabase.storage.from('equipe').createSignedUrls(paths, 86_400))
+      : []
+    const urlOf = Object.fromEntries(signed.filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl]))
+    return {
+      members: members.map(({ photo, ...m }) => ({ ...m, photoUrl: photo ? urlOf[photo] ?? null : null })),
+      cards,
+    }
+  }
+
+  async function openTeamCard(key) {
+    return query(() =>
+      supabase.from('team_cards').update({ opened_at: new Date().toISOString() }).eq('user_id', userId).eq('key', key),
+    )
+  }
+
   return {
+    readTeam, openTeamCard,
     checkAccess, readCatches, readState, writeState, triggerCatch, catchStatus, readLeaderboard,
     readArena, readOpenChallenges, readMyOpen, readDuel, readShop, buy, readSeasonLeaderboard,
     readSeasons, engage, accept,
