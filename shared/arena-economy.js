@@ -47,15 +47,14 @@ export const SEASON_INCOME = 3000
  * Le pli légendaire est ancré à 1,5 saison, et tout le reste s'échelonne sous lui. Les prix
  * dérivés (×2,5 pour l'inédit) tombent tous sur des entiers, condition d'un affichage sans
  * décimale et d'une comparaison exacte avec le portefeuille.
- *
- * Pas d'article Gen 2 en saison 1 : la Gen 2 arrive d'un bloc en saison 2, en boutique ET au
- * tirage des PR. Vendue seule avant, elle aurait été payée par ceux qui la recevraient ensuite
- * sans payer.
  */
 const BASE_PRICES = [
   { gen: 1, tier: 'c', price: 250 },
   { gen: 1, tier: 'u', price: 500 },
   { gen: 1, tier: 'r', price: 1200 },
+  { gen: 2, tier: 'c', price: 500 },
+  { gen: 2, tier: 'u', price: 1000 },
+  { gen: 2, tier: 'r', price: 2400 },
   { gen: 1, tier: 'l', price: 4500 },
 ]
 

@@ -55,6 +55,12 @@ export const ACHIEVEMENTS = [
   { code: 'cards-1000', group: 'volume', name: '1 000 cartes', desc: 'Ouvrir 1 000 cartes.', tier: 'u', hidden: false, icon: { glyph: '1k' }, target: 1000 },
   { code: 'cards-2500', group: 'volume', name: '2 500 cartes', desc: 'Ouvrir 2 500 cartes.', tier: 'l', hidden: false, icon: { glyph: '2,5k' }, target: 2500 },
   { code: 'cards-5000', group: 'volume', name: '5 000 cartes', desc: 'Ouvrir 5 000 cartes.', tier: 'l', hidden: false, icon: { glyph: '5k' }, target: 5000 },
+  { code: 'gen2-1', group: 'gen2', name: 'Nouvelle région', desc: 'Avoir une espèce de la 2e génération.', tier: 'u', hidden: false, icon: { sprite: 152 } },
+  { code: 'gen2-25', group: 'gen2', name: 'Johto 25', desc: 'Avoir 25 espèces de la 2e génération.', tier: 'r', hidden: false, icon: { glyph: '25' }, target: 25 },
+  { code: 'gen2-50', group: 'gen2', name: 'Johto 50', desc: 'Avoir 50 espèces de la 2e génération.', tier: 'l', hidden: false, icon: { glyph: '50' }, target: 50 },
+  { code: 'gen2-100', group: 'gen2', name: 'Johto complet', desc: 'Avoir les 100 espèces de la 2e génération.', tier: 'l', hidden: false, icon: { glyph: '100' }, target: 100 },
+  { code: 'gen2-legendary', group: 'gen2', name: 'Légende de Johto', desc: 'Avoir un légendaire de la 2e génération.', tier: 'l', hidden: false, icon: { sprite: 250 } },
+  { code: 'beasts', group: 'gen2', name: 'Les trois bêtes', desc: 'Avoir Raikou, Entei et Suicune.', tier: 'l', hidden: true, icon: { sprite: 245 } },
   { code: 'arena-win-1', group: 'arena', name: 'Première victoire', desc: 'Gagner un duel contre un collègue.', tier: 'c', hidden: false, icon: { sprite: 66 } },
   { code: 'arena-streak-3', group: 'arena', name: 'Trois à la suite', desc: 'Gagner 3 duels d’affilée.', tier: 'u', hidden: false, icon: { glyph: '×3' } },
   { code: 'arena-streak-5', group: 'arena', name: 'Cinq à la suite', desc: 'Gagner 5 duels d’affilée.', tier: 'r', hidden: false, icon: { glyph: '×5' } },
@@ -87,8 +93,10 @@ const TRIOS = {
   eeveelutions: [134, 135, 136],
 }
 const CARD_STEPS = [100, 500, 1000, 2500, 5000]
+const GEN2_STEPS = [25, 50, 100]
 const SHOP_STEPS = [10, 20]
 const SELL_STEPS = [10, 100, 1000]
+const BEASTS = [243, 244, 245]
 const NIDORAN = new Set([29, 32])
 const day = (ts) => (ts ? String(ts).slice(0, 10) : null)
 const pad = (n) => String(n).padStart(2, '0')
@@ -167,9 +175,18 @@ export function evaluate({ catches, claimed, evolutions, others = [], arena = nu
     if (lineageDone(ev.species)) hit('lineage-1', ev.date, ev.key)
   }
 
-  // ── Volume ──  (les succès de la 2e génération arrivent avec elle, en saison 2)
+  // ── Volume et 2e génération ──
   const byDay = [...open].sort(byDate)
   for (const n of CARD_STEPS) if (byDay.length >= n) hit(`cards-${n}`, byDay[n - 1].date, byDay[n - 1].key)
+  const gen2 = new Set()
+  for (const ev of events) {
+    if (DEX[ev.species]?.gen !== 2) continue
+    gen2.add(ev.species)
+    hit('gen2-1', ev.date, ev.key)
+    for (const n of GEN2_STEPS) if (gen2.size >= n) hit(`gen2-${n}`, ev.date, ev.key)
+    if (DEX[ev.species].tier === 'l') hit('gen2-legendary', ev.date, ev.key)
+    if (BEASTS.every((s) => gen2.has(s))) hit('beasts', ev.date, ev.key)
+  }
 
   // ── Boutique : un pli acheté devient une capture de source `boutique`. ──
   const bought = [...catches].filter((c) => c.source === 'boutique').sort(byDate)
@@ -291,6 +308,7 @@ export function evaluate({ catches, claimed, evolutions, others = [], arena = nu
   for (const n of SHINY_STEPS) progress[`shiny-species-${n}`] = { current: shinyOwned.size, target: n }
   for (const n of [5, 10]) progress[`mt-${n}`] = { current: sessions.size, target: n }
   for (const n of CARD_STEPS) progress[`cards-${n}`] = { current: open.length, target: n }
+  for (const n of GEN2_STEPS) progress[`gen2-${n}`] = { current: gen2.size, target: n }
   for (const n of SHOP_STEPS) progress[`shop-${n}`] = { current: bought.length, target: n }
   const soldCount = (arena?.exemplars ?? []).filter((e) => e.sold_at).length
   for (const n of SELL_STEPS) progress[`sell-${n}`] = { current: soldCount, target: n }

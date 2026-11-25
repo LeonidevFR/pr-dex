@@ -623,10 +623,9 @@ describe('l’annonce de l’arène', () => {
     expect(w.find('.gen-tabs').exists()).toBe(false)
   })
 
-  // La Gen 2 arrive d'un bloc en saison 2 : en saison 1, pas d'étagère, même arène ouverte.
-  it('la garde fermée en saison 1, même arène ouverte', async () => {
+  it('la rouvre dès que l’arène est ouverte', async () => {
     const w = await mountApp()
-    expect(w.find('.gen-tabs').exists()).toBe(false)
+    expect(w.find('.gen-tabs').exists()).toBe(true)
   })
 
   // Le profil existait avant l'arène et n'en dépend pas : il reste ouvert.

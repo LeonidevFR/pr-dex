@@ -103,9 +103,9 @@ describe('achats en mode démo', () => {
 
   it('tire dans la génération achetée', async () => {
     const c = client()
-    await c.buy('gen1-c')
+    await c.buy('gen2-c')
     const dernier = (await c.readCatches()).at(-1)
-    expect(dernier.species).toBeLessThanOrEqual(151)
+    expect(dernier.species).toBeGreaterThan(151)
     expect(DEX[dernier.species].tier).toBe('c')
   })
 
