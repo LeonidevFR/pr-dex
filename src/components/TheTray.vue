@@ -13,10 +13,13 @@ const props = defineProps({
   evolvable: { type: Set, default: () => new Set() },
   activeTiers: { type: Set, default: () => new Set(['c', 'u', 'r', 'l']) },
   statusFilter: { type: String, default: 'all' }, // 'all' | 'caught' | 'uncaught' | 'evolvable' | 'shiny'
-  gen: { type: Number, default: 1 },
+  // 1 | 2 | 'team' : la troisième étagère est celle de l'édition Noël.
+  gen: { type: [Number, String], default: 1 },
   /** Vrai quand la seconde étagère existe, c'est-à-dire quand l'arène est ouverte. */
   gen2: { type: Boolean, default: true },
   query: { type: String, default: '' },
+  /** `{ discovered, total }` dès la première carte équipe de Noël, sinon null : pas d'onglet. */
+  team: { type: Object, default: null },
 })
 const emit = defineEmits([
   'select', 'toggle-tier', 'set-status-filter', 'set-query', 'reset-filters', 'set-gen',
@@ -35,7 +38,7 @@ const PILL = { u: TIER_LABEL.u, r: TIER_LABEL.r, l: TIER_LABEL.l }
  * là où elle est une collection à part, qu'on entame quand on a de quoi.
  */
 const TABLES = { 1: SPECIES, 2: SPECIES_GEN2 }
-const ids = computed(() => TABLES[props.gen].map(([id]) => id))
+const ids = computed(() => (TABLES[props.gen] ?? SPECIES).map(([id]) => id))
 /**
  * Ce que la case doit montrer : le stock qu'on a EN MAIN.
  *
@@ -121,19 +124,24 @@ const tierOf = (id) => DEX[id].tier
     désignant un magasin fermé pour six semaines. La rangée entière disparaît plutôt que de
     laisser un onglet seul, qui serait un filtre sans alternative.
   -->
-  <div v-if="gen2" class="gen-tabs">
+  <div v-if="gen2 || team" class="gen-tabs">
     <button
       class="filter-chip" :class="{ active: gen === 1 }" @click="emit('set-gen', 1)"
     >Génération 1 · {{ comptePar[1] }}/151</button>
     <button
-      class="filter-chip" :class="{ active: gen === 2 }" @click="emit('set-gen', 2)"
+      v-if="gen2" class="filter-chip" :class="{ active: gen === 2 }" @click="emit('set-gen', 2)"
     >Génération 2 · {{ comptePar[2] }}/100</button>
+    <button
+      v-if="team" class="filter-chip" :class="{ active: gen === 'team' }" @click="emit('set-gen', 'team')"
+    >Équipe · Noël · {{ team.discovered }}/{{ team.total }}</button>
     <span v-if="gen === 2" class="muted" style="font-size:11.5px">
       Ne se tire jamais au travail : elle s’achète en arène, avec des pokédollars.
     </span>
   </div>
 
-  <div class="toolbar">
+  <slot v-if="gen === 'team'" name="team" />
+
+  <div v-else class="toolbar">
     <label class="tray-search-wrap">
       <Search :size="14" aria-hidden="true" />
       <span class="sr-only">Chercher un Pokémon</span>
@@ -169,7 +177,7 @@ const tierOf = (id) => DEX[id].tier
     >Shiny · {{ shinyCount }}</button>
   </div>
 
-  <div class="tray">
+  <div v-if="gen !== 'team'" class="tray">
     <button
       v-for="id in visibleIds" :key="id" class="cell"
       :class="{
@@ -207,7 +215,7 @@ const tierOf = (id) => DEX[id].tier
     </button>
   </div>
 
-  <p v-if="emptyLabel" class="tray-empty">
+  <p v-if="gen !== 'team' && emptyLabel" class="tray-empty">
     {{ emptyLabel }}
     <button v-if="query.trim()" class="filter-reset" @click="emit('reset-filters')">Effacer les filtres</button>
   </p>

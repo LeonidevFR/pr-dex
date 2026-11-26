@@ -29,6 +29,23 @@ describe('useAchievements', () => {
     expect(a.toasts.value).toEqual([])
   })
 
+  it('lit les cartes équipe : ouvrir le dernier lutin met l’atelier au complet en toast', async () => {
+    const c = client()
+    const team = { members: ['ada', 'basile'], cards: [
+      { key: 'noel:crm:1', member: 'ada', date: '2026-12-16', opened_at: '2026-12-16T10:00:00Z' },
+      { key: 'noel:2026', member: 'basile', date: '2026-12-25', opened_at: null },
+    ] }
+    const a = useAchievements()
+    await a.load(c, () => ({ catches: [], state: stateWith([]), team }))
+    expect(a.owned.value['noel-elves']).toBeUndefined()
+    team.cards[1].opened_at = '2026-12-26T09:00:00Z'
+    await a.check('2026-12-26')
+    expect(c.insertAchievements).toHaveBeenLastCalledWith([
+      { code: 'noel-elves', unlocked_at: '2026-12-26', trigger_key: 'noel:2026', announced: true },
+    ])
+    expect(a.toasts.value.map((t) => t.code)).toEqual(['noel-elves'])
+  })
+
   it('ne réinscrit pas ce que la table a déjà, et ignore un code inconnu', async () => {
     const c = client({
       readAchievements: vi.fn().mockResolvedValue([

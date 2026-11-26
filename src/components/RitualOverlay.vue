@@ -1,5 +1,5 @@
 <script setup>
-import { Gem, Sparkle, X } from '@lucide/vue'
+import { Gem, Gift, Sparkle, X } from '@lucide/vue'
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { DEX, TIER_LABEL, TIER_VAR, familyOf, CANDY_PER_CATCH } from '../../shared/species.js'
 import PokeCard from './PokeCard.vue'
@@ -9,6 +9,8 @@ const props = defineProps({
   remaining: { type: Number, required: true },
   // Lu par App.vue avant le `claim` — celui-ci inscrit l'espèce au dex dès le sceau brisé.
   isNew: { type: Boolean, default: false },
+  // Une carte équipe de Noël attend derrière celle-ci : on l'annonce à la révélation, pas avant.
+  bonus: { type: Boolean, default: false },
 })
 const emit = defineEmits(['claim', 'next', 'close'])
 
@@ -206,7 +208,13 @@ watch(stage, async (s) => {
           +{{ CANDY_PER_CATCH }} bonbons <b>{{ DEX[familyOf(entry.species)].name }}</b>
         </div>
       </div>
-      <button ref="nextEl" class="next-btn" @click="$emit('next')">
+      <div v-if="bonus" class="reveal-gift" role="status">
+        <Gift :size="18" aria-hidden="true" />Un bonus de Noël était caché dans cette carte !
+      </div>
+      <button v-if="bonus" ref="nextEl" class="next-btn next-gift" @click="$emit('next')">
+        <Gift :size="14" aria-hidden="true" />Ouvrir le bonus de Noël
+      </button>
+      <button v-else ref="nextEl" class="next-btn" @click="$emit('next')">
         {{ remaining > 1 ? `Carte suivante · ${remaining - 1} restante${remaining - 1 > 1 ? 's' : ''}` : 'Retour à la collection' }}
       </button>
     </template>

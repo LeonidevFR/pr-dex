@@ -70,6 +70,7 @@ export const ACHIEVEMENTS = [
   { code: 'sell-10', group: 'arena', name: 'Revendeur', desc: 'Revendre 10 cartes.', tier: 'c', hidden: false, icon: { glyph: '10₽' }, target: 10 },
   { code: 'sell-100', group: 'arena', name: 'Brocanteur', desc: 'Revendre 100 cartes.', tier: 'u', hidden: false, icon: { glyph: '100₽' }, target: 100 },
   { code: 'sell-1000', group: 'arena', name: 'Grossiste', desc: 'Revendre 1 000 cartes.', tier: 'l', hidden: false, icon: { glyph: '1k₽' }, target: 1000 },
+  { code: 'noel-elves', group: 'noel', name: 'L’atelier au complet', desc: 'Découvrir tous les lutins de Noël de l’équipe.', tier: 'l', hidden: true, icon: { sprite: 225 } },
 ]
 
 export const BY_CODE = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.code, a]))
@@ -112,11 +113,14 @@ const prNumber = (c) => { const m = /#(\d+)/.exec(c.ref ?? ''); return m ? Numbe
  * - `claimed` : les clés ouvertes (`state.claimed`).
  * - `evolutions` : `state.evolutions`, tel qu'écrit (aucune validation côté base).
  * - `others` : les captures ouvertes des autres joueurs (`leaderboard_players()`), pour Jumeaux.
+ * - `team` : l'édition Noël, `{ members, cards }` (identifiants des membres, cartes équipe du
+ *   joueur). Seul « L'atelier au complet » la lit : les cartes équipe ne comptent nulle part
+ *   ailleurs.
  *
  * Renvoie `unlocked` (code → { date, triggerKey }, la date de l'événement qui l'a rempli) et
  * `progress` (code → { current, target }) pour les paliers visibles.
  */
-export function evaluate({ catches, claimed, evolutions, others = [], arena = null }) {
+export function evaluate({ catches, claimed, evolutions, others = [], arena = null, team = null }) {
   const unlocked = {}
   const hit = (code, date, triggerKey) => { if (!unlocked[code]) unlocked[code] = { date, triggerKey } }
 
@@ -271,6 +275,16 @@ export function evaluate({ catches, claimed, evolutions, others = [], arena = nu
   const firstFish = evos.filter((e) => e.from === MAGIKARP).map((e) => e.date).sort()[0]
   const fish = open.filter((c) => c.species === MAGIKARP && (!firstFish || c.date < firstFish))
   if (fish.length >= 10) hit('patient-fisher', fish[9].date, fish[9].key)
+
+  // Tous les membres de la table à cet instant : un lutin arrivé après coup ne retire pas le
+  // succès, il est déjà inscrit. Daté de la carte qui a complété l'atelier.
+  if (team?.members?.length) {
+    const missing = new Set(team.members)
+    for (const c of [...(team.cards ?? [])].filter((c) => c.opened_at).sort(byDate)) {
+      missing.delete(c.member)
+      if (!missing.size) { hit('noel-elves', c.date, c.key); break }
+    }
+  }
 
   const progress = {}
   for (const n of [50, 100, 140, 151]) progress[`species-${n}`] = { current: owned.size, target: n }

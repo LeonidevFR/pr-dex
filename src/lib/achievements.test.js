@@ -15,15 +15,36 @@ const codes = (r) => Object.keys(r.unlocked).sort()
 const evo = (species, from, fromKey, date = D) => ({ species, from, fromKey, date })
 
 describe('catalogue', () => {
-  it('compte 58 succès aux codes uniques, chacun avec un palier de carte', () => {
-    expect(ACHIEVEMENTS).toHaveLength(58)
-    expect(Object.keys(BY_CODE)).toHaveLength(58)
+  it('compte 59 succès aux codes uniques, chacun avec un palier de carte', () => {
+    expect(ACHIEVEMENTS).toHaveLength(59)
+    expect(Object.keys(BY_CODE)).toHaveLength(59)
     for (const a of ACHIEVEMENTS) expect(['c', 'u', 'r', 'l']).toContain(a.tier)
   })
 
   it('ne cache que les coups de dés, les actions, les trios et les exploits', () => {
-    const autres = ['starters', 'birds', 'fossils', 'team-rocket', 'eeveelutions', 'underdog', 'giant-slayer']
+    const autres = ['starters', 'birds', 'fossils', 'team-rocket', 'eeveelutions', 'underdog', 'giant-slayer', 'noel-elves']
     for (const a of ACHIEVEMENTS) expect(a.hidden).toBe(a.group === 'dice' || a.group === 'actions' || autres.includes(a.code))
+  })
+})
+
+describe('evaluate — édition Noël', () => {
+  const card = (member, date, opened = true, key = `noel:crm:${member}`) =>
+    ({ key, member, date, opened_at: opened ? date + 'T10:00:00Z' : null })
+  const withTeam = (team) => evaluate({ catches: [], claimed: [], evolutions: [], team })
+  const members = ['ada', 'basile', 'chloe']
+
+  it('débloque l’atelier au complet, daté de la carte qui complète', () => {
+    const r = withTeam({ members, cards: [card('basile', '2026-12-20'), card('ada', '2026-12-16'), card('chloe', '2026-12-25', true, 'noel:2026'), card('ada', '2026-12-30')] })
+    expect(r.unlocked['noel-elves']).toEqual({ date: '2026-12-25', triggerKey: 'noel:2026' })
+  })
+
+  it('attend que chaque lutin soit ouvert', () => {
+    expect(withTeam({ members, cards: [card('ada', '2026-12-16'), card('basile', '2026-12-20'), card('chloe', '2026-12-21', false)] }).unlocked['noel-elves']).toBeUndefined()
+  })
+
+  it('rien sans équipe chargée ni membre', () => {
+    expect(withTeam(null).unlocked['noel-elves']).toBeUndefined()
+    expect(withTeam({ members: [], cards: [] }).unlocked['noel-elves']).toBeUndefined()
   })
 })
 
