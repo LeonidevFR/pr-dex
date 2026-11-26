@@ -38,6 +38,27 @@ export function useCollection() {
 
   const dex = useDex(catches, state, partis, evolutions)
 
+  // Dernier état connu de la base, et mutations affichées mais pas encore écrites. `state`,
+  // ce que voit le joueur, se recalcule toujours comme `confirmed` + `queued` : un échec
+  // retire sa seule mutation, sans emporter celles qui attendent derrière.
+  let confirmed = clone(state.value)
+  const queued = []
+  // Les écritures partent une par une, chacune après le retour de la précédente : deux
+  // écritures simultanées portaient la même version, l'une était refusée, et son rejeu
+  // pouvait l'être aussi. L'écran reprenait alors une carte pourtant enregistrée, que le
+  // joueur rouvrait comme neuve (deux Mewtwo « Nouveau » pour un seul en base).
+  let writes = Promise.resolve()
+
+  function recompute() {
+    state.value = queued.reduce((s, m) => m(clone(s)) ?? s, clone(confirmed))
+  }
+
+  function adopt(fresh) {
+    confirmed = fresh.state
+    blobSha.value = fresh.blobSha
+    recompute()
+  }
+
   async function load(githubClient) {
     client = githubClient ?? client
     loading.value = true
@@ -48,9 +69,8 @@ export function useCollection() {
         client.readEvolutions ? client.readEvolutions() : [],
       ])
       catches.value = c
-      state.value = s.state
+      adopt(s)
       evolutions.value = evos ?? []
-      blobSha.value = s.blobSha
     } catch (e) {
       error.value = e.kind ?? 'server'
     } finally {
@@ -70,44 +90,56 @@ export function useCollection() {
    * conflit), `false` sinon (mutateur sans objet, ou état distant adopté sans réécrire) —
    * pour permettre à l'appelant de distinguer "rien à faire" de "erreur", cas tous deux
    * silencieux du point de vue de `error.value`.
+   *
+   * La mutation s'affiche tout de suite (le rituel passe à la carte suivante sans attendre),
+   * mais son écriture attend son tour derrière les précédentes (cf. `writes`).
    */
-  async function persist(mutate, message) {
-    const before = clone(state.value)
-    const next = mutate(clone(state.value))
-    if (!next) return false
-    state.value = next
+  function persist(mutate, message) {
+    if (!mutate(clone(state.value))) return Promise.resolve(false)
+    queued.push(mutate)
+    recompute()
+    const run = writes.then(() => commit(mutate, message))
+    writes = run.catch(() => {})
+    return run
+  }
+
+  /** Écrit une mutation de la file sur le dernier état confirmé, puis la retire de la file. */
+  async function commit(mutate, message) {
+    const done = (written) => {
+      queued.splice(queued.indexOf(mutate), 1)
+      recompute()
+      return written
+    }
+    const next = mutate(clone(confirmed))
+    if (!next) return done(false)
     try {
       const r = await client.writeState(next, blobSha.value, message)
+      confirmed = next
       blobSha.value = r.blobSha
       error.value = null
-      return true
+      return done(true)
     } catch (e) {
-      if (e.kind === 'conflict') {
-        // État de repli si le rejeu échoue. Tant que la relecture n'a pas abouti, c'est l'état
-        // d'avant l'appel ; ensuite c'est l'état frais, parce que `blobSha` est déjà le sien.
-        // Revenir à `before` sous ce jeton ferait passer l'écriture suivante, qui effacerait
-        // ce que l'autre appareil a écrit.
-        let fallback = before
-        try {
-          const fresh = await client.readState()
-          blobSha.value = fresh.blobSha
-          fallback = fresh.state
-          const replayed = mutate(clone(fresh.state))
-          if (!replayed) { state.value = fresh.state; return false }
-          state.value = replayed
-          const r = await client.writeState(replayed, blobSha.value, message)
-          blobSha.value = r.blobSha
-          error.value = null
-          return true
-        } catch (e2) {
-          state.value = fallback
-          error.value = e2.kind ?? 'server'
-          return false
-        }
+      if (e.kind !== 'conflict') {
+        error.value = e.kind ?? 'server'
+        return done(false)
       }
-      state.value = before
-      error.value = e.kind ?? 'server'
-      return false
+      // Conflit : un autre appareil a écrit entre-temps. On repart de son état — y revenir
+      // sous l'ancien jeton ferait passer l'écriture suivante, qui effacerait la sienne.
+      try {
+        const fresh = await client.readState()
+        confirmed = fresh.state
+        blobSha.value = fresh.blobSha
+        const replayed = mutate(clone(confirmed))
+        if (!replayed) return done(false)
+        const r = await client.writeState(replayed, blobSha.value, message)
+        confirmed = replayed
+        blobSha.value = r.blobSha
+        error.value = null
+        return done(true)
+      } catch (e2) {
+        error.value = e2.kind ?? 'server'
+        return done(false)
+      }
     }
   }
 
@@ -124,8 +156,7 @@ export function useCollection() {
   async function reread() {
     const [c, s] = await Promise.all([client.readCatches(), client.readState()])
     catches.value = c
-    state.value = s.state
-    blobSha.value = s.blobSha
+    adopt(s)
   }
 
   /**

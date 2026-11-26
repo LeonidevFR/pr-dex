@@ -9,6 +9,9 @@ export class SupabaseDataError extends Error {
   }
 }
 
+/** Taille d'une page de captures : au plus le plafond par défaut de Supabase (`max_rows`). */
+const CATCHES_PAGE_SIZE = 1000
+
 async function query(fn) {
   let result
   try {
@@ -35,17 +38,28 @@ export function createSupabaseClient(userId) {
     return true
   }
 
+  /**
+   * Page par page jusqu'à une page vide : Supabase tronque une réponse à `max_rows` (1000 par
+   * défaut) sans le signaler. D'un seul tenant, un joueur au-delà de 1000 captures ne voyait
+   * plus ses plus récentes. Le tri (date, id) est total, donc les pages ne se chevauchent pas.
+   */
   async function readCatches() {
-    return query(() =>
-      supabase
-        .from('catches')
-        .select('source, external_id, label, ref, url, date, species, shiny')
-        .eq('user_id', userId)
-        .order('date', { ascending: true })
-        // À date égale, l'ordre d'insertion : c'est celui de `leaderboard_players()`, et les
-        // succès « d'affilée » doivent lire la même suite partout.
-        .order('id', { ascending: true }),
-    )
+    const all = []
+    for (;;) {
+      const page = await query(() =>
+        supabase
+          .from('catches')
+          .select('source, external_id, label, ref, url, date, species, shiny')
+          .eq('user_id', userId)
+          .order('date', { ascending: true })
+          // À date égale, l'ordre d'insertion : c'est celui de `leaderboard_players()`, et les
+          // succès « d'affilée » doivent lire la même suite partout.
+          .order('id', { ascending: true })
+          .range(all.length, all.length + CATCHES_PAGE_SIZE - 1),
+      )
+      if (!page.length) return all
+      all.push(...page)
+    }
   }
 
   async function readState() {

@@ -368,6 +368,54 @@ describe('claim', () => {
     expect(c.error.value).toBe('offline')
     expect(c.state.value.claimed).toEqual([])
   })
+
+  /**
+   * Base versionnée comme la table `state` : une écriture sous une version périmée est refusée.
+   * Trois cartes retournées d'affilée, avant le retour de la première écriture : les écritures
+   * simultanées se refusaient entre elles, et l'écran reprenait une carte pourtant enregistrée,
+   * que le joueur rouvrait comme neuve.
+   */
+  it('enregistre toutes les cartes ouvertes d’affilée, sans en remettre aucune à ouvrir', async () => {
+    let db = { claimed: [], spent: {}, evolutions: [] }
+    let version = 1
+    const tick = () => new Promise((r) => setTimeout(r, 5))
+    const client = {
+      readCatches: vi.fn().mockResolvedValue([catchOf('a', 150), catchOf('b', 151), catchOf('c', 25)]),
+      readState: vi.fn(async () => { await tick(); return { state: structuredClone(db), blobSha: version } }),
+      writeState: vi.fn(async (s, v) => {
+        await tick()
+        if (v !== version) throw new SupabaseDataError('conflict', 'Écriture concurrente détectée.')
+        db = structuredClone(s)
+        return { blobSha: ++version }
+      }),
+    }
+    const c = useCollection()
+    await c.load(client)
+
+    const claims = [c.claim(K('a')), c.claim(K('b')), c.claim(K('c'))]
+    // Affiché tout de suite, sans attendre l'écriture : le rituel passe à la carte suivante.
+    expect(c.dex.pending.value).toHaveLength(0)
+    await Promise.all(claims)
+
+    expect(db.claimed).toEqual([K('a'), K('b'), K('c')])
+    expect(c.state.value.claimed).toEqual([K('a'), K('b'), K('c')])
+    expect(c.dex.pending.value).toHaveLength(0)
+    expect(c.error.value).toBeNull()
+  })
+
+  it('un échec n’annule que sa carte, pas celles qui attendent derrière', async () => {
+    const client = fakeClient({ catches: [catchOf('a', 25), catchOf('b', 1)] })
+    client.writeState
+      .mockRejectedValueOnce(new SupabaseDataError('offline', 'pas de réseau'))
+      .mockResolvedValueOnce({ blobSha: 'blob2' })
+    const c = useCollection()
+    await c.load(client)
+
+    await Promise.all([c.claim(K('a')), c.claim(K('b'))])
+
+    expect(c.state.value.claimed).toEqual([K('b')])
+    expect(c.dex.pending.value.map((e) => e.key)).toEqual([K('a')])
+  })
 })
 
 /**
