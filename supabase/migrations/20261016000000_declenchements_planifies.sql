@@ -28,6 +28,11 @@
 
 begin;
 
+-- Sans effet en production, où le dashboard les a activées (prérequis 1 et 2) ; nécessaires à la
+-- base locale que `supabase db reset` fabrique, qui ne les a pas d'office.
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
 -- `security definer` pour lire le Vault ; personne d'autre que pg_cron n'a à l'appeler. `anon`
 -- et `authenticated` sont nommés : les privilèges par défaut de Supabase leur accordent
 -- EXECUTE sur toute nouvelle fonction, et un `revoke ... from public` ne le retire pas.

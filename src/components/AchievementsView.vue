@@ -14,6 +14,11 @@ const props = defineProps({
   // `{ code, seq }` : le succès à montrer, demandé depuis un toast. `seq` change à chaque
   // demande, pour qu'un second clic sur le même succès le remontre.
   focus: { type: Object, default: null },
+  /**
+   * Faux avant l'ouverture de l'arène : ses succès n'y sont pas encore. Affichés, ils se
+   * liraient comme des objectifs impossibles plutôt que comme une annonce.
+   */
+  arenaOpen: { type: Boolean, default: true },
 })
 defineEmits(['retry'])
 
@@ -22,7 +27,8 @@ const filter = ref('all')
 const tier = ref(null)
 const focused = ref(null)
 
-const items = computed(() => ACHIEVEMENTS.map((a) => {
+const catalogue = computed(() => (props.arenaOpen ? ACHIEVEMENTS : ACHIEVEMENTS.filter((a) => a.group !== 'arena')))
+const items = computed(() => catalogue.value.map((a) => {
   const row = props.owned[a.code] ?? null
   return {
     a, row,
@@ -36,16 +42,27 @@ const newestFirst = (x, y) => (x.row.unlocked_at < y.row.unlocked_at ? 1 : x.row
 // Un succès caché non obtenu ne montre pas sa rareté : le filtre par rareté ne doit pas la
 // trahir en le comptant.
 const ofTier = (i, t) => i.state !== 'hidden' && i.a.tier === t
-const ofStatus = (i, key) => key === 'all' || i.state === key
+// « Cachés » regroupe tous les succès cachés, ceux déjà trouvés compris : on y vient voir ce
+// qu'on a découvert autant que ce qu'il reste.
+const ofStatus = (i, key) => key === 'all' || (key === 'hidden' ? i.a.hidden : i.state === key)
 const shown = computed(() => (tier.value ? items.value.filter((i) => ofTier(i, tier.value)) : items.value))
 
-const groups = computed(() => [
-  ['owned', 'Obtenus', shown.value.filter((i) => i.state === 'owned').sort(newestFirst)],
-  ['todo', 'En cours', shown.value.filter((i) => i.state === 'todo')],
-  ['hidden', 'Cachés', shown.value.filter((i) => i.state === 'hidden')],
-].filter(([key, , list]) => list.length && ofStatus({ state: key }, filter.value)))
+const groups = computed(() => {
+  const kept = shown.value.filter((i) => ofStatus(i, filter.value))
+  return [
+    ['owned', 'Obtenus', kept.filter((i) => i.state === 'owned').sort(newestFirst)],
+    ['todo', 'En cours', kept.filter((i) => i.state === 'todo')],
+    ['hidden', 'Cachés', kept.filter((i) => i.state === 'hidden')],
+  ].filter(([, , list]) => list.length)
+})
 
 const countOf = (key) => shown.value.filter((i) => ofStatus(i, key)).length
+// Sur « Cachés », le compteur dit aussi combien on en a trouvé.
+const countLabel = (key) => {
+  if (key !== 'hidden') return countOf(key)
+  const all = shown.value.filter((i) => ofStatus(i, 'hidden'))
+  return `${all.filter((i) => i.state === 'owned').length} / ${all.length}`
+}
 const tierCountOf = (t) => items.value.filter((i) => ofTier(i, t) && ofStatus(i, filter.value)).length
 const ownedCount = computed(() => items.value.filter((i) => i.state === 'owned').length)
 const byTier = computed(() =>
@@ -72,8 +89,7 @@ watch(
   <section class="view">
     <div class="view-head">
       <div>
-        <div class="eyebrow">Succès</div>
-        <h1 class="view-title">Tes <i>succès</i></h1>
+        <h1 class="view-title">Succès</h1>
       </div>
     </div>
 
@@ -88,7 +104,7 @@ watch(
     <div v-else class="ach-sheet">
       <div class="ach-head">
         <h2 class="ach-title">Registre des succès</h2>
-        <div class="ach-total"><b>{{ ownedCount }}</b> / {{ ACHIEVEMENTS.length }}</div>
+        <div class="ach-total"><b>{{ ownedCount }}</b> / {{ catalogue.length }}</div>
         <div class="ach-tiers">
           <span v-for="{ t, n } in byTier" :key="t" class="ach-tier-count" :class="`ach-t-${t}`" :title="TIER_LABEL[t]">
             <i></i>{{ n }}
@@ -100,7 +116,7 @@ watch(
         <button
           v-for="[key, label] in FILTERS" :key="key" class="ach-filter" :class="{ active: filter === key }"
           :aria-pressed="filter === key" @click="filter = key"
-        >{{ label }}<em>{{ countOf(key) }}</em></button>
+        >{{ label }}<em>{{ countLabel(key) }}</em></button>
       </div>
       <div class="ach-filters ach-filters-tier">
         <button class="ach-filter" :class="{ active: !tier }" :aria-pressed="!tier" @click="tier = null">Toutes raretés</button>

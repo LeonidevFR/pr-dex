@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import AchievementsView from './AchievementsView.vue'
+import { ACHIEVEMENTS } from '../lib/achievements.js'
 
 const OWNED = {
   'deja-vu': { code: 'deja-vu', unlocked_at: '2026-09-02', trigger_key: 'github:b', announced: true },
@@ -18,7 +19,7 @@ const row = (w, code) => w.find(`[data-code="${code}"]`)
 
 describe('AchievementsView', () => {
   it('compte les succès obtenus sur le total', () => {
-    expect(mountView().find('.ach-total').text()).toBe('2 / 37')
+    expect(mountView().find('.ach-total').text()).toBe('2 / 58')
   })
 
   it('un succès obtenu montre son nom, sa date, son palier et qui l’a', () => {
@@ -48,22 +49,27 @@ describe('AchievementsView', () => {
     expect(r.find('.ach-rarity small').text()).toBe('Personne encore')
   })
 
-  it('le filtre Cachés ne garde que les succès cachés non obtenus', async () => {
+  it('le filtre Cachés montre les cachés trouvés, puis ceux qu’il reste', async () => {
     const w = mountView()
-    await w.findAll('.ach-filter').find((b) => b.text().startsWith('Cachés')).trigger('click')
-    expect(w.findAll('.ach-group').map((g) => g.text())).toEqual(['Cachés'])
-    expect(w.findAll('.ach-row').every((r) => r.classes('is-hidden'))).toBe(true)
+    const filtre = w.findAll('.ach-filter').find((b) => b.text().startsWith('Cachés'))
+    const total = ACHIEVEMENTS.filter((a) => a.hidden).length
+    expect(filtre.find('em').text()).toBe(`1 / ${total}`)
+    await filtre.trigger('click')
+    expect(w.findAll('.ach-group').map((g) => g.text())).toEqual(['Obtenus', 'Cachés'])
+    expect(w.findAll('.ach-row.is-owned').map((r) => r.attributes('data-code'))).toEqual(['deja-vu'])
+    expect(w.findAll('.ach-row')).toHaveLength(total)
   })
 
   it('le filtre par rareté ne compte ni ne montre les succès cachés non obtenus', async () => {
     const w = mountView()
     const common = w.findAll('.ach-filters-tier .ach-filter').find((b) => b.text().startsWith('Commun'))
-    expect(common.find('em').text()).toBe('5')
+    expect(common.find('em').text()).toBe('9')
     await common.trigger('click')
-    expect(w.findAll('.ach-row').map((r) => r.attributes('data-code')).sort())
-      .toEqual(['deja-vu', 'lineage-1', 'shiny-1', 'species-100', 'species-50'])
+    expect(w.findAll('.ach-row').map((r) => r.attributes('data-code')).sort()).toEqual([
+      'arena-win-1', 'cards-100', 'deja-vu', 'lineage-1', 'sell-10', 'shiny-1', 'shop-1', 'species-100', 'species-50',
+    ])
     await common.trigger('click')
-    expect(w.findAll('.ach-row')).toHaveLength(37)
+    expect(w.findAll('.ach-row')).toHaveLength(58)
   })
 
   it('affiche l’erreur et réessaie', async () => {

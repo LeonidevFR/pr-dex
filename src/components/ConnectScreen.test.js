@@ -30,11 +30,20 @@ describe('ConnectScreen', () => {
     ['offline', 'Pas de réseau'],
     ['server', 'Service indisponible'],
   ])('donne un diagnostic distinct pour « %s »', (kind, expected) => {
-    expect(mountConnect({ error: kind }).find('.banner.err').text()).toContain(expected)
+    expect(mountConnect({ error: kind }).find('.notice-toast').text()).toContain(expected)
   })
 
-  it('n’affiche aucun bandeau sans erreur', () => {
-    expect(mountConnect().find('.banner').exists()).toBe(false)
+  it('n’affiche aucun message sans erreur', () => {
+    expect(mountConnect().find('.notice-toast').exists()).toBe(false)
+  })
+
+  it('referme le message à la croix, et le rouvre au prochain essai', async () => {
+    const w = mountConnect({ error: 'offline' })
+    await w.find('.toast-x').trigger('click')
+    expect(w.find('.notice-toast').exists()).toBe(false)
+    await w.setProps({ busy: true })
+    await w.setProps({ busy: false })
+    expect(w.find('.notice-toast').text()).toContain('Pas de réseau')
   })
 
   it('désactive le bouton pendant la connexion', () => {

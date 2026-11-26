@@ -38,7 +38,7 @@ const cardsLabel = (n) => (n > 1 ? `${n} nouvelles cartes` : `${n} nouvelle cart
       <template v-else-if="sync.phase === 'found'">
         <Sparkle class="toast-ico" :size="18" aria-hidden="true" />
         <div class="toast-copy"><span class="bt">{{ cardsLabel(sync.count) }}</span></div>
-        <button class="btn-solid sync-open" @click="emit('open')">Retourner</button>
+        <button class="btn-solid sync-open" @click="emit('open')">Ouvrir</button>
         <button class="toast-x" aria-label="Fermer" @click="emit('dismiss')"><X :size="16" aria-hidden="true" /></button>
       </template>
       <template v-else>

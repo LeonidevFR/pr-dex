@@ -56,23 +56,39 @@ describe('TheRail', () => {
   describe('onglets', () => {
     const tab = (w, label) => w.findAll('.rail-tab').find((t) => t.text() === label)
 
-    it('propose les quatre vues dans une navigation', () => {
+    it('propose les six lieux dans une navigation', () => {
       const w = mountRail()
       expect(w.find('nav.rail-nav').exists()).toBe(true)
-      expect(w.findAll('.rail-tab').map((t) => t.text())).toEqual(['Collection', 'Leaderboard', 'Statistiques', 'Succès'])
+      expect(w.findAll('.rail-tab').map((t) => t.text()))
+        .toEqual(['Collection', 'Duels', 'Boutique', 'Scores', 'Succès', 'Ma fiche'])
+    })
+
+    /**
+     * Il y a eu un onglet « Arène » qui en cachait quatre autres dans leur propre barre. Ce
+     * second niveau venait d'un classement par famille, qui dédoublait les écrans : deux
+     * classements des mêmes personnes, deux pages « ce que j'ai ». Regroupés par fonction, les
+     * cinq tiennent au premier niveau, dans la largeur que le rail avait déjà.
+     */
+    it('ne cache plus aucun lieu derrière un second niveau', async () => {
+      const w = mountRail({ view: 'duels' })
+      const duels = w.findAll('.rail-tab').find((t) => t.text() === 'Duels')
+      expect(duels.classes()).toContain('active')
+      await duels.trigger('click')
+      expect(w.emitted('navigate').at(-1)).toEqual(['duels'])
+      expect(w.find('.place-nav').exists()).toBe(false)
     })
 
     it('marque l’onglet courant, pour l’œil et pour les lecteurs d’écran', () => {
-      const w = mountRail({ view: 'team' })
-      expect(tab(w, 'Leaderboard').classes()).toContain('active')
-      expect(tab(w, 'Leaderboard').attributes('aria-current')).toBe('page')
+      const w = mountRail({ view: 'classements' })
+      expect(tab(w, 'Scores').classes()).toContain('active')
+      expect(tab(w, 'Scores').attributes('aria-current')).toBe('page')
       expect(tab(w, 'Collection').attributes('aria-current')).toBeUndefined()
     })
 
     it('émet navigate avec la vue cliquée', async () => {
       const w = mountRail()
-      await tab(w, 'Statistiques').trigger('click')
-      expect(w.emitted('navigate')[0]).toEqual(['stats'])
+      await tab(w, 'Ma fiche').trigger('click')
+      expect(w.emitted('navigate')[0]).toEqual(['moi'])
     })
 
     it('n’a plus ni filtre ni trophée', () => {
@@ -143,12 +159,12 @@ describe('TheRail', () => {
   })
 
   describe('vocabulaire', () => {
-    it('invite à retourner les cartes en attente', () => {
-      expect(mountRail({ pendingCount: 4 }).find('.claim-btn').text()).toBe('Retourner 4')
+    it('invite à ouvrir les cartes en attente', () => {
+      expect(mountRail({ pendingCount: 4 }).find('.claim-btn').text()).toBe('Ouvrir 4')
     })
 
-    it('dit qu’il n’y a rien à retourner', () => {
-      expect(mountRail({ pendingCount: 0 }).find('.claim-btn').text()).toBe('Rien à retourner')
+    it('dit qu’il n’y a rien à ouvrir', () => {
+      expect(mountRail({ pendingCount: 0 }).find('.claim-btn').text()).toBe('Rien à ouvrir')
     })
   })
 
@@ -172,16 +188,47 @@ describe('TheRail', () => {
     expect(mountRail({ caughtCount: 41 }).find('.progress').text()).toContain('Pokédex')
   })
 
-  it('propose un 4e onglet Succès', async () => {
+  it('se replie en icônes et s’en souvient', async () => {
+    localStorage.removeItem('pr-dex-sidebar-collapsed')
     const w = mountRail()
-    const tabs = w.findAll('.rail-tab')
-    expect(tabs.map((t) => t.text())).toEqual(['Collection', 'Leaderboard', 'Statistiques', 'Succès'])
-    await tabs[3].trigger('click')
-    expect(w.emitted('navigate')).toEqual([['achievements']])
+    expect(w.find('.side').classes()).not.toContain('collapsed')
+    await w.find('.side-collapse').trigger('click')
+    expect(w.find('.side').classes()).toContain('collapsed')
+    expect(document.documentElement.dataset.sidebar).toBe('collapsed')
+    expect(mountRail().find('.side').classes()).toContain('collapsed')
+    localStorage.removeItem('pr-dex-sidebar-collapsed')
   })
 
-  it('pastille l’onglet Succès des succès pas encore montrés', () => {
+  it('referme le tiroir mobile une fois le lieu choisi', async () => {
+    const w = mountRail()
+    await w.find('.side-burger').trigger('click')
+    expect(w.find('.side').classes()).toContain('open')
+    await w.findAll('.rail-tab').find((t) => t.text() === 'Duels').trigger('click')
+    expect(w.find('.side').classes()).not.toContain('open')
+    expect(w.emitted('navigate').at(-1)).toEqual(['duels'])
+  })
+
+  it('pastille l’entrée Succès des succès pas encore montrés', () => {
     expect(mountRail({ achievementsBadge: 8 }).find('.rail-tab-pip').text()).toBe('8')
+    expect(mountRail({ achievementsBadge: 8 }).find('.rail-tab-pip').element.parentElement.textContent).toMatch(/^Succès/)
     expect(mountRail({ achievementsBadge: 0 }).find('.rail-tab-pip').exists()).toBe(false)
   })
 })
+
+/**
+ * Des onglets et non plus des icônes : une icône dit « une action », un onglet dit « tu es
+ * ici ». Avec un seul écran la nuance ne coûtait rien ; à cinq lieux, ne pas savoir où l'on se
+ * trouve devient le problème principal.
+ */
+
+/**
+ * Un jeu d'icônes tracé dans le projet plutôt qu'une bibliothèque : le build ne dépend d'aucun
+ * CDN, et six symboles ne justifient pas les dizaines de kilo-octets d'un paquet.
+ */
+
+/**
+ * La couleur du lieu doit se VOIR. Un premier essai la posait en voile à 9 % d'opacité :
+ * présente dans le code, invisible à l'écran — et une couleur qu'on ne remarque pas ne sert à
+ * rien. Elle porte désormais trois marques, dont deux que l'œil vise d'emblée.
+ */
+

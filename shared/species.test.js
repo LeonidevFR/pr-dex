@@ -4,7 +4,7 @@ import { SPECIES, DEX, PARENT, POOL, NOT_DRAWABLE, familyOf, hasEvoInFamily, fam
 describe('table des espèces', () => {
   it('contient exactement les 151 de la première génération', () => {
     expect(SPECIES).toHaveLength(151)
-    expect(Object.keys(DEX)).toHaveLength(151)
+    expect(SPECIES.map(([id]) => id)).toHaveLength(151)
     for (let id = 1; id <= 151; id++) expect(DEX[id]).toBeDefined()
   })
 
@@ -13,7 +13,10 @@ describe('table des espèces', () => {
     expect(POOL.u).toHaveLength(78)
     expect(POOL.r).toHaveLength(45)
     expect(POOL.l).toHaveLength(5)
-    expect(POOL.c.length + POOL.u.length + POOL.r.length + POOL.l.length).toBe(151 - NOT_DRAWABLE.size)
+    // `NOT_DRAWABLE` porte aussi toute la Gen 2, qui n'est pas sur la planche : la soustraire
+    // en bloc compterait deux fois ce qui n'y a jamais figuré.
+    expect(POOL.c.length + POOL.u.length + POOL.r.length + POOL.l.length)
+      .toBe(SPECIES.filter(([id]) => !NOT_DRAWABLE.has(id)).length)
   })
 
   it('déclare les cinq légendaires', () => {
@@ -61,7 +64,7 @@ describe('table des espèces', () => {
   })
 
   it('chaque évolueVers pointe vers une espèce existante', () => {
-    for (const s of Object.values(DEX)) {
+    for (const s of SPECIES.map(([id]) => DEX[id])) {
       if (!s.to) continue
       const targets = Array.isArray(s.to) ? s.to : [s.to]
       for (const t of targets) expect(DEX[t]).toBeDefined()
@@ -70,7 +73,7 @@ describe('table des espèces', () => {
 
   it('aucune collision de cible d’évolution entre deux espèces distinctes', () => {
     const seenBy = {}
-    for (const s of Object.values(DEX)) {
+    for (const s of SPECIES.map(([id]) => DEX[id])) {
       if (!s.to) continue
       const targets = Array.isArray(s.to) ? s.to : [s.to]
       for (const t of targets) {
@@ -113,7 +116,7 @@ describe('table des espèces', () => {
   })
 
   it('associe un coût à toute espèce qui évolue, et aucun aux autres', () => {
-    for (const s of Object.values(DEX)) {
+    for (const s of SPECIES.map(([id]) => DEX[id])) {
       if (s.to) expect(s.cost).toBeGreaterThan(0)
       else expect(s.cost).toBeNull()
     }
