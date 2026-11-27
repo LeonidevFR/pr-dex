@@ -268,10 +268,14 @@
   .cell-origin{position:absolute;left:10px;top:8px;font-family:var(--f-data);font-size:10px;color:var(--gold);opacity:0;transition:opacity .16s;z-index:2}
   .cell.has:hover .cell-origin{opacity:1}
   /* Serrée : en libellé complet (« Peu commun »), elle doit tenir à côté du numéro dans une case de 120 px. */
-  .cell-pill{position:absolute;right:7px;top:7px;z-index:2;font-family:var(--f-ui);font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 6px;border-radius:999px;white-space:nowrap}
-  .cell-pill.u{background:rgba(127,181,154,.14);color:var(--u-text)}
-  .cell-pill.r{background:rgba(215,117,106,.16);color:var(--r-text)}
-  .cell-pill.l{background:rgba(212,176,106,.2);color:var(--l-text)}
+  /* À cheval sur le bord haut, comme une étiquette de vitrine : sur la ligne du numéro, le mot
+     entier ne tient pas dans une case de 91 px. Le fond est opaque pour couvrir le bord et le
+     filet du légendaire ou du shiny, d'où le `z-index` au-dessus du leur. */
+  .cell-pill{position:absolute;left:50%;top:0;transform:translate(-50%,-50%);z-index:4;font-family:var(--f-ui);font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1;padding:3px 6px;border-radius:999px;white-space:nowrap;
+    background:color-mix(in srgb,var(--tier) 16%,var(--surface-hi));border:1px solid color-mix(in srgb,var(--tier) 38%,var(--surface-hi))}
+  .cell-pill.u{color:var(--u-text)}
+  .cell-pill.r{color:var(--r-text)}
+  .cell-pill.l{color:var(--l-text)}
   .cell-dupes{position:absolute;left:10px;bottom:8px;z-index:2;font-family:var(--f-ui);font-size:10px;font-weight:700;color:var(--gold)}
   .cell-shiny{color:var(--l-text);filter:drop-shadow(0 0 4px rgba(201,167,230,.9))}
   .cell-evo{width:16px;height:16px;border-radius:50%;background:rgba(127,181,154,.2);color:var(--u-text);display:grid;place-items:center}
