@@ -37,20 +37,18 @@ const PILL = { u: TIER_LABEL.u, r: TIER_LABEL.r, l: TIER_LABEL.l }
 const TABLES = { 1: SPECIES, 2: SPECIES_GEN2 }
 const ids = computed(() => TABLES[props.gen].map(([id]) => id))
 /**
- * Ce que la case doit montrer : le stock qu'on a EN MAIN.
- *
- * La case lisait `bySpecies`, qui garde tout ce qui a été vu — un shiny perdu à l'arène laissait
- * donc une case dorée qu'on ouvrait sur une fiche sans le moindre shiny, et le bandeau d'origine
- * nommait la provenance d'un exemplaire qui n'existait plus.
- *
- * Quand il ne reste rien, on retombe sur le brut : le Pokédex garde ce qu'il a rencontré, et une
- * case grise à la place d'une espèce acquise serait un mensonge dans l'autre sens.
+ * L'origine et le compte de la case suivent le stock EN MAIN : le bandeau ne doit pas nommer la
+ * provenance d'un exemplaire parti. Sans stock, on retombe sur le brut — le Pokédex garde ce
+ * qu'il a rencontré.
  */
 const shown = (id) => {
   const dispo = props.available[id]
   return dispo?.length ? dispo : props.bySpecies[id] ?? []
 }
-const isShiny = (entries) => entries?.some((e) => e.shiny) ?? false
+// Le shiny, lui, est acquis à l'espèce comme l'espèce l'est au Pokédex : la case, la fiche, le
+// filtre et le classement lisent tous `bySpecies`. Lu sur le stock en main, il s'éteignait à la
+// capture d'un exemplaire ordinaire alors que la fiche le montrait encore.
+const isShiny = (id) => props.bySpecies[id]?.some((e) => e.shiny) ?? false
 const copyCount = (id) => props.available[id]?.length ?? props.bySpecies[id]?.length ?? 0
 
 const TIERS = Object.keys(TIER_LABEL)
@@ -81,7 +79,7 @@ const visibleIds = computed(() =>
     if (props.statusFilter === 'caught' && !caught) return false
     if (props.statusFilter === 'uncaught' && caught) return false
     if (props.statusFilter === 'evolvable' && !props.evolvable.has(id)) return false
-    if (props.statusFilter === 'shiny' && !isShiny(props.bySpecies[id])) return false
+    if (props.statusFilter === 'shiny' && !isShiny(id)) return false
     return true
   }),
 )
@@ -103,7 +101,7 @@ const emptyLabel = computed(() => {
 
 const evolvableCount = computed(() => props.evolvable.size)
 // Le même compte que les étoiles de la grille : une espèce par case, évolutions comprises.
-const shinyCount = computed(() => ids.value.filter((id) => isShiny(props.bySpecies[id])).length)
+const shinyCount = computed(() => ids.value.filter(isShiny).length)
 const tierOf = (id) => DEX[id].tier
 </script>
 
@@ -164,7 +162,7 @@ const tierOf = (id) => DEX[id].tier
     >Évoluables · {{ evolvableCount }}</button>
     <button
       class="filter-chip chip-shiny" :class="{ active: statusFilter === 'shiny' }"
-      title="Espèces dont tu tiens un exemplaire shiny"
+      title="Espèces dont tu as obtenu un exemplaire shiny"
       @click="emit('set-status-filter', 'shiny')"
     >Shiny · {{ shinyCount }}</button>
   </div>
@@ -173,7 +171,7 @@ const tierOf = (id) => DEX[id].tier
     <button
       v-for="id in visibleIds" :key="id" class="cell"
       :class="{
-        has: bySpecies[id], ghost: !bySpecies[id], shiny: isShiny(shown(id)),
+        has: bySpecies[id], ghost: !bySpecies[id], shiny: isShiny(id),
         legendary: bySpecies[id] && tierOf(id) === 'l',
         rare: bySpecies[id] && tierOf(id) === 'r',
       }"
@@ -187,7 +185,7 @@ const tierOf = (id) => DEX[id].tier
       </span>
       <span v-if="bySpecies[id] && PILL[tierOf(id)]" class="cell-pill" :class="tierOf(id)">{{ PILL[tierOf(id)] }}</span>
       <img
-        :src="spriteUrl(id, isShiny(shown(id)))" :alt="DEX[id].name" loading="lazy"
+        :src="spriteUrl(id, isShiny(id))" :alt="DEX[id].name" loading="lazy"
         @error="$event.target.dataset.broken = '1'"
       >
       <span v-if="copyCount(id) > 1" class="cell-dupes mono">×{{ copyCount(id) }}</span>
@@ -197,7 +195,7 @@ const tierOf = (id) => DEX[id].tier
         <span v-if="evolvable.has(id)" class="cell-evo" title="Peut évoluer vers une forme manquante">
           <ChevronsUp :size="11" :stroke-width="2.5" aria-hidden="true" />
         </span>
-        <span v-if="isShiny(shown(id))" class="cell-shiny" role="img" aria-label="shiny">
+        <span v-if="isShiny(id)" class="cell-shiny" role="img" aria-label="shiny">
           <Sparkle :size="12" fill="currentColor" aria-hidden="true" />
         </span>
         <span v-if="bySpecies[id] && tierOf(id) === 'l'" class="cell-legend" role="img" aria-label="légendaire">

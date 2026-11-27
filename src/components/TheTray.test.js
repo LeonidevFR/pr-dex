@@ -72,10 +72,10 @@ describe('TheTray', () => {
   })
 
   /**
-   * Une case dorée qu'on ouvre sur une fiche sans shiny : le seul shiny avait été détruit à
-   * l'arène, et la planche continuait de le montrer parce qu'elle lisait le total brut.
+   * Le shiny reste acquis à l'espèce : un shiny évolué, vendu ou détruit, puis un ordinaire
+   * capturé, et la case s'éteignait alors que la fiche et le filtre Shiny le montraient encore.
    */
-  it('cesse de montrer un shiny quand le seul exemplaire shiny a disparu', () => {
+  it('garde le shiny quand l’exemplaire shiny est parti et qu’un ordinaire reste en main', () => {
     const ordinaire = entry('a', 1)
     const w = mount(TheTray, {
       props: {
@@ -84,8 +84,9 @@ describe('TheTray', () => {
       },
     })
     const cell = w.findAll('.cell')[0]
-    expect(cell.classes()).not.toContain('shiny')
-    expect(cell.find('img').attributes('src')).not.toContain('shiny')
+    expect(cell.classes()).toContain('shiny')
+    expect(cell.find('.cell-shiny').exists()).toBe(true)
+    expect(cell.find('img').attributes('src')).toContain('/shiny/')
   })
 
   it('nomme l’origine d’un exemplaire encore en main, pas celle d’un exemplaire perdu', () => {
